@@ -1,0 +1,4 @@
+allowBuilds:
+  vue-demi: true
+patchedDependencies:
+  mande@2.0.9: patches/mande@2.0.9.patch

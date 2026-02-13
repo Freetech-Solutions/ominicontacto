@@ -440,6 +440,9 @@ class DefineBaseDatosContactoView(UpdateView):
         columna_id_externo = form_campos_telefonicos.columna_id_externo
         if columna_id_externo is not None:
             metadata.columna_id_externo = columna_id_externo
+        columna_email = form_campos_telefonicos.columna_email
+        if columna_email is not None:
+            metadata.columna_email = columna_email
 
         metadata.nombres_de_columnas = estructura_archivo[0]
         es_encabezado = False
@@ -451,7 +454,8 @@ class DefineBaseDatosContactoView(UpdateView):
         try:
             self.base_datos_contacto_service.importa_contactos(self.object,
                                                                campos_telefonicos,
-                                                               columna_id_externo)
+                                                               columna_id_externo,
+                                                               columna_email)
         except CreacionBaseDatosServiceIdExternoError as e:
             message = _('<strong>Operación Errónea!</strong> ') +\
                 _('El archivo que seleccionó posee contactos con identificadores externos '

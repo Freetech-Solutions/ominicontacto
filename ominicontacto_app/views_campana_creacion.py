@@ -39,7 +39,8 @@ from ominicontacto_app.forms.base import (
     CampanaSupervisorUpdateForm, QueueMemberFormset, GrupoAgenteForm,
     CustomBaseDatosContactoForm,
     CampanaConfiguracionWhatsappForm, CampanaConfiguracionMetaFacebookForm,
-    CampanaConfiguracionInstagramForm)
+    CampanaConfiguracionInstagramForm, CampaignEmailAccountForm,
+)
 from ominicontacto_app.models import (Campana, ArchivoDeAudio, SitioExterno, SupervisorProfile,
                                       AgenteProfile)
 from ominicontacto_app.services.creacion_queue import (ActivacionQueueService,
@@ -47,6 +48,7 @@ from ominicontacto_app.services.creacion_queue import (ActivacionQueueService,
 from ominicontacto_app.tests.factories import COLUMNAS_DB_DEFAULT
 from ominicontacto_app.tests.factories import COLUMNAS_DB_DEFAULT_TELEFONO
 from ominicontacto_app.tests.factories import COLUMNAS_DB_DEFAULT_ID_EXTERNO
+from ominicontacto_app.tests.factories import COLUMNAS_DB_DEFAULT_EMAIL
 from ominicontacto_app.utiles import cast_datetime_part_date, obtener_opciones_columnas_bd
 
 import logging as logging_
@@ -203,6 +205,11 @@ def mostrar_form_configuracion_instagram_form(wizard):
     return cleaned_data.get('instagram_habilitado', '')
 
 
+def mostrar_form_configuracion_email_form(wizard):
+    cleaned_data = wizard.get_cleaned_data_for_step(CampanaWizardMixin.INICIAL) or {}
+    return cleaned_data.get('email_habilitado', '')
+
+
 def use_custom_basedatoscontacto_form(wizard):
     cleaned_data = wizard.get_cleaned_data_for_step(CampanaWizardMixin.INICIAL)
     return cleaned_data and cleaned_data.get("bd_contacto") is None
@@ -214,6 +221,7 @@ class CampanaWizardMixin(object):
     CONFIGURACION_WHATSAPP = '2'
     CONFIGURACION_META_FACEBOOK = '3'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '4'
     PARAMETROS_CRM = '5'
     ADICION_SUPERVISORES = '6'
@@ -225,6 +233,7 @@ class CampanaWizardMixin(object):
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (CUSTOM_BASEDATOSCONTACTO, CustomBaseDatosContactoForm),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
@@ -239,6 +248,7 @@ class CampanaWizardMixin(object):
                  "campanas/campana_entrante/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_entrante/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_entrante/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_entrante/opcion_calificacion.html",
                  CUSTOM_BASEDATOSCONTACTO:
                  "campanas/campana_entrante/custom-basedatoscontacto.html",
@@ -253,6 +263,7 @@ class CampanaWizardMixin(object):
         CONFIGURACION_WHATSAPP: mostrar_form_configuracion_whatsapp_form,
         CONFIGURACION_META_FACEBOOK: mostrar_form_configuracion_meta_facebook_form,
         CONFIGURACION_INSTAGRAM: mostrar_form_configuracion_instagram_form,
+        CONFIGURACION_EMAIL: mostrar_form_configuracion_email_form,
     }
 
     def get_template_names(self):
@@ -277,6 +288,8 @@ class CampanaWizardMixin(object):
                 return campana.configuracion_instagram
             else:
                 return None
+        if step == self.CONFIGURACION_EMAIL:
+            return getattr(campana, 'email_account', None)
 
     def get_form_kwargs(self, step):
         if step == self.ADICION_SUPERVISORES:
@@ -296,6 +309,11 @@ class CampanaWizardMixin(object):
                 cleaned_data.get("sitio_externo", None).disparador == SitioExterno.CALIFICACION
             return {'form_kwargs': {'con_formulario': con_formulario,
                                     'con_crm_calificacion': con_crm_calificacion}}
+        if step == self.CUSTOM_BASEDATOSCONTACTO:
+            cleaned_data_inicial = self.get_cleaned_data_for_step(self.INICIAL) or {}
+            kwargs = super().get_form_kwargs(step)
+            kwargs["email_habilitado"] = cleaned_data_inicial.get("email_habilitado")
+            return kwargs
         else:
             return {}
 
@@ -391,6 +409,7 @@ class CampanaWizardMixin(object):
             context['meta_facebook_habilitado'] =\
                 cleaned_data_step_initial['meta_facebook_habilitado']
             context['instagram_habilitado'] = cleaned_data_step_initial['instagram_habilitado']
+            context['email_habilitado'] = cleaned_data_step_initial['email_habilitado']
             context['custom_basedatoscontacto'] = cleaned_data_step_initial['bd_contacto'] is None
         else:
             context['custom_basedatoscontacto'] = False
@@ -401,6 +420,7 @@ class CampanaWizardMixin(object):
                 context['whatsapp_habilitado'] = campana.whatsapp_habilitado
                 context['meta_facebook_habilitado'] = campana.meta_facebook_habilitado
                 context['instagram_habilitado'] = campana.instagram_habilitado
+                context['email_habilitado'] = campana.email_habilitado
 
         # se adiciona el formulario de los grupos para etapa de asignación de agentes
         if current_step == self.ADICION_AGENTES:
@@ -523,6 +543,7 @@ class CampanaEntranteCreateView(CampanaEntranteMixin, SessionWizardView):
         whatsapp_habilitado = campana_form.instance.whatsapp_habilitado
         meta_facebook_habilitado = campana_form.instance.meta_facebook_habilitado
         instagram_habilitado = campana_form.instance.instagram_habilitado
+        email_habilitado = campana_form.instance.email_habilitado
         queue_form = form_dict[self.COLA]
         campana_form.instance.type = Campana.TYPE_ENTRANTE
         campana_form.instance.reported_by = self.request.user
@@ -546,6 +567,12 @@ class CampanaEntranteCreateView(CampanaEntranteMixin, SessionWizardView):
         if instagram_habilitado:
             self._save_configuracion_instagram(
                 form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
+
+        if email_habilitado:
+            configuracion_email_form = form_dict.get(self.CONFIGURACION_EMAIL)
+            if configuracion_email_form.is_valid():
+                configuracion_email_form.instance.campaign = campana
+                configuracion_email_form.instance.save()
 
         opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         queue_form.instance.campana = campana
@@ -589,6 +616,7 @@ class CampanaEntranteCreateView(CampanaEntranteMixin, SessionWizardView):
                         "nombres_de_columnas": COLUMNAS_DB_DEFAULT,
                         "cols_telefono": COLUMNAS_DB_DEFAULT_TELEFONO,
                         "col_id_externo": COLUMNAS_DB_DEFAULT_ID_EXTERNO,
+                        "col_email": COLUMNAS_DB_DEFAULT_EMAIL,
                     },
                     cls=json.DjangoJSONEncoder
                 )
@@ -606,6 +634,7 @@ class CampanaEntranteUpdateView(CampanaEntranteMixin, SessionWizardView):
     CONFIGURACION_WHATSAPP = '2'
     CONFIGURACION_META_FACEBOOK = '3'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '4'
     PARAMETROS_CRM = '5'
 
@@ -614,6 +643,7 @@ class CampanaEntranteUpdateView(CampanaEntranteMixin, SessionWizardView):
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet)]
 
@@ -624,6 +654,7 @@ class CampanaEntranteUpdateView(CampanaEntranteMixin, SessionWizardView):
                  "campanas/campana_entrante/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_entrante/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_entrante/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_entrante/opcion_calificacion.html",
                  PARAMETROS_CRM: "campanas/campana_entrante/parametros_crm_sitio_externo.html"}
 
@@ -654,6 +685,13 @@ class CampanaEntranteUpdateView(CampanaEntranteMixin, SessionWizardView):
         if campana.instagram_habilitado:
             self._save_configuracion_instagram(
                 form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
+
+        if campana.email_habilitado:
+            configuracion_email_form = form_dict.get(self.CONFIGURACION_EMAIL)
+            if configuracion_email_form.is_valid():
+                if configuracion_email_form.instance.pk is None:
+                    configuracion_email_form.instance.campaign = campana
+                configuracion_email_form.instance.save()
 
         opts_calif_init_formset = form_dict[self.OPCIONES_CALIFICACION]
         opts_calif_init_formset.instance = campana
@@ -691,6 +729,7 @@ class CampanaEntranteTemplateCreateView(CampanaTemplateCreateMixin, CampanaEntra
     CONFIGURACION_WHATSAPP = '2'
     CONFIGURACION_META_FACEBOOK = '3'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '4'
     PARAMETROS_CRM = '5'
     CUSTOM_BASEDATOSCONTACTO = 'custom-basedatoscontacto'
@@ -700,6 +739,7 @@ class CampanaEntranteTemplateCreateView(CampanaTemplateCreateMixin, CampanaEntra
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (CUSTOM_BASEDATOSCONTACTO, CustomBaseDatosContactoForm),
              (PARAMETROS_CRM, ParametrosCrmFormSet)]
@@ -711,6 +751,7 @@ class CampanaEntranteTemplateCreateView(CampanaTemplateCreateMixin, CampanaEntra
                  "campanas/campana_entrante/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_entrante/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_entrante/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_entrante/opcion_calificacion.html",
                  CUSTOM_BASEDATOSCONTACTO:
                  "campanas/campana_entrante/custom-basedatoscontacto.html",

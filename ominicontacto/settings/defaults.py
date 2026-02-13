@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'orquestador_app.apps.OrquestadorAppConfig',
     'facebook_meta_app.apps.FacebookMetaAppConfig',
     'instagram_app.apps.InstagramAppConfig',
+    'email_app.apps.AppConfig',
     'constance',
     'django_js_reverse',
     'import_export',

@@ -1,0 +1,16 @@
+diff --git a/CHANGELOG.md b/CHANGELOG.md
+deleted file mode 100644
+index 3e109fb4c85472cd80f03e9b399617f116b52ed6..0000000000000000000000000000000000000000
+diff --git a/dist/mande.mjs b/dist/mande.mjs
+index fd8aef525ea196292ce142d2526a4f356013bafa..7d0a2d2c8bb819cd3f3974a247f778dc0949d21b 100644
+--- a/dist/mande.mjs
++++ b/dist/mande.mjs
+@@ -126,7 +126,7 @@ function mande(baseURL, passedInstanceOptions = {}, fetchPolyfill) {
+             responseAs === 'response'
+                 ? response
+                 : // TODO: propagate error data to MandeError
+-                    response[responseAs]().catch(() => null),
++                    response.clone()[responseAs]().catch(() => null),
+         ]))
+             .then(([response, dataOrError]) => {
+             if (response.status >= 200 && response.status < 300) {

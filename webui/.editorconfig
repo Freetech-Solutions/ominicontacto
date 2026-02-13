@@ -1,0 +1,8 @@
+[*.{css,html,js,json,md,ts,tsx,vue}]
+charset = utf-8
+indent_size = 2
+indent_style = space
+insert_final_newline = true
+trim_trailing_whitespace = true
+end_of_line = lf
+max_line_length = 100

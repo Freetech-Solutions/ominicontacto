@@ -18,3 +18,5 @@ exclude =
     facebook_meta_app/migrations/*
     instagram_app/migrations/*
     omnileads_ui/*
+    email_app/migrations/*
+    email_app/vendor/*

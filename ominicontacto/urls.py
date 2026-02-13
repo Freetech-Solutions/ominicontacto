@@ -54,6 +54,7 @@ urlpatterns = [
     re_path(r'^', include('orquestador_app.urls')),
     re_path(r'^accounts/logout/$', auth_views.LogoutView.as_view(next_page='/accounts/login/'),
             name="logout"),
+    path("email/", include(("email_app.urls", "email"), namespace="email"))
 ]
 
 for (route, module) in settings.ADDON_URLPATTERNS:

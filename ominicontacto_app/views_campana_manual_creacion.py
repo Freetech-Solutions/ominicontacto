@@ -31,6 +31,7 @@ from formtools.wizard.views import SessionWizardView
 from ominicontacto_app.forms.base import (CampanaManualForm, OpcionCalificacionFormSet,
                                           ParametrosCrmFormSet, CampanaSupervisorUpdateForm,
                                           CustomBaseDatosContactoForm,
+                                          CampaignEmailAccountForm,
                                           QueueMemberFormset, CampanaConfiguracionWhatsappForm,
                                           CampanaConfiguracionMetaFacebookForm,
                                           CampanaConfiguracionInstagramForm)
@@ -43,6 +44,7 @@ from ominicontacto_app.views_campana_creacion import (CampanaWizardMixin,
                                                       COLUMNAS_DB_DEFAULT,
                                                       COLUMNAS_DB_DEFAULT_TELEFONO,
                                                       COLUMNAS_DB_DEFAULT_ID_EXTERNO,
+                                                      COLUMNAS_DB_DEFAULT_EMAIL,
                                                       mostrar_form_parametros_crm_form)
 from ominicontacto_app.utiles import cast_datetime_part_date
 
@@ -70,12 +72,19 @@ def mostrar_form_configuracion_instagram_form(wizard):
     return cleaned_data.get('instagram_habilitado', '')
 
 
+def mostrar_form_configuracion_email_form(wizard):
+    cleaned_data = wizard.get_cleaned_data_for_step(CampanaWizardMixin.INICIAL) or {}
+    email_habilitado = cleaned_data.get('email_habilitado', '')
+    return email_habilitado
+
+
 class CampanaManualMixin(CampanaWizardMixin):
     INICIAL = '0'
     COLA = None
     CONFIGURACION_WHATSAPP = '1'
     CONFIGURACION_META_FACEBOOK = '2'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '3'
     PARAMETROS_CRM = '4'
     ADICION_SUPERVISORES = '5'
@@ -86,6 +95,7 @@ class CampanaManualMixin(CampanaWizardMixin):
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (CUSTOM_BASEDATOSCONTACTO, CustomBaseDatosContactoForm),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
@@ -98,6 +108,7 @@ class CampanaManualMixin(CampanaWizardMixin):
                  "campanas/campana_manual/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_manual/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_manual/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_manual/opcion_calificacion.html",
                  CUSTOM_BASEDATOSCONTACTO: "campanas/campana_manual/custom-basedatoscontacto.html",
                  PARAMETROS_CRM: "campanas/campana_manual/parametros_crm_sitio_externo.html",
@@ -112,6 +123,7 @@ class CampanaManualMixin(CampanaWizardMixin):
         CONFIGURACION_WHATSAPP: mostrar_form_configuracion_whatsapp_form,
         CONFIGURACION_META_FACEBOOK: mostrar_form_configuracion_meta_facebook_form,
         CONFIGURACION_INSTAGRAM: mostrar_form_configuracion_instagram_form,
+        CONFIGURACION_EMAIL: mostrar_form_configuracion_email_form,
     }
 
 
@@ -136,6 +148,7 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
                         "nombres_de_columnas": COLUMNAS_DB_DEFAULT,
                         "cols_telefono": COLUMNAS_DB_DEFAULT_TELEFONO,
                         "col_id_externo": COLUMNAS_DB_DEFAULT_ID_EXTERNO,
+                        "col_email": COLUMNAS_DB_DEFAULT_EMAIL,
                     },
                     cls=json.DjangoJSONEncoder
                 )
@@ -149,6 +162,7 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
         whatsapp_habilitado = campana.whatsapp_habilitado
         meta_facebook_habilitado = campana.meta_facebook_habilitado
         instagram_habilitado = campana.instagram_habilitado
+        email_habilitado = campana.email_habilitado
         campana_form.instance.type = tipo
         campana_form.instance.reported_by = self.request.user
         campana_form.instance.fecha_inicio = cast_datetime_part_date(timezone.now())
@@ -171,6 +185,12 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
         if instagram_habilitado:
             self._save_configuracion_instagram(
                 form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
+
+        if email_habilitado:
+            configuracion_email_form = form_dict.get(self.CONFIGURACION_EMAIL)
+            if configuracion_email_form.is_valid():
+                configuracion_email_form.instance.campaign = campana
+                configuracion_email_form.instance.save()
 
         opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         auto_grabacion = campana_form.cleaned_data['auto_grabacion']
@@ -222,6 +242,7 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
     CONFIGURACION_WHATSAPP = '1'
     CONFIGURACION_META_FACEBOOK = '2'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '3'
     PARAMETROS_CRM = '4'
 
@@ -229,6 +250,7 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet)]
 
@@ -238,6 +260,7 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
                  "campanas/campana_manual/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_manual/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_manual/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_manual/opcion_calificacion.html",
                  PARAMETROS_CRM: "campanas/campana_manual/parametros_crm_sitio_externo.html"}
 
@@ -276,6 +299,13 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
         if campana.instagram_habilitado:
             self._save_configuracion_instagram(
                 form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
+
+        if campana.email_habilitado:
+            configuracion_email_form = form_dict.get(self.CONFIGURACION_EMAIL)
+            if configuracion_email_form.is_valid():
+                if configuracion_email_form.instance.pk is None:
+                    configuracion_email_form.instance.campaign = campana
+                configuracion_email_form.instance.save()
 
         opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         opciones_calificacion_formset.instance = campana
@@ -317,6 +347,7 @@ class CampanaManualTemplateCreateView(CampanaTemplateCreateMixin, CampanaManualC
     CONFIGURACION_WHATSAPP = '1'
     CONFIGURACION_META_FACEBOOK = '2'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '3'
     PARAMETROS_CRM = '4'
     CUSTOM_BASEDATOSCONTACTO = 'custom-basedatoscontacto'
@@ -325,6 +356,7 @@ class CampanaManualTemplateCreateView(CampanaTemplateCreateMixin, CampanaManualC
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (CUSTOM_BASEDATOSCONTACTO, CustomBaseDatosContactoForm),
              (PARAMETROS_CRM, ParametrosCrmFormSet)]
@@ -335,6 +367,7 @@ class CampanaManualTemplateCreateView(CampanaTemplateCreateMixin, CampanaManualC
                  "campanas/campana_manual/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_manual/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_manual/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_manual/opcion_calificacion.html",
                  CUSTOM_BASEDATOSCONTACTO: "campanas/campana_manual/custom-basedatoscontacto.html",
                  PARAMETROS_CRM: "campanas/campana_manual/parametros_crm_sitio_externo.html"}

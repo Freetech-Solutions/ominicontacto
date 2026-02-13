@@ -421,6 +421,7 @@ class CalificacionTests(OMLBaseTest):
         datos_contacto_form = set(contacto_form.initial.values())
         datos_contacto_model = set(json.loads(self.contacto.datos) + [str(telefono)])
         datos_contacto_model.add(self.contacto.id_externo)
+        datos_contacto_model.add(self.contacto.email)
         self.assertEqual(datos_contacto_form, datos_contacto_model)
 
     def test_muestra_nombre_campana(self):

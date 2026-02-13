@@ -4,13 +4,18 @@
 {% if name == "premiumreports" %}
 <style>body { background-color: oklch(98.4% 0.003 247.858); /*slate-50*/ }</style>
 {% endif %}
+{% if name == "app" %}
+<style> iframe[name="webui"] { height: calc(100vh - 60px - 30px); } .wrapper-info { padding: 4px 0 0 0; }</style>
+{% else %}
+<style>iframe[name="webui"] { height: calc(100vh - 124px); }</style>
+{% endif %}
 {% endblock %}
 
 {% block content %}
   <iframe
     name="webui"
     src="/{{ prefix }}-{{ name }}/{{ path }}{% if request.META.QUERY_STRING %}?{{ request.META.QUERY_STRING }}{% endif %}"
-    style="border: none; display: block; height: calc(100vh - 124px); margin: 0; padding: 0; width: 100%;">
+    style="border: none; display: block; margin: 0; padding: 0; width: 100%;">
   </iframe>
   <script>
     (function(){
