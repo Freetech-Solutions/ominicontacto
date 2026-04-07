@@ -183,7 +183,11 @@ msgstr "Chamadas efetuadas"
 msgid "Atendidas"
 msgstr "Atendidas"
 
-#: supervision_app/templates/supervision_campanas_dialers.html:63
+#: supervision_app/templates/supervision_campanas_dialers.html:67
+msgid "Shortcall"
+msgstr "Shortcall"
+
+#: supervision_app/templates/supervision_campanas_dialers.html:68
 #: supervision_app/templates/supervision_campanas_salientes.html:38
 msgid "No atendidas"
 msgstr "Não atendidas"

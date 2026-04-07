@@ -162,13 +162,11 @@ class ReporteDeLLamadasEntrantesDeSupervisionTest(OMLBaseTest):
                 'EventList: Complete\r\nListItems: 31\r\n').format(
                     campana_entrante.get_queue_id_name())
 
-    @patch.object(ReporteDeLLamadasEntrantesDeSupervision, '_obtener_llamadas_en_espera_raw')
-    def test_contabilizar_llamadas_en_espera(self, _obtener_llamadas_en_espera_raw):
+    def test_contabilizar_llamadas_en_espera(self):
+        # Sin AMI, llamadas_en_espera se dejan en 0
         self.generador.generar_log(self.entrante1, False, 'COMPLETEAGENT', '35100001111',
                                    agente=self.agente1, contacto=None, bridge_wait_time=-1,
                                    duracion_llamada=10, archivo_grabacion='', time=None)
-        _obtener_llamadas_en_espera_raw.return_value = self._generar_ami_response_llamadas_espera(
-            self.entrante1)
         reporte = ReporteDeLLamadasEntrantesDeSupervision()
         estadisticas = reporte.estadisticas
-        self.assertEqual(estadisticas[self.entrante1.pk]['llamadas_en_espera'], 1)
+        self.assertEqual(estadisticas[self.entrante1.pk]['llamadas_en_espera'], 0)

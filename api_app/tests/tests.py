@@ -679,6 +679,28 @@ class APITest(OMLBaseTest):
         self.assertEqual(response.json()['status'], 'ERROR')
 
     @patch('ominicontacto_app.services.asterisk.asterisk_ami.AMIManagerConnector')
+    @patch.object(AgentActivityAmiManager, "set_agent_as_ready")
+    def test_api_vista_ready_de_agente_retorno_de_valores_correctos(self, set_agent_as_ready,
+                                                                     manager):
+        self.client.login(username=self.agente_profile.user.username, password=PASSWORD)
+        set_agent_as_ready.return_value = False
+        url = reverse('api_agent_asterisk_ready')
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'OK')
+
+    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AMIManagerConnector')
+    @patch.object(AgentActivityAmiManager, "set_agent_as_ready")
+    def test_api_vista_ready_de_agente_retorno_de_valores_erroneos(self, set_agent_as_ready,
+                                                                    manager):
+        self.client.login(username=self.agente_profile.user.username, password=PASSWORD)
+        set_agent_as_ready.return_value = True
+        url = reverse('api_agent_asterisk_ready')
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ERROR')
+
+    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AMIManagerConnector')
     @patch.object(AgentActivityAmiManager, "pause_agent")
     def test_api_vista_pausa_de_agente_retorno_de_valores_correctos(self, pause_agent, manager):
         self.client.login(username=self.agente_profile.user.username, password=PASSWORD)

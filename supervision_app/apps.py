@@ -47,6 +47,11 @@ class SupervisionAppConfig(AppConfig):
                 'label': _('Campañas Dialer'),
                 'url': reverse('supervision_campanas_dialer'),
             })
+        if 'supervision_contact_center' in permissions:
+            items.append({
+                'label': _('Panel General'),
+                'url': reverse('supervision_contact_center'),
+            })
         if items:
             return [{
                 'order': 900,
@@ -67,6 +72,8 @@ class SupervisionAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'supervision_campanas_dialer',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'supervision_contact_center',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
         ]
 
     informacion_de_permisos = {
@@ -79,4 +86,6 @@ class SupervisionAppConfig(AppConfig):
              'version': '1.7.0'},
         'supervision_campanas_dialer':
             {'descripcion': _('Estado de campañas dialer en supervision'), 'version': '1.13.0'},
+        'supervision_contact_center':
+            {'descripcion': _('Panel general de supervisión'), 'version': '1.23.0'},
     }

@@ -26,7 +26,7 @@ from django.conf import settings
 from django_sendfile import sendfile
 from django.utils.translation import gettext as _
 from django.http import HttpResponseRedirect
-from reportes_app.models import LlamadaLog
+from reportes_app.models import InteractionsSummary, SpeechAnalysis
 
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
@@ -39,6 +39,7 @@ from api_app.views.permissions import TienePermisoOML
 from api_app.authentication import ExpiringTokenAuthentication
 from ominicontacto_app.services.grabaciones.generacion_zip_grabaciones \
     import GeneracionZipGrabaciones
+from ominicontacto_app.services.grabaciones.speech_analysis import SpeechAnalysisService
 
 
 class ObtenerArchivoGrabacionView(APIView):
@@ -53,7 +54,7 @@ class ObtenerArchivoGrabacionView(APIView):
         # Si es el comprimido de grabaciones no se busca en S3
         iszip = filename.find("/zip/", 0)
 
-        if (os.getenv('S3_STORAGE_ENABLED') and iszip == -1):
+        if iszip == -1:
             s3_handler = StorageService()
             return HttpResponseRedirect(s3_handler.get_file_url(filename))
 
@@ -102,15 +103,74 @@ class ObtenerUrlGrabacionView(APIView):
     renderer_classes = (JSONRenderer, )
 
     def get(self, request, callid):
-        log = LlamadaLog.objects.filter(callid=callid, archivo_grabacion__isnull=False).exclude(
-            archivo_grabacion='-1').first()
-        if log:
+        obj = InteractionsSummary.objects.filter(
+            interaction_id=callid,
+            status='EXIT_ANSWERED',
+        ).first()
+        if obj and obj.url_archivo_grabacion:
             return Response(data={
                 'status': 'OK',
-                'record': log.url_archivo_grabacion
+                'record': obj.url_archivo_grabacion
             })
-        else:
+        return Response(
+            data={'status': 'ERROR'},
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+
+class ProcessSpeechAnalisisTaskView(APIView):
+    permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    http_method_names = ['post']
+    renderer_classes = (JSONRenderer, )
+
+    def post(self, request, task, callid):
+        if task not in ['transcription', 'sentiment', 'qa']:
+            return Response(
+                data={'status': 'ERROR'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        date, source_file = InteractionsSummary.objects.get_datos_grabacion(callid)
+        if date is None:
             return Response(
                 data={'status': 'ERROR'},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        if not task == 'transcription':
+            try:
+                analysis = SpeechAnalysis.objects.get(callid=callid)
+            except SpeechAnalysis.DoesNotExist:
+                return Response(
+                    data={'status': 'ERROR'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+        if task == 'transcription':
+            analysis, created = SpeechAnalysis.objects.get_or_create(callid=callid)
+            if analysis.transcription_status not in [SpeechAnalysis.EMPTY, SpeechAnalysis.ERROR]:
+                return Response(
+                    data={'status': 'ERROR', 'msg': 'Transcription already exists',
+                          'analysis': analysis.as_dict()}
+                )
+            service = SpeechAnalysisService()
+            error = service.process_transcription(callid, date, source_file)
+            if error:
+                return Response(
+                    data={'status': 'ERROR', 'msg': 'Error sending task',
+                          'analysis': analysis.as_dict()}
+                )
+            analysis.transcription_status = SpeechAnalysis.PROCESSING
+            analysis.save()
+            return Response(data={
+                'status': 'OK',
+            })
+        if task == 'sentiment':
+            # TODO: Verificar analysis.transcription_status == SpeechAnalysis.COMPLETED y
+            #       analysis.sentiment_status == SpeechAnalysis.EMPTY:
+            return
+        if task == 'qa':
+            # TODO: Verificar analysis.transcription_status == SpeechAnalysis.COMPLETED y
+            #       analysis.qa_status == SpeechAnalysis.EMPTY:
+            return

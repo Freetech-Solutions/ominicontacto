@@ -56,14 +56,15 @@ from reportes_app.reportes.reporte_llamadas_supervision import (
     ReporteDeLLamadasEntrantesDeSupervision, )
 from reportes_app.reportes.reporte_llamadas import ReporteTipoDeLlamadasDeCampana
 from reportes_app.reportes.reporte_llamados_contactados_csv import (
-    ExportacionCampanaCSV, ReporteCalificadosCSV, ReporteContactadosCSV, ReporteNoAtendidosCSV)
+    ExportacionCampanaCSV, ReporteCalificadosCSV, ReporteCalificacionesPorAgenteCSV,
+    ReporteContactadosCSV, ReporteInteraccionesPorAgenteCSV, ReporteNoAtendidosCSV,
+    ReportePerformanceAgentesCSV)
 from ominicontacto_app.services.reporte_resultados_de_base_csv import (
     ExportacionReporteCSV
 )
 from ominicontacto_app.services.reporte_resultados_de_base import (
     ReporteContactacionesCSV
 )
-from reportes_app.reportes.reporte_llamadas_salientes import ReporteLlamadasSalienteFamily
 from ominicontacto_app.services.reporte_respuestas_formulario import (
     ReporteFormularioGestionCampanaCSV)
 from ominicontacto_app.services.reporte_campana_calificacion import ReporteCalificacionesCampanaCSV
@@ -242,34 +243,6 @@ class StatusCampanasEntrantesView(APIView):
         reporte = ReporteDeLLamadasEntrantesDeSupervision(request.user)
         return Response(data={'errors': None,
                               'data': reporte.estadisticas})
-
-
-class StatusCampanasSalientesView(APIView):
-    permission_classes = (TienePermisoOML, )
-    renderer_classes = (JSONRenderer, )
-    http_method_names = ['get']
-
-    def _obtener_datos_campanas(self, user):
-        redis_saliente = ReporteLlamadasSalienteFamily()
-        if not user.is_supervisor:
-            campanas = Campana.objects.all()
-        else:
-            campanas = user.get_supervisor_profile().obtener_campanas_asignadas_activas()
-        query_campanas = campanas.filter(
-            type__in=[Campana.TYPE_DIALER,
-                      Campana.TYPE_PREVIEW,
-                      Campana.TYPE_MANUAL])
-        data_saliente = []
-        for campana in query_campanas:
-            estadisticas = redis_saliente.get_value(campana, 'ESTADISTICAS')
-            if estadisticas:
-                data_saliente.append(json.loads(estadisticas))
-        return data_saliente
-
-    def get(self, request):
-        supervisor_pk = request.user
-        datos_campana = self._obtener_datos_campanas(supervisor_pk)
-        return Response(data=datos_campana)
 
 
 class InteraccionDeSupervisorSobreAgenteView(APIView):
@@ -710,6 +683,156 @@ class ExportarCSVNoAtendidos(ExportarCSVMixin, APIView):
         return Response(data={
             'status': 'OK',
             'msg': _('Exportación de no atendidos a .csv en proceso'),
+            'id': task_id,
+        })
+
+
+class ExportarCSVCalificacionesPorAgente(ExportarCSVMixin, APIView):
+    permission_classes = (TienePermisoOML, )
+    renderer_classes = (JSONRenderer, )
+    http_method_names = ['post', ]
+
+    def generar_csv_calificaciones_por_agente(self, key_task, campana, desde, hasta):
+        reporte_csv = ReporteCalificacionesPorAgenteCSV(
+            campana, key_task, desde, hasta
+        )
+        datos_calificaciones_por_agente = reporte_csv.datos
+        service_csv = ExportacionCampanaCSV()
+        service_csv.exportar_reportes_csv(
+            campana,
+            datos_calificaciones_por_agente=datos_calificaciones_por_agente
+        )
+
+    def post(self, request):
+        campana_id = request.data.get('campana_id')
+        task_id = request.data.get('task_id')
+        desde = request.data.get('desde')
+        hasta = request.data.get('hasta')
+        fecha_desde = convert_fecha_datetime(desde)
+        fecha_hasta = convert_fecha_datetime(hasta)
+        fecha_desde = datetime.datetime.combine(fecha_desde, datetime.time.min)
+        fecha_hasta = datetime.datetime.combine(fecha_hasta, datetime.time.max)
+        campana = Campana.objects.get(pk=campana_id)
+
+        key_task = 'OML:STATUS_CSV_REPORT:DISPOSITIONS_BY_AGENT:{0}:{1}'.format(
+            campana_id, task_id
+        )
+
+        thread_exportacion = threading.Thread(
+            target=self.generar_csv_calificaciones_por_agente,
+            args=[key_task, campana, fecha_desde, fecha_hasta]
+        )
+        thread_exportacion.setDaemon(True)
+        thread_exportacion.start()
+
+        self.loguear_inicio_exportacion(
+            'calificaciones por agente', campana_id, request.user.username,
+            fecha_hasta.strftime("%m/%d/%Y"), fecha_desde.strftime("%m/%d/%Y")
+        )
+
+        return Response(data={
+            'status': 'OK',
+            'msg': _('Exportación de calificaciones por agente a .csv en proceso'),
+            'id': task_id,
+        })
+
+
+class ExportarCSVPerformanceAgentes(ExportarCSVMixin, APIView):
+    permission_classes = (TienePermisoOML, )
+    renderer_classes = (JSONRenderer, )
+    http_method_names = ['post', ]
+
+    def generar_csv_performance_agentes(self, key_task, campana, desde, hasta):
+        reporte_csv = ReportePerformanceAgentesCSV(
+            campana, key_task, desde, hasta
+        )
+        datos_performance_agentes = reporte_csv.datos
+        service_csv = ExportacionCampanaCSV()
+        service_csv.exportar_reportes_csv(
+            campana,
+            datos_performance_agentes=datos_performance_agentes
+        )
+
+    def post(self, request):
+        campana_id = request.data.get('campana_id')
+        task_id = request.data.get('task_id')
+        desde = request.data.get('desde')
+        hasta = request.data.get('hasta')
+        fecha_desde = convert_fecha_datetime(desde)
+        fecha_hasta = convert_fecha_datetime(hasta)
+        fecha_desde = datetime.datetime.combine(fecha_desde, datetime.time.min)
+        fecha_hasta = datetime.datetime.combine(fecha_hasta, datetime.time.max)
+        campana = Campana.objects.get(pk=campana_id)
+
+        key_task = 'OML:STATUS_CSV_REPORT:PERFORMANCE_AGENTES:cc:{0}'.format(
+            task_id
+        )
+
+        thread_exportacion = threading.Thread(
+            target=self.generar_csv_performance_agentes,
+            args=[key_task, campana, fecha_desde, fecha_hasta]
+        )
+        thread_exportacion.setDaemon(True)
+        thread_exportacion.start()
+
+        self.loguear_inicio_exportacion(
+            'performance de agentes', campana_id, request.user.username,
+            fecha_hasta.strftime("%m/%d/%Y"), fecha_desde.strftime("%m/%d/%Y")
+        )
+
+        return Response(data={
+            'status': 'OK',
+            'msg': _('Exportación de performance de agentes a .csv en proceso'),
+            'id': task_id,
+        })
+
+
+class ExportarCSVInteraccionesPorAgente(ExportarCSVMixin, APIView):
+    permission_classes = (TienePermisoOML, )
+    renderer_classes = (JSONRenderer, )
+    http_method_names = ['post', ]
+
+    def generar_csv_interacciones_por_agente(self, key_task, campana, desde, hasta):
+        reporte_csv = ReporteInteraccionesPorAgenteCSV(
+            campana, key_task, desde, hasta
+        )
+        datos_interacciones_por_agente = reporte_csv.datos
+        service_csv = ExportacionCampanaCSV()
+        service_csv.exportar_reportes_csv(
+            campana,
+            datos_interacciones_por_agente=datos_interacciones_por_agente
+        )
+
+    def post(self, request):
+        campana_id = request.data.get('campana_id')
+        task_id = request.data.get('task_id')
+        desde = request.data.get('desde')
+        hasta = request.data.get('hasta')
+        fecha_desde = convert_fecha_datetime(desde)
+        fecha_hasta = convert_fecha_datetime(hasta)
+        fecha_desde = datetime.datetime.combine(fecha_desde, datetime.time.min)
+        fecha_hasta = datetime.datetime.combine(fecha_hasta, datetime.time.max)
+        campana = Campana.objects.get(pk=campana_id)
+
+        key_task = 'OML:STATUS_CSV_REPORT:INTERACCIONES_POR_AGENTE:cc:{0}'.format(
+            task_id
+        )
+
+        thread_exportacion = threading.Thread(
+            target=self.generar_csv_interacciones_por_agente,
+            args=[key_task, campana, fecha_desde, fecha_hasta]
+        )
+        thread_exportacion.setDaemon(True)
+        thread_exportacion.start()
+
+        self.loguear_inicio_exportacion(
+            'interacciones por agente', campana_id, request.user.username,
+            fecha_hasta.strftime("%m/%d/%Y"), fecha_desde.strftime("%m/%d/%Y")
+        )
+
+        return Response(data={
+            'status': 'OK',
+            'msg': _('Exportación de interacciones por agente a .csv en proceso'),
             'id': task_id,
         })
 

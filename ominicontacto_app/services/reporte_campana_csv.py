@@ -23,7 +23,7 @@ import os
 import redis
 
 from django.conf import settings
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 
 from django.utils.translation import gettext as _
@@ -73,7 +73,7 @@ class CrearArchivoDeReporteCsv(object):
             self.sufijo_nombre_de_archivo)
 
     def _escribir_csv_writer_utf_8(self, csvwriter, datos):
-        lista_datos_utf8 = [force_text(item) for item in datos]
+        lista_datos_utf8 = [force_str(item) for item in datos]
         csvwriter.writerow(lista_datos_utf8)
 
     def ya_existe(self):

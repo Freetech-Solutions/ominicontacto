@@ -27,6 +27,7 @@ export default {
     preview: 'پیش نمایش | پیش نمایش',
     group: 'گروه | گروه ها',
     group_info: 'گروه {info} | گروه {info}',
+    bots: 'بات | ربات ها',
     penalty: 'هزینه جریمه',
     agents_campaign: 'عوامل کمپین',
     clean_object: 'پاک کردن {object}',

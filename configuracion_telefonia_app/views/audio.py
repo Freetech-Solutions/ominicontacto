@@ -179,20 +179,12 @@ class MusicaDeEsperaCreateView(ArchivoDeAudioMixin, CreateView):
         playlist_tmp = []
 
         for pl in self.playlist.musicas.all():
-
-            if os.getenv('S3_STORAGE_ENABLED'):
-                s3_handler = StorageService()
-                playlist_tmp.append({'nombre': pl.nombre,
-                                     'pk': pl.pk,
-                                     'url': s3_handler.get_file_url(
-                                         f'/media_root/{pl.audio_asterisk.name}')
-                                     })
-            else:
-                base_url = "%s://%s" % (self.request.scheme,
-                                        self.request.get_host())
-                playlist_tmp.append({'nombre': pl.nombre,
-                                     'pk': pl.pk,
-                                     'url': f'{base_url}{pl.audio_original.url}'})
+            s3_handler = StorageService()
+            playlist_tmp.append({'nombre': pl.nombre,
+                                 'pk': pl.pk,
+                                 'url': s3_handler.get_file_url(
+                                     f'/media_root/{pl.audio_asterisk.name}')
+                                 })
 
         context['playlist'] = playlist_tmp
         # TODO: Ver como hacer para que este form tenga info de is_valid.
@@ -226,9 +218,8 @@ class MusicaDeEsperaDeleteView(DeleteView):
         musica = self.get_object()
         audio_file_asterisk = AudioConfigFile(musica)
         audio_file_asterisk.delete_asterisk()
-        if os.getenv('S3_STORAGE_ENABLED'):
-            s3_handler = StorageService()
-            s3_handler.delete_file(musica.audio_asterisk.name, 'media_root')
+        s3_handler = StorageService()
+        s3_handler.delete_file(musica.audio_asterisk.name, 'media_root')
 
         if musica.audio_original:
             if os.path.isfile(musica.audio_original.path):

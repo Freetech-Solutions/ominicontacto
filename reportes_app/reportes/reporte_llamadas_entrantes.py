@@ -16,13 +16,12 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 from collections import defaultdict
-from django.conf import settings
-from django.utils.encoding import force_text
+
+from django.utils.encoding import force_str
 from django.utils.timezone import now, localtime
 from django.db.models import Count
-from asterisk.manager import Manager, ManagerSocketException, ManagerAuthException, ManagerException
 
-from reportes_app.models import LlamadaLog
+from reportes_app.models import LlamadaResumen
 from ominicontacto_app.utiles import datetime_hora_maxima_dia, datetime_hora_minima_dia
 from ominicontacto_app.models import CalificacionCliente, Campana, OpcionCalificacion
 from ominicontacto_app.services.asterisk.redis_database import AbstractRedisFamily
@@ -78,29 +77,29 @@ class ReporteDeLLamadasEntrantesDeSupervision(object):
             self._inicializar_conteo_de_campana(self.campanas[campana_id])
 
     def _obtener_logs_de_llamadas(self):
-        return LlamadaLog.objects.using('replica').filter(time__gte=self.desde,
-                                                          time__lte=self.hasta,
+        return LlamadaResumen.objects.using('replica').filter(fecha_fin__gte=self.desde,
+                                                          fecha_fin__lte=self.hasta,
                                                           campana_id__in=self.campanas.keys(),
                                                           event__in=self.EVENTOS_LLAMADA,
-                                                          tipo_llamada=LlamadaLog.LLAMADA_ENTRANTE)
+                                                          tipo_llamada=LlamadaResumen.LLAMADA_ENTRANTE)
 
     def _inicializar_conteo_de_campana(self, campana):
         datos_campana = self.INICIALES.copy()
-        datos_campana['nombre'] = force_text(campana.nombre)
+        datos_campana['nombre'] = force_str(campana.nombre)
         self.estadisticas[campana.id] = datos_campana
 
     def _contabilizar_tipos_de_llamada_por_campana(self, datos_campana, log):
         if log.event == 'CONNECT':
             datos_campana['llamadas_atendidas'] += 1
-            datos_campana['tiempo_acumulado_espera'] += log.bridge_wait_time
+            datos_campana['tiempo_acumulado_espera'] += log.bridge_wait_time or 0
         elif log.event == 'EXITWITHTIMEOUT':
             datos_campana['llamadas_expiradas'] += 1
         elif log.event == 'ABANDON':
             datos_campana['llamadas_abandonadas'] += 1
-            datos_campana['tiempo_acumulado_abandonadas'] += log.bridge_wait_time
+            datos_campana['tiempo_acumulado_abandonadas'] += log.bridge_wait_time or 0
         elif log.event == 'ABANDONWEL':
             datos_campana['llamadas_abandonadas'] += 1
-            datos_campana['tiempo_acumulado_abandonadas'] += log.bridge_wait_time
+            datos_campana['tiempo_acumulado_abandonadas'] += log.bridge_wait_time or 0
 
     def _contabilizar_gestiones(self):
         # Contabilizo las gestiones
@@ -164,34 +163,12 @@ class ReporteDeLLamadasEntrantesDeSupervision(object):
         return llamadas_en_cola_por_campana
 
     def _obtener_llamadas_en_espera_raw(self):
-        manager = Manager()
-        ami_manager_user = settings.ASTERISK['AMI_USERNAME']
-        ami_manager_pass = settings.ASTERISK['AMI_PASSWORD']
-        ami_manager_host = str(settings.ASTERISK_HOSTNAME)
-        queue_status_raw = {}
-        try:
-            manager.connect(ami_manager_host)
-            manager.login(ami_manager_user, ami_manager_pass)
-            queue_status_raw = manager.send_action({"Action": "QueueStatus"}).data
-
-        except ManagerSocketException as e:
-            logger.exception("Error connecting to the manager: {0}".format(e))
-        except ManagerAuthException as e:
-            logger.exception("Error logging in to the manager: {0}".format(e))
-        except ManagerException as e:
-            logger.exception("Error {0}".format(e))
-        finally:
-            manager.close()
-            return queue_status_raw
+        # Sin conexión AMI; Django no debe conectar a Asterisk
+        return {}
 
     def _obtener_llamadas_en_espera(self):
-        queue_status_raw = self._obtener_llamadas_en_espera_raw()
-        try:
-            self.llamadas_en_cola = self._parsear_queue_status_pasada_2(
-                self._parsear_queue_status_pasada_1(queue_status_raw))
-        except Exception as e:
-            logger.exception("Error {0}".format(e))
-            self.llamadas_en_cola = defaultdict(int)
+        # AMI deshabilitado: llamadas en espera se dejan en 0
+        self.llamadas_en_cola = defaultdict(int)
 
     def _contabilizar_llamadas_en_espera_por_campana(self):
         self._obtener_llamadas_en_espera()

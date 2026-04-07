@@ -43,10 +43,11 @@ from configuracion_telefonia_app.regeneracion_configuracion_telefonia import (
     SincronizadorDeConfiguracionTroncalSipEnAsterisk,
     SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk)
 
-from configuracion_telefonia_app.models import DestinoEntrante
+from configuracion_telefonia_app.models import DestinoEntrante, TroncalSIP
 
 from ominicontacto_app.services.creacion_queue import ActivacionQueueService
 from ominicontacto_app.services.asterisk_service import ActivacionAgenteService
+from ominicontacto_app.services.dialer import wombat_habilitado
 
 logger = logging.getLogger(__name__)
 
@@ -68,12 +69,25 @@ class Command(BaseCommand):
             nombre=self.angry.nombre, campana=campana, tipo=OpcionCalificacion.NO_ACCION)
         OpcionCalificacionFactory(
             nombre=settings.CALIFICACION_REAGENDA, campana=campana, tipo=OpcionCalificacion.AGENDA)
+        # calificaciones de bot/voicebot (usan NombreCalificacion del menú Calificación)
+        OpcionCalificacionFactory(
+            nombre=self.gestion_bot.nombre, campana=campana, tipo=OpcionCalificacion.GESTION)
+        OpcionCalificacionFactory(
+            nombre=self.contestador_bot.nombre, campana=campana, tipo=OpcionCalificacion.NO_ACCION)
+        OpcionCalificacionFactory(
+            nombre=self.abandon_bot.nombre, campana=campana, tipo=OpcionCalificacion.NO_ACCION)
+        OpcionCalificacionFactory(
+            nombre=self.schedule_call_bot.nombre, campana=campana, tipo=OpcionCalificacion.AGENDA)
 
-    def _crear_campana_manual(self, nombre_campana):
+    def _crear_campana_manual(self, nombre_campana, es_template=False):
+        estado = Campana.ESTADO_TEMPLATE_ACTIVO if es_template else Campana.ESTADO_ACTIVA
+        template_kwargs = {}
+        if es_template:
+            template_kwargs = {'es_template': True, 'nombre_template': nombre_campana}
         # crear campaña manual
         campana = CampanaFactory(
             nombre=nombre_campana, bd_contacto=self.bd_contacto,
-            type=Campana.TYPE_MANUAL, reported_by=self.admin, estado=Campana.ESTADO_ACTIVA
+            type=Campana.TYPE_MANUAL, reported_by=self.admin, estado=estado, **template_kwargs
         )
         # crear Queue para la campaña
         Queue.objects.create(
@@ -96,11 +110,15 @@ class Command(BaseCommand):
 
         return campana
 
-    def _crear_campana_entrante(self, nombre_campana):
+    def _crear_campana_entrante(self, nombre_campana, es_template=False):
+        estado = Campana.ESTADO_TEMPLATE_ACTIVO if es_template else Campana.ESTADO_ACTIVA
+        template_kwargs = {}
+        if es_template:
+            template_kwargs = {'es_template': True, 'nombre_template': nombre_campana}
         # crear campaña entrante
         campana = CampanaFactory(
             nombre=nombre_campana, bd_contacto=self.bd_contacto,
-            type=Campana.TYPE_ENTRANTE, reported_by=self.admin, estado=Campana.ESTADO_ACTIVA
+            type=Campana.TYPE_ENTRANTE, reported_by=self.admin, estado=estado, **template_kwargs
         )
         # crear Queue para la campaña
         Queue.objects.create(
@@ -125,12 +143,16 @@ class Command(BaseCommand):
 
         return campana
 
-    def _crear_campana_dialer(self, nombre_campana):
+    def _crear_campana_dialer(self, nombre_campana, es_template=False):
+        estado = Campana.ESTADO_TEMPLATE_ACTIVO if es_template else Campana.ESTADO_ACTIVA
+        template_kwargs = {}
+        if es_template:
+            template_kwargs = {'es_template': True, 'nombre_template': nombre_campana}
         # crear campaña dialer
         campana = CampanaFactory(
             nombre=nombre_campana, bd_contacto=self.bd_contacto,
-            type=Campana.TYPE_DIALER, reported_by=self.admin, estado=Campana.ESTADO_ACTIVA,
-            tiempo_desconexion=10
+            type=Campana.TYPE_DIALER, reported_by=self.admin, estado=estado,
+            tiempo_desconexion=10, **template_kwargs
         )
         # crear Queue para la campaña
         Queue.objects.create(
@@ -162,9 +184,12 @@ class Command(BaseCommand):
         estado = Campana.ESTADO_ACTIVA
         if es_template:
             estado = Campana.ESTADO_TEMPLATE_ACTIVO
+        template_kwargs = {}
+        if es_template:
+            template_kwargs = {'es_template': True, 'nombre_template': nombre_campana}
         campana = CampanaFactory(
             nombre=nombre_campana, bd_contacto=bd_contacto,
-            type=Campana.TYPE_PREVIEW, reported_by=self.admin, estado=estado
+            type=Campana.TYPE_PREVIEW, reported_by=self.admin, estado=estado, **template_kwargs
         )
         # crear Queue para la campaña
         Queue.objects.create(
@@ -198,28 +223,52 @@ class Command(BaseCommand):
             telefono=telefono, destino=destino_campana_entrante, prefijo_caller_id='')
         escribir_ruta_entrante_config(self, ruta_entrante)
 
-    def _crear_agentes(self, cantidad, grupo):
-        # Crea un minimo de 2 agentes
+    def _crear_agentes(self, cantidad, grupo, troncal_voicebot=None):
+        # Crea la cantidad solicitada de agentes (mínimo 2)
         cantidad = max(2, cantidad)
         agentes_creados = []
         for i in range(0, cantidad):
             username = f'ag{i+1}'
             agente = self._crear_agente(grupo, username, PASSWORD)
             agentes_creados.append(agente)
+
+        # Crear agente voicebot (TroncalSIP_Voicebot_Verloop, extensión 1066)
+        agente_voicebot = self._crear_agente(
+            grupo, 'voicebot', PASSWORD, voicebot=True,
+            voicebot_trunk=troncal_voicebot, voicebot_extension=1066
+        )
+        agentes_creados.append(agente_voicebot)
+
         asterisk_sip_service = ActivacionAgenteService()
         asterisk_sip_service.activar()
 
         return agentes_creados
 
-    def _crear_agente(self, grupo, username, password):
+    def _crear_agente(self, grupo, username, password, voicebot=False,
+                      voicebot_trunk=None, voicebot_extension=None):
         agente = AgenteProfileFactory(grupo=grupo, reported_by=self.admin)
         agente.user.username = username
         agente.user.set_password(password)
         agente.sip_extension = 1000 + agente.user.id
         agente.user.is_agente = True
+        agente.voicebot = voicebot
+        if voicebot:
+            agente.user.first_name = 'verloop'
+            agente.user.last_name = 'verloop'
+            if voicebot_trunk is not None and voicebot_extension is not None:
+                agente.voicebot_trunk = voicebot_trunk
+                agente.voicebot_extension = voicebot_extension
         agente.user.save()
         agente.save()
         agente.user.groups.add(Group.objects.get(name='Agente'))
+        
+        # Crear DestinoEntrante para el agente (necesario para voicebot)
+        DestinoEntrante.objects.create(
+            nombre=username,
+            tipo=DestinoEntrante.AGENTE,
+            content_object=agente
+        )
+        
         return agente
 
     def _crear_gerente(self, username):
@@ -336,7 +385,46 @@ class Command(BaseCommand):
         # crear grupo
         grupo = GrupoFactory(auto_unpause=0)
 
-        agentes_creados = self._crear_agentes(qa_agents, grupo)
+        # 1) Troncal para la Ruta saliente (PBX emulator)
+        caller_id_saliente = '01177660010'
+        remote_host_saliente = 'pbxemulator:5070'
+        text_config_ruta_saliente = (
+            "endpoint/from_user=" + caller_id_saliente + "\n"
+            "remote_hosts=" + remote_host_saliente + "\n"        
+            "outbound_auth/username=" + caller_id_saliente + "\n"
+            "outbound_auth/password=omnileads\n"
+            "registration/contact_user=" + caller_id_saliente + "\n"
+        )
+        troncal_ruta_saliente = TroncalSIPFactory(
+            nombre='TroncalSIP_Ruta_Saliente',
+            text_config=text_config_ruta_saliente, canales_maximos=1000, tecnologia=1,
+            caller_id=caller_id_saliente)
+        sincronizador_troncal = SincronizadorDeConfiguracionTroncalSipEnAsterisk()
+        sincronizador_troncal.regenerar_troncales(troncal_ruta_saliente)
+
+        # 2) Troncal para el voicebot Verloop
+        caller_id_voicebot = ''
+        remote_host_voicebot = 'pbxemulator:5070'
+        text_config_voicebot = (
+            "endpoint/from_user=" + caller_id_saliente + "\n"
+            "remote_hosts=" + remote_host_saliente + "\n"        
+            "outbound_auth/username=" + caller_id_saliente + "\n"
+            "outbound_auth/password=omnileads\n"
+            "registration/contact_user=" + caller_id_saliente + "\n"
+        )
+        troncal_voicebot_verloop = TroncalSIPFactory(
+            nombre='TroncalSIP_Voicebot_Verloop',
+            text_config=text_config_voicebot, canales_maximos=1000, tecnologia=1,
+            caller_id=caller_id_voicebot)
+        sincronizador_troncal.regenerar_troncales(troncal_voicebot_verloop)
+
+        agentes_creados = self._crear_agentes(
+            qa_agents, grupo, troncal_voicebot=troncal_voicebot_verloop)
+        # Diccionario ag1..ag10 -> AgenteProfile (excluye voicebot que está al final)
+        agentes_por_nombre = {
+            ag.user.username: ag for ag in agentes_creados
+            if ag.user.username.startswith('ag')
+        }
         agentes_base = [agentes_creados[0], agentes_creados[1]]
 
         if not os.getenv('WEBPHONE_CLIENT_VERSION', '') == '':
@@ -357,83 +445,98 @@ class Command(BaseCommand):
         form = FormularioFactory()
         FieldFormularioFactory.create_batch(2, formulario=form)
 
-        # crear califs.(1 gestion y 1 normal)
+        # crear califs.(1 gestion y 1 normal) y calificaciones _BOT (menú Calificación)
         self.success = NombreCalificacionFactory(nombre='Success')
         self.success = NombreCalificacionFactory(nombre='ventas_Lee PLC')
         self.angry = NombreCalificacionFactory(nombre='hangup')
+        self.gestion_bot = NombreCalificacionFactory(nombre='GESTION_BOT')
+        self.contestador_bot = NombreCalificacionFactory(nombre='CONTESTADOR_BOT')
+        self.abandon_bot = NombreCalificacionFactory(nombre='ABANDON_BOT')
+        self.schedule_call_bot = NombreCalificacionFactory(nombre='SCHEDULE_CALL_BOT')
 
         self._crear_dbs_contactos()
 
         # Crear campañas
         campana_manual = self._crear_campana_manual('test_manual_01')
-        campana_entrante = self._crear_campana_entrante('test_entrante_01')
-        campana_entrante_2 = self._crear_campana_entrante('test_entrante_02')
-        campana_entrante_2.videocall_habilitada = True
-        campana_entrante_2.save()
-        campana_dialer = self._crear_campana_dialer('test_dialer_01')
-        campana_preview = self._crear_campana_preview('test_preview_01', self.bd_contacto)
+
+        # 4 campañas entrantes
+        campana_inbound_1 = self._crear_campana_entrante('inbound-1')
+        campana_inbound_2 = self._crear_campana_entrante('inbound-2')
+        campana_inbound_3 = self._crear_campana_entrante('inbound-3')
+        campana_inbound_4 = self._crear_campana_entrante('inbound-4')
+        campana_inbound_2.videocall_habilitada = True
+        campana_inbound_2.save()
+
+        # 2 campañas preview
+        campana_preview_1 = self._crear_campana_preview('preview-1', self.bd_contacto)
+        campana_preview_2 = self._crear_campana_preview('preview-2', self.bd_contacto)
+
+        # 3 campañas dialer (solo si wombat no está habilitado)
+        campana_dialer_1 = None
+        campana_dialer_2 = None
+        campana_dialer_3 = None
+        if not wombat_habilitado():
+            campana_dialer_1 = self._crear_campana_dialer('dialer-1')
+            campana_dialer_2 = self._crear_campana_dialer('dialer-2')
+            campana_dialer_3 = self._crear_campana_dialer('dialer-3')
+            self._crear_campana_dialer('DIALER_TEMPLATE', es_template=True)
+
+        # Templates
         self._crear_campana_preview('PRW_TEMPLATE', self.bd_contacto_prw1, True)
         self._crear_campana_preview('PRW_SUCCESS_TEMPLATE', self.bd_contacto_prw_success, True)
+        self._crear_campana_manual('MANUAL_TEMPLATE', es_template=True)
+        self._crear_campana_entrante('INBOUND_TEMPLATE', es_template=True)
 
         activacion_queue_service = ActivacionQueueService()
         activacion_queue_service.activar_campanas()
 
-        caller_id = '01177660010'
-        remote_host = 'pbxemulator:5070'
-        if qa_devops:
-            caller_id = '99999999'
-            remote_host = '190.19.150.8:6066'
-
-        # crea un troncal y con este una ruta entrante hacia el pbx-emulator
-        text_config = (
-            "type=wizard\n"
-            "transport=trunk-transport\n"
-            "accepts_registrations=no\n"
-            "accepts_auth=no\n"
-            "sends_registrations=yes\n"
-            "sends_auth=yes\n"
-            "endpoint/rtp_symmetric=no\n"
-            "endpoint/force_rport=no\n"
-            "endpoint/rewrite_contact=yes\n"
-            "endpoint/timers=yes\n"
-            "aor/qualify_frequency=60\n"
-            "endpoint/allow=alaw,ulaw\n"
-            "endpoint/dtmf_mode=rfc4733\n"
-            "endpoint/context=from-pstn\n"
-            "remote_hosts=" + remote_host + "\n"
-            "outbound_auth/username=" + caller_id + "\n"
-            "endpoint/from_user=" + caller_id + "\n"
-            "outbound_auth/password=omnileads\n"
-            "identify/match=pbxemulator\n")
-        troncal_pbx_emulator = TroncalSIPFactory(
-            text_config=text_config, canales_maximos=1000, tecnologia=1,
-            caller_id=caller_id)
-        sincronizador_troncal = SincronizadorDeConfiguracionTroncalSipEnAsterisk()
-        sincronizador_troncal.regenerar_troncales(troncal_pbx_emulator)
+        # Ruta saliente hacia el pbx-emulator (usa troncal dedicada para ruta saliente)
         ruta_saliente = RutaSalienteFactory(ring_time=25, dial_options="Tt")
         PatronDeDiscadoFactory(ruta_saliente=ruta_saliente, match_pattern="1234567[0-9][0-9]")
         PatronDeDiscadoFactory(ruta_saliente=ruta_saliente, match_pattern="88887777")
-        OrdenTroncalFactory(ruta_saliente=ruta_saliente, orden=0, troncal=troncal_pbx_emulator)
+        OrdenTroncalFactory(ruta_saliente=ruta_saliente, orden=0, troncal=troncal_ruta_saliente)
         sincronizador_ruta_saliente = SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk()
         sincronizador_ruta_saliente.regenerar_asterisk(ruta_saliente)
 
-        # crear rutas entrantes
-        self._crear_ruta_entrante(campana_entrante, '99999999' if qa_devops else '01177660010')
-        self._crear_ruta_entrante(campana_entrante_2, '01177660011')
+        # Rutas entrantes para las 4 campañas entrantes
+        self._crear_ruta_entrante(campana_inbound_1, '99999999' if qa_devops else '01177660010')
+        self._crear_ruta_entrante(campana_inbound_2, '01177660011')
+        self._crear_ruta_entrante(campana_inbound_3, '01177660012')
+        self._crear_ruta_entrante(campana_inbound_4, '01177660013')
 
-        # Asigno agentes a campañas (no entrantes)
+        # Asignar agentes a campañas según especificación
         queue_service = QueueMemberService()
-        campanas = [campana_manual, campana_dialer, campana_preview]
 
-        for campana in campanas:
-            queue_service.agregar_agentes_en_cola(campana, agentes_base)
-        # Asigno 1 Agente por campaña entrante
-        queue_service.agregar_agentes_en_cola(campana_entrante, (agentes_base[0], ))
-        queue_service.agregar_agentes_en_cola(campana_entrante, (agentes_base[1], ))
+        def _agentes(*nombres):
+            return [agentes_por_nombre[n] for n in nombres if n in agentes_por_nombre]
+
+        # Inbound: inbound-1 (ag1, ag2, ag3), inbound-2 (ag2, ag3, ag4), inbound-3 (ag5..ag8), inbound-4 (ag9, ag10)
+        queue_service.agregar_agentes_en_cola(campana_inbound_1, _agentes('ag1', 'ag2', 'ag3'))
+        queue_service.agregar_agentes_en_cola(campana_inbound_2, _agentes('ag2', 'ag3', 'ag4'))
+        queue_service.agregar_agentes_en_cola(campana_inbound_3, _agentes('ag5', 'ag6', 'ag7', 'ag8'))
+        queue_service.agregar_agentes_en_cola(campana_inbound_4, _agentes('ag9', 'ag10'))
+
+        # Preview: preview-1 (ag1..ag4), preview-2 (ag5..ag8)
+        queue_service.agregar_agentes_en_cola(campana_preview_1, _agentes('ag1', 'ag2', 'ag3', 'ag4'))
+        queue_service.agregar_agentes_en_cola(campana_preview_2, _agentes('ag5', 'ag6', 'ag7', 'ag8'))
+
+        # Dialer: dialer-1 (ag1..ag4), dialer-2 (ag5..ag8), dialer-3 (ag9, ag10)
+        if campana_dialer_1 is not None:
+            queue_service.agregar_agentes_en_cola(campana_dialer_1, _agentes('ag1', 'ag2', 'ag3', 'ag4'))
+            queue_service.agregar_agentes_en_cola(campana_dialer_2, _agentes('ag5', 'ag6', 'ag7', 'ag8'))
+            queue_service.agregar_agentes_en_cola(campana_dialer_3, _agentes('ag9', 'ag10'))
+
+        # Campaña manual con agentes base
+        queue_service.agregar_agentes_en_cola(campana_manual, agentes_base)
 
         # Asigno campañas a gerente
-        campanas.extend([campana_entrante, campana_entrante_2])
-        self.gerente.campanasupervisors.set(campanas)
+        campanas_gerente = [
+            campana_manual, campana_preview_1, campana_preview_2,
+            campana_inbound_1, campana_inbound_2, campana_inbound_3, campana_inbound_4
+        ]
+        if campana_dialer_1 is not None:
+            campanas_gerente.extend([campana_dialer_1, campana_dialer_2, campana_dialer_3])
+        self.gerente.campanasupervisors.set(campanas_gerente)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -444,10 +547,10 @@ class Command(BaseCommand):
         parser.add_argument(
             '--qa-agents',
             type=int,
-            default=2,
+            default=10,
             required=False,
             action='store',
-            help='Initializes with many Agents and Supervisors',
+            help='Número de agentes a crear (ag1, ag2, ...). Por defecto 10.',
         )
         parser.add_argument(
             '--qa-supervisors',

@@ -214,7 +214,7 @@ function obtenerNodosAcciones(pk_agent, status) {
         'class': 'btn btn-light btn-sm',
         'role': 'button',
         'href': '#',
-        'onclick': 'executeSupervisorAction(\'' + pk_agent + '\', \'CHANSPYWISHPER\')'
+        'onclick': 'executeWhisperChannel(\'' + pk_agent + '\')'
     });
     var $spanWhisper = create_node('span', {
         'class': 'fas fa-comment',
@@ -227,7 +227,7 @@ function obtenerNodosAcciones(pk_agent, status) {
         'class': 'btn btn-light btn-sm',
         'role': 'button',
         'href': '#',
-        'onclick': 'executeSupervisorAction(\'' + pk_agent + '\', \'CHANSPY\')'
+        'onclick': 'executeSpyChannel(\'' + pk_agent + '\')'
     });
     var $spanSpy = create_node('span', {
         'class': 'fas fa-volume-up',
@@ -235,6 +235,19 @@ function obtenerNodosAcciones(pk_agent, status) {
         'title': gettext('Monitoreo'),
     });
     $spy.append($spanSpy);
+
+    var $threeWayConf = create_node('a', {
+        'class': 'btn btn-light btn-sm',
+        'role': 'button',
+        'href': '#',
+        'onclick': 'executeThreeWayConf(\'' + pk_agent + '\')'
+    });
+    var $spanThreeWayConf = create_node('span', {
+        'class': 'fas fa-users',
+        'aria-hidden': 'true',
+        'title': gettext('Conferencia 3 vías'),
+    });
+    $threeWayConf.append($spanThreeWayConf);
 
     var in_pause = status.indexOf('PAUSE') == 0;
     var pause_action = in_pause ? 'AGENTUNPAUSE' : 'AGENTPAUSE';
@@ -284,6 +297,7 @@ function obtenerNodosAcciones(pk_agent, status) {
     var $div = create_node('div');
     $div.append($spy);
     $div.append($whisper);
+    $div.append($threeWayConf);
     $div.append($pause);
     $div.append($logout);
     $div.append($chat);

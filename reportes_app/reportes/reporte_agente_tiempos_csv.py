@@ -31,7 +31,7 @@ from django.conf import settings
 from django.utils.translation import gettext as _
 
 from ominicontacto_app.utiles import crear_archivo_en_media_root, format_total_seconds
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +93,7 @@ class ArchivoDeReporteCsv(object):
             csvwiter = csv.writer(csvfile)
 
             # guardamos encabezado
-            lista_encabezados_utf8 = [force_text(item) for item in encabezado]
+            lista_encabezados_utf8 = [force_str(item) for item in encabezado]
             csvwiter.writerow(lista_encabezados_utf8)
 
             # Iteramos cada uno de las metadata de la gestion del formulario
@@ -137,7 +137,7 @@ class ArchivoDeReporteCsv(object):
                 lista_opciones.append(agente.cantidad_entrantes_rechazadas)
 
                 # --- Finalmente, escribimos la linea
-                lista_opciones_utf8 = [force_text(item) for item in lista_opciones]
+                lista_opciones_utf8 = [force_str(item) for item in lista_opciones]
                 csvwiter.writerow(lista_opciones_utf8)
 
     def escribir_archivo_pausas_csv(self, estadisticas):
@@ -155,7 +155,7 @@ class ArchivoDeReporteCsv(object):
             csvwiter = csv.writer(csvfile)
 
             # guardamos encabezado
-            lista_encabezados_utf8 = [force_text(item) for item in encabezado]
+            lista_encabezados_utf8 = [force_str(item) for item in encabezado]
             csvwiter.writerow(lista_encabezados_utf8)
 
             # Iteramos cada uno de las metadata de la gestion del formulario
@@ -170,7 +170,7 @@ class ArchivoDeReporteCsv(object):
                 lista_opciones.append(format_total_seconds(agente['tiempo']))
 
                 # --- Finalmente, escribimos la linea
-                lista_opciones_utf8 = [force_text(item) for item in lista_opciones]
+                lista_opciones_utf8 = [force_str(item) for item in lista_opciones]
                 csvwiter.writerow(lista_opciones_utf8)
 
     def escribir_archivo_llamadas_csv(self, estadisticas):
@@ -189,7 +189,7 @@ class ArchivoDeReporteCsv(object):
             csvwiter = csv.writer(csvfile)
 
             # guardamos encabezado
-            lista_encabezados_utf8 = [force_text(item) for item in encabezado]
+            lista_encabezados_utf8 = [force_str(item) for item in encabezado]
             csvwiter.writerow(lista_encabezados_utf8)
 
             # Iteramos cada uno de las metadata de la gestion del formulario
@@ -205,7 +205,7 @@ class ArchivoDeReporteCsv(object):
                 lista_opciones.append(agente['transferidas_a_agente'])
 
                 # --- Finalmente, escribimos la linea
-                lista_opciones_utf8 = [force_text(item) for item in lista_opciones]
+                lista_opciones_utf8 = [force_str(item) for item in lista_opciones]
                 csvwiter.writerow(lista_opciones_utf8)
 
     def escribir_archivo_llamadas_tipo_csv(self, estadisticas):
@@ -229,7 +229,7 @@ class ArchivoDeReporteCsv(object):
             csvwiter = csv.writer(csvfile)
 
             # guardamos encabezado
-            lista_encabezados_utf8 = [force_text(item) for item in encabezado]
+            lista_encabezados_utf8 = [force_str(item) for item in encabezado]
             csvwiter.writerow(lista_encabezados_utf8)
 
             # Iteramos cada uno de las metadata de la gestion del formulario
@@ -253,7 +253,7 @@ class ArchivoDeReporteCsv(object):
                 lista_opciones.append(total_fuera_campana)
 
                 # --- Finalmente, escribimos la linea
-                lista_opciones_utf8 = [force_text(item) for item in lista_opciones]
+                lista_opciones_utf8 = [force_str(item) for item in lista_opciones]
                 csvwiter.writerow(lista_opciones_utf8)
 
     def ya_existe(self):

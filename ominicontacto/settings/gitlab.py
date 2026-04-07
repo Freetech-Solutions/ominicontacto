@@ -28,7 +28,7 @@ Para utilizar estos settings, crear ``fts_web_settings_local``
     if 'USE_PG' in os.environ:
         DATABASES = {
             'default': {
-                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'ENGINE': 'django.db.backends.postgresql',
                 'NAME': 'xxxxxxx',
                 'USER': 'xxxxxxx',
                 'PASSWORD': 'xxxxxxx',
@@ -48,7 +48,6 @@ from .defaults import *
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 COMPRESS_ENABLED = False
 
 ALLOWED_HOSTS = [
@@ -60,7 +59,7 @@ SECRET_KEY = 's1+*bfrvb@=k@c&9=pm!0sijjewneu5p5rojil#q+!a2y&as-4'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': 'plpython',
         'PORT': 5432,
         'NAME': 'omnileads',
@@ -70,7 +69,7 @@ DATABASES = {
         'ATOMIC_REQUESTS': True,
     },
     'replica': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': 'plpython',
         'PORT': 5432,
         'NAME': 'omnileads',
@@ -94,7 +93,6 @@ SESSION_COOKIE_AGE = 600
 
 #  para hacer un include de este archivo
 # **** RECORDAR: revisar permisos y que existan los directorios ****
-ASTERISK_HOSTNAME = "172.16.20.222"
 OML_ASTERISK_REMOTEPATH = "/etc/asterisk/"
 OML_SIP_FILENAME = "/opt/omnileads/sip_fts.conf"
 OML_QUEUES_FILENAME = "/opt/omnileads/queues_fts.conf"
@@ -235,7 +233,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [{"address": (REDIS_HOSTNAME, 6379), "db": 4}],
+            "hosts": [{"host": REDIS_HOSTNAME, "port": 6379, "db": 4}],
             "prefix": "",
             "expiry": 120,
             "group_expiry": 86400,
@@ -250,8 +248,6 @@ KAMAILIO_HOSTNAME = 'trash'
 KAMAILIO_PORT = 'trash'
 NGINX_HOSTNAME = 'trash'
 OML_EXTERNAL_PORT = 'trash'
-
-MIDDLEWARE = MIDDLEWARE_CLASSES
 
 INSTALL_PREFIX = '/opt/omnileads/'
 # configuraciones de django_sendfile para grabaciones

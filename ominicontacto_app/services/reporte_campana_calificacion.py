@@ -25,7 +25,7 @@ from __future__ import unicode_literals
 import logging
 import json
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.timezone import localtime
 from django.utils.translation import gettext_lazy as _
 
@@ -85,7 +85,7 @@ class ReporteCalificacionesCampanaCSV(ReporteCampanaService, ReporteCSV):
         encabezado.append(_("Subcalificacion"))
         encabezado.append(_("Observaciones"))
         encabezado.append(_("base de datos"))
-        lista_datos_utf8 = [force_text(item) for item in encabezado]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
         self.datos.append(lista_datos_utf8)
 
     def _escribir_linea_calificacion(self, calificacion, log_llamada):
@@ -111,5 +111,5 @@ class ReporteCalificacionesCampanaCSV(ReporteCampanaService, ReporteCSV):
         else:
             lista_opciones.append(_("Fuera de base"))
 
-        lista_datos_utf8 = [force_text(item) for item in lista_opciones]
+        lista_datos_utf8 = [force_str(item) for item in lista_opciones]
         self.datos.append(lista_datos_utf8)

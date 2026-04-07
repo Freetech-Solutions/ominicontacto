@@ -117,8 +117,14 @@ class PhoneJSController {
 
         /** User Agent **/
         this.phone.eventsCallbacks.onUserAgentRegistered.add(function () {
-            self.phone_fsm.registered();
-            self.phone_fsm.logToAsteriskOk();
+            var state = self.phone_fsm.state;
+            if (state === 'Initial') {
+                self.phone_fsm.registered();
+                self.phone_fsm.logToAsteriskOk();
+            } else if (state === 'ConnLossReady' || state === 'ConnLossPaused') {
+                self.phone_fsm.registered();
+            }
+            // Si ya estamos en Ready/Paused, es re-registro; solo actualizar vista
             self.view.setSipStatus('REGISTERED');
             self.view.setCallStatus(gettext('Supervisor registrado'), 'orange');
         });

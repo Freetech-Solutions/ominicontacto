@@ -22,7 +22,7 @@ import csv
 import os
 
 from abc import ABC, abstractmethod
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 import re
 from ominicontacto_app.utiles import elimina_tildes
 
@@ -78,7 +78,7 @@ class BaseDatosContactoArchivoCSVParser(BaseDatosContactoArchivoParser):
 
         Los caracteres invalidos NO son borrados.
         """
-        nombre = smart_text(nombre)
+        nombre = smart_str(nombre)
         nombre = nombre.strip()
         nombre = DOUBLE_SPACES.sub("_", nombre)
         nombre = elimina_tildes(nombre)

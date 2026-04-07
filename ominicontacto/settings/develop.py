@@ -19,15 +19,14 @@
 from .addons import *
 from .defaults import *
 from .checks import (check_settings_variables, process_middleware_settings,
-                     check_asterisk_connect_settings, check_audio_conversor_settings)
+                     check_audio_conversor_settings)
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 
 INSTALLED_APPS += ['debug_toolbar', 'corsheaders'] + ADDONS_APPS
 LOCALE_PATHS += ADDONS_LOCALE_PATHS
-MIDDLEWARE_CLASSES = ['corsheaders.middleware.CorsMiddleware'] + MIDDLEWARE_CLASSES
-MIDDLEWARE_CLASSES += ['debug_toolbar.middleware.DebugToolbarMiddleware']
+MIDDLEWARE = ['corsheaders.middleware.CorsMiddleware'] + MIDDLEWARE
+MIDDLEWARE += ['debug_toolbar.middleware.DebugToolbarMiddleware']
 DJANGO_CORS_HEADERS = True
 CORS_ORIGIN_ALLOW_ALL = True
 CORS_ALLOW_CREDENTIALS = True
@@ -54,9 +53,9 @@ try:
 except ImportError:
     raise Exception("No se pudo importar oml_settings_local")
 
-(MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE_CLASSES,
+(MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE,
  TEMPLATES_CONTEXT_PROCESORS_APPEND, TEMPLATES) = process_middleware_settings(
-     MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE_CLASSES,
+     MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE,
      TEMPLATES_CONTEXT_PROCESORS_APPEND, TEMPLATES)
 
 VARIABLES_LIST = [
@@ -78,7 +77,7 @@ VARIABLES_LIST = [
     (ASTERISK_AUDIO_PATH, 'ASTERISK_AUDIO_PATH'),
     (OML_AUDIO_FOLDER, 'OML_AUDIO_FOLDER'),
     (OML_PLAYLIST_FOLDER, 'OML_PLAYLIST_FOLDER'),
-    (MONITORFORMAT, 'MONITORFORMAT'),
+    (MONITORFORMAT, 'MONITORFORMAT') or 'mp3',
     (TOKEN_EXPIRED_AFTER_SECONDS, 'TOKEN_EXPIRED_AFTER_SECONDS'),
     (OML_BRANCH, 'OML_BRANCH'),
     (OML_COMMIT, 'OML_COMMIT'),
@@ -102,8 +101,6 @@ else:
 
 check_settings_variables(VARIABLES_LIST)
 
-check_asterisk_connect_settings(ASTERISK)
-
 check_audio_conversor_settings(TMPL_OML_AUDIO_CONVERSOR)
 
 # Una vez que tengo ASTERISK_AUDIO_PATH y OML_AUDIO_FOLDER puedo calcular OML_AUDIO_PATH_ASTERISK
@@ -112,5 +109,3 @@ OML_AUDIO_PATH_ASTERISK = ASTERISK_AUDIO_PATH + OML_AUDIO_FOLDER
 OML_PLAYLIST_PATH_ASTERISK = ASTERISK_AUDIO_PATH + OML_PLAYLIST_FOLDER
 
 # DEFENDER_LOCK_OUT_BY_IP_AND_USERNAME = True
-
-MIDDLEWARE = MIDDLEWARE_CLASSES

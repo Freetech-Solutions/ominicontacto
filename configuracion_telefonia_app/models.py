@@ -349,6 +349,7 @@ class DestinoEntrante(models.Model):
     MENU_INTERACTIVO_WHATSAPP = 10
     AGENTE = 11
     CLOSING_MESSAGE = 12
+    REMOTE_AGENT = 13
 
     CAMPANA_STR = _('Campaña entrante')
     VALIDACION_FECHA_HORA_STR = _('Validación de fecha/hora')
@@ -362,6 +363,7 @@ class DestinoEntrante(models.Model):
     MENU_INTERACTIVO_WHATSAPP_STR = _('Menú Interactivo de Whatsapp')
     AGENTE_STR = _('Agente')
     CLOSING_MESSAGE_STR = _('Mensaje de Cierre')
+    REMOTE_AGENT_STR = _('Agente Remoto')
 
     TIPOS_DESTINOS = (
         (CAMPANA, CAMPANA_STR),
@@ -374,6 +376,7 @@ class DestinoEntrante(models.Model):
         (AGENTE, AGENTE_STR),
         (SURVEY, SURVEY_STR),
         (CLOSING_MESSAGE, CLOSING_MESSAGE_STR),
+        (REMOTE_AGENT, REMOTE_AGENT_STR),
     )
     nombre = models.CharField(max_length=128)
     tipo = models.PositiveIntegerField(choices=TIPOS_DESTINOS)
@@ -411,6 +414,8 @@ class DestinoEntrante(models.Model):
             tipo = cls.SURVEY
         elif isinstance(info_nodo_entrante, PlantillaMensaje):
             tipo = cls.CLOSING_MESSAGE
+        elif isinstance(info_nodo_entrante, TroncalSIP):
+            tipo = cls.REMOTE_AGENT
         kwargs = {
             'nombre': info_nodo_entrante.nombre,
             'tipo': tipo,

@@ -17,65 +17,36 @@
 #
 
 """
-Servicio vinculado a la creacion de una cola pero principalmente con generacion de los
-archivos extensions_fts_queues.conf y queues_fts.conf
+Servicio vinculado a la activación y sincronización de colas (queues) de campañas:
+actualización de Redis (CampanaFamily).
 """
 
 from __future__ import unicode_literals
 
 import logging
 
-from django.utils.translation import gettext as _
-
-from constance import config
 from ominicontacto_app.errors import OmlError
-from ominicontacto_app.asterisk_config import (
-    AsteriskConfigReloader, QueuesCreator)
 from ominicontacto_app.services.asterisk.redis_database import CampanaFamily
 
 logger = logging.getLogger(__name__)
 
 
 class RestablecerDialplanError(OmlError):
-    """Indica que se produjo un error al crear el dialplan."""
+    """Indica que se produjo un error al sincronizar la configuración de colas."""
     pass
 
 
 class ActivacionQueueService(object):
-    """ Sincronizador de configuracion de Campaña / Queue """
+    """Sincronizador de configuracion de Campaña / Queue (Redis)."""
 
     def __init__(self):
-        self.queues_config_creator = QueuesCreator()
-        self.reload_asterisk_config = AsteriskConfigReloader()
         self.asterisk_database = CampanaFamily()
 
-    def _generar_y_recargar_configuracion_asterisk(self):
-        proceso_ok = True
-        mensaje_error = ""
-
-        try:
-            self.queues_config_creator.create_dialplan()
-        except Exception:
-            logger.exception(_("ActivacionQueueService: error al "
-                               "intentar queues_config_creator()"))
-
-            proceso_ok = False
-            mensaje_error += (_('Hubo un inconveniente al crear el archivo de '
-                                'configuracion del queues de {0}. '.format(config.ASTERISK_TM)))
-
-        if not proceso_ok:
-            raise RestablecerDialplanError(mensaje_error)
-        else:
-            self.reload_asterisk_config.reload_asterisk()
-
     def activar_campanas(self):
-        self._generar_y_recargar_configuracion_asterisk()
         self.asterisk_database.regenerar_families()
 
     def activar(self, campana):
-        self._generar_y_recargar_configuracion_asterisk()
         self.asterisk_database.regenerar_family(campana)
 
     def sincronizar_por_eliminacion(self, campana):
-        self._generar_y_recargar_configuracion_asterisk()
         self.asterisk_database.delete_family(campana)

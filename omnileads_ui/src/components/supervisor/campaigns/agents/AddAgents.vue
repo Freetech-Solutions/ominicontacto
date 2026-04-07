@@ -44,7 +44,8 @@ export default {
                 (agent) => agent.agent_id
             );
             const activeAgentsFilter = this.active_agents.filter(
-                (agent) => !agentsCampaignIds.includes(agent.agent_id)
+                (agent) => !agentsCampaignIds.includes(agent.agent_id) &&
+                           (agent.voicebot === false || agent.voicebot === undefined)
             );
             this.agents = activeAgentsFilter.map((agent) => {
                 return {

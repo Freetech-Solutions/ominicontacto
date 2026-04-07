@@ -23,7 +23,7 @@ from django.utils.timezone import now, localtime
 from django.db.models import Count
 
 from ominicontacto_app.utiles import datetime_hora_minima_dia
-from reportes_app.models import LlamadaLog
+from reportes_app.models import LlamadaResumen
 
 logger = _logging.getLogger(__name__)
 
@@ -35,6 +35,7 @@ class CallDataGenerator(object):
     # Keys de los valores en Redis a regenerar
     CALLDATA_CAMP_KEY = 'OML:CALLDATA:CAMP:{0}'
     CALLDATA_WAIT_KEY = 'OML:CALLDATA:WAIT-TIME:CAMP:{0}'
+    CALLDATA_ABANDON_TIME = 'OML:CALLDATA:ABANDON-TIME:CAMP:{0}'
     # CALLDATA_AGENT_KEY = 'OML:CALLDATA:AGENT:{0}'
     CALLDATA_QUEUE_SIZE_KEY = 'OML:CALLDATA:QUEUE-SIZE:{0}'
     CALLDATA_QUEUE_KEY = 'OML:CALLDATA:QUEUE:{0}'
@@ -44,6 +45,7 @@ class CallDataGenerator(object):
         'COMPLETEAGENT', 'COMPLETEOUTNUM', 'BT-TRY', 'BTOUT-TRY',
         'CAMPT-COMPLETE', 'CAMPT-FAIL', 'COMPLETE-CAMPT', 'CT-COMPLETE', 'CTOUT-COMPLETE'
     ]
+    EVENTOS_ABANDONO = ['ABANDON', 'ABANDONWEL']
 
     def __init__(self, redis_connection=None) -> None:
         self._redis_connection = redis_connection
@@ -62,6 +64,7 @@ class CallDataGenerator(object):
             self.CALLDATA_WAIT_KEY,
             # self.CALLDATA_AGENT_KEY,
             self.WHATSAPP_CAMP_KEY,
+            self.CALLDATA_ABANDON_TIME,
         ]
         for base_key in base_keys:
             keys = self.redis_connection.keys(base_key.format('*'))
@@ -84,7 +87,7 @@ class CallDataGenerator(object):
     def regenerar(self):
         self.eliminar_datos()
         self.regenerar_eventos_por_campana()
-        self.regenerar_wait_times()
+        self.regenerar_wait_and_abandon_times()
         # Actualmente no se genera ni se usa esta estadística
         # self.regenerar_eventos_por_agente()
 
@@ -96,9 +99,12 @@ class CallDataGenerator(object):
         return self._desde
 
     def regenerar_eventos_por_campana(self):
-        """ Cantidad de ocurrencias de eventos "relevantes" en LlamadaLog para cada campaña """
+        """ Cantidad de ocurrencias de eventos "relevantes" en LlamadaResumen para cada campaña """
         # TODO: Filtrar eventos "relevantes únicamente"
-        cantidades = LlamadaLog.objects.filter(time__gt=self.desde)\
+        # Usar base de datos replica para optimizar consultas
+        cantidades = LlamadaResumen.objects.using('replica')\
+            .filter(fecha_fin__gt=self.desde)\
+            .exclude(campana_id__isnull=True)\
             .values('campana_id', 'tipo_llamada', 'event')\
             .annotate(cantidad=Count('campana_id')).order_by('campana_id')
         eventos_por_campana = {}
@@ -106,7 +112,10 @@ class CallDataGenerator(object):
             campana_id = cantidad['campana_id']
             tipo_llamada = cantidad['tipo_llamada']
             evento = cantidad['event']
-            key_evento = f'CALLTYPE:{tipo_llamada}:{evento}'
+            # Filtrar valores None
+            if campana_id is None or evento is None:
+                continue
+            key_evento = f'CALL_TYPE:{tipo_llamada}:{evento}'
             if campana_id not in eventos_por_campana:
                 eventos_por_campana[campana_id] = {}
             eventos_por_campana[campana_id][key_evento] = cantidad['cantidad']
@@ -115,17 +124,51 @@ class CallDataGenerator(object):
             camp_key = self.CALLDATA_CAMP_KEY.format(campana_id)
             self.redis_connection.hset(camp_key, mapping=eventos)
 
-    def regenerar_wait_times(self):
+    def regenerar_wait_and_abandon_times(self):
         wait_times_por_campana = {}
-        llamadas = LlamadaLog.objects.using('replica')\
-            .filter(time__gt=self.desde,
+        abandon_times_por_campana = {}
+        # Obtener llamadas con eventos de fin de conexión
+        llamadas_fin = LlamadaResumen.objects.using('replica')\
+            .filter(fecha_fin__gt=self.desde,
                     event__in=self.EVENTOS_FIN_CONEXION_ORIGINAL)\
-            .exclude(agente_id=-1)
-        for log in llamadas:
-            if log.campana_id not in wait_times_por_campana:
-                wait_times_por_campana[log.campana_id] = []
-            wait_times_por_campana[log.campana_id].append(log.bridge_wait_time)
+            .exclude(agente_id=-1)\
+            .exclude(campana_id__isnull=True)
+        # Obtener llamadas con eventos de abandono
+        llamadas_abandon = LlamadaResumen.objects.using('replica')\
+            .filter(fecha_fin__gt=self.desde,
+                    event__in=self.EVENTOS_ABANDONO)\
+            .exclude(campana_id__isnull=True)
+        
+        for log in llamadas_fin:
+            if log.event in self.EVENTOS_FIN_CONEXION_ORIGINAL and log.agente_id != -1:
+                if log.campana_id is None:
+                    continue
+                if log.campana_id not in wait_times_por_campana:
+                    wait_times_por_campana[log.campana_id] = []
+                # bridge_wait_time es DecimalField en LlamadaResumen, convertir a int para Redis
+                wait_time = int(float(log.bridge_wait_time)) if log.bridge_wait_time else 0
+                wait_times_por_campana[log.campana_id].append(wait_time)
+        
+        for log in llamadas_abandon:
+            if log.event in self.EVENTOS_ABANDONO:
+                if log.campana_id is None:
+                    continue
+                if log.campana_id not in abandon_times_por_campana:
+                    abandon_times_por_campana[log.campana_id] = []
+                # bridge_wait_time es DecimalField en LlamadaResumen, convertir a int para Redis
+                abandon_time = int(float(log.bridge_wait_time)) if log.bridge_wait_time else 0
+                abandon_times_por_campana[log.campana_id].append(abandon_time)
+
+        pipe = self.redis_connection.pipeline(transaction=False)
 
         for campana_id, wait_times in wait_times_por_campana.items():
-            key = self.CALLDATA_WAIT_KEY.format(campana_id)
-            self.redis_connection.rpush(key, *wait_times)
+            if wait_times:  # Solo agregar si hay valores
+                key = self.CALLDATA_WAIT_KEY.format(campana_id)
+                pipe.rpush(key, *wait_times)
+
+        for campana_id, abandon_times in abandon_times_por_campana.items():
+            if abandon_times:  # Solo agregar si hay valores
+                key = self.CALLDATA_ABANDON_TIME.format(campana_id)
+                pipe.rpush(key, *abandon_times)
+
+        pipe.execute()

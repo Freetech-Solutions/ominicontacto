@@ -25,7 +25,7 @@ from __future__ import unicode_literals
 import logging
 import json
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.timezone import localtime
 from django.utils.translation import gettext as _
 
@@ -95,7 +95,7 @@ class ReporteFormularioGestionCampanaCSV(ReporteCSV):
                     nombre = campo.nombre_campo
                     encabezado.append(nombre)
 
-        lista_datos_utf8 = [force_text(item) for item in encabezado]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
         self.datos.append(lista_datos_utf8)
 
     def _escribir_linea_calificacion(self, respuesta):
@@ -136,5 +136,5 @@ class ReporteFormularioGestionCampanaCSV(ReporteCSV):
         for campo in campos:
             lista_opciones.append(str(datos.get(campo.nombre_campo, '')).replace('\r\n', ' '))
 
-        lista_datos_utf8 = [force_text(item) for item in lista_opciones]
+        lista_datos_utf8 = [force_str(item) for item in lista_opciones]
         self.datos.append(lista_datos_utf8)

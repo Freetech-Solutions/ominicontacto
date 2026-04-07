@@ -19,7 +19,7 @@
 /* Requirements:  * /
     - config.js
 /* ----------------*/
-/* globals JsSIP phone_logger */
+/* globals JsSIP phone_logger OMLAPI gettext */
 
 /**********   Constants   **********/
 var UNPAUSE_CODE = '0077UNPAUSE';
@@ -30,13 +30,13 @@ var DIRECT_TRANSFER = '1';
 var CONSULTATIVE_TRANSFER = '2';
 var CAMPAIGN_TRANSFER = '3';
 
-var ORIGIN_INBOUND = 'IN';
-var ORIGIN_DIALER = 'DIALER-FORM';
-var ORIGIN_CLICK2CALL = 'CLICK2CALL';
-var ORIGIN_CLICK2CALL_PREVIEW = 'CLICK2CALLPREVIEW';
-var ORIGIN_MANUAL = 'Manual-Call';
-var ORIGIN_OFF_CAMPAIGN = 'withoutCamp';
-var ORIGIN_AGENT_CALL = 'agentCall';
+var ORIGIN_INBOUND = 'INBOUND';
+var ORIGIN_DIALER = 'DIALER';
+var ORIGIN_CLICK2CALL = 'MANUAL';
+var ORIGIN_CLICK2CALL_PREVIEW = 'MANUAL';
+var ORIGIN_MANUAL = 'MANUAL';
+var ORIGIN_OFF_CAMPAIGN = 'OUTCAMPAIGN';
+var ORIGIN_AGENT_CALL = 'AGENT';
 
 /* TODO: Revisar utilidad y borrar
 var ORIGIN_IDS = {};
@@ -224,7 +224,9 @@ class PhoneJS {
             //                        IN, Dialer, Preview, Click2Call, Transfer.
             self.currentSession.on('ended', function() { // Cuando Finaliza la llamada
                 phone_logger.log('session: ended');
-                if (self.session_data.is_call){
+                // Verificar que session_data existe antes de acceder a sus propiedades
+                // Esto puede ocurrir si la sesión ya fue limpiada previamente (ej: en transferencia asistida)
+                if (self.session_data && self.session_data.is_call){
                     phone_logger.log('PhoneJS: onCallEnded');
                     self.eventsCallbacks.onCallEnded.fire();
                 }
@@ -272,78 +274,310 @@ class PhoneJS {
     dialTransfer(transfer) {
         var self = this;
         if (transfer.is_blind) {
-            this.currentSession.sendDTMF('#');
-            this.currentSession.sendDTMF('#');
+            // Validar que hay una sesión activa
+            if (!this.currentSession) {
+                phone_logger.log('Error: No hay una sesión activa para realizar la transferencia');
+                var error_message = gettext('No hay una llamada activa para transferir.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Validar que tenemos los datos necesarios
+            if (!transfer.destination) {
+                phone_logger.log('Error: transfer.destination no está definido');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: gettext('No se especificó el destino de la transferencia.')
+                    });
+                } else {
+                    alert(gettext('No se especificó el destino de la transferencia.'));
+                }
+                return;
+            }
+
+            // Validar que session_data existe
+            if (!this.session_data) {
+                phone_logger.log('Error: session_data no está definido');
+                var error_message = gettext('No se pudo obtener la información de la sesión para la transferencia.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Validar que remote_call existe
+            if (!this.session_data.remote_call) {
+                phone_logger.log('Error: session_data.remote_call no está definido');
+                var error_message = gettext('No se pudo obtener la información de la llamada para la transferencia.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Obtener call_id de la sesión actual
+            var call_id = this.session_data.remote_call.call_id;
+
+            if (!call_id) {
+                phone_logger.log('Error: call_id no está disponible en session_data.remote_call');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: gettext('No se pudo obtener el ID de la llamada para la transferencia.')
+                    });
+                } else {
+                    alert(gettext('No se pudo obtener el ID de la llamada para la transferencia.'));
+                }
+                return;
+            }
+
+            // Validar que agent_id existe
+            var agent_id = this.agent_id;
+            if (!agent_id) {
+                phone_logger.log('Error: agent_id no está definido');
+                var error_message = gettext('No se pudo obtener el ID del agente para la transferencia.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Crear instancia de OMLAPI
+            var oml_api = new OMLAPI();
+
+            // Callbacks
+            var callback_ok = function() {
+                phone_logger.log('Transferencia ciega iniciada exitosamente');
+                self.eventsCallbacks.onTransferDialed.fire(transfer);
+            };
+
+            var callback_error = function(error_info) {
+                phone_logger.log('Error al iniciar la transferencia ciega');
+                var error_message = gettext('No se pudo iniciar la transferencia. Intente nuevamente.');
+                
+                // Si hay información adicional del error, intentar usarla
+                if (error_info && error_info.message) {
+                    error_message = error_info.message;
+                } else if (error_info && typeof error_info === 'string') {
+                    error_message = error_info;
+                }
+                
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+            };
+
+            // Validar que el tipo de transferencia es válido
+            var transfer_type_valid = transfer.is_to_agent || transfer.is_to_campaign || 
+                                      transfer.is_to_number || transfer.is_quick_contact;
+            if (!transfer_type_valid) {
+                phone_logger.log('Error: Tipo de transferencia no válido');
+                var error_message = gettext('El tipo de transferencia especificado no es válido.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Llamar al método de API correspondiente según el tipo de transferencia
             if (transfer.is_to_agent) {
-                if (transfer.destination) {             // TODO: Remove Line
-                    this.transferTimeoutHandler = setTimeout(function() {
-                        self.currentSession.sendDTMF('0');
-                        self.currentSession.sendDTMF('0');
-                        self.currentSession.sendDTMF('0');
-                        self.currentSession.sendDTMF('0');
-                        self.currentSession.sendDTMF(transfer.destination);
-                        self.eventsCallbacks.onTransferDialed.fire(transfer);
-                    }, 2500);
-                }
+                oml_api.transferBlindAgent(call_id, transfer.destination, agent_id, callback_ok, callback_error);
             } else if (transfer.is_to_campaign) {
-                if (transfer.destination) {             // TODO: Remove Line
-                    this.transferTimeoutHandler = setTimeout(function() {
-                        self.currentSession.sendDTMF('9');
-                        self.currentSession.sendDTMF('9');
-                        self.currentSession.sendDTMF('9');
-                        self.currentSession.sendDTMF('9');
-                        self.currentSession.sendDTMF(transfer.destination);
-                        self.eventsCallbacks.onTransferDialed.fire(transfer);
-                    }, 2500);
-                }
+                oml_api.transferBlindCampaign(call_id, transfer.destination, agent_id, callback_ok, callback_error);
             } else if (transfer.is_to_number || transfer.is_quick_contact) {
-                if (transfer.destination) {             // TODO: Remove Line
-                    var i = 0;
-                    this.transferTimeoutHandler = setTimeout(function() {
-                        while (i < transfer.destination.length) {
-                            self.currentSession.sendDTMF(transfer.destination[i]);
-                            i++;
-                        }
-                        self.eventsCallbacks.onTransferDialed.fire(transfer);
-                    }, 2500);
-                }
+                oml_api.transferBlindEndpoint(call_id, transfer.destination, agent_id, callback_ok, callback_error);
             }
         } else if (transfer.is_consultative) {
-            this.currentSession.sendDTMF('*');
-            this.currentSession.sendDTMF('2');
-            if (transfer.is_to_agent) {
-                if (transfer.destination) {             // TODO: Remove Line
-                    this.transferTimeoutHandler = setTimeout(function() {
-                        self.currentSession.sendDTMF('1');
-                        self.currentSession.sendDTMF('1');
-                        self.currentSession.sendDTMF('1');
-                        self.currentSession.sendDTMF('1');
-                        self.currentSession.sendDTMF(transfer.destination);
-                        self.eventsCallbacks.onTransferDialed.fire(transfer);
-                    }, 2500);
+            // Validar que hay una sesión activa
+            if (!this.currentSession) {
+                phone_logger.log('Error: No hay una sesión activa para realizar la transferencia consultativa');
+                var error_message = gettext('No hay una llamada activa para transferir.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
                 }
+                return;
+            }
+
+            // Validar que tenemos los datos necesarios
+            if (!transfer.destination) {
+                phone_logger.log('Error: transfer.destination no está definido');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: gettext('No se especificó el destino de la transferencia.')
+                    });
+                } else {
+                    alert(gettext('No se especificó el destino de la transferencia.'));
+                }
+                return;
+            }
+
+            // Validar que session_data existe
+            if (!this.session_data) {
+                phone_logger.log('Error: session_data no está definido');
+                var error_message = gettext('No se pudo obtener la información de la sesión para la transferencia.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Validar que remote_call existe
+            if (!this.session_data.remote_call) {
+                phone_logger.log('Error: session_data.remote_call no está definido');
+                var error_message = gettext('No se pudo obtener la información de la llamada para la transferencia.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Obtener call_id de la sesión actual
+            var call_id = this.session_data.remote_call.call_id;
+
+            if (!call_id) {
+                phone_logger.log('Error: call_id no está disponible en session_data.remote_call');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: gettext('No se pudo obtener el ID de la llamada para la transferencia.')
+                    });
+                } else {
+                    alert(gettext('No se pudo obtener el ID de la llamada para la transferencia.'));
+                }
+                return;
+            }
+
+            // Validar que agent_id existe
+            var agent_id = this.agent_id;
+            if (!agent_id) {
+                phone_logger.log('Error: agent_id no está definido');
+                var error_message = gettext('No se pudo obtener el ID del agente para la transferencia.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Crear instancia de OMLAPI
+            var oml_api = new OMLAPI();
+
+            // Callbacks
+            var callback_ok = function() {
+                phone_logger.log('Transferencia consultativa iniciada exitosamente');
+                self.eventsCallbacks.onTransferDialed.fire(transfer);
+            };
+
+            var callback_error = function(error_info) {
+                phone_logger.log('Error al iniciar la transferencia consultativa');
+                var error_message = gettext('No se pudo iniciar la transferencia. Intente nuevamente.');
+                
+                // Si hay información adicional del error, intentar usarla
+                if (error_info && error_info.message) {
+                    error_message = error_info.message;
+                } else if (error_info && typeof error_info === 'string') {
+                    error_message = error_info;
+                }
+                
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+            };
+
+            // Validar que el tipo de transferencia es válido
+            var transfer_type_valid = transfer.is_to_agent || transfer.is_to_campaign || 
+                                      transfer.is_to_number || transfer.is_quick_contact;
+            if (!transfer_type_valid) {
+                phone_logger.log('Error: Tipo de transferencia consultativa no válido');
+                var error_message = gettext('El tipo de transferencia especificado no es válido.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
+                }
+                return;
+            }
+
+            // Llamar al método de API correspondiente según el tipo de transferencia
+            if (transfer.is_to_agent) {
+                // Para transferencia a agente, pasar target_agent_id (el backend resuelve el endpoint)
+                oml_api.transferConsultStart(call_id, null, transfer.destination, agent_id, callback_ok, callback_error);
             } else if (transfer.is_to_campaign) {
-                if (transfer.destination) {             // TODO: Remove Line
-                    this.transferTimeoutHandler = setTimeout(function() {
-                        self.currentSession.sendDTMF('8');
-                        self.currentSession.sendDTMF('8');
-                        self.currentSession.sendDTMF('8');
-                        self.currentSession.sendDTMF('8');
-                        self.currentSession.sendDTMF(transfer.destination);
-                        self.eventsCallbacks.onTransferDialed.fire(transfer);
-                    }, 2500);
+                // Transferencia consultativa a campaña no está soportada aún
+                phone_logger.log('Error: Transferencia consultativa a campaña no está soportada');
+                var error_message = gettext('Transferencia consultativa a campaña no está soportada aún.');
+                if (typeof $.growl !== 'undefined') {
+                    $.growl.error({
+                        title: gettext('Error'),
+                        message: error_message
+                    });
+                } else {
+                    alert(error_message);
                 }
             } else if (transfer.is_to_number || transfer.is_quick_contact) {
-                if (transfer.destination) {             // TODO: Remove Line
-                    i = 0;
-                    this.transferTimeoutHandler = setTimeout(function() {
-                        while (i < transfer.destination.length) {
-                            self.currentSession.sendDTMF(transfer.destination[i]);
-                            i++;
-                        }
-                        self.eventsCallbacks.onTransferDialed.fire(transfer);
-                    }, 2500);
-                }
+                // Para transferencia a número, pasar endpoint directamente
+                oml_api.transferConsultStart(call_id, transfer.destination, null, agent_id, callback_ok, callback_error);
             }
         }
     }
@@ -455,19 +689,19 @@ class SessionData {
 
     setRemoteCallInfo(invite_request) {
         var call_data = {};
-        if (invite_request.headers.Idcamp)
-            call_data.id_campana = invite_request.headers.Idcamp[0].raw;
+        if (invite_request.headers['X-Oml-Campid'])
+            call_data.id_campana = invite_request.headers['X-Oml-Campid'][0].raw;
         if (invite_request.headers.Omlcamptype)
             call_data.campana_type = invite_request.headers.Omlcamptype[0].raw;
-        if (invite_request.headers.Omloutnum)
-            call_data.telefono = invite_request.headers.Omloutnum[0].raw;
-        if (this.is_remote && invite_request.headers.Omlcallid) {
-            call_data.call_id = invite_request.headers.Omlcallid[0].raw;
+        if (invite_request.headers['X-Oml-Phonenumber'])
+            call_data.telefono = invite_request.headers['X-Oml-Phonenumber'][0].raw;
+        if (this.is_remote && invite_request.headers['X-Oml-Callid']) {
+            call_data.call_id = invite_request.headers['X-Oml-Callid'][0].raw;
         }
-        if (invite_request.headers.Omlcalltypeidtype)
-            call_data.call_type = invite_request.headers.Omlcalltypeidtype[0].raw;
-        if (invite_request.headers.Idcliente)
-            call_data.id_contacto = invite_request.headers.Idcliente[0].raw;
+        if (invite_request.headers['X-Oml-Calltype'])
+            call_data.call_type = invite_request.headers['X-Oml-Calltype'][0].raw;
+        if (invite_request.headers['X-Oml-Customerid'])
+            call_data.id_contacto = invite_request.headers['X-Oml-Customerid'][0].raw;
         else
             call_data.id_contacto = '';
         if (invite_request.headers.Omlrecfilename)
@@ -480,6 +714,14 @@ class SessionData {
             call_data.call_wait_duration = '';
         if (invite_request.headers.Omldialerid)
             call_data.dialer_id = invite_request.headers.Omldialerid[0].raw;
+
+        // ACD Node header
+        if (invite_request.headers['X-Oml-Acdnode'])
+            call_data.acd_node = invite_request.headers['X-Oml-Acdnode'][0].raw;
+
+        // Agent ID header
+        if (invite_request.headers['X-Oml-Agentid'])
+            call_data.agent_id = invite_request.headers['X-Oml-Agentid'][0].raw;
 
         // For outside campaign calls
         if (invite_request.headers.withoutCamp)
@@ -518,6 +760,9 @@ class SessionData {
         }
         if (this.is_dialer && invite_request.headers['Auto-Attend-Dialer']){
             call_data.auto_attend = invite_request.headers['Auto-Attend-Dialer'][0].raw;
+        }
+        if (this.is_click2call && invite_request.headers['Auto-Attend-Manual']){
+            call_data.auto_attend = invite_request.headers['Auto-Attend-Manual'][0].raw;
         }
         if (invite_request.headers['Oml-Retrieve-Crm-Data']){
             call_data.CRM_contact_data = invite_request.headers['Oml-Retrieve-Crm-Data'][0].raw;
@@ -578,8 +823,8 @@ class SessionData {
 
     get origin() {
         // IN, DIALER-FORM, CLICK2CALLPREVIEW, CLICK2CALL
-        if (this.invite_request.headers.Origin) {
-            return this.invite_request.headers.Origin[0].raw;
+        if (this.invite_request.headers['X-Oml-Origin']) {
+            return this.invite_request.headers['X-Oml-Origin'][0].raw;
         }
         else
             return undefined;
@@ -589,7 +834,7 @@ class SessionData {
         return this.origin != undefined && this.origin.indexOf('DIALER') == 0;
     }
     get is_click2call() {
-        return this.origin != undefined && this.origin.indexOf('CLICK2CALL') == 0;
+        return this.origin != undefined && this.origin.indexOf('MANUAL') == 0;
     }
     get is_inbound() {
         return this.origin == 'IN';
@@ -608,16 +853,16 @@ class SessionData {
     }
 
     get contact_id() {
-        if (this.invite_request.headers.Idcliente) {
-            return this.invite_request.headers.Idcliente[0].raw;
+        if (this.invite_request.headers['X-Oml-Customerid']) {
+            return this.invite_request.headers['X-Oml-Customerid'][0].raw;
         }
         else
             return undefined;
     }
 
     get campaign_id() {
-        if (this.invite_request.headers.Idcamp) {
-            return this.invite_request.headers.Idcamp[0].raw;
+        if (this.invite_request.headers['X-Oml-Campid']) {
+            return this.invite_request.headers['X-Oml-Campid'][0].raw;
         }
         else
             return undefined;

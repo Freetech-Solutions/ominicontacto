@@ -22,12 +22,14 @@ Tests relacionados a los Grupos de Agentes
 from __future__ import unicode_literals
 from mock import patch
 from django.urls import reverse
+from django.utils import timezone
 
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
 from ominicontacto_app.tests.factories import (
     GrupoFactory, CampanaFactory, QueueFactory, ActividadAgenteLogFactory)
 from ominicontacto_app.models import (
     Campana)
+from reportes_app.models import AgentActivityEventV2
 
 
 def request_host_port(request):
@@ -174,3 +176,15 @@ class TestConsolaAgente (OMLBaseTest):
         self.grupo.save()
         response = self.client.get(reverse('update_agent_password'))
         self.assertEqual(response.status_code, 403)
+
+    def test_redirect_login_when_presence_closed_in_v2(self):
+        AgentActivityEventV2.objects.create(
+            agente_id=self.agente.id,
+            ts=timezone.now(),
+            event_type=AgentActivityEventV2.EventType.SESSION_LOGOUT,
+            source='HB_TIMEOUT',
+            metadata={'reason': 'timeout'},
+        )
+        response = self.client.get(self.url, follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn(reverse('login'), response.url)

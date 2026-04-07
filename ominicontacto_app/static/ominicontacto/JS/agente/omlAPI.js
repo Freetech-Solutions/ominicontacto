@@ -216,6 +216,28 @@ class OMLAPI {
         });
     }
 
+    sendPresenceHeartbeat(payload, callback_ok, callback_error) {
+        var URL = Urls.api_agent_presence_heartbeat();
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(payload),
+            success: function(data) {
+                if (callback_ok) {
+                    callback_ok(data);
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                if (callback_error) {
+                    callback_error(jqXHR, textStatus, errorThrown);
+                }
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
     llamadaCalificada(callback_calificada, callback_no_calificada, callback_gestion_form, callback_error) {
         var URL = Urls.api_status_calificacion_llamada();
         $.ajax({
@@ -248,6 +270,25 @@ class OMLAPI {
 
     eventHold(callid){
         var URL = Urls.api_evento_hold();
+        var post_data = {
+            'callid': callid,
+        };
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            data: post_data,
+            dataType: 'json',
+            success: function(msg){
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+
+    }
+
+    holdCall(callid){
+        var URL = Urls.api_call_hold();
         var post_data = {
             'callid': callid,
         };
@@ -329,7 +370,6 @@ class OMLAPI {
             'campaign_id': campaign_id,
             'survey_id': survey_id,
         };
-        console.log(post_data);
         $.ajax({
             url: URL,
             type: 'POST',
@@ -367,6 +407,171 @@ class OMLAPI {
             success: function(msg){
             },
             error: function(jqXHR, textStatus, errorThrown) {
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
+    transferBlindAgent(call_id, target_agent_id, agent_id, callback_ok, callback_error) {
+        var URL = Urls.api_transfer_blind_agent();
+        var post_data = {
+            'call_id': call_id,
+            'target_agent_id': target_agent_id,
+            'agent_id': agent_id
+        };
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(post_data),
+            success: function(data, textStatus, jqXHR){
+                if (jqXHR.status === 202) {
+                    callback_ok();
+                } else {
+                    callback_error();
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                callback_error();
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
+    transferBlindCampaign(call_id, target_campaign_id, agent_id, callback_ok, callback_error) {
+        var URL = Urls.api_transfer_blind_campaign();
+        var post_data = {
+            'call_id': call_id,
+            'target_campaign_id': target_campaign_id,
+            'agent_id': agent_id
+        };
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(post_data),
+            success: function(data, textStatus, jqXHR){
+                if (jqXHR.status === 202) {
+                    callback_ok();
+                } else {
+                    callback_error();
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                callback_error();
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
+    transferBlindEndpoint(call_id, endpoint, agent_id, callback_ok, callback_error) {
+        var URL = Urls.api_transfer_blind_endpoint();
+        var post_data = {
+            'call_id': call_id,
+            'endpoint': endpoint,
+            'agent_id': agent_id
+        };
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(post_data),
+            success: function(data, textStatus, jqXHR){
+                if (jqXHR.status === 202) {
+                    callback_ok();
+                } else {
+                    callback_error();
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                callback_error();
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
+    transferConsultStart(call_id, endpoint, target_agent_id, agent_id, callback_ok, callback_error) {
+        var URL = Urls.api_transfer_consult_start();
+        var post_data = {
+            'call_id': call_id,
+            'agent_id': agent_id
+        };
+        if (endpoint) {
+            post_data['endpoint'] = endpoint;
+        }
+        if (target_agent_id) {
+            post_data['target_agent_id'] = target_agent_id;
+        }
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(post_data),
+            success: function(data, textStatus, jqXHR){
+                if (jqXHR.status === 202) {
+                    callback_ok();
+                } else {
+                    callback_error();
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                callback_error();
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
+    transferConsultComplete(call_id, agent_id, callback_ok, callback_error) {
+        var URL = Urls.api_transfer_consult_complete();
+        var post_data = {
+            'call_id': call_id,
+            'agent_id': agent_id
+        };
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(post_data),
+            success: function(data, textStatus, jqXHR){
+                if (jqXHR.status === 202) {
+                    callback_ok();
+                } else {
+                    callback_error();
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                callback_error();
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
+    transferConsultCancel(call_id, agent_id, callback_ok, callback_error) {
+        var URL = Urls.api_transfer_consult_cancel();
+        var post_data = {
+            'call_id': call_id,
+            'agent_id': agent_id
+        };
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            contentType: 'application/json',
+            data: JSON.stringify(post_data),
+            success: function(data, textStatus, jqXHR){
+                if (jqXHR.status === 202) {
+                    callback_ok();
+                } else {
+                    callback_error();
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                callback_error();
                 console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
             }
         });

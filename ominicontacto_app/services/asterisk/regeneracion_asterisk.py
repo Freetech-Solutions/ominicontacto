@@ -36,7 +36,6 @@ from django.apps import apps
 from constance import config
 from ominicontacto_app.errors import OmlError
 from ominicontacto_app.asterisk_config import (
-    AsteriskConfigReloader,
     AudioConfigFile,
     PlaylistsConfigCreator,
     QueuesCreator,
@@ -70,22 +69,20 @@ class RegeneracionAsteriskService(object):
         self.asterisk_database = RegenerarAsteriskFamilysOML()
         self.playlist_config_creator = PlaylistsConfigCreator()
 
-        # Llama al comando que reinicia Asterisk
-        self.reload_asterisk_config = AsteriskConfigReloader()
-
     def _generar_y_recargar_configuracion_asterisk(self):
         proceso_ok = True
         mensaje_error = ""
 
+        # Nota: a partir de OML-XXX dejamos de generar el archivo oml_queues.conf.
+        # Se mantiene la llamada para no romper la API, pero cualquier error en
+        # la generación del dialplan de colas ya no debe considerarse crítico.
         try:
             self.queues_config_creator.create_dialplan()
         except Exception:
-            logger.exception(_("ActivacionQueueService: error al "
-                               "intentar queues_config_creator()"))
-
-            proceso_ok = False
-            mensaje_error += _('Hubo un inconveniente al crear el archivo de '
-                               'configuracion del queues de {0}. '.format(config.ASTERISK_TM))
+            logger.exception(
+                _("ActivacionQueueService: error al intentar queues_config_creator(); "
+                  "se ignora porque oml_queues.conf ya no se genera como archivo.")
+            )
 
         try:
             self.sip_config_creator.create_config_sip()
@@ -112,7 +109,6 @@ class RegeneracionAsteriskService(object):
         else:
             self.sincronizador_config_telefonica.sincronizar_en_asterisk()
             self.asterisk_database.regenerar_asterisk()
-            self.reload_asterisk_config.reload_asterisk()
 
     def _regenerar_redis_data(self):
         """ Regenera información que debe estar disponible en redis """

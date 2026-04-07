@@ -233,6 +233,14 @@ class ConsolaAgenteView(AddSettingsContextMixin, TemplateView):
             logout(request)
             return redirect('login')
 
+        if presence_manager.should_redirect_by_closed_presence(agente_profile.id):
+            message = _(
+                "Su sesión de presencia expiró por inactividad. Inicie sesión nuevamente."
+            )
+            messages.warning(request, message)
+            logout(request)
+            return redirect('login')
+
         presence_manager.enforce_login(agente_profile)
         return super(ConsolaAgenteView, self).dispatch(request, *args, **kwargs)
 
@@ -296,6 +304,13 @@ class ConsolaAgenteView(AddSettingsContextMixin, TemplateView):
         context['listas_rapidas'] = ContactoListaRapida.objects.all()
         context['dtmf_duration'] = settings.DTMF_DURATION
         context['dtmf_inter_tone_gap'] = settings.DTMF_INTER_TONE_GAP
+        context['presence_heartbeat_interval_sec'] = getattr(
+            settings, 'PRESENCE_HEARTBEAT_INTERVAL_SEC', 15
+        )
+        context['presence_heartbeat_timeout_sec'] = getattr(
+            settings, 'PRESENCE_HEARTBEAT_TIMEOUT_SEC', 60
+        )
+        context['presence_heartbeat_leader_lock_ttl_sec'] = 45
 
         return context
 

@@ -577,4 +577,4 @@ class OMLTransaccionBaseTest(TransactionTestCase, OMLTestUtilsMixin):
 def default_db_is_postgresql():
     """Devuelve si la DB por default es PostgreSql"""
     return settings.DATABASES['default']['ENGINE'] == \
-        'django.db.backends.postgresql_psycopg2'
+        'django.db.backends.postgresql'

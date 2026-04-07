@@ -375,9 +375,8 @@ class GeneradorParaAgente(GeneradorDePedazoDeAgenteSip):
         return """
         [{oml_agente_sip}](agents)
         endpoint/callerid={oml_agente_name} <{oml_agente_sip}>
-        inbound_auth/username={oml_agente_sip}
-        inbound_auth/password=
         endpoint/context={oml_context}
+        aor/contact=sip:{oml_agente_sip}@{kamailio_hostname}:{kamailio_port}
         """
 
     def get_parametros(self):
@@ -406,15 +405,11 @@ class GeneradorParaPatronRuta(GeneradorDePedazoDeRutaSaliente):
 
         exten => {oml-ruta-dialpatern},1,Verbose(2, OUT-R ${{DB(OML/OUTR/{oml-ruta-id}/NAME)}})
         same => n,Set(OMLOUTRID={oml-ruta-id})
-        same => n,Gosub(sub-oml-dialout,s,1({oml-ruta-id},{oml-ruta-orden-patern}))
+        same => n,Gosub(sub-oml-dial-out,s,1({oml-ruta-id},{oml-ruta-orden-patern}))
         same => n,Gosub(sub-oml-hangup,s,1(OUTR-FAIL))
 
         exten => i,1,Verbose(2, no match any pattern exten)
-        same => n,Set(__DIALSTATUS=NONDIALPLAN)
-        same => n,ExecIf($["${{CUT(OMLCALLSTATUS,-,1)}}" == "BTOUT"]?Set(__DIALSTATUS=BTOUT-NONDIALPLAN))
-        same => n,ExecIf($["${{CUT(OMLCALLSTATUS,-,1)}}" == "CTOUT"]?Set(__DIALSTATUS=CTOUT-NONDIALPLAN))
-        same => n,Set(SHARED(OMLCALLSTATUS,${{OMLMOTHERCHAN}})=${{DIALSTATUS}})
-        same => n,Gosub(sub-oml-hangup,s,1(FAIL FAIL FAIL no hay ruta para ${{OMLOUTNUM}}))
+        same => n,Hangup()
         """
 
     def get_parametros(self):

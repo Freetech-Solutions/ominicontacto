@@ -44,7 +44,7 @@ class PermisoOML(Permission):
             model=self._meta.verbose_name, app_label=self._meta.app_label,
         )
         self.content_type = ct
-        super(PermisoOML, self).save(*args)
+        super(PermisoOML, self).save(*args, **kwargs)
 
     @property
     def descripcion(self):

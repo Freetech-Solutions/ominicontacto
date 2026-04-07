@@ -45,8 +45,8 @@ from constance import config
 
 from ominicontacto_app.services.queue_member_service import QueueMemberService
 from ominicontacto_app.forms.base import (
-    CustomUserCreationForm, SupervisorProfileForm, UserChangeForm, AgenteProfileForm,
-    ForcePasswordChangeForm, CampaingsByTypeForm
+    CustomUserCreationForm, SupervisorProfileForm, UserChangeForm, UserAgentUpdateForm,
+    AgenteProfileForm, ForcePasswordChangeForm, CampaingsByTypeForm
 )
 
 from ominicontacto_app.models import (
@@ -57,7 +57,6 @@ from configuracion_telefonia_app.models import DestinoEntrante, RutaEntrante
 from ominicontacto_app.permisos import PermisoOML
 from ominicontacto_app.services.asterisk.redis_database import AgenteFamily
 from .services.asterisk_service import ActivacionAgenteService, RestablecerConfigSipError
-from ominicontacto_app.services.asterisk.asterisk_ami import AMIManagerConnectorError
 from .import_export import UserExportResource
 from .import_export import UserImportResource
 
@@ -134,6 +133,17 @@ class CustomUserWizard(SessionWizardView):
             context['clonando_agente'] = self.agente_a_clonar
         return context
 
+    def get_form_initial(self, step):
+        initial = super(CustomUserWizard, self).get_form_initial(step)
+        if step == self.USER and self.agente_a_clonar is not None:
+            agente_profile = self.agente_a_clonar.get_agente_profile()
+            if agente_profile:
+                initial['sip_remote'] = agente_profile.sip_remote
+                initial['voicebot'] = agente_profile.voicebot
+                initial['voicebot_trunk'] = agente_profile.voicebot_trunk_id
+                initial['voicebot_extension'] = agente_profile.voicebot_extension
+        return initial
+
     def get_form_kwargs(self, step):
         kwargs = super(CustomUserWizard, self).get_form_kwargs(step)
         if step == self.USER:
@@ -185,12 +195,20 @@ class CustomUserWizard(SessionWizardView):
                 message,
             )
 
-    def _save_agente(self, user, grupo):
+    def _save_agente(self, user, grupo, sip_remote=False, voicebot=False, sip_password=None,
+                     voicebot_trunk=None, voicebot_extension=None):
         agente_profile = AgenteProfile.objects.create(
             user=user,
             grupo=grupo,
             reported_by=self.request.user,
-            sip_extension=1000 + user.id
+            sip_extension=1000 + user.id,
+            sip_remote=sip_remote,
+            voicebot=voicebot,
+            voicebot_trunk=voicebot_trunk,
+            voicebot_extension=voicebot_extension,
+            # Guardamos la contraseña de login como sip_password solo si el agente
+            # está marcado como SIP remote, para poder usarla luego en la config PJSIP.
+            sip_password=sip_password if sip_remote and sip_password else None,
         )
         DestinoEntrante.objects.create(
             nombre=user.username,
@@ -247,12 +265,27 @@ class CustomUserWizard(SessionWizardView):
             if self.agente_a_clonar is None:
                 form_campaigns = form_list[int(self.AGENTE)]
                 campaigns_pks = form_campaigns.cleaned_data.get('campaigns_by_type')
+                sip_remote = user_form.cleaned_data.get('sip_remote', False)
+                voicebot = user_form.cleaned_data.get('voicebot', False)
+                voicebot_trunk = user_form.cleaned_data.get('voicebot_trunk')
+                voicebot_extension = user_form.cleaned_data.get('voicebot_extension')
+                # Usamos la contraseña de login ingresada en la creación de usuario
+                # como contraseña SIP para agentes remotos.
+                sip_password = user_form.cleaned_data.get("password1")
             else:
                 campana_members = self.agente_a_clonar.get_agente_profile().campana_member.all()
                 queue_names = campana_members.values_list('id_campana', flat=True)
                 campaigns_pks = [Campana.get_id_from_queue_id_name(name) for name in queue_names]
+                agente_profile_clonado = self.agente_a_clonar.get_agente_profile()
+                sip_remote = agente_profile_clonado.sip_remote
+                voicebot = agente_profile_clonado.voicebot
+                sip_password = agente_profile_clonado.sip_password
+                voicebot_trunk = getattr(agente_profile_clonado, 'voicebot_trunk', None)
+                voicebot_extension = getattr(agente_profile_clonado, 'voicebot_extension', None)
             campaigns = Campana.objects.filter(pk__in=campaigns_pks)
-            agent = self._save_agente(user, grupo)
+            agent = self._save_agente(
+                user, grupo, sip_remote, voicebot, sip_password,
+                voicebot_trunk=voicebot_trunk, voicebot_extension=voicebot_extension)
             # Se Delega la responsabilidad de crear/eliminar y actualizar asterisk/redis
             queue_service = QueueMemberService(conectar_ami=False)
             queue_service.agregar_agente_a_campanas(agent, campaigns,
@@ -337,6 +370,8 @@ class CustomerUserUpdateView(UpdateView):
     def get_form_class(self, *args, **kwargs):
         if self.force_password_change:
             return ForcePasswordChangeForm
+        if self.for_agent:
+            return UserAgentUpdateForm
         return UserChangeForm
 
     def get_context_data(self, **kwargs):
@@ -365,6 +400,16 @@ class CustomerUserUpdateView(UpdateView):
         else:
             agente_profile = form.instance.get_agente_profile()
             if agente_profile:
+                # Actualizar campos del perfil de agente (SIP remote, Voicebot, etc.)
+                if self.for_agent and hasattr(form, 'cleaned_data'):
+                    cd = form.cleaned_data
+                    agente_profile.sip_remote = cd.get('sip_remote', False)
+                    agente_profile.voicebot = cd.get('voicebot', False)
+                    agente_profile.voicebot_trunk_id = cd.get('voicebot_trunk').pk if cd.get('voicebot_trunk') else None
+                    agente_profile.voicebot_extension = cd.get('voicebot_extension') or None
+                    agente_profile.save()
+                    agente_family = AgenteFamily()
+                    agente_family.regenerar_family(agente_profile)
                 # generar archivos sip en asterisk
                 asterisk_sip_service = ActivacionAgenteService()
                 try:
@@ -473,12 +518,15 @@ class UserDeleteView(DeleteView):
             agente_profile = self.object.get_agente_profile()
             agente_profile.borrar()
             # Delego la responsabilidad de crear/eliminar y actualizar asterisk/redis
+            queue_service = None
             try:
                 queue_service = QueueMemberService()
                 queue_service.eliminar_agente_de_colas_asignadas(agente_profile)
-            except AMIManagerConnectorError:
-                logger.exception(_("QueueRemove failed "))
-            queue_service.disconnect()
+            except Exception:
+                logger.exception(_("Error al eliminar agente de las colas"))
+            finally:
+                if queue_service is not None:
+                    queue_service.disconnect()
 
         if self.object.is_supervisor and self.object.get_supervisor_profile():
             self.object.get_supervisor_profile().borrar()
@@ -653,6 +701,12 @@ class AgenteProfileUpdateView(UpdateView):
 
     def get_success_url(self):
         return reverse('user_list', kwargs={"page": 1})
+
+    def form_valid(self, form):
+        ret = super(AgenteProfileUpdateView, self).form_valid(form)
+        agente_family = AgenteFamily()
+        agente_family.regenerar_family(self.object)
+        return ret
 
 
 class DesactivarAgenteView(RedirectView):

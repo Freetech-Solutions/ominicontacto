@@ -16,9 +16,12 @@ You should have received a copy of the GNU Lesser General Public License
 along with this program.  If not, see http://www.gnu.org/licenses/.
 
 -->
-{% extends "base.html" %} {% load static %} {% load i18n %} {% block extra_css %}
-<link rel="stylesheet" href="{% static 'ominicontacto/CSS/ext/jquery.dataTables.min.css' %}"> {% endblock %} {% block head_js %}
+{% extends "base.html" %} {% load static %} {% load i18n %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'ominicontacto/CSS/ext/jquery.dataTables.min.css' %}">
+{% endblock %}
 
+{% block head_js %}
 <script type="text/javascript" src="{% static 'JS/ext/reconnecting-websocket-iife.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'supervision_app/JS/campanas_dialers.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/ext/jquery.dataTables.min.js' %}"></script>
@@ -38,15 +41,17 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
     </div>
     <div class="mt-5">
         <input id="supervisor_id" type="hidden" value="{{supervisor_id}}">
-        <input id="campanas_list" type="hidden" value="{{campanas}}">
+        <input id="campanas_list" type="hidden" value="{{nombres_campanas}}">
         <input id="campanas_list_id" type="hidden" value="{{campanas_ids}}">
+        {{ wombat_enabled|json_script:"wombat_enabled" }}
+        {{ campanas | json_script:"campaigns-data" }}
 
         <table class="table" id="tableDialers">
             <thead>
                 <tr class="row-dialer">
                     <th></th>
                     <th colspan="4">{% trans 'Agentes' %}</th>
-                    <th colspan="6">{% trans 'Llamadas' %}</th>
+                    <th colspan="7">{% trans 'Llamadas' %}</th>
                     <th></th>
                     <th></th>
                     <th></th>
@@ -54,18 +59,19 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 </tr>
                 <tr>
                     <th>{% trans 'Nombre' %}</th>
-                    <th>{% trans 'Agentes Online' %}</th>
-                    <th>{% trans 'Agentes en llamada' %}</th>
-                    <th>{% trans 'Agentes en pausa' %}</th>
-                    <th>{% trans 'Agentes en Ready' %}</th>
-                    <th>{% trans 'Llamadas discadas' %}</th>
+                    <th>{% trans 'En linea' %}</th>
+                    <th>{% trans 'En llamada' %}</th>
+                    <th>{% trans 'En pausa' %}</th>
+                    <th>{% trans 'Libres' %}</th>
+                    <th>{% trans 'Discadas' %}</th>
                     <th>{% trans 'Atendidas' %}</th>
+                    <th>{% trans 'Shortcall' %}</th>
                     <th>{% trans 'No atendidas' %}</th>
-                    <th>{% trans 'Contestadores' %}</th>
+                    <th>{% trans 'Contestador' %}</th>
                     <th>{% trans 'Canales discando' %}</th>
-                    <th>{% trans 'Llamadas conectadas perdidas' %}</th>
+                    <th>{% trans 'Perdidas' %}</th>
                     <th>{% trans 'Gestiones' %}</th>
-                    <th>{% trans 'Llamadas pendientes' %}</th>
+                    <th>{% trans 'Contactos pendientes' %}</th>
                     <th>{% trans '% Objetivo' %}</th>
                     <th type="hidden"></th>
                 </tr>

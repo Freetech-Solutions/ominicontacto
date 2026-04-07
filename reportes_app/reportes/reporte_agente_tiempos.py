@@ -21,7 +21,7 @@ from __future__ import unicode_literals
 from django.utils.translation import gettext as _
 from django.utils.timezone import now, timedelta
 from reportes_app.actividad_agente_log import AgenteTiemposReporte
-from reportes_app.models import ActividadAgenteLog, LlamadaLog
+from reportes_app.models import ActividadAgenteLog, LlamadaResumen
 from ominicontacto_app.utiles import datetime_hora_maxima_dia, datetime_hora_minima_dia, fecha_local
 from ominicontacto_app.models import Pausa
 
@@ -36,10 +36,12 @@ class TiemposAgente(object):
 
     def calcular_tiempo_session_fecha_agente(self, agente, fecha_inferior,
                                              fecha_superior, tiempos_fechas):
-        """ Calcula el tiempo de session teniendo en cuenta los eventos
-        ADDMEMBER, REMOVEMEMBER por fecha dia a dia"""
+        """Calcula el tiempo de session teniendo en cuenta los eventos de login/logout.
+        ADDMEMBER/REMOVEMEMBER son legacy; equivalentes a SESSION_LOGIN/SESSION_LOGOUT."""
 
-        eventos_sesion = ['ADDMEMBER', 'REMOVEMEMBER']
+        eventos_sesion = list(
+            ActividadAgenteLog.EVENTOS_LOGIN | ActividadAgenteLog.EVENTOS_LOGOUT
+        )
         logs_erroneos = False
         logs_agente = ActividadAgenteLog.objects.obtener_tiempos_event_agentes(
             eventos_sesion, fecha_inferior, fecha_superior, [agente.id])
@@ -51,7 +53,7 @@ class TiemposAgente(object):
         TIME = 1
         EVENT = 2
         for log in reversed(logs_agente):
-            if log[EVENT] == 'REMOVEMEMBER':
+            if log[EVENT] in ActividadAgenteLog.EVENTOS_LOGOUT:
                 if datos_ultima_sesion['inicio'] is None:
                     logs_erroneos = True
                     # Si la ultima sesion no esta iniciada descarto el REMOVEMEMBER.
@@ -64,7 +66,7 @@ class TiemposAgente(object):
                                                         datos_ultima_sesion['fin'])
                 # Si la ultima sesion ya esta finalizada, descarto el REMOVEMEMBER
 
-            if log[EVENT] == 'ADDMEMBER':
+            if log[EVENT] in ActividadAgenteLog.EVENTOS_LOGIN:
                 # Si la ultima sesion esta iniciada
                 if datos_ultima_sesion['inicio'] is not None:
                     #  Si no esta finalizada Contabilizo una sesion. y Arranco otra.
@@ -96,10 +98,11 @@ class TiemposAgente(object):
 
     def calcular_tiempo_pausa_fecha_agente(self, agente, fecha_inferior,
                                            fecha_superior, agente_fecha):
-        """ Calcula el tiempo de pausa teniendo en cuenta los eventos PAUSEALL,
-        UNPAUSEALL y REMOVEMEMBER por fecha dia a dia para el agente"""
+        """Calcula el tiempo de pausa teniendo en cuenta PAUSEALL, UNPAUSEALL y
+        eventos de logout (SESSION_LOGOUT/REMOVEMEMBER legacy) por fecha dia a dia."""
 
-        eventos_pausa = ['PAUSEALL', 'UNPAUSEALL', 'REMOVEMEMBER']
+        eventos_pausa = [ActividadAgenteLog.PAUSE, ActividadAgenteLog.UNPAUSE]
+        eventos_pausa += list(ActividadAgenteLog.EVENTOS_LOGOUT)
 
         logs_time = ActividadAgenteLog.objects.obtener_tiempos_event_agentes(
             eventos_pausa,
@@ -120,7 +123,7 @@ class TiemposAgente(object):
             agente_nuevo = None
 
             # Descarto Pausas sin log de finalización
-            if log[EVENT] == 'PAUSEALL':
+            if log[EVENT] == ActividadAgenteLog.PAUSE:
 
                 resta = time_actual - log[TIME]
                 date_time_actual = fecha_local(time_actual)
@@ -136,7 +139,8 @@ class TiemposAgente(object):
                     agente_fecha.append(agente_nuevo)
                 time_actual = log[TIME]
 
-            if log[EVENT] == 'UNPAUSEALL' or log[EVENT] == 'REMOVEMEMBER':
+            if (log[EVENT] == ActividadAgenteLog.UNPAUSE
+                    or log[EVENT] in ActividadAgenteLog.EVENTOS_LOGOUT):
                 time_actual = log[TIME]
         return agente_fecha
 
@@ -145,9 +149,9 @@ class TiemposAgente(object):
         """ Calcula el tiempo de llamada teniendo en cuenta los eventos
         COMPLETECALLER y COMPLETEOUTNUM, por fecha dia a dia para el agente"""
 
-        eventos_llamadas = list(LlamadaLog.EVENTOS_FIN_CONEXION)
+        eventos_llamadas = list(LlamadaResumen.EVENTOS_FIN_CONEXION)
 
-        logs_time = LlamadaLog.objects.obtener_tiempo_llamada_agente(
+        logs_time = LlamadaResumen.objects.obtener_tiempo_llamada_agente(
             eventos_llamadas,
             fecha_inferior,
             fecha_superior,
@@ -156,10 +160,10 @@ class TiemposAgente(object):
         campanas_ids = set()
         for log in logs_time:
             campanas_ids.add(log.campana_id)
-            date_time_actual = fecha_local(log.time)
+            date_time_actual = fecha_local(log.fecha_fin)
             agente_en_lista = list(filter(lambda x: x.agente == date_time_actual,
                                           agente_fecha))
-            duracion_llamada = timedelta(seconds=log.duracion_llamada)
+            duracion_llamada = timedelta(seconds=float(log.duracion_segundos or 0))
             if agente_en_lista:
                 agente_nuevo = agente_en_lista[0]
                 agente_nuevo._tiempo_llamada += duracion_llamada
@@ -174,7 +178,7 @@ class TiemposAgente(object):
             fecha = datos_fecha.agente
             fecha_inicial = datetime_hora_minima_dia(fecha)
             fecha_final = datetime_hora_maxima_dia(fecha)
-            transferencias = LlamadaLog.objects.obtener_cantidades_de_transferencias_recibidas(
+            transferencias = LlamadaResumen.objects.obtener_cantidades_de_transferencias_recibidas(
                 fecha_inicial, fecha_final, [agente.id], campanas_ids)
             cant_transfers = 0
             transferencias_por_camp = transferencias.get(agente.id, {})
@@ -191,9 +195,9 @@ class TiemposAgente(object):
         Manual NO CONNECT(NOANSWER, CANCEL, BUSY, CHANUNAVAIL, FAIL, OTHER,
         AMD, BLACKLIST, 'CONGESTION', 'NONDIALPLAN') por fecha dia a dia para el agente"""
 
-        eventos_llamadas = list(LlamadaLog.EVENTOS_NO_CONTACTACION)
+        eventos_llamadas = list(LlamadaResumen.EVENTOS_NO_CONTACTACION)
 
-        logs_time = LlamadaLog.objects.obtener_count_evento_agente_agrupado_fecha(
+        logs_time = LlamadaResumen.objects.obtener_count_evento_agente_agrupado_fecha(
             eventos_llamadas,
             fecha_inferior,
             fecha_superior,
@@ -215,7 +219,7 @@ class TiemposAgente(object):
     def calcula_llamadas_entrantes_no_atendidas(self, agente, fecha_inferior,
                                                 fecha_superior, agente_fecha):
         eventos_llamadas = ['RINGNOANSWER', ]
-        logs_time = LlamadaLog.objects.obtener_count_evento_agente_agrupado_fecha(
+        logs_time = LlamadaResumen.objects.obtener_count_evento_agente_agrupado_fecha(
             eventos_llamadas,
             fecha_inferior,
             fecha_superior,
@@ -237,11 +241,11 @@ class TiemposAgente(object):
     def calcula_llamadas_entrantes_rechazadas(
             self, agente, fecha_inferior, fecha_superior, agente_fecha):
         eventos_llamadas = ['RINGNOANSWER', ]
-        logs_time = LlamadaLog.objects.obtener_count_evento_agente_agrupado_fecha(
+        logs_time = LlamadaResumen.objects.obtener_count_evento_agente_agrupado_fecha(
             eventos_llamadas,
             fecha_inferior,
             fecha_superior,
-            agente.id).filter(agente_extra_id=agente.id).exclude(campana_id=0)
+            agente.id).exclude(campana_id=0)
         for log in logs_time:
             date_time_actual = log['fecha']
             agente_en_lista = list(filter(lambda x: x.agente == date_time_actual,
@@ -306,10 +310,10 @@ class TiemposAgente(object):
 
         for log in logs_time:
             # Descarto otras Pausas, pero las tengo en cuenta para contabilizar finalizaciones
-            if log.event == 'PAUSEALL' and log.pausa_id != pausa_id:
+            if log.event == ActividadAgenteLog.PAUSE and log.pausa_id != pausa_id:
                 time_actual = log.time
             # Descarto Pausas sin log de finalización
-            elif log.event == 'PAUSEALL':
+            elif log.event == ActividadAgenteLog.PAUSE:
                 resta = time_actual - log.time
                 fecha_pausa = fecha_local(time_actual)
                 if fecha_pausa in tiempos_pausa.keys():
@@ -317,7 +321,8 @@ class TiemposAgente(object):
                 else:
                     tiempos_pausa.update({fecha_pausa: resta})
                 time_actual = log.time
-            if log.event == 'UNPAUSEALL' or log.event == 'REMOVEMEMBER':
+            if (log.event == ActividadAgenteLog.UNPAUSE
+                    or log.event in ActividadAgenteLog.EVENTOS_LOGOUT):
                 time_actual = log.time
 
         datos_de_pausa = self._obtener_datos_de_pausa(str(pausa_id))
@@ -338,43 +343,43 @@ class TiemposAgente(object):
         evento_hold = ['HOLD']
         evento_unhold = ['UNHOLD']
         tiempo_hold = timedelta(0)
-        hold_fecha = [hold for hold in LlamadaLog.objects.obtener_evento_hold_fecha(
+        hold_fecha = [hold for hold in LlamadaResumen.objects.obtener_evento_hold_fecha(
             evento_hold,
             fecha_inferior,
             fecha_superior,
             agente.id)]
 
-        primer_unhold = LlamadaLog.objects.obtener_evento_hold_fecha(evento_unhold, fecha_inferior,
+        primer_unhold = LlamadaResumen.objects.obtener_evento_hold_fecha(evento_unhold, fecha_inferior,
                                                                      fecha_superior, agente.id
                                                                      ).first()
         if hold_fecha:
             primer_hold = hold_fecha[0]
-            if primer_unhold and primer_unhold.time < primer_hold.time:
-                tiempo_hold += primer_unhold.time - fecha_inferior
+            if primer_unhold and primer_unhold.fecha_fin < primer_hold.fecha_fin:
+                tiempo_hold += primer_unhold.fecha_fin - fecha_inferior
 
         for log in hold_fecha:
-            fecha_actual = fecha_local(log.time)
+            fecha_actual = fecha_local(log.fecha_fin)
             agente_en_lista = list(filter(lambda x: x.agente == fecha_actual,
                                           agente_fecha))
-            inicio_hold = log.time
+            inicio_hold = log.fecha_fin
             callid = log.callid
             holdid = log.id
             fecha_hasta = datetime_hora_maxima_dia(fecha_actual)
-            unhold_fecha = LlamadaLog.objects.using('replica')\
+            unhold_fecha = LlamadaResumen.objects.using('replica')\
                 .filter(agente_id=agente.id, callid=callid,
-                        event='UNHOLD', time__range=(log.time, fecha_hasta))\
-                .order_by('time').first()
+                        event='UNHOLD', fecha_fin__range=(log.fecha_fin, fecha_hasta))\
+                .order_by('fecha_fin').first()
             if unhold_fecha:
                 # Si existen varios unhold dentro de una llamada se elige el primero
-                fin_hold = unhold_fecha.time
+                fin_hold = unhold_fecha.fecha_fin
             else:
                 # Si se corta la llamada sin haber podido hacer unhold o por otro motivo
-                log_llamada = LlamadaLog.objects.using('replica')\
+                log_llamada = LlamadaResumen.objects.using('replica')\
                     .filter(agente_id=agente.id, callid=callid,
-                            time__range=(log.time, fecha_hasta))\
-                    .exclude(id=holdid).order_by('time').first()
+                            fecha_fin__range=(log.fecha_fin, fecha_hasta))\
+                    .exclude(id=holdid).order_by('fecha_fin').first()
                 if log_llamada and log_llamada.event != 'HOLD':
-                    fin_hold = log_llamada.time
+                    fin_hold = log_llamada.fecha_fin
                 else:
                     fin_hold = now() \
                         if datetime_hora_maxima_dia(fecha_superior) >= now() else fecha_superior

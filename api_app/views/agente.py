@@ -18,6 +18,11 @@
 
 from __future__ import unicode_literals
 
+import json
+import logging
+import re
+import time
+
 from django.utils.translation import gettext as _
 from django.contrib.auth import logout
 from django.http import Http404
@@ -25,6 +30,7 @@ from django.shortcuts import get_object_or_404, redirect
 from django.views.generic import View
 from django.utils import timezone
 from django.apps import apps
+from django.conf import settings
 
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
@@ -40,13 +46,17 @@ from api_app.serializers.base import (
     CalificacionClienteNuevoContactoSerializer)
 from api_app.serializers.agents import AgentesParaTransferenciaSerializer
 from api_app.views.permissions import TienePermisoOML
+from api_app.views.transfer import _get_redis_client, _resolve_channel
 
 from ominicontacto_app.models import (
     Campana, SistemaExterno, CalificacionCliente, Contacto, AuditoriaCalificacion, AgenteProfile)
 from reportes_app.models import LlamadaLog
+from reportes_app.agent_activity_dual_write import write_hold_activity_event_v2
+from reportes_app.models import AgentActivityEventV2
 from ominicontacto_app.services.asterisk.agent_activity import AgentActivityAmiManager
 from ominicontacto_app.services.agent.presence import AgentPresenceManager
 from ominicontacto_app.services.click2call import Click2CallOriginator
+from ominicontacto_app.services.redis.connection import create_redis_connection
 
 from ominicontacto_app.services.kamailio_service import KamailioService
 from api_app.services.calificacion_llamada import CalificacionLLamada
@@ -136,6 +146,26 @@ class ApiCalificacionClienteView(viewsets.ModelViewSet):
         agente = self.request.user.agenteprofile
         calificaciones_agente = CalificacionCliente.objects.filter(agente=agente)
         return calificaciones_agente
+    
+    def perform_create(self, serializer):
+        """Actualizar resumen después de crear calificación"""
+        calificacion = serializer.save()
+        try:
+            from reportes_app.services.llamada_resumen import LlamadaResumenService
+            LlamadaResumenService().actualizar_desde_calificacion(calificacion)
+        except Exception:
+            # No fallar la calificación si falla la actualización del resumen
+            pass
+    
+    def perform_update(self, serializer):
+        """Actualizar resumen después de actualizar calificación"""
+        calificacion = serializer.save()
+        try:
+            from reportes_app.services.llamada_resumen import LlamadaResumenService
+            LlamadaResumenService().actualizar_desde_calificacion(calificacion)
+        except Exception:
+            # No fallar la calificación si falla la actualización del resumen
+            pass
 
 
 class ApiCalificacionClienteCreateView(viewsets.ModelViewSet):
@@ -143,6 +173,16 @@ class ApiCalificacionClienteCreateView(viewsets.ModelViewSet):
     permission_classes = (TienePermisoOML, )
     serializer_class = CalificacionClienteNuevoContactoSerializer
     http_method_names = ['post']
+    
+    def perform_create(self, serializer):
+        """Actualizar resumen después de crear calificación"""
+        calificacion = serializer.save()
+        try:
+            from reportes_app.services.llamada_resumen import LlamadaResumenService
+            LlamadaResumenService().actualizar_desde_calificacion(calificacion)
+        except Exception:
+            # No fallar la calificación si falla la actualización del resumen
+            pass
 
 
 class API_ObtenerContactosCampanaView(APIView):
@@ -317,9 +357,20 @@ class Click2CallOutsideCampaign(APIView):
         })
 
 
+logger = logging.getLogger(__name__)
+HEARTBEAT_ID_PATTERN = re.compile(r'^[A-Za-z0-9._:-]{1,128}$')
+HEARTBEAT_LEADER_LOCK_TTL_SEC = 45
+
+
 class HangUpCallView(APIView):
     """
-        Vista para ejecutar un hangup via AMI
+    Vista para ejecutar hangup de la llamada actual del agente.
+
+    Si el agente tiene una llamada gestionada por el ACD (CALLID en OML:AGENT)
+    y Redis está disponible, publica un comando HANGUP por Redis Pub/Sub para
+    que CommandDispatcher ejecute _handle_hangup (colgar canales, destruir
+    bridge, unregister). Si no hay CALLID o Redis no está disponible, devuelve
+    ERROR (sin fallback a AMI).
     """
     permission_classes = (TienePermisoOML, )
     authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
@@ -327,8 +378,126 @@ class HangUpCallView(APIView):
 
     def post(self, request):
         agente_profile = self.request.user.get_agente_profile()
-        manager = AgentActivityAmiManager()
-        error = manager.hangup_current_call(agente_profile)
+        r_client = _get_redis_client()
+        if r_client:
+            agent_key = "OML:AGENT:{}".format(agente_profile.id)
+            call_id = r_client.hget(agent_key, "CALLID")
+            if call_id and str(call_id).strip():
+                channel = _resolve_channel(r_client, agent_id=agente_profile.id)
+                payload = {
+                    "action": "HANGUP",
+                    "call_id": str(call_id).strip(),
+                }
+                r_client.publish(channel, json.dumps(payload))
+                logger.info(
+                    "HangUpCallView: comando HANGUP publicado para call_id=%s (agente=%s), canal=%s",
+                    call_id, agente_profile.id, channel,
+                )
+                return Response(data={"status": "OK"})
+        # Sin CALLID o Redis no disponible: no hay fallback a AMI
+        return Response(data={"status": "ERROR"})
+
+
+class AgentPresenceHeartbeatView(APIView):
+    """
+    Heartbeat de presencia de la consola del agente.
+    Actualiza una key con TTL para detectar timeout de browser.
+    """
+    permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    renderer_classes = (JSONRenderer, )
+    http_method_names = ['post']
+
+    def _parse_bool(self, value):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, int):
+            return value == 1
+        if isinstance(value, str):
+            return value.strip().lower() in ('1', 'true', 'yes', 'on')
+        return False
+
+    def _validate_id(self, value, field_name):
+        value = str(value or '').strip()
+        if not HEARTBEAT_ID_PATTERN.match(value):
+            raise ValueError(_('Valor inválido para %(field)s') % {'field': field_name})
+        return value
+
+    def post(self, request):
+        agente_profile = self.request.user.get_agente_profile()
+        if agente_profile is None:
+            return Response(
+                data={'status': 'ERROR', 'message': _('Usuario sin perfil de agente')},
+                status=HTTP_403_FORBIDDEN
+            )
+
+        data = request.data if request.data else request.POST
+        try:
+            browser_id = self._validate_id(data.get('browser_id'), 'browser_id')
+            tab_id = self._validate_id(data.get('tab_id'), 'tab_id')
+        except ValueError as e:
+            return Response(data={'status': 'ERROR', 'message': str(e)}, status=HTTP_400_BAD_REQUEST)
+
+        ui_state = str(data.get('ui_state') or '')[:64]
+        leader = self._parse_bool(data.get('leader'))
+        sent_at_ms = data.get('sent_at_ms')
+        try:
+            sent_at_ms = int(sent_at_ms) if sent_at_ms is not None and sent_at_ms != '' else None
+        except (TypeError, ValueError):
+            sent_at_ms = None
+
+        interval_sec = int(getattr(settings, 'PRESENCE_HEARTBEAT_INTERVAL_SEC', 15))
+        timeout_sec = int(getattr(settings, 'PRESENCE_HEARTBEAT_TIMEOUT_SEC', 60))
+        server_ts_ms = int(time.time() * 1000)
+        hb_key = AgentPresenceManager.get_heartbeat_key(agente_profile.id, browser_id)
+        leader_key = AgentPresenceManager.get_heartbeat_leader_key(agente_profile.id, browser_id)
+
+        mapping = {
+            'agent_id': str(agente_profile.id),
+            'browser_id': browser_id,
+            'tab_id': tab_id,
+            'ui_state': ui_state,
+            'leader': '1' if leader else '0',
+            'sent_at_ms': str(sent_at_ms) if sent_at_ms is not None else '',
+            'server_ts_ms': str(server_ts_ms),
+        }
+
+        try:
+            redis_conn = create_redis_connection()
+            redis_conn.hset(hb_key, mapping=mapping)
+            redis_conn.expire(hb_key, timeout_sec)
+            if leader:
+                redis_conn.setex(leader_key, HEARTBEAT_LEADER_LOCK_TTL_SEC, tab_id)
+        except Exception as e:
+            logger.warning(
+                "presence_heartbeat: error writing redis for agent_id=%s: %s",
+                agente_profile.id, e
+            )
+            return Response(
+                data={'status': 'ERROR', 'message': _('Error al actualizar heartbeat')},
+                status=503
+            )
+
+        return Response(data={
+            'status': 'OK',
+            'server_ts_ms': server_ts_ms,
+            'next_heartbeat_sec': interval_sec,
+        })
+
+
+class AgentLoginAsterisk(APIView):
+    permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    renderer_classes = (JSONRenderer, )
+    http_method_names = ['post']
+
+    """
+        Vista para ejecutar el login de agente Redis
+    """
+    def post(self, request):
+        agente_profile = self.request.user.get_agente_profile()
+        agent_login_manager = AgentActivityAmiManager()
+        error = agent_login_manager.login_agent(agente_profile, manage_connection=True)
         if error:
             return Response(data={
                 'status': 'ERROR',
@@ -339,20 +508,21 @@ class HangUpCallView(APIView):
             })
 
 
-class AgentLoginAsterisk(APIView):
+class AgentReadyAsterisk(APIView):
     permission_classes = (TienePermisoOML, )
     authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
     """
-        Vista para ejecutar el login de agente a asterisk, realizando las acciones
-        que solia hacer la extension 0077LOGIN
+        Vista para establecer el estado del agente en READY sin ejecutar
+        acciones de login/logout en Asterisk.
     """
-    def post(self, request):
+
+    def post(self, request, *args, **kwargs):
         agente_profile = self.request.user.get_agente_profile()
-        agent_login_manager = AgentActivityAmiManager()
-        error = agent_login_manager.login_agent(agente_profile, manage_connection=True)
+        agent_activity_manager = AgentActivityAmiManager()
+        error = agent_activity_manager.set_agent_as_ready(agente_profile)
         if error:
             return Response(data={
                 'status': 'ERROR',
@@ -608,6 +778,9 @@ class ApiStatusCalificacionLlamada(APIView):
 
 
 class ApiEventoHold(APIView):
+    """
+    Endpoint alternativo para hold/unhold. Registra solo en AgentActivityEventV2.
+    """
     permission_classes = (TienePermisoOML, )
     authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     renderer_classes = (JSONRenderer, )
@@ -619,25 +792,28 @@ class ApiEventoHold(APIView):
         if not callid:
             return Response(data={'status': 'ERROR'})
 
-        llamadalog = LlamadaLog.objects.filter(agente_id=agente.id, callid=callid).last()
-        campana_id = llamadalog.campana_id
-        tipo_campana = llamadalog.tipo_campana
-        tipo_llamada = llamadalog.tipo_llamada
-        if llamadalog.event == 'HOLD':
-            event = 'UNHOLD'
-        else:
-            event = 'HOLD'
+        last_hold = AgentActivityEventV2.objects.filter(
+            agente_id=agente.id,
+            metadata__callid=callid,
+            event_type__in=[
+                AgentActivityEventV2.EventType.STATE_ON_HOLD,
+                AgentActivityEventV2.EventType.STATE_OFF_HOLD,
+            ],
+        ).order_by('-ts').first()
 
-        evento_hold = LlamadaLog.objects.create(duracion_llamada=-1, agente_id=agente.id,
-                                                callid=callid, campana_id=campana_id,
-                                                tipo_campana=tipo_campana,
-                                                tipo_llamada=tipo_llamada,
-                                                event=event, time=timezone.now())
-        evento_hold.save()
-        if evento_hold:
-            return Response(data={'status': 'OK'})
+        if last_hold and last_hold.event_type == AgentActivityEventV2.EventType.STATE_ON_HOLD:
+            hold_event_type = AgentActivityEventV2.EventType.STATE_OFF_HOLD
         else:
-            return Response(data={'status': 'ERROR'})
+            hold_event_type = AgentActivityEventV2.EventType.STATE_ON_HOLD
+
+        ts = timezone.now()
+        write_hold_activity_event_v2(
+            agente_id=agente.id,
+            ts=ts,
+            event_type=hold_event_type,
+            callid=callid,
+        )
+        return Response(data={'status': 'OK'})
 
 
 class ApiAgentesParaTransferencia(viewsets.ModelViewSet):

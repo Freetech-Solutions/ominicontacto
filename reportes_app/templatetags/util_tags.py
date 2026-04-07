@@ -34,6 +34,26 @@ def format_seconds(seconds):
 
 
 @register.filter
+def format_seconds_1decimal(seconds):
+    """Formatea segundos como timedelta redondeado a un decimal."""
+    if seconds is None:
+        return None
+    s = str(timedelta(seconds=round(float(seconds), 1)))
+    if '.' in s:
+        parts = s.split('.')
+        s = parts[0] + '.' + (parts[1][:1] if parts[1][:1] else '0')
+    return s
+
+
+@register.filter
+def format_seconds_int(seconds):
+    """Formatea segundos como timedelta sin decimales (redondeo al entero)."""
+    if seconds is None:
+        return None
+    return str(timedelta(seconds=int(round(float(seconds)))))
+
+
+@register.filter
 def format_total_seconds(delta):
     seconds = delta.total_seconds()
     hours = seconds // 3600

@@ -29,7 +29,6 @@ from django.utils.translation import gettext as _
 from constance import config
 from ominicontacto_app.errors import OmlError
 from ominicontacto_app.asterisk_config import (
-    AsteriskConfigReloader, RutasSalientesConfigCreator,
     SipTrunksConfigCreator, SipRegistrationsConfigCreator,
 )
 from ominicontacto_app.services.asterisk.redis_database import (
@@ -80,7 +79,6 @@ class SincronizadorDeConfiguracionTroncalSipEnAsterisk(object):
         self.generador_trunk_en_astdb = TrunkFamily()
         self.generador_trunk_sip_en_asterisk_conf = SipTrunksConfigCreator()
         self.generador_trunks_registration_en_asterisk_conf = SipRegistrationsConfigCreator()
-        self.reload_asterisk_config = AsteriskConfigReloader()
 
     def _generar_y_recargar_archivos_conf_asterisk(self, trunk=None, trunk_exclude=None):
         proceso_ok = True
@@ -112,8 +110,6 @@ class SincronizadorDeConfiguracionTroncalSipEnAsterisk(object):
 
         if not proceso_ok:
             raise RestablecerConfiguracionTelefonicaError(mensaje_error)
-        else:
-            self.reload_asterisk_config.reload_asterisk()
 
     def _generar_e_insertar_en_astdb(self, trunk):
         mensaje_error = ""
@@ -263,32 +259,8 @@ class SincronizadorDeConfiguracionDestinoPersonalizadoAsterisk(AbstractConfigura
 
 
 class SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk(AbstractConfiguracionAsterisk):
+    """Sincroniza la configuración de rutas salientes en Redis/Asterisk DB. No genera archivos .conf de dialplan."""
 
     def _obtener_generador_family(self):
         generador = RutaSalienteFamily()
         return generador
-
-    def __init__(self):
-        super(SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk).__init__()
-        self.generador_rutas_en_asterisk_conf = RutasSalientesConfigCreator()
-        self.reload_asterisk_config = AsteriskConfigReloader()
-
-    def _generar_y_recargar_archivos_conf_asterisk(self, family_member_exclude=None):
-        proceso_ok = True
-        mensaje_error = ""
-
-        try:
-            self.generador_rutas_en_asterisk_conf.create_config_asterisk(
-                ruta_exclude=family_member_exclude)
-        except Exception as e:
-            msg = _("SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk: error {0} al".format(
-                e)) + _("intentar create_config_asterisk()")
-            logger.exception(msg)
-
-            proceso_ok = False
-            mensaje_error += _('Hubo un inconveniente al crear el archivo de '
-                               'configuracion de rutas de {0}. '.format(config.ASTERISK_TM))
-        if not proceso_ok:
-            raise RestablecerConfiguracionTelefonicaError(mensaje_error)
-        else:
-            self.reload_asterisk_config.reload_asterisk()

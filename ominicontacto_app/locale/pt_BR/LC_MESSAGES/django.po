@@ -7993,3 +7993,59 @@ msgstr "O Cliente WebPhone foi ativado"
 #: ominicontacto_app/views_user_profiles.py:830
 msgid "El archivo (CSV) es requerido"
 msgstr "O arquivo (CSV) é obrigatório"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Dashboard del agente"
+msgstr "Dashboard do agente"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Calculando estadísticas del agente ..."
+msgstr "Calculando estatísticas do agente ..."
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Tiempo de Sesión"
+msgstr "Tempo de Sessão"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Disponibilidad (%)"
+msgstr "Disponibilidade (%)"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Interacciones y Eficiencia"
+msgstr "Interações e Eficiência"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Total Interacciones"
+msgstr "Total de Interações"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Ent"
+msgstr "Ent"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Sal"
+msgstr "Sal"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Tiempo de conversación"
+msgstr "Tempo de conversa"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "ATT (TMO)"
+msgstr "ATT (TMO)"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Transferencias"
+msgstr "Transferências"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Tiempo en Hold"
+msgstr "Tempo em Hold"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Tiempo de sesión"
+msgstr "Tempo de sessão"
+
+#: ominicontacto_app/templates/agente/dashboard.html
+msgid "Gestiones"
+msgstr "Gestões"

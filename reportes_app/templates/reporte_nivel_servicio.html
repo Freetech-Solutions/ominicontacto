@@ -1,0 +1,309 @@
+<!--
+Copyright (C) 2018 Freetech Solutions
+
+This file is part of OMniLeads
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Lesser General Public License version 3, as published by
+the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Lesser General Public License for more details.
+
+You should have received a copy of the GNU Lesser General Public License
+along with this program.  If not, see http://www.gnu.org/licenses/.
+
+-->
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+
+{% block content %}
+<h1>{% trans 'Reporte de Nivel de Servicio (Service Level)' %}</h1>
+
+<div id="wrapper-search">
+    <button id="btnCollapse" class="btn btn-block" type="button" data-toggle="collapse" data-target="#wrapperSearchForm" aria-expanded="true" aria-controls="wrapperSearchForm">
+        <span class="icon icon-search"></span>{% trans 'Filtros' %}
+    </button>
+    <div id="wrapperSearchForm" class="show">
+        <form role="form" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+            <div class="form-row">
+                <div class="col-md-4 date active">
+                    <label>{% trans 'Rango de fechas' %}:</label>
+                    {{form.fecha}}
+                    {{form.fecha.errors}}
+                </div>
+                <div class="col-md-4">
+                    <label>{% trans 'Campaña' %}:</label>
+                    {{form.campana}}
+                    {{form.campana.errors}}
+                </div>
+                <div class="col-md-4">
+                    <label>{% trans 'Tiempo objetivo (segundos)' %}:</label>
+                    {{form.tiempo_objetivo}}
+                    {{form.tiempo_objetivo.errors}}
+                    <small class="form-text text-muted">{% trans 'Tiempo máximo de espera en cola para cumplir el objetivo (default: 20s)' %}</small>
+                </div>
+            </div>
+            <button type="submit" id="id_buscar_btn" class="btn btn-primary">
+              {% trans 'Buscar' %}
+            </button>
+        </form>
+    </div>
+</div>
+
+{% if estadisticas %}
+<h2>{% trans 'Período' %}: {{desde|date:"d/m/Y H:i"}} - {{hasta|date:"d/m/Y H:i"}}</h2>
+<hr>
+
+<!-- KPIs Principales -->
+<div class="row">
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4 {% if estadisticas.porcentaje_objetivo >= 80 %}text-success{% else %}text-warning{% endif %}">
+                    {{estadisticas.porcentaje_objetivo|floatformat:2}}%
+                </h1>
+                <h5>{% trans 'Nivel de Servicio' %}</h5>
+                <p class="text-muted">{% trans 'Objetivo' %}: {{estadisticas.tiempo_objetivo}}s</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4">{{estadisticas.total_llamadas}}</h1>
+                <h5>{% trans 'Total Llamadas' %}</h5>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4">{{estadisticas.total_contestadas}}</h1>
+                <h5>{% trans 'Llamadas Contestadas' %}</h5>
+                <p class="text-muted">{{estadisticas.porcentaje_contestadas|floatformat:2}}%</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4">{{estadisticas.total_objetivo}}</h1>
+                <h5>{% trans 'Dentro del Objetivo' %}</h5>
+                <p class="text-muted">{{estadisticas.porcentaje_objetivo|floatformat:2}}%</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4 {% if estadisticas.tasa_abandono <= 5 %}text-success{% elif estadisticas.tasa_abandono <= 10 %}text-warning{% else %}text-danger{% endif %}">
+                    {{estadisticas.tasa_abandono|floatformat:2}}%
+                </h1>
+                <h5>{% trans 'Tasa de Abandono' %}</h5>
+                <p class="text-muted">{{estadisticas.total_no_contestadas}} {% trans 'llamadas' %}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4 {% if estadisticas.tasa_transferencia <= 5 %}text-success{% elif estadisticas.tasa_transferencia <= 10 %}text-warning{% else %}text-danger{% endif %}">
+                    {{estadisticas.tasa_transferencia|floatformat:2}}%
+                </h1>
+                <h5>{% trans 'Tasa de Transferencia' %}</h5>
+                <p class="text-muted">{{estadisticas.total_transferidas}} {% trans 'llamadas' %}</p>
+            </div>
+        </div>
+    </div>
+    {% if estadisticas.kpi_eficiencia %}
+    <div class="col-md-2">
+        <div class="card text-center">
+            <div class="card-body">
+                <h1 class="display-4 {% if estadisticas.kpi_eficiencia.promedio_por_llamada_segundos <= 300 %}text-success{% elif estadisticas.kpi_eficiencia.promedio_por_llamada_segundos <= 600 %}text-warning{% else %}text-danger{% endif %}">
+                    {{estadisticas.kpi_eficiencia.tiempo_total_minutos|floatformat:1}}
+                </h1>
+                <h5>{% trans 'KPI de Eficiencia' %}</h5>
+                <p class="text-muted">{% trans 'Total' %}: {{estadisticas.kpi_eficiencia.tiempo_total_segundos|floatformat:0}}s</p>
+                <small class="text-muted">{% trans 'Promedio/llamada' %}: {{estadisticas.kpi_eficiencia.promedio_por_llamada_segundos|floatformat:0}}s</small>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<hr>
+
+<!-- Estadísticas Detalladas -->
+<div class="row">
+    <div class="col-md-6">
+        <h3>{% trans 'Resumen General' %}</h3>
+        <table class="table table-bordered table-sm">
+            <tr>
+                <td><strong>{% trans 'Total de Llamadas' %}</strong></td>
+                <td width="20%" class="text-right">{{estadisticas.total_llamadas}}</td>
+            </tr>
+            <tr>
+                <td>{% trans 'Llamadas Contestadas' %}</td>
+                <td class="text-right">{{estadisticas.total_contestadas}} ({{estadisticas.porcentaje_contestadas|floatformat:2}}%)</td>
+            </tr>
+            <tr>
+                <td>{% trans 'Llamadas No Contestadas' %}</td>
+                <td class="text-right">{{estadisticas.total_no_contestadas}} ({{estadisticas.tasa_abandono|floatformat:2}}%)</td>
+            </tr>
+            <tr class="{% if estadisticas.tasa_abandono <= 5 %}table-success{% elif estadisticas.tasa_abandono <= 10 %}table-warning{% else %}table-danger{% endif %}">
+                <td><strong>{% trans 'Tasa de Abandono' %}</strong></td>
+                <td class="text-right"><strong>{{estadisticas.tasa_abandono|floatformat:2}}%</strong></td>
+            </tr>
+            <tr class="{% if estadisticas.tasa_transferencia <= 5 %}table-success{% elif estadisticas.tasa_transferencia <= 10 %}table-warning{% else %}table-danger{% endif %}">
+                <td><strong>{% trans 'Tasa de Transferencia' %}</strong></td>
+                <td class="text-right"><strong>{{estadisticas.tasa_transferencia|floatformat:2}}%</strong> ({{estadisticas.total_transferidas}} {% trans 'llamadas' %})</td>
+            </tr>
+            <tr class="table-success">
+                <td><strong>{% trans 'Llamadas dentro del Objetivo' %} (≤{{estadisticas.tiempo_objetivo}}s)</strong></td>
+                <td class="text-right"><strong>{{estadisticas.total_objetivo}} ({{estadisticas.porcentaje_objetivo|floatformat:2}}%)</strong></td>
+            </tr>
+            {% if estadisticas.tiempo_promedio_espera %}
+            <tr>
+                <td>{% trans 'Tiempo Promedio de Espera (Contestadas)' %}</td>
+                <td class="text-right">{{estadisticas.tiempo_promedio_espera|floatformat:2}}s</td>
+            </tr>
+            {% endif %}
+            {% if estadisticas.tiempo_promedio_abandono %}
+            <tr>
+                <td>{% trans 'Tiempo Promedio antes de Abandonar' %}</td>
+                <td class="text-right">{{estadisticas.tiempo_promedio_abandono|floatformat:2}}s</td>
+            </tr>
+            {% endif %}
+            {% if estadisticas.kpi_eficiencia %}
+            <tr class="table-info">
+                <td><strong>{% trans 'KPI de Eficiencia' %}</strong></td>
+                <td class="text-right"><strong>{{estadisticas.kpi_eficiencia.tiempo_total_minutos|floatformat:2}} min</strong></td>
+            </tr>
+            <tr>
+                <td>&nbsp;&nbsp;{% trans 'Tiempo de Conversación' %}</td>
+                <td class="text-right">{{estadisticas.kpi_eficiencia.tiempo_conversacion_segundos|floatformat:2}}s</td>
+            </tr>
+            <tr>
+                <td>&nbsp;&nbsp;{% trans 'Tiempo en Hold' %}</td>
+                <td class="text-right">{{estadisticas.kpi_eficiencia.tiempo_hold_segundos|floatformat:2}}s</td>
+            </tr>
+            <tr>
+                <td>&nbsp;&nbsp;{% trans 'Tiempo ACW' %}</td>
+                <td class="text-right">{{estadisticas.kpi_eficiencia.tiempo_acw_segundos|floatformat:2}}s</td>
+            </tr>
+            <tr>
+                <td>&nbsp;&nbsp;{% trans 'Promedio por Llamada' %}</td>
+                <td class="text-right">{{estadisticas.kpi_eficiencia.promedio_por_llamada_segundos|floatformat:2}}s</td>
+            </tr>
+            {% endif %}
+        </table>
+    </div>
+    
+    <div class="col-md-6">
+        <h3>{% trans 'Distribución por Rangos de Tiempo' %}</h3>
+        <table class="table table-bordered table-sm">
+            <thead>
+                <tr>
+                    <th>{% trans 'Rango' %}</th>
+                    <th class="text-right">{% trans 'Cantidad' %}</th>
+                    <th class="text-right">{% trans 'Porcentaje' %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for rango in estadisticas.distribucion_rangos %}
+                <tr>
+                    <td>{{rango.nombre}}</td>
+                    <td class="text-right">{{rango.cantidad}}</td>
+                    <td class="text-right">{{rango.porcentaje|floatformat:2}}%</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Estadísticas por Campaña -->
+{% if estadisticas_por_campana %}
+<hr>
+<h3>{% trans 'Estadísticas por Campaña' %}</h3>
+<div class="table-responsive">
+    <table class="table table-bordered table-sm table-hover">
+        <thead class="thead-light">
+            <tr>
+                <th>{% trans 'Campaña' %}</th>
+                <th class="text-right">{% trans 'Total Llamadas' %}</th>
+                <th class="text-right">{% trans 'Contestadas' %}</th>
+                <th class="text-right">{% trans 'No Contestadas' %}</th>
+                <th class="text-right">{% trans 'Tasa Abandono' %}</th>
+                <th class="text-right">{% trans 'Tasa Transferencia' %}</th>
+                <th class="text-right">{% trans 'Dentro Objetivo' %}</th>
+                <th class="text-right">{% trans 'Nivel Servicio' %}</th>
+                <th class="text-right">{% trans 'Tiempo Prom. Espera' %}</th>
+                <th class="text-right">{% trans 'KPI Eficiencia' %}</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for campana_id, datos in estadisticas_por_campana.items %}
+            <tr>
+                <td>{{datos.campana_nombre}}</td>
+                <td class="text-right">{{datos.total_llamadas}}</td>
+                <td class="text-right">{{datos.total_contestadas}} ({{datos.porcentaje_contestadas|floatformat:2}}%)</td>
+                <td class="text-right">{{datos.total_no_contestadas}}</td>
+                <td class="text-right">
+                    <strong {% if datos.tasa_abandono <= 5 %}class="text-success"{% elif datos.tasa_abandono <= 10 %}class="text-warning"{% else %}class="text-danger"{% endif %}>
+                        {{datos.tasa_abandono|floatformat:2}}%
+                    </strong>
+                </td>
+                <td class="text-right">
+                    <strong {% if datos.tasa_transferencia <= 5 %}class="text-success"{% elif datos.tasa_transferencia <= 10 %}class="text-warning"{% else %}class="text-danger"{% endif %}>
+                        {{datos.tasa_transferencia|floatformat:2}}%
+                    </strong>
+                    <br><small class="text-muted">({{datos.total_transferidas}})</small>
+                </td>
+                <td class="text-right">
+                    <strong {% if datos.porcentaje_objetivo >= 80 %}class="text-success"{% else %}class="text-warning"{% endif %}>
+                        {{datos.total_objetivo}} ({{datos.porcentaje_objetivo|floatformat:2}}%)
+                    </strong>
+                </td>
+                <td class="text-right">
+                    <strong {% if datos.porcentaje_objetivo >= 80 %}class="text-success"{% else %}class="text-warning"{% endif %}>
+                        {{datos.porcentaje_objetivo|floatformat:2}}%
+                    </strong>
+                </td>
+                <td class="text-right">
+                    {% if datos.tiempo_promedio_espera %}
+                        {{datos.tiempo_promedio_espera|floatformat:2}}s
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-right">
+                    {% if datos.kpi_eficiencia %}
+                        <strong {% if datos.kpi_eficiencia.promedio_por_llamada_segundos <= 300 %}class="text-success"{% elif datos.kpi_eficiencia.promedio_por_llamada_segundos <= 600 %}class="text-warning"{% else %}class="text-danger"{% endif %}>
+                            {{datos.kpi_eficiencia.promedio_por_llamada_segundos|floatformat:0}}s
+                        </strong>
+                        <br><small class="text-muted">{{datos.kpi_eficiencia.tiempo_total_minutos|floatformat:1}} min</small>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-info">
+    <p>{% trans 'No hay datos disponibles para el período seleccionado.' %}</p>
+</div>
+{% endif %}
+
+{% endblock %}
+

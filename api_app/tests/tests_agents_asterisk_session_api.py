@@ -17,6 +17,7 @@
 #
 from __future__ import unicode_literals
 
+import json
 from mock import patch
 
 # from django.utils.translation import gettext as _
@@ -25,7 +26,7 @@ from django.urls import reverse
 from ominicontacto_app.tests.factories import PausaFactory
 from ominicontacto_app.tests.utiles import OMLBaseTest
 from ominicontacto_app.tests.utiles import PASSWORD
-from reportes_app.models import ActividadAgenteLog
+from reportes_app.models import AgentActivityEventV2
 
 
 class AgentsAsteriskSessionAPITest(OMLBaseTest):
@@ -73,6 +74,28 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
         login_agent.assert_called_once_with(self.agente, manage_connection=True)
 
     @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
+           'set_agent_as_ready')
+    def test_asterisk_session_ready_ok(self, set_agent_as_ready):
+        set_agent_as_ready.return_value = False
+        url = reverse('api_agent_asterisk_ready')
+        response = self.client.post(url, HTTP_AUTHORIZATION=self.auth_header)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('status', response.json())
+        self.assertEqual(response.json()['status'], 'OK')
+        set_agent_as_ready.assert_called_once_with(self.agente)
+
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
+           'set_agent_as_ready')
+    def test_asterisk_session_ready_error(self, set_agent_as_ready):
+        set_agent_as_ready.return_value = True
+        url = reverse('api_agent_asterisk_ready')
+        response = self.client.post(url, HTTP_AUTHORIZATION=self.auth_header)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('status', response.json())
+        self.assertEqual(response.json()['status'], 'ERROR')
+        set_agent_as_ready.assert_called_once_with(self.agente)
+
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
            'logout_agent')
     @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
            'disconnect_manager')
@@ -113,7 +136,7 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
     @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
            'connect_manager')
     def test_asterisk_session_pause_agent(self, connect_manager, disconnect_manager, pause_agent):
-        cant_logs = ActividadAgenteLog.objects.count()
+        cant_v2 = AgentActivityEventV2.objects.count()
         connect_manager.return_value = False
         disconnect_manager.return_value = False
         pause_agent.return_value = False, False
@@ -124,11 +147,11 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
         self.assertIn('status', response.json())
         self.assertEqual(response.json()['status'], 'OK')
         pause_agent.assert_called_once_with(self.agente, str(self.pausa.id), manage_connection=True)
-        self.assertEqual(ActividadAgenteLog.objects.count(), cant_logs + 1)
-        log = ActividadAgenteLog.objects.last()
-        self.assertEqual(log.pausa_id, str(self.pausa.id))
-        self.assertEqual(log.agente_id, self.agente.id)
-        self.assertEqual(log.event, ActividadAgenteLog.PAUSE)
+        self.assertEqual(AgentActivityEventV2.objects.count(), cant_v2 + 1)
+        last_event = AgentActivityEventV2.objects.order_by('-id').first()
+        self.assertEqual(last_event.agente_id, self.agente.id)
+        self.assertEqual(last_event.event_type, AgentActivityEventV2.EventType.STATE_PAUSED)
+        self.assertEqual(last_event.pause_id, self.pausa.id)
 
     @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
            'unpause_agent')
@@ -138,7 +161,7 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
            'connect_manager')
     def test_asterisk_session_unpause_agent(self, connect_manager, disconnect_manager,
                                             unpause_agent):
-        cant_logs = ActividadAgenteLog.objects.count()
+        cant_v2 = AgentActivityEventV2.objects.count()
         connect_manager.return_value = False
         disconnect_manager.return_value = False
         unpause_agent.return_value = False, False
@@ -150,8 +173,54 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
         self.assertEqual(response.json()['status'], 'OK')
         unpause_agent.assert_called_once_with(self.agente, str(self.pausa.id),
                                               manage_connection=True)
-        self.assertEqual(ActividadAgenteLog.objects.count(), cant_logs + 1)
-        log = ActividadAgenteLog.objects.last()
-        self.assertEqual(log.pausa_id, str(self.pausa.id))
-        self.assertEqual(log.agente_id, self.agente.id)
-        self.assertEqual(log.event, ActividadAgenteLog.UNPAUSE)
+        self.assertEqual(AgentActivityEventV2.objects.count(), cant_v2 + 1)
+        last_event = AgentActivityEventV2.objects.order_by('-id').first()
+        self.assertEqual(last_event.agente_id, self.agente.id)
+        self.assertEqual(last_event.event_type, AgentActivityEventV2.EventType.STATE_READY)
+
+    @patch('api_app.views.agente.create_redis_connection')
+    def test_presence_heartbeat_ok(self, mock_create_redis):
+        redis_mock = mock_create_redis.return_value
+        redis_mock.hset.return_value = 1
+        redis_mock.expire.return_value = True
+        redis_mock.setex.return_value = True
+
+        url = reverse('api_agent_presence_heartbeat')
+        payload = {
+            'browser_id': 'browser-1',
+            'tab_id': 'tab-1',
+            'leader': True,
+            'ui_state': 'Ready',
+            'sent_at_ms': 1735689600000,
+        }
+        response = self.client.post(
+            url,
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json().get('status'), 'OK')
+        self.assertIn('server_ts_ms', response.json())
+        self.assertIn('next_heartbeat_sec', response.json())
+        self.assertTrue(redis_mock.hset.called)
+        self.assertTrue(redis_mock.expire.called)
+        self.assertTrue(redis_mock.setex.called)
+
+    def test_presence_heartbeat_invalid_browser_id(self):
+        url = reverse('api_agent_presence_heartbeat')
+        payload = {
+            'browser_id': 'bad id with spaces',
+            'tab_id': 'tab-1',
+            'leader': True,
+            'ui_state': 'Ready',
+            'sent_at_ms': 1735689600000,
+        }
+        response = self.client.post(
+            url,
+            data=json.dumps(payload),
+            content_type='application/json',
+            HTTP_AUTHORIZATION=self.auth_header,
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json().get('status'), 'ERROR')

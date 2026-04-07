@@ -29,6 +29,7 @@ from ominicontacto_app.models import (
     AgenteProfile, Pausa, Campana, Blacklist, ConfiguracionDeAgentesDeCampana, QueueMember, )
 from ominicontacto_app.utiles import convert_audio_asterisk_path_astdb
 from reportes_app.services.redis.call_data_generation import CallDataGenerator
+from reportes_app.services.redis.disposition_cache import CampaignDispositionsCache
 from configuracion_telefonia_app.models import (
     RutaSaliente, IVR, DestinoEntrante, ValidacionFechaHora, GrupoHorario, IdentificadorCliente,
     TroncalSIP, RutaEntrante, DestinoPersonalizado, AmdConf, EsquemaGrabaciones
@@ -159,6 +160,20 @@ class AbstractRedisChanelPublisher(AbstractRedisFamily):
 
 class CampanaFamily(AbstractRedisFamily):
 
+    def delete_family(self, family_member):
+        """Elimina OML:CAMP:{id} y OML:CAMP:{id}:STATUS de Redis."""
+        redis_connection = self.get_redis_connection()
+        try:
+            family = self._get_nombre_family(family_member)
+            redis_connection.delete(family)
+            status_key = f'{family}:STATUS'
+            redis_connection.delete(status_key)
+        except RedisError as e:
+            raise e
+        except ConnectionError as e:
+            logger.exception(e)
+            sys.exit(1)
+
     def _create_dict(self, campana):
 
         dict_campana = {
@@ -220,9 +235,28 @@ class CampanaFamily(AbstractRedisFamily):
             dict_campana.update({'FAILOVER': str(0)})
 
         if campana.queue_campana.destino_dialer:
-            dst = "{0},{1}".format(campana.queue_campana.destino_dialer.tipo,
-                                   campana.queue_campana.destino_dialer.object_id)
-            dict_campana.update({'CUSTOMDIALERDST': 1, 'DIALERDST': dst})
+            destino_dialer = campana.queue_campana.destino_dialer
+            # Si el destino es REMOTE_AGENT, usar CUSTOMDIALERDST=2 y EXTERNAL_AG_HOST
+            if destino_dialer.tipo == DestinoEntrante.REMOTE_AGENT:
+                # Obtener el nombre del troncal SIP desde el content_object
+                try:
+                    troncal_sip = destino_dialer.content_object
+                    if isinstance(troncal_sip, TroncalSIP):
+                        dict_campana.update({
+                            'CUSTOMDIALERDST': '1',
+                            'EXTERNAL_AG_HOST': troncal_sip.nombre
+                        })
+                    else:
+                        logger.warning(
+                            f"Destino REMOTE_AGENT {destino_dialer.id} no tiene un TroncalSIP como content_object")
+                        dict_campana.update({'CUSTOMDIALERDST': str(0)})
+                except Exception as e:
+                    logger.error(f"Error al obtener troncal SIP para destino_dialer {destino_dialer.id}: {e}")
+                    dict_campana.update({'CUSTOMDIALERDST': str(0)})
+            else:
+                # Para otros tipos de destino (SURVEY, etc.), mantener comportamiento original
+                dst = "{0},{1}".format(destino_dialer.tipo, destino_dialer.object_id)
+                dict_campana.update({'CUSTOMDIALERDST': '1', 'DIALERDST': dst})
         else:
             dict_campana.update({'CUSTOMDIALERDST': str(0)})
 
@@ -250,6 +284,10 @@ class CampanaFamily(AbstractRedisFamily):
                 dict_campana['AUTO_UNPAUSE'] = configuracion_de_agentes.auto_unpause
         except ConfiguracionDeAgentesDeCampana.DoesNotExist:
             pass
+
+        # VOICEBOT: True si hay al menos un agente tipo voicebot asignado a la campaña
+        has_voicebot = campana.obtener_agentes().filter(voicebot=True).exists()
+        dict_campana['VOICEBOT'] = 'True' if has_voicebot else 'False'
 
         if hasattr(campana, 'encuestas') and campana.encuestas.filter(activa=True):
             encuesta_camp = campana.encuestas.get(activa=True)
@@ -285,11 +323,18 @@ class AgenteFamily(AbstractRedisFamily):
 
     def _create_dict(self, agente, status='', timestamp=''):
         dict_agente = {
-            'NAME': agente.user.get_full_name().replace("'", "’"),
+            'NAME': agente.user.get_full_name().replace("'", "'"),
             'SIP': agente.sip_extension,
             'STATUS': status,
             'TIMESTAMP': timestamp
         }
+        # Agregar key VOICEBOT si el agente es voicebot
+        if agente.voicebot:
+            dict_agente['VOICEBOT'] = '1'
+            if agente.voicebot_trunk and agente.voicebot_extension is not None:
+                dict_agente['VOICEBOT_ADDR'] = (
+                    "{0}@{1}".format(agente.voicebot_extension, agente.voicebot_trunk.nombre)
+                )
         return dict_agente
 
     def _obtener_todos(self):
@@ -340,15 +385,31 @@ class RutaSalienteFamily(AbstractRedisFamily):
         }
 
         patrones = self._obtener_patrones_ordenados(ruta)
+        dict_ruta.update({'DP-COUNT': len(patrones)})
         for orden, patron in patrones:
+            # PREFIJO: se almacena la longitud del prefijo, como ya se hacía
             if patron.prefix:
                 len_prefix = len(str(patron.prefix))
+                prefix_value = str(patron.prefix)
             else:
                 len_prefix = ''
+                prefix_value = ''
             clave_prefix = "PREFIX-{0}".format(orden)
             clave_prepend = "PREPEND-{0}".format(orden)
             prepend = patron.prepend if patron.prepend is not None else ''
-            dict_ruta.update({clave_prefix: len_prefix, clave_prepend: prepend})
+            # Nuevas claves específicas del patrón para consumo desde el dialer
+            clave_dp_prefix = "DP-{0}-PREFIX".format(orden)
+            clave_dp_prepend = "DP-{0}-PREPEND".format(orden)
+            clave_dp_match = "DP-{0}-MATCH".format(orden)
+            match_pattern = patron.match_pattern if patron.match_pattern is not None else ''
+
+            dict_ruta.update({
+                clave_prefix: len_prefix,
+                clave_prepend: prepend,
+                clave_dp_prefix: prefix_value,
+                clave_dp_prepend: prepend,
+                clave_dp_match: match_pattern,
+            })
 
         troncales = self._obtener_troncales_ordenados(ruta)
         for orden, troncal in troncales:
@@ -884,6 +945,7 @@ class RegenerarAsteriskFamilysOML(object):
 
     def __init__(self):
         redis_connection = create_redis_connection()
+        redis_calldata_connection = create_redis_connection(2)
         self.campana_family = CampanaFamily(redis_connection=redis_connection)
         self.agente_family = AgenteFamily(redis_connection=redis_connection)
         self.pausa_family = PausaFamily(redis_connection=redis_connection)
@@ -891,7 +953,8 @@ class RegenerarAsteriskFamilysOML(object):
         # TODO: Separar datos de Redis pertinentes a Asterisk de los que no.
         self.campanas_de_agente_family = CampanasDeAgenteFamily(redis_connection=redis_connection)
         self.agentes_de_campana_family = CampaignAgentsFamily(redis_connection=redis_connection)
-        self.call_data_generator = CallDataGenerator(redis_connection=redis_connection)
+        self.call_data_generator = CallDataGenerator(redis_connection=redis_calldata_connection)
+        self.disposition_cache = CampaignDispositionsCache(redis_calldata_connection)
 
     def regenerar_asterisk(self):
         self.campana_family.regenerar_families()
@@ -901,3 +964,4 @@ class RegenerarAsteriskFamilysOML(object):
         self.campanas_de_agente_family.regenerar_datos_de_agentes()
         self.agentes_de_campana_family.regenerar_families()
         self.call_data_generator.regenerar()
+        self.disposition_cache.regenerar()

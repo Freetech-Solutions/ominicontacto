@@ -42,16 +42,14 @@ class QueueMemberServiceTests(OMLBaseTest):
     @patch('redis.Redis.srem')
     @patch('redis.Redis.keys')
     @patch('redis.Redis.delete')
-    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AmiManagerClient.connect')
     def test_eliminar_agente_de_colas_asignadas(
-            self, connect, delete, keys, srem,
+            self, delete, keys, srem,
             obtener_sip_agentes_sesiones_activas):
         keys.return_value = []
         service = QueueMemberService()
         self.assertEqual(self.agente1.queue_set.count(), 2)
         keys.return_value = ['OML:CAMPAIGN-AGENTS:1']
         service.eliminar_agente_de_colas_asignadas(self.agente1)
-        connect.assert_called()
         obtener_sip_agentes_sesiones_activas.assert_called()
         keys.assert_called_with('OML:CAMPAIGN-AGENTS:*')
         delete.assert_called_with('OML:AGENT-CAMPAIGNS:' + str(self.agente1.id))
@@ -64,9 +62,8 @@ class QueueMemberServiceTests(OMLBaseTest):
     @patch('redis.Redis.srem')
     @patch('redis.Redis.keys')
     @patch('redis.Redis.delete')
-    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AmiManagerClient.connect')
     def test_eliminar_agente_conectado_de_colas_asignadas(
-            self, connect, delete, keys, srem,
+            self, delete, keys, srem,
             obtener_sip_agentes_sesiones_activas, _remover_agente_cola_asterisk):
         obtener_sip_agentes_sesiones_activas.return_value = [self.agente1.sip_extension, ]
         keys.return_value = []
@@ -74,7 +71,6 @@ class QueueMemberServiceTests(OMLBaseTest):
         self.assertEqual(self.agente1.queue_set.count(), 2)
         keys.return_value = ['OML:CAMPAIGN-AGENTS:1']
         service.eliminar_agente_de_colas_asignadas(self.agente1)
-        connect.assert_called()
         obtener_sip_agentes_sesiones_activas.assert_called()
         keys.assert_called_with('OML:CAMPAIGN-AGENTS:*')
         delete.assert_called_with('OML:AGENT-CAMPAIGNS:' + str(self.agente1.id))
@@ -88,16 +84,14 @@ class QueueMemberServiceTests(OMLBaseTest):
            '._remover_agente_cola_asterisk')
     @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
     @patch('redis.Redis.srem')
-    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AmiManagerClient.connect')
     def test_eliminar_agentes_de_cola(
-            self, connect, srem,
+            self, srem,
             obtener_sip_agentes_sesiones_activas, _remover_agente_cola_asterisk):
         self.assertEqual(self.agente1.queue_set.count(), 2)
         self.assertEqual(self.agente2.queue_set.count(), 1)
         obtener_sip_agentes_sesiones_activas.return_value = [self.agente2.sip_extension, ]
         service = QueueMemberService()
         service.eliminar_agentes_de_cola(self.campana1, (self.agente1, self.agente2))
-        connect.assert_called()
         obtener_sip_agentes_sesiones_activas.assert_called()
         # Se eliminan de la lista de campañas del agente en Redis
         srem.assert_has_calls([
@@ -114,9 +108,8 @@ class QueueMemberServiceTests(OMLBaseTest):
            '._adicionar_agente_cola_asterisk')
     @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
     @patch('redis.Redis.sadd')
-    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AmiManagerClient.connect')
     def test_agregar_agentes_en_cola(
-        self, connect, sadd, obtener_sip_agentes_sesiones_activas, _adicionar_agente_cola_asterisk
+        self, sadd, obtener_sip_agentes_sesiones_activas, _adicionar_agente_cola_asterisk
     ):
         self.assertEqual(self.agente3.queue_set.count(), 0)
         obtener_sip_agentes_sesiones_activas.return_value = [self.agente2.sip_extension, ]
@@ -133,16 +126,14 @@ class QueueMemberServiceTests(OMLBaseTest):
             call('OML:AGENT-CAMPAIGNS:' + str(self.agente2.id), self.campana2.id),
             call('OML:AGENT-CAMPAIGNS:' + str(self.agente3.id), self.campana2.id)],
             any_order=True)
-        connect.assert_called()
-        # Se agrega a la cola de asterisk el agente conectado
+        # Se agrega a la cola de asterisk el agente conectado (flujo mantenido; AMI fuera de Django)
         _adicionar_agente_cola_asterisk.assert_called_with(
             self.agente2, queue_member_2, self.campana2)
 
     @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
     @patch('redis.Redis.sadd')
-    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AmiManagerClient.connect')
     def test_agregar_agentes_en_cola_sin_penalties(
-        self, connect, sadd, obtener_sip_agentes_sesiones_activas
+        self, sadd, obtener_sip_agentes_sesiones_activas
     ):
         self.assertEqual(self.agente3.queue_set.count(), 0)
         obtener_sip_agentes_sesiones_activas.return_value = []
@@ -158,11 +149,10 @@ class QueueMemberServiceTests(OMLBaseTest):
             call('OML:AGENT-CAMPAIGNS:' + str(self.agente2.id), self.campana2.id),
             call('OML:AGENT-CAMPAIGNS:' + str(self.agente3.id), self.campana2.id)],
             any_order=True)
-        connect.assert_called()
 
     @patch('redis.Redis.sadd')
     def test_agregar_agente_a_campanas(self, sadd):
-        service = QueueMemberService(conectar_ami=False)
+        service = QueueMemberService()
         service.agregar_agente_a_campanas(self.agente3, [self.campana1, self.campana2])
 
         self.assertEqual(self.agente3.queue_set.count(), 2)

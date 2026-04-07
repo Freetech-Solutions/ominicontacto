@@ -17,7 +17,7 @@
 #
 
 # APIs para visualizar proveedores
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.utils.functional import cached_property
 from django.db.models import F, Func, Value, JSONField
 from rest_framework import serializers

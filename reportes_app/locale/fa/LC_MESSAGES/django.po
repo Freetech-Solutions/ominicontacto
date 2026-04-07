@@ -1159,3 +1159,43 @@ msgstr ""
 #: reportes_app/views_reportes.py:62 reportes_app/views_reportes.py:144
 msgid "Usted no puede acceder a esta campaña."
 msgstr "شما مجاز به دسترسی به این کمپین نیستید"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Canalidades por campaña"
+msgstr "کانال‌ها بر اساس کمپین"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Llamadas recibidas"
+msgstr "تماس‌های دریافتی"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% llamadas atendidas"
+msgstr "% تماس‌های پاسخ داده شده"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% llamadas no atendidas"
+msgstr "% تماس‌های پاسخ داده نشده"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "WhatsApp recibidos"
+msgstr "واتساپ دریافتی"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% WhatsApp atendidos"
+msgstr "% واتساپ پاسخ داده شده"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% WhatsApp no atendidos"
+msgstr "% واتساپ پاسخ داده نشده"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Facebook msn recibidos"
+msgstr "فیسبوک مسنجر دریافتی"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% Facebook msn atendidos"
+msgstr "% فیسبوک مسنجر پاسخ داده شده"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% Facebook msn no atendidos"
+msgstr "% فیسبوک مسنجر پاسخ داده نشده"

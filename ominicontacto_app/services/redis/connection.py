@@ -17,13 +17,45 @@
 #
 
 import redis
+import threading
 from django.conf import settings
+
+# Diccionario global para almacenar connection pools por base de datos Redis
+_redis_pools = {}
+# Lock para proteger la creación de pools (thread-safe)
+_pools_lock = threading.Lock()
 
 
 def create_redis_connection(db=0):
-    redis_connection = redis.Redis(
-        host=settings.REDIS_HOSTNAME,
-        port=settings.CONSTANCE_REDIS_CONNECTION['port'],
-        db=db,
-        decode_responses=True)
+    """
+    Crea o retorna una conexión Redis reutilizando connection pools.
+    
+    Implementa connection pooling para mejorar el rendimiento y reducir
+    el overhead de crear nuevas conexiones en cada request.
+    Utiliza thread-safety para prevenir race conditions en la creación de pools.
+    
+    Args:
+        db (int): Número de base de datos Redis (default: 0)
+    
+    Returns:
+        redis.Redis: Conexión Redis configurada con decode_responses=True
+    """
+    # Verificación inicial sin lock (optimización)
+    if db not in _redis_pools:
+        # Usar lock para proteger la sección crítica
+        with _pools_lock:
+            # Double-check pattern: verificar nuevamente dentro del lock
+            # para evitar crear múltiples pools si varios threads llegaron aquí
+            if db not in _redis_pools:
+                pool = redis.ConnectionPool(
+                    host=settings.REDIS_HOSTNAME,
+                    port=settings.CONSTANCE_REDIS_CONNECTION['port'],
+                    db=db,
+                    decode_responses=True,
+                    max_connections=50
+                )
+                _redis_pools[db] = pool
+    
+    # Retornar una conexión del pool
+    redis_connection = redis.Redis(connection_pool=_redis_pools[db])
     return redis_connection

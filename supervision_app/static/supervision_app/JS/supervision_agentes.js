@@ -21,6 +21,9 @@
 /* global PhoneJSController */
 /* global table_data */
 /* exported executeSupervisorAction */
+/* exported executeSpyChannel */
+/* exported executeWhisperChannel */
+/* exported executeThreeWayConf */
 
 var phone_controller;
 var spied_agent_name;
@@ -64,6 +67,201 @@ function executeSupervisorAction(pk_agent, action) {
         },
         error: function(jqXHR, textStatus, errorThrown) {
             console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+        },
+    });
+}
+
+function executeSpyChannel(agent_id) {
+    getSpiedAgentName(agent_id);
+    // Ignoro acciones mientras este en llamada
+    if (phone_controller.is_on_call()) {
+        $.growl.warning({
+            title: gettext('Atención!'),
+            message: gettext('Debe finalizar la acción actual antes de realizar otra.')
+        });
+        return;
+    }
+
+    var supervisor_id = $('#supervisor_id').val();
+    if (!supervisor_id) {
+        $.growl.error({
+            title: gettext('Error!'),
+            message: gettext('No se pudo obtener el ID del supervisor.')
+        });
+        return;
+    }
+
+    if (!agent_id) {
+        $.growl.error({
+            title: gettext('Error!'),
+            message: gettext('No se pudo obtener el ID del agente.')
+        });
+        return;
+    }
+
+    // Usar Urls.api_call_spy() si está disponible, sino usar URL directa
+    var url = (typeof Urls !== 'undefined' && typeof Urls.api_call_spy === 'function') 
+        ? Urls.api_call_spy() 
+        : '/api/v1/call/spy/';
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            'supervisor_id': supervisor_id,
+            'agent_id': agent_id,
+            'whisper': 'none'
+        },
+        success: function(data) {
+            $.growl.success({
+                title: gettext('Éxito!'),
+                message: gettext('Monitoreo iniciado correctamente.')
+            });
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            var errorMessage = gettext('Error al iniciar el monitoreo.');
+            if (jqXHR.responseJSON && jqXHR.responseJSON.error) {
+                errorMessage = jqXHR.responseJSON.error;
+            } else if (jqXHR.status === 400) {
+                errorMessage = gettext('Error: Parámetros inválidos.');
+            } else if (jqXHR.status === 500) {
+                errorMessage = gettext('Error interno del servidor.');
+            }
+            $.growl.error({
+                title: gettext('Error!'),
+                message: errorMessage
+            });
+            console.log(gettext('Error al ejecutar monitoreo => ') + textStatus + ' - ' + errorThrown);
+        },
+    });
+}
+
+function executeWhisperChannel(agent_id) {
+    getSpiedAgentName(agent_id);
+    // Ignoro acciones mientras este en llamada
+    if (phone_controller.is_on_call()) {
+        $.growl.warning({
+            title: gettext('Atención!'),
+            message: gettext('Debe finalizar la acción actual antes de realizar otra.')
+        });
+        return;
+    }
+
+    var supervisor_id = $('#supervisor_id').val();
+    if (!supervisor_id) {
+        $.growl.error({
+            title: gettext('Error!'),
+            message: gettext('No se pudo obtener el ID del supervisor.')
+        });
+        return;
+    }
+
+    if (!agent_id) {
+        $.growl.error({
+            title: gettext('Error!'),
+            message: gettext('No se pudo obtener el ID del agente.')
+        });
+        return;
+    }
+
+    // Usar Urls.api_call_spy() si está disponible, sino usar URL directa
+    var url = (typeof Urls !== 'undefined' && typeof Urls.api_call_spy === 'function') 
+        ? Urls.api_call_spy() 
+        : '/api/v1/call/spy/';
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            'supervisor_id': supervisor_id,
+            'agent_id': agent_id,
+            'whisper': 'both'
+        },
+        success: function(data) {
+            $.growl.success({
+                title: gettext('Éxito!'),
+                message: gettext('Susurro iniciado correctamente. Ahora puede escuchar y hablar con el agente.')
+            });
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            var errorMessage = gettext('Error al iniciar el susurro.');
+            if (jqXHR.responseJSON && jqXHR.responseJSON.error) {
+                errorMessage = jqXHR.responseJSON.error;
+            } else if (jqXHR.status === 400) {
+                errorMessage = gettext('Error: Parámetros inválidos.');
+            } else if (jqXHR.status === 500) {
+                errorMessage = gettext('Error interno del servidor.');
+            }
+            $.growl.error({
+                title: gettext('Error!'),
+                message: errorMessage
+            });
+            console.log(gettext('Error al ejecutar susurro => ') + textStatus + ' - ' + errorThrown);
+        },
+    });
+}
+
+function executeThreeWayConf(agent_id) {
+    getSpiedAgentName(agent_id);
+    if (phone_controller.is_on_call()) {
+        $.growl.warning({
+            title: gettext('Atención!'),
+            message: gettext('Debe finalizar la acción actual antes de realizar otra.')
+        });
+        return;
+    }
+
+    var supervisor_id = $('#supervisor_id').val();
+    if (!supervisor_id) {
+        $.growl.error({
+            title: gettext('Error!'),
+            message: gettext('No se pudo obtener el ID del supervisor.')
+        });
+        return;
+    }
+
+    if (!agent_id) {
+        $.growl.error({
+            title: gettext('Error!'),
+            message: gettext('No se pudo obtener el ID del agente.')
+        });
+        return;
+    }
+
+    var url = (typeof Urls !== 'undefined' && typeof Urls.api_three_way_conf === 'function')
+        ? Urls.api_three_way_conf()
+        : '/api/v1/call/three-way-conf/';
+
+    $.ajax({
+        url: url,
+        type: 'POST',
+        dataType: 'json',
+        data: {
+            'supervisor_id': supervisor_id,
+            'agent_id': agent_id
+        },
+        success: function(data) {
+            $.growl.success({
+                title: gettext('Éxito!'),
+                message: gettext('Conferencia 3 vías solicitada correctamente.')
+            });
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            var errorMessage = gettext('Error al solicitar conferencia 3 vías.');
+            if (jqXHR.responseJSON && jqXHR.responseJSON.error) {
+                errorMessage = jqXHR.responseJSON.error;
+            } else if (jqXHR.status === 400) {
+                errorMessage = gettext('Error: Parámetros inválidos.');
+            } else if (jqXHR.status === 500) {
+                errorMessage = gettext('Error interno del servidor.');
+            }
+            $.growl.error({
+                title: gettext('Error!'),
+                message: errorMessage
+            });
+            console.log(gettext('Error al ejecutar conferencia 3 vías => ') + textStatus + ' - ' + errorThrown);
         },
     });
 }

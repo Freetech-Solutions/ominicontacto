@@ -225,7 +225,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_ruta['OPTIONS'], ruta.dial_options)
         self.assertEqual(dict_ruta['TRUNKS'], len(ruta.secuencia_troncales.all()))
 
-        # verifico que genere correctamente el dict de los patrones de desicado
+        # verifico que genere correctamente el dict de los patrones de discado
         if patron_1_1.prefix:
             prefix = len(str(patron_1_1.prefix))
         else:
@@ -240,6 +240,15 @@ class AsteriskDatabaseTest(OMLBaseTest):
         prepend = patron_1_2.prepend if patron_1_2.prepend is not None else ''
         self.assertEqual(dict_ruta['PREFIX-2'], prefix)
         self.assertEqual(dict_ruta['PREPEND-2'], prepend)
+
+        # Nuevos campos para validación de patrones en el dialer
+        self.assertEqual(dict_ruta['DP-COUNT'], 2)
+        self.assertEqual(dict_ruta['DP-1-PREFIX'], patron_1_1.prefix or '')
+        self.assertEqual(dict_ruta['DP-1-PREPEND'], patron_1_1.prepend or '')
+        self.assertEqual(dict_ruta['DP-1-MATCH'], patron_1_1.match_pattern or '')
+        self.assertEqual(dict_ruta['DP-2-PREFIX'], patron_1_2.prefix or '')
+        self.assertEqual(dict_ruta['DP-2-PREPEND'], patron_1_2.prepend or '')
+        self.assertEqual(dict_ruta['DP-2-MATCH'], patron_1_2.match_pattern or '')
 
     def test_devuelve_correctamente_values_troncales(self):
         """

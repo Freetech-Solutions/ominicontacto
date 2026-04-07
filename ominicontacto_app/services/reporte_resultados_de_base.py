@@ -24,7 +24,7 @@ from __future__ import unicode_literals
 
 import logging
 
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
 from ominicontacto_app.services.reporte_resultados_de_base_csv import (
     ReporteCSV
@@ -69,7 +69,7 @@ class ReporteContactacionesCSV(ReporteCSV):
         encabezado.append(_("Contactación"))
         encabezado.append(_("Intentos"))
 
-        lista_datos_utf8 = [force_text(item) for item in encabezado]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
         self.datos.append(lista_datos_utf8)
 
     def _escribir_linea_contactacion(self, contactacion):
@@ -87,5 +87,5 @@ class ReporteContactacionesCSV(ReporteCSV):
         intentos = contactacion.get('intentos', 0)
         lista_opciones.append(intentos)
 
-        lista_opciones_utf8 = [force_text(item) for item in lista_opciones]
+        lista_opciones_utf8 = [force_str(item) for item in lista_opciones]
         self.datos.append(lista_opciones_utf8)

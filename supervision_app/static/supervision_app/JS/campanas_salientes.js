@@ -18,77 +18,91 @@
 
 */
 /* global Urls */
-/* global create_node */
 /* global gettext */
-/* global moment */
 
-var table_salientes;
+var campaigns;
+var table_outbounds;
 var table_data = [];
-var dataAux = [];
-var campanas_supervisor = [];
-var campanas_id_supervisor = [];
+
+var rws;
 
 $(function() {
+    campaigns = JSON.parse(document.getElementById('campaigns-data').textContent);
     createDataTable();
-    campanas_supervisor = $('input#campanas_list').val().split(',');
-    campanas_id_supervisor = $('input#campanas_list_id').val().split(',');
+    connectToDataChannel();
+});
 
-    const url = `wss://${window.location.host}/consumers/stream/supervisor/${$('input#supervisor_id').val()}/salientes`;
-    const rws = new ReconnectingWebSocket(url, [], {
+function connectToDataChannel(){
+    const url = `wss://${window.location.host}/channels/supervision/outbound`;
+    rws = new ReconnectingWebSocket(url, [], {
         connectionTimeout: 10000,
         maxReconnectionDelay: 3000,
         minReconnectionDelay: 1000,
     });
     rws.addEventListener('message', function(e) {
-        if (e.data != 'Stream subscribed!') {
-            try {
-                var data = JSON.parse(e.data);
-                processData(data);
-                table_salientes.clear();
-                table_salientes.rows.add(dataAux).draw();
-                table_data = dataAux;
-            } catch (err) {
-                console.log(err);
-            }
-        }
+        let data = JSON.parse(e.data);
+        processData(data);
     });
+}
 
-    function processData(data) {
-        dataAux = [...table_data];
-        for (let index = 0; index < data.length; index++) {
-            var row = JSON.parse(data[index]
-                .replaceAll('\'', '"')
-                .replaceAll('"{', '{')
-                .replaceAll('}"', '}'));
-
-            var existe = false;
-            if (row['NOMBRE']) {
-                for (let j in dataAux) {
-                    if (dataAux[j]['nombre'] == row['NOMBRE']) {
-                        dataAux[j] = row['ESTADISTICAS'];
-                        existe = true;
-                    }
-                }
-                if (!existe) {
-                    dataAux.push(row['ESTADISTICAS']);
-                }
-            }
-        }
+function processData(data){
+    if (data.initial_data != undefined){
+        initializeTable(data.initial_data);
     }
+    else {
+        updateTable(data);
+    }
+}
 
-});
+function initializeTable(initial_data){
+    table_data = [];
+    for (let camp_id in initial_data){
+        let camp_data = initial_data[camp_id];
+        camp_data.name = campaigns[camp_id].name;
+        updateTarget(camp_id, camp_data);
+        table_data.push(camp_data);
+    }
+    table_outbounds.clear();
+    table_outbounds.rows.add(table_data).draw();
+}
+
+function updateTable(data){
+    if (data.type == 'update' && data.args.OUT != undefined){
+        let camp_id = data.args.OUT.campaign_id;
+        let field = data.args.OUT.field;
+        let camp_name = campaigns[camp_id].name;
+        let row = table_outbounds.row((idx, data) => data.name === camp_name);
+        let row_data=row.data();
+        if (field != 'dispositions'){
+            row_data[field] = Number(row_data[field]) + 1;
+        } else{
+            const delta = data.args.OUT.delta || 1;
+            row_data[field] = Number(row_data[field]) + delta;
+            updateTarget(camp_id, row_data);
+        }
+        row.data(row_data).draw();
+    }
+}
+
+function updateTarget(camp_id, camp_data){
+    let target = campaigns[camp_id].target;
+    if (target == 0){
+        camp_data.target = 100;
+        return;
+    }
+    camp_data.target = (100 * camp_data.dispositions / target).toFixed(1);
+}
 
 function createDataTable() {
-    table_salientes = $('#tableSalientes').DataTable({
+    table_outbounds = $('#tableSalientes').DataTable({
         data: table_data,
         columns: [
-            { 'data': 'nombre' },
-            { 'data': 'efectuadas' },
-            { 'data': 'conectadas' },
-            { 'data': 'no_conectadas' },
-            { 'data': 'gestiones' },
-            { 'data': 'porcentaje_objetivo' },
-
+            { 'data': 'name' },
+            { 'data': 'dialed' },
+            { 'data': 'attended' },
+            { 'data': 'not_attended' },
+            { 'data': 'dispositions' },
+            { 'data': 'target' },
         ],
         lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500 , gettext('Todos')]],
         language: {

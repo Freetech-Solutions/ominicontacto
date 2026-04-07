@@ -83,6 +83,9 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
     <input type="hidden" value="{{ agente_profile.grupo.on_hold }}" id="on_hold">
     <input value="{{ dtmf_duration }}" id="dtmf_duration" type="hidden"/>
     <input value="{{ dtmf_inter_tone_gap }}" id="dtmf_inter_tone_gap" type="hidden"/>
+    <input value="{{ presence_heartbeat_interval_sec }}" id="presence_heartbeat_interval_sec" type="hidden"/>
+    <input value="{{ presence_heartbeat_timeout_sec }}" id="presence_heartbeat_timeout_sec" type="hidden"/>
+    <input value="{{ presence_heartbeat_leader_lock_ttl_sec }}" id="presence_heartbeat_leader_lock_ttl_sec" type="hidden"/>
 
   <!-- Hidden Data -->
     <input type="hidden" value="{{ fechas_agendas_json }}" id='agendas_dates_json'>
@@ -951,6 +954,9 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                                 <div id="conferHolds" class="btn-group" data-toggle="buttons" hidden>
                                     <button id="onHoldClient" class="btn btn-outline-secondary" disabled="disabled">{% trans 'Mute Client' %}</button>
                                     <button id="onHoldConsultant" class="btn btn-outline-secondary" disabled="disabled">{% trans 'Mute Consultant' %}</button>
+                                </div>
+                                <div id="consultativeTransferActions" class="btn-group" data-toggle="buttons" style="display: none;">
+                                    <button id="CompleteTransfer" class="btn btn-outline-success" disabled="disabled">{% trans 'Completar Transferencia' %}</button>
                                 </div>
                                 <button id="changeCampAssocManualCall" class="btn btn-outline-secondary btn-sm">
                                     {% trans 'Campaña: ' %}<span id="campAssocManualCall"></span>

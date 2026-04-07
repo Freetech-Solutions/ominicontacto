@@ -31,6 +31,7 @@ class NotificationSocket
             onNotificationEndTransferredCall: $.Callbacks(),
             onNotificationSupervisorSendMessageCall: $.Callbacks(),
             onAttendedMultinumCall: $.Callbacks(),
+            onCallBlocked: $.Callbacks(),
         };
     }
 
@@ -60,6 +61,8 @@ class NotificationSocket
                 self.eventsCallbacks.onNotificationSupervisorSendMessageCall.fire(data.args);
             if (data.type == 'attended_multinum_call')
                 self.eventsCallbacks.onAttendedMultinumCall.fire(data.args);
+            if (data.type == 'call_blocked')
+                self.eventsCallbacks.onCallBlocked.fire(data.args);
         });
       
     }

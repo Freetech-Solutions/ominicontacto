@@ -37,7 +37,7 @@ class PhoneJSController {
     // Connects PhoneJS with a PhoneJSView.
     constructor(
         agent_id, sipExtension, sipSecret, timers, click_2_call_dispatcher,
-        keep_alive_sender, video_domain, notification_agent, notification_agent_whatsapp,
+        keep_alive_sender, presence_heartbeat_sender, video_domain, notification_agent, notification_agent_whatsapp,
         dtmf_duration, dtmf_inter_tone_gap){
         this.oml_api = new OMLAPI();
         this.view = new PhoneJSView();
@@ -52,6 +52,7 @@ class PhoneJSController {
         this.pause_manager = new PauseManager();
         this.click_2_call_dispatcher = click_2_call_dispatcher;
         this.keep_alive_sender = keep_alive_sender;
+        this.presence_heartbeat_sender = presence_heartbeat_sender;
 
         /* Local Variables */
         this.agent_id = agent_id;
@@ -79,6 +80,13 @@ class PhoneJSController {
         this.oml_api.getCampanasActivas(this.view.cargarCampanasActivas);
 
         this.phone_fsm.start();
+        if (this.presence_heartbeat_sender) {
+            var self = this;
+            this.presence_heartbeat_sender.setStateProvider(function() {
+                return self.phone_fsm.state;
+            });
+            this.presence_heartbeat_sender.activate();
+        }
     }
 
 
@@ -204,14 +212,14 @@ class PhoneJSController {
                 self.view.holdButton.html('unhold');
                 self.timers.onHold.start();
                 self.timers.onHold.show_element();
-                self.oml_api.eventHold(self.phone.session_data.remote_call.call_id);
+                self.oml_api.holdCall(self.phone.session_data.remote_call.call_id);
             } else if (self.phone_fsm.state == 'OnHold') {
                 self.phone_fsm.releaseHold();
                 self.phone.releaseHold();
                 self.view.holdButton.html('hold');
                 self.timers.onHold.reset();
                 self.timers.onHold.hide_element();
-                self.oml_api.eventHold(self.phone.session_data.remote_call.call_id);
+                self.oml_api.holdCall(self.phone.session_data.remote_call.call_id);
             } else {
                 phone_logger.log('Error');
             }
@@ -311,26 +319,30 @@ class PhoneJSController {
         this.view.makeTransferToSurveyButton.click(this.transferToSurvey);
 
         this.view.endTransferButton.click(function() {
-            self.phone_fsm.endTransfer();
-            self.phone.endTransfer();
-            self.view.setConferenceAgent('', 'orange');
-            self.view.disableConferenceHold();
+            // Si es transferencia consultativa, usar el nuevo endpoint API
+            if(self.transfer && self.transfer.is_consultative) {
+                self.cancelConsultativeTransfer();
+            } else {
+                // Transferencia ciega o flujo antiguo: usar DTMF
+                self.phone_fsm.endTransfer();
+                self.phone.endTransfer();
+                self.view.setConferenceAgent('', 'orange');
+                self.view.disableConferenceHold();
+            }
         });
 
         this.view.conferButton.click(function() {
-            if(self.transfer.is_consultative){
-                var member = null;
-                if(self.transfer.is_to_agent)
-                    member = $('#agentToTransfer option:selected').text().split(':')[0];
-                else if(self.transfer.is_to_number)
-                    member = self.transfer.destination;
-                var agtmessage = interpolate(
-                    gettext('En Conferencia con: %(from)s y %(member)s'),
-                    {from:self.phone.session_data.from, member: member}, true);
-                self.view.setConferenceAgent(agtmessage, 'orange');
-                self.view.enableConferenceHold();
+            // Si es transferencia consultativa, usar el nuevo endpoint API
+            if(self.transfer && self.transfer.is_consultative) {
+                self.completeConsultativeTransfer();
+            } else {
+                // Transferencia ciega o flujo antiguo: usar DTMF
+                self.phone.confer();
             }
-            self.phone.confer();
+        });
+
+        this.view.completeTransferButton.click(function() {
+            self.completeConsultativeTransfer();
         });
 
         this.view.sendDtmfButton.click(function () {
@@ -411,6 +423,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-success', gettext('Conectado'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('Initial');
+                self.view.hideCompleteTransferButton();
                 self.phone.startSipSession();
                 self.click_2_call_dispatcher.disable();
                 self.keep_alive_sender.deactivate();
@@ -419,6 +432,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-success', gettext('Desconectado'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('End');
+                self.view.hideCompleteTransferButton();
                 self.click_2_call_dispatcher.disable();
                 self.keep_alive_sender.deactivate();
             },
@@ -430,6 +444,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-success', gettext('Conectado'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('Ready');
+                self.view.hideCompleteTransferButton();
                 self.click_2_call_dispatcher.enable();
                 self.keep_alive_sender.deactivate();
                 self.callOfCampPrivilege();
@@ -439,6 +454,7 @@ class PhoneJSController {
                 phone_logger.log('FSM: onPausing');
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('Pausing');
+                self.view.hideCompleteTransferButton();
                 self.keep_alive_sender.deactivate();
             },
             onPaused: function() {
@@ -446,6 +462,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-danger', self.pause_manager.pause_name);
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('Paused');
+                self.view.hideCompleteTransferButton();
                 self.click_2_call_dispatcher.enable();
                 self.keep_alive_sender.deactivate();
                 self.callOfCampPrivilege();
@@ -465,6 +482,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-success', gettext('Llamando'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('Calling');
+                self.view.hideCompleteTransferButton();
                 self.click_2_call_dispatcher.disable();
                 self.keep_alive_sender.activate();
             },
@@ -473,6 +491,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-success', gettext('En llamado'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('OnCall');
+                self.view.hideCompleteTransferButton();
                 self.view.toogleVisibilityRecordButtons(self.phone.session_data);
                 self.click_2_call_dispatcher.disable();
 
@@ -495,6 +514,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-success', gettext('Transfiriendo'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('DialingTransfer');
+                self.view.hideCompleteTransferButton();
                 self.click_2_call_dispatcher.disable();
                 self.keep_alive_sender.activate();
             },
@@ -506,12 +526,19 @@ class PhoneJSController {
                 self.view.toogleVisibilityRecordButtons(self.phone.session_data);
                 self.click_2_call_dispatcher.disable();
                 self.keep_alive_sender.activate();
+                // Mostrar botón de completar transferencia solo si es consultativa
+                if (self.transfer && self.transfer.is_consultative) {
+                    self.view.showCompleteTransferButton();
+                } else {
+                    self.view.hideCompleteTransferButton();
+                }
             },
             onReceivingcall: function() {
                 phone_logger.log('FSM: onReceivingCall');
                 self.view.setUserStatus('label label-success', gettext('Recibiendo llamado'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('ReceivingCall');
+                self.view.hideCompleteTransferButton();
                 self.click_2_call_dispatcher.disable();
                 self.keep_alive_sender.activate();
             },
@@ -533,6 +560,7 @@ class PhoneJSController {
                 self.view.setUserStatus('label label-success', gettext('En espera'));
                 self.view.closeAllModalMenus();
                 self.view.setStateInputStatus('OnHold');
+                self.view.hideCompleteTransferButton();
                 self.click_2_call_dispatcher.disable();
                 self.keep_alive_sender.activate();
             },
@@ -704,18 +732,23 @@ class PhoneJSController {
         });
 
         this.phone.eventsCallbacks.onCallEnded.add(function() {
-            if (self.phone.session_data.is_multinum){
-                self.getQualificationForm(self.phone.session_data.remote_call);
-            }
+            // Verificar que session_data existe antes de acceder a sus propiedades
+            // Esto puede ocurrir si la sesión ya fue limpiada previamente (ej: en transferencia asistida)
+            if (self.phone.session_data) {
+                if (self.phone.session_data.is_multinum){
+                    self.getQualificationForm(self.phone.session_data.remote_call);
+                }
 
-            if(self.phone.session_data.is_transfered && self.phone.session_data.is_consultative_transfer){
-                var agent_id = self.phone.session_data.from_agent_name.split('_')[0];
-                self.oml_api.notifyEndTransferredCall(agent_id);
+                if(self.phone.session_data.is_transfered && self.phone.session_data.is_consultative_transfer){
+                    var agent_id = self.phone.session_data.from_agent_name.split('_')[0];
+                    self.oml_api.notifyEndTransferredCall(agent_id);
+                }
             }
             if (self.phone_fsm.state == 'DialingTransfer') {
                 self.phone.cancelDialTransfer();
             }
             self.view.setCallStatus(gettext('Disponible'), 'black');
+            self.view.hideCompleteTransferButton();
             self.phone_fsm.endCall();
             self.timers.llamada.stop();
             self.timers.llamada.restart();
@@ -804,6 +837,25 @@ class PhoneJSController {
                 }
             }
         );
+
+        this.notification_agent.eventsCallbacks.onCallBlocked.add(function(args) {
+            var message = args.reason || gettext('El número no cumple con los patrones de discado configurados');
+            if (args.phone_number) {
+                message = interpolate(
+                    gettext('Llamada bloqueada: %(phone_number)s. %(reason)s'),
+                    {
+                        phone_number: args.phone_number,
+                        reason: args.reason || gettext('El número no cumple con los patrones de discado configurados')
+                    },
+                    true
+                );
+            }
+            $.growl.error({
+                title: gettext('Llamada bloqueada'),
+                message: message,
+                duration: 10000,
+            });
+        });
 
         this.notification_agent_whatsapp.eventsCallbacks.onNotificationNewChat.add(function(args){
             console.log('===================================> NEW CHAT');
@@ -1105,6 +1157,12 @@ class PhoneJSController {
         }
         else {
             this.phone.hangUp();
+        }
+    }
+
+    deactivatePresenceHeartbeat() {
+        if (this.presence_heartbeat_sender) {
+            this.presence_heartbeat_sender.deactivate();
         }
     }
 
@@ -1416,21 +1474,358 @@ class PhoneJSController {
         this.transfer = new OutTransferData();
         if (!this.transfer.is_valid){
             alert(gettext('Seleccione una opción válida'));
+            return;
         }
-        this.phone_fsm.dialTransfer();
-        this.phone.dialTransfer(this.transfer);
+
+        // Si es transferencia consultativa, usar los nuevos endpoints API
+        if (this.transfer.is_consultative) {
+            this.makeConsultativeTransfer();
+        } else {
+            // Transferencia ciega: usar el flujo existente
+            this.phone_fsm.dialTransfer();
+            this.phone.dialTransfer(this.transfer);
+        }
         $('#numberToTransfer').val('');
     }
 
-    transferToSurvey() {
-        // Log Survey Transfer attempt
-        var campaign_id = this.phone.session_data.remote_call.id_campana;
-        var callid = this.phone.session_data.remote_call.call_id;
-        var survey_id = this.phone.session_data.survey;
-        this.oml_api.logSurveyTransfer(campaign_id, survey_id, callid);
+    makeConsultativeTransfer() {
+        var self = this;
 
-        this.phone_fsm.dialTransfer();
-        this.phone.dialTransfer(new SurveyTransferData());
+        // Validar que hay una sesión activa
+        if (!this.phone.currentSession) {
+            phone_logger.log('Error: No hay una sesión activa para realizar la transferencia consultativa');
+            var error_message = gettext('No hay una llamada activa para transferir.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        // Validar que tenemos los datos necesarios
+        if (!this.transfer.destination) {
+            phone_logger.log('Error: transfer.destination no está definido');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: gettext('No se especificó el destino de la transferencia.')
+                });
+            } else {
+                alert(gettext('No se especificó el destino de la transferencia.'));
+            }
+            return;
+        }
+
+        // Validar que session_data existe
+        if (!this.phone.session_data) {
+            phone_logger.log('Error: session_data no está definido');
+            var error_message = gettext('No se pudo obtener la información de la sesión para la transferencia.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        // Validar que remote_call existe
+        if (!this.phone.session_data.remote_call) {
+            phone_logger.log('Error: session_data.remote_call no está definido');
+            var error_message = gettext('No se pudo obtener la información de la llamada para la transferencia.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        // Obtener call_id de la sesión actual
+        var call_id = this.phone.session_data.remote_call.call_id;
+        if (!call_id) {
+            phone_logger.log('Error: call_id no está disponible en session_data.remote_call');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: gettext('No se pudo obtener el ID de la llamada para la transferencia.')
+                });
+            } else {
+                alert(gettext('No se pudo obtener el ID de la llamada para la transferencia.'));
+            }
+            return;
+        }
+
+        // Validar que agent_id existe
+        var agent_id = this.agent_id;
+        if (!agent_id) {
+            phone_logger.log('Error: agent_id no está definido');
+            var error_message = gettext('No se pudo obtener el ID del agente para la transferencia.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        // Callbacks
+        var callback_ok = function() {
+            phone_logger.log('Transferencia consultativa iniciada exitosamente');
+            self.phone_fsm.dialTransfer();
+            self.phone.eventsCallbacks.onTransferDialed.fire(self.transfer);
+        };
+
+        var callback_error = function(error_info) {
+            phone_logger.log('Error al iniciar la transferencia consultativa');
+            var error_message = gettext('No se pudo iniciar la transferencia. Intente nuevamente.');
+            
+            // Si hay información adicional del error, intentar usarla
+            if (error_info && error_info.message) {
+                error_message = error_info.message;
+            } else if (error_info && typeof error_info === 'string') {
+                error_message = error_info;
+            }
+            
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+        };
+
+        // Llamar al método de API correspondiente según el tipo de transferencia
+        if (this.transfer.is_to_agent) {
+            // Para transferencia a agente, pasar target_agent_id (el backend resuelve el endpoint)
+            this.oml_api.transferConsultStart(
+                call_id,
+                null, // endpoint se resuelve desde target_agent_id
+                this.transfer.destination, // target_agent_id
+                agent_id,
+                callback_ok,
+                callback_error
+            );
+        } else if (this.transfer.is_to_campaign) {
+            // Para transferencia a campaña, el destino es el ID de campaña
+            // Por ahora, tratamos la campaña como endpoint (el backend deberá manejarlo)
+            // TODO: Verificar si el backend soporta transferencia consultativa a campaña
+            var error_message = gettext('Transferencia consultativa a campaña no está soportada aún.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+        } else if (this.transfer.is_to_number || this.transfer.is_quick_contact) {
+            // Para transferencia a número, pasar endpoint directamente
+            this.oml_api.transferConsultStart(
+                call_id,
+                this.transfer.destination, // endpoint
+                null, // target_agent_id
+                agent_id,
+                callback_ok,
+                callback_error
+            );
+        } else {
+            phone_logger.log('Error: Tipo de transferencia consultativa no válido');
+            var error_message = gettext('El tipo de transferencia especificado no es válido.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+        }
+    }
+
+    completeConsultativeTransfer() {
+        var self = this;
+
+        // Validar que hay una sesión activa
+        if (!this.phone.session_data || !this.phone.session_data.remote_call) {
+            phone_logger.log('Error: No hay información de sesión para completar la transferencia consultativa');
+            var error_message = gettext('No se pudo obtener la información de la llamada.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        var call_id = this.phone.session_data.remote_call.call_id;
+        if (!call_id) {
+            phone_logger.log('Error: call_id no está disponible');
+            var error_message = gettext('No se pudo obtener el ID de la llamada.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        var agent_id = this.agent_id;
+        if (!agent_id) {
+            phone_logger.log('Error: agent_id no está definido');
+            var error_message = gettext('No se pudo obtener el ID del agente.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        var callback_ok = function() {
+            phone_logger.log('Transferencia consultativa completada exitosamente');
+            // Deshabilitar botón primero (hundirlo visualmente)
+            self.view.completeTransferButton.prop('disabled', true);
+            // Ocultar botón de completar transferencia
+            self.view.hideCompleteTransferButton();
+            // NO mostrar leyenda de conferencia (es transferencia, no conferencia)
+            // NO habilitar controles de conferencia (no es 3-way)
+            // Cambiar estado de FSM
+            self.phone_fsm.transferAccepted();
+            // Limpiar inmediatamente la sesión SIP para permitir nuevas llamadas
+            // El backend va a colgar el canal del agente A, pero no debemos esperar
+            // al evento 'ended' para limpiar la sesión en este caso específico
+            self.phone.cleanLastCallData();
+            // Enviar pausa ACW automáticamente después de completar la transferencia
+            self.setPause(ACW_PAUSE_ID, ACW_PAUSE_NAME);
+        };
+
+        var callback_error = function(error_info) {
+            phone_logger.log('Error al completar la transferencia consultativa');
+            var error_message = gettext('No se pudo completar la transferencia. Intente nuevamente.');
+            
+            if (error_info && error_info.message) {
+                error_message = error_info.message;
+            } else if (error_info && typeof error_info === 'string') {
+                error_message = error_info;
+            }
+            
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+        };
+
+        this.oml_api.transferConsultComplete(call_id, agent_id, callback_ok, callback_error);
+    }
+
+    cancelConsultativeTransfer() {
+        var self = this;
+
+        // Validar que hay una sesión activa
+        if (!this.phone.session_data || !this.phone.session_data.remote_call) {
+            phone_logger.log('Error: No hay información de sesión para cancelar la transferencia consultativa');
+            var error_message = gettext('No se pudo obtener la información de la llamada.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        var call_id = this.phone.session_data.remote_call.call_id;
+        if (!call_id) {
+            phone_logger.log('Error: call_id no está disponible');
+            var error_message = gettext('No se pudo obtener el ID de la llamada.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        var agent_id = this.agent_id;
+        if (!agent_id) {
+            phone_logger.log('Error: agent_id no está definido');
+            var error_message = gettext('No se pudo obtener el ID del agente.');
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+            return;
+        }
+
+        var callback_ok = function() {
+            phone_logger.log('Transferencia consultativa cancelada exitosamente');
+            // Ocultar botón de completar transferencia
+            self.view.hideCompleteTransferButton();
+            // Actualizar UI
+            self.view.setConferenceAgent('', 'orange');
+            self.view.disableConferenceHold();
+            // Cambiar estado de FSM
+            self.phone_fsm.endTransfer();
+        };
+
+        var callback_error = function(error_info) {
+            phone_logger.log('Error al cancelar la transferencia consultativa');
+            var error_message = gettext('No se pudo cancelar la transferencia. Intente nuevamente.');
+            
+            if (error_info && error_info.message) {
+                error_message = error_info.message;
+            } else if (error_info && typeof error_info === 'string') {
+                error_message = error_info;
+            }
+            
+            if (typeof $.growl !== 'undefined') {
+                $.growl.error({
+                    title: gettext('Error'),
+                    message: error_message
+                });
+            } else {
+                alert(error_message);
+            }
+        };
+
+        this.oml_api.transferConsultCancel(call_id, agent_id, callback_ok, callback_error);
     }
 
 }
@@ -1471,6 +1866,221 @@ class PauseManager {
     }
     get has_programmed_pause() {
         return this.next_pause_id != undefined;
+    }
+}
+
+class PresenceHeartbeatSender {
+    constructor(agent_id, interval_sec, leader_lock_ttl_sec) {
+        this.oml_api = new OMLAPI();
+        this.agent_id = String(agent_id);
+        this.interval_sec = interval_sec > 0 ? interval_sec : 15;
+        this.leader_lock_ttl_ms = (leader_lock_ttl_sec > 0 ? leader_lock_ttl_sec : 45) * 1000;
+        this.browser_id = this._getOrCreateBrowserId();
+        this.tab_id = this._getOrCreateTabId();
+        this.is_leader = false;
+        this.interval_handler = undefined;
+        this.election_handler = undefined;
+        this.state_provider = undefined;
+        this.channel = undefined;
+        this.leader_storage_key = this._buildStorageKey('LEADER');
+        this.leader_ts_storage_key = this._buildStorageKey('LEADER_TS');
+        this.boundStorageHandler = this._onStorageEvent.bind(this);
+    }
+
+    _buildStorageKey(suffix) {
+        return 'OML:PRESENCE:' + suffix + ':' + this.agent_id + ':' + this.browser_id;
+    }
+
+    _randomId(prefix) {
+        return prefix + '-' + Date.now() + '-' + Math.random().toString(36).slice(2, 11);
+    }
+
+    _getOrCreateBrowserId() {
+        var key = 'OML:PRESENCE:BROWSER_ID';
+        try {
+            var existing = window.localStorage.getItem(key);
+            if (existing) {
+                return existing;
+            }
+            var created = this._randomId('browser');
+            window.localStorage.setItem(key, created);
+            return created;
+        } catch (e) {
+            return this._randomId('browser');
+        }
+    }
+
+    _getOrCreateTabId() {
+        var key = 'OML:PRESENCE:TAB_ID';
+        try {
+            var existing = window.sessionStorage.getItem(key);
+            if (existing) {
+                return existing;
+            }
+            var created = this._randomId('tab');
+            window.sessionStorage.setItem(key, created);
+            return created;
+        } catch (e) {
+            return this._randomId('tab');
+        }
+    }
+
+    _readLeaderClaim() {
+        try {
+            var raw = window.localStorage.getItem(this.leader_storage_key);
+            if (!raw) {
+                return null;
+            }
+            return JSON.parse(raw);
+        } catch (e) {
+            return null;
+        }
+    }
+
+    _writeLeaderClaim(expires_at_ms) {
+        var payload = {
+            tab_id: this.tab_id,
+            expires_at_ms: expires_at_ms,
+            updated_at_ms: Date.now()
+        };
+        try {
+            window.localStorage.setItem(this.leader_storage_key, JSON.stringify(payload));
+            window.localStorage.setItem(this.leader_ts_storage_key, String(payload.updated_at_ms));
+        } catch (e) {
+            // localStorage puede no estar disponible; se ignora.
+        }
+    }
+
+    _electLeader() {
+        var now_ms = Date.now();
+        var current_claim = this._readLeaderClaim();
+        var current_is_valid = current_claim && current_claim.expires_at_ms > now_ms;
+        var should_take_lead = !current_is_valid || current_claim.tab_id === this.tab_id;
+
+        if (should_take_lead) {
+            this._writeLeaderClaim(now_ms + this.leader_lock_ttl_ms);
+            this.is_leader = true;
+            if (this.channel) {
+                this.channel.postMessage({
+                    type: 'leader_ping',
+                    tab_id: this.tab_id,
+                    at_ms: now_ms
+                });
+            }
+            return;
+        }
+        this.is_leader = false;
+    }
+
+    _onStorageEvent(event) {
+        if (event.key !== this.leader_storage_key || !event.newValue) {
+            return;
+        }
+        try {
+            var claim = JSON.parse(event.newValue);
+            if (claim.tab_id !== this.tab_id && claim.expires_at_ms > Date.now()) {
+                this.is_leader = false;
+            }
+        } catch (e) {
+            // noop
+        }
+    }
+
+    _onChannelMessage(event) {
+        var data = event.data || {};
+        if (data.type !== 'leader_ping') {
+            return;
+        }
+        if (data.tab_id !== this.tab_id) {
+            this.is_leader = false;
+        }
+    }
+
+    setStateProvider(provider_fn) {
+        this.state_provider = provider_fn;
+    }
+
+    _getUiState() {
+        if (!this.state_provider) {
+            return '';
+        }
+        try {
+            return String(this.state_provider() || '');
+        } catch (e) {
+            return '';
+        }
+    }
+
+    activate() {
+        if (this.interval_handler !== undefined) {
+            return;
+        }
+        if (typeof window !== 'undefined') {
+            window.addEventListener('storage', this.boundStorageHandler);
+        }
+        if (typeof BroadcastChannel !== 'undefined') {
+            this.channel = new BroadcastChannel('oml_presence_' + this.agent_id + '_' + this.browser_id);
+            this.channel.onmessage = this._onChannelMessage.bind(this);
+        }
+
+        var self = this;
+        var heartbeat_ms = this.interval_sec * 1000;
+        var election_ms = Math.max(2000, Math.floor(heartbeat_ms / 2));
+        this._electLeader();
+        this._sendHeartbeat();
+        this.election_handler = setInterval(function() {
+            self._electLeader();
+        }, election_ms);
+        this.interval_handler = setInterval(function() {
+            self._sendHeartbeat();
+        }, heartbeat_ms);
+    }
+
+    deactivate() {
+        if (this.interval_handler !== undefined) {
+            clearInterval(this.interval_handler);
+            this.interval_handler = undefined;
+        }
+        if (this.election_handler !== undefined) {
+            clearInterval(this.election_handler);
+            this.election_handler = undefined;
+        }
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('storage', this.boundStorageHandler);
+        }
+        if (this.channel) {
+            this.channel.close();
+            this.channel = undefined;
+        }
+    }
+
+    _sendHeartbeat() {
+        this._electLeader();
+        if (!this.is_leader) {
+            return;
+        }
+        var now_ms = Date.now();
+        var payload = {
+            browser_id: this.browser_id,
+            tab_id: this.tab_id,
+            leader: true,
+            ui_state: this._getUiState(),
+            sent_at_ms: now_ms
+        };
+        var self = this;
+        this.oml_api.sendPresenceHeartbeat(
+            payload,
+            function() {
+                self._writeLeaderClaim(Date.now() + self.leader_lock_ttl_ms);
+                if (self.channel) {
+                    self.channel.postMessage({
+                        type: 'leader_ping',
+                        tab_id: self.tab_id,
+                        at_ms: Date.now()
+                    });
+                }
+            }
+        );
     }
 }
 

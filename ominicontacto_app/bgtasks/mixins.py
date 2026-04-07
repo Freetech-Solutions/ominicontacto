@@ -10,7 +10,7 @@ from ominicontacto_app.models import AgenteProfile
 from ominicontacto_app.models import Campana
 from ominicontacto_app.models import OpcionCalificacion
 from ominicontacto_app.models import CalificacionCliente
-from reportes_app.models import LlamadaLog
+from reportes_app.models import InteractionsSummary, SpeechAnalysis
 from ominicontacto_app.utiles import convert_fecha_datetime
 from channels.db import database_sync_to_async
 
@@ -102,11 +102,17 @@ class SearchRecordingsMixin(object):
 
     def search_recordings_enqueue(self, message):
         with translation.override(message['current_language']):
-            if message["query"]["agente"]:
-                agente = AgenteProfile.objects.get(pk=message["query"]["agente"])
+            # Manejar el caso donde agente puede ser None, 'None' (string), o un ID válido
+            agente_id = message["query"].get("agente")
+            if agente_id and agente_id != 'None' and str(agente_id).strip():
+                try:
+                    agente = AgenteProfile.objects.get(pk=int(agente_id))
+                except (ValueError, TypeError, AgenteProfile.DoesNotExist):
+                    agente = None
             else:
                 agente = None
-            queryset = LlamadaLog.objects.obtener_grabaciones_by_filtro(
+            
+            queryset = InteractionsSummary.objects.obtener_grabaciones_by_filtro(
                 convert_fecha_datetime(message["query"]["fecha_desde"]),
                 convert_fecha_datetime(message["query"]["fecha_hasta"]),
                 message["query"]["tipo_llamada"],
@@ -128,6 +134,8 @@ class SearchRecordingsMixin(object):
                 page = paginator.page(message["query"]["pagina"])
             except EmptyPage:
                 page = Page([], message["query"]["pagina"], paginator)
+
+            analysis = {}
             if message["addressee"]["role"] == "agente":
                 fragments = {
                     "#table-body": render_to_string(
@@ -145,18 +153,19 @@ class SearchRecordingsMixin(object):
                     ),
                 }
             elif message["addressee"]["role"] == "supervisor":
-                # FIXME
-                # - CONFIRM it works with paginated results
-                # - port of BusquedaGrabacionSupervisorFormView._procesa_formato_transferencias
+                # Procesar transferencias - compatible con ambos modelos
                 _page_object_dict = {}
                 for grabacion in page.object_list:
+                    # Usar 'time' (propiedad de compatibilidad) que funciona para ambos modelos
+                    grabacion_time = grabacion.time if hasattr(grabacion, 'time') else grabacion.fecha_fin
+                    
                     if grabacion.callid not in _page_object_dict:
                         _page_object_dict[grabacion.callid] = {}
                         _page_object_dict[grabacion.callid]['origen'] = grabacion
                         _page_object_dict[grabacion.callid]['contacto_id'] = grabacion.contacto_id
                         _page_object_dict[grabacion.callid]['campana_id'] = grabacion.campana_id
                         _page_object_dict[grabacion.callid]['callid'] = grabacion.callid
-                    elif _page_object_dict[grabacion.callid]['origen'].time > grabacion.time:
+                    elif _page_object_dict[grabacion.callid]['origen'].time > grabacion_time:
                         if 'transfer' not in _page_object_dict[grabacion.callid]:
                             _page_object_dict[grabacion.callid]['transfer'] = []
                         aux = _page_object_dict[grabacion.callid]['origen']
@@ -168,12 +177,13 @@ class SearchRecordingsMixin(object):
                         if 'transfer' not in _page_object_dict[grabacion.callid]:
                             _page_object_dict[grabacion.callid]['transfer'] = []
                         _page_object_dict[grabacion.callid]['transfer'].append(grabacion)
+                
                 page_object_list = list(_page_object_dict.values())
                 # - port of BusquedaGrabacionFormView._get_calificaciones
                 identificadores = [
                     (
-                        str(a['contacto_id']),
-                        a['campana_id'],
+                        a['contacto_id'] if a.get('contacto_id') is not None else None,
+                        a['campana_id'] if a.get('campana_id') is not None else None,
                         a['callid'],
                     )
                     for a in page_object_list
@@ -181,15 +191,36 @@ class SearchRecordingsMixin(object):
                 _filtro = models.Q()
                 _callids = []
                 for contacto_id, campana_id, callid in identificadores:
-                    if contacto_id and campana_id and not contacto_id == '-1':
-                        _filtro = _filtro | models.Q(
-                            contacto_id=contacto_id, opcion_calificacion__campana_id=campana_id
-                        )
+                    # Validar que ambos IDs sean válidos y no sean None ni el string 'None'
+                    contacto_valido = (
+                        contacto_id is not None and 
+                        contacto_id != 'None' and 
+                        str(contacto_id).strip() != '' and
+                        str(contacto_id) != '-1'
+                    )
+                    campana_valida = (
+                        campana_id is not None and 
+                        campana_id != 'None' and 
+                        str(campana_id).strip() != ''
+                    )
+                    
+                    if contacto_valido and campana_valida:
+                        try:
+                            contacto_id_int = int(contacto_id)
+                            campana_id_int = int(campana_id)
+                            _filtro = _filtro | models.Q(
+                                contacto_id=contacto_id_int, 
+                                opcion_calificacion__campana_id=campana_id_int
+                            )
+                        except (ValueError, TypeError):
+                            # Si no se puede convertir a int, usar callid en su lugar
+                            _callids.append(callid)
                     else:
                         _callids.append(callid)
                 calificaciones = CalificacionCliente.history.filter(
                     _filtro | models.Q(callid__in=_callids)
                 )
+                analysis = self.get_speech_analytics_status(_callids)
                 fragments = {
                     "#table-body": render_to_string(
                         "busqueda_grabacion_ex/_table-body.html",
@@ -221,6 +252,7 @@ class SearchRecordingsMixin(object):
                     },
                     "result": {
                         "fragments": fragments,
+                        "analysis": analysis,
                     },
                 }
             )
@@ -231,3 +263,22 @@ class SearchRecordingsMixin(object):
                 "type": "search_recordings.respond",
                 "result": message["result"],
             })
+
+    def get_speech_analytics_status(self, _callids):
+        qs = SpeechAnalysis.objects.filter(callid__in=_callids).values(
+            "callid",
+            "transcription_status", "transcription_file",
+            "sentiment_status", "sentiment_file",
+            "qa_status", "qa_file",
+        )
+        return {
+            row["callid"]: {
+                "transcription": row["transcription_status"],
+                "transcription_file": row["transcription_file"],
+                "sentiment": row["sentiment_status"],
+                "sentiment_file": row["sentiment_file"],
+                "qa": row["qa_status"],
+                "qa_file": row["qa_file"],
+            }
+            for row in qs
+        }

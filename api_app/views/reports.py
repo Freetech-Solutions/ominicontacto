@@ -20,17 +20,19 @@ import redis
 from datetime import datetime
 from django.conf import settings
 from django.shortcuts import get_object_or_404
+from django.db.models import Count, Q, Sum
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework import status
 from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from ominicontacto_app.services.redis.connection import create_redis_connection
 from ominicontacto_app.services.asterisk.redis_database import CampaignAgentsFamily, AgenteFamily
 from ominicontacto_app.models import Campana
 from ominicontacto_app.utiles import datetime_hora_minima_dia, datetime_hora_maxima_dia
-from reportes_app.models import LlamadaLog
+from reportes_app.models import LlamadaLog, InteractionsSummary
 
 
 class AgentStatusView(APIView):
@@ -114,5 +116,158 @@ class CallStatusView(APIView):
             'attended': attended,
             'abandoned': abandoned,
             'expired': expired
+        }
+        return Response(data)
+
+
+class CampaignStatsReportView(APIView):
+    """
+    GET /api/reports/campaign-stats/
+    Query params: campaign_id (obligatorio), start_date, end_date (opcionales, formato YYYY-MM-DD).
+    Devuelve KPIs: contact_rate, conversion_rate, rpc (y opcionalmente contadores en totals).
+    """
+    permission_classes = (TienePermisoOML,)
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    renderer_classes = (JSONRenderer,)
+    http_method_names = ['get']
+
+    def get(self, request):
+        campaign_id = request.GET.get('campaign_id')
+        if campaign_id is None or campaign_id == '':
+            return Response(
+                {'error': 'campaign_id es obligatorio'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        try:
+            campaign_id = int(campaign_id)
+        except (ValueError, TypeError):
+            return Response(
+                {'error': 'campaign_id debe ser un entero'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        start_date = request.GET.get('start_date')
+        end_date = request.GET.get('end_date')
+        format_date = '%Y-%m-%d'
+
+        if start_date:
+            try:
+                start_date = datetime.strptime(start_date, format_date).date()
+            except ValueError:
+                return Response(
+                    {'error': 'start_date debe tener formato YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        if end_date:
+            try:
+                end_date = datetime.strptime(end_date, format_date).date()
+            except ValueError:
+                return Response(
+                    {'error': 'end_date debe tener formato YYYY-MM-DD'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        qs = InteractionsSummary.objects.filter(campaign_id=campaign_id)
+        if start_date:
+            qs = qs.filter(start_time__gte=datetime_hora_minima_dia(start_date))
+        if end_date:
+            qs = qs.filter(start_time__lte=datetime_hora_maxima_dia(end_date))
+
+        stats = qs.aggregate(
+            total=Count('id'),
+            total_outbound=Count('id', filter=Q(direction='OUTBOUND')),
+            outbound_answered=Count('id', filter=Q(direction='OUTBOUND', status='EXIT_ANSWERED')),
+            sales=Count('id', filter=Q(is_sale=True)),
+            answered_by_agent=Count(
+                'id',
+                filter=Q(status='EXIT_ANSWERED') & (Q(agent_id__isnull=False) | Q(agent_duration__gt=0))
+            ),
+            answered_agent_gt_10s=Count(
+                'id',
+                filter=Q(status='EXIT_ANSWERED', agent_duration__gt=10)
+            ),
+            # KPIs adicionales
+            sum_agent_duration_gt0=Sum('agent_duration', filter=Q(agent_duration__gt=0)),
+            count_agent_duration_gt0=Count('id', filter=Q(agent_duration__gt=0)),
+            sum_wait_conn_duration_inbound_answered=Sum(
+                'wait_conn_duration', filter=Q(direction='INBOUND', status='EXIT_ANSWERED')
+            ),
+            count_inbound_answered=Count(
+                'id', filter=Q(direction='INBOUND', status='EXIT_ANSWERED')
+            ),
+            inbound_abandoned_gt5=Count(
+                'id',
+                filter=Q(direction='INBOUND', status='ABANDONED', wait_conn_duration__gt=5)
+            ),
+            total_inbound=Count('id', filter=Q(direction='INBOUND')),
+            transferred_count=Count('id', filter=Q(is_transferred=True)),
+            bot_contained=Count(
+                'id',
+                filter=Q(agent_duration=0, bot_duration__gt=0, status='EXIT_ANSWERED')
+            ),
+            sum_bot_duration=Sum('bot_duration'),
+        )
+
+        total_outbound = stats['total_outbound'] or 0
+        outbound_answered = stats['outbound_answered'] or 0
+        sales = stats['sales'] or 0
+        answered_by_agent = stats['answered_by_agent'] or 0
+        answered_agent_gt_10s = stats['answered_agent_gt_10s'] or 0
+        total = stats['total'] or 0
+
+        sum_agent_gt0 = stats['sum_agent_duration_gt0'] or 0
+        count_agent_gt0 = stats['count_agent_duration_gt0'] or 0
+        sum_queue_ib_answered = stats['sum_wait_conn_duration_inbound_answered'] or 0
+        count_ib_answered = stats['count_inbound_answered'] or 0
+        inbound_abandoned_gt5 = stats['inbound_abandoned_gt5'] or 0
+        total_inbound = stats['total_inbound'] or 0
+        transferred_count = stats['transferred_count'] or 0
+        bot_contained = stats['bot_contained'] or 0
+        sum_bot_duration = stats['sum_bot_duration'] or 0
+
+        contact_rate = round((outbound_answered / total_outbound * 100), 2) if total_outbound else 0
+        conversion_rate = round((sales / answered_by_agent * 100), 2) if answered_by_agent else 0
+        rpc = round((answered_agent_gt_10s / total * 100), 2) if total else 0
+
+        # AHT: promedio agent_duration donde > 0 (en segundos)
+        aht = round(float(sum_agent_gt0 / count_agent_gt0), 3) if count_agent_gt0 else 0
+        # ASA: promedio wait_conn_duration solo Inbound Answered (en segundos)
+        asa = round(float(sum_queue_ib_answered / count_ib_answered), 3) if count_ib_answered else 0
+        # Abandon Rate: (Inbound Abandoned wait_conn_duration>5s / Total Inbound) * 100
+        abandon_rate = round((inbound_abandoned_gt5 / total_inbound * 100), 2) if total_inbound else 0
+        # Transfer Rate: (is_transferred / atendidas por agente) * 100
+        transfer_rate = round((transferred_count / answered_by_agent * 100), 2) if answered_by_agent else 0
+        # Bot Containment Rate: (agent_duration=0 y bot_duration>0 y EXIT_ANSWERED / total) * 100
+        bot_containment_rate = round((bot_contained / total * 100), 2) if total else 0
+        # Bot Total Hours: suma bot_duration / 3600
+        bot_total_hours = round(float(sum_bot_duration / 3600), 4) if sum_bot_duration else 0
+
+        data = {
+            'campaign_id': campaign_id,
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
+            'contact_rate': contact_rate,
+            'conversion_rate': conversion_rate,
+            'rpc': rpc,
+            'aht': aht,
+            'asa': asa,
+            'abandon_rate': abandon_rate,
+            'transfer_rate': transfer_rate,
+            'bot_containment_rate': bot_containment_rate,
+            'bot_total_hours': bot_total_hours,
+            'total_interactions': total,
+            'totals': {
+                'total_outbound': total_outbound,
+                'outbound_answered': outbound_answered,
+                'sales': sales,
+                'answered_by_agent': answered_by_agent,
+                'answered_agent_gt_10s': answered_agent_gt_10s,
+                'total': total,
+                'inbound_abandoned_gt5': inbound_abandoned_gt5,
+                'total_inbound': total_inbound,
+                'transferred_count': transferred_count,
+                'bot_contained': bot_contained,
+                'sum_bot_duration': float(sum_bot_duration),
+            },
         }
         return Response(data)

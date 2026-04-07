@@ -34,11 +34,11 @@ def check_template_context_processor_structure(template_context_processors_list)
     check_not_duplicated_values(template_context_processors_list, "TEMPLATE_CONTEXT_PROCESSORS")
 
 
-def check_middleware_structure(MIDDLEWARE_CLASSES_STRUCTURE):
+def check_middleware_structure(MIDDLEWARE_STRUCTURE):
     """Valida que la estructura en los middleware esté correcta"""
     # de momento solo chequeamos que la estructura no contenga middlewares duplicados
     # la idea es más adelante realizar más chequeos
-    check_not_duplicated_values(MIDDLEWARE_CLASSES_STRUCTURE, "MIDDLEWARE_CLASSES")
+    check_not_duplicated_values(MIDDLEWARE_STRUCTURE, "MIDDLEWARE")
 
 
 def check_setting_present(setting_var_val, setting_var_str):
@@ -47,19 +47,19 @@ def check_setting_present(setting_var_val, setting_var_str):
         "Falta definir setting para {0}".format(setting_var_str)
 
 
-def process_middleware_settings(MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE_CLASSES,
+def process_middleware_settings(MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE,
                                 TEMPLATES_CONTEXT_PROCESORS_APPEND, TEMPLATES):
     # se realizan las configuraciones y validaciones para los addons que tienen middleware
-    MIDDLEWARE_CLASSES_STRUCTURE = MIDDLEWARE_PREPPEND + MIDDLEWARE_CLASSES
-    MIDDLEWARE_CLASSES_STRUCTURE.extend(MIDDLEWARE_APPEND)
-    check_middleware_structure(MIDDLEWARE_CLASSES_STRUCTURE)
-    MIDDLEWARE_CLASSES = MIDDLEWARE_CLASSES_STRUCTURE
+    MIDDLEWARE_STRUCTURE = MIDDLEWARE_PREPPEND + MIDDLEWARE
+    MIDDLEWARE_STRUCTURE.extend(MIDDLEWARE_APPEND)
+    check_middleware_structure(MIDDLEWARE_STRUCTURE)
+    MIDDLEWARE = MIDDLEWARE_STRUCTURE
 
     # se realizan las configuraciones y validaciones  para los addons que tienen
     # templates_context_processors propios
     TEMPLATES[0]['OPTIONS']['context_processors'].extend(TEMPLATES_CONTEXT_PROCESORS_APPEND)
     check_template_context_processor_structure(TEMPLATES[0]['OPTIONS']['context_processors'])
-    return (MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE_CLASSES,
+    return (MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE,
             TEMPLATES_CONTEXT_PROCESORS_APPEND, TEMPLATES)
 
 

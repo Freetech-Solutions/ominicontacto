@@ -141,7 +141,7 @@ def reporte_por_fecha_modal_agente_view(request):
     """esta vista es invocada por una ajax para mostrar los datos por fechas
     de los agentes en una ventana modal"""
     if request.method == 'POST':
-        if request.is_ajax():
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             id_agente = request.POST['id_agente']
             fecha_desde = request.POST['fecha_desde']
             fecha_hasta = request.POST['fecha_hasta']
@@ -170,7 +170,7 @@ def reporte_por_fecha_pausa_modal_agente_view(request):
     """esta vista es invocada por una ajax para mostrar las pausas por fechas
     de los agentes en una ventana modal"""
     if request.method == 'POST':
-        if request.is_ajax():
+        if request.headers.get('x-requested-with') == 'XMLHttpRequest':
 
             id_agente = request.POST['id_agente']
             fecha_desde = request.POST['fecha_desde']

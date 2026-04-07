@@ -29,8 +29,9 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <h1>{% trans 'Campañas Entrantes' %}</h1>
 <div>
     <input id="supervisor_id" type="hidden" value="{{supervisor_id}}">
-    <input id="campanas_list" type="hidden" value="{{campanas}}">
+    <input id="campanas_list" type="hidden" value="{{nombres_campanas}}">
     <input id="campanas_list_id" type="hidden" value="{{campanas_ids}}">
+    {{ campanas | json_script:"campaigns-data" }}
 
     <table class="table" id="tableEntrantes">
         <thead>

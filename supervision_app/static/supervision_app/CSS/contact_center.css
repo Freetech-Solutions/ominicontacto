@@ -1,0 +1,932 @@
+/* ============================================
+   VARIABLES CSS - Sistema de colores
+   ============================================ */
+:root {
+    /* Colores de fondo */
+    --bg-dark: #ffffff;
+    --bg-card: #f5f5f5;
+    --bg-card-hover: #e8e8e8;
+    
+    /* Colores de texto */
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #666;
+    
+    /* Colores de acento */
+    --accent-blue: #0f3460;
+    --accent-blue-light: rgba(15, 52, 96, 0.3);
+    
+    /* Colores de estado */
+    --success: #4caf50;
+    --success-light: rgba(76, 175, 80, 0.2);
+    --warning: #ff9800;
+    --warning-light: rgba(255, 152, 0, 0.2);
+    --danger: #f44336;
+    --danger-light: rgba(244, 67, 54, 0.2);
+    --info: #2196f3;
+    --info-light: rgba(33, 150, 243, 0.2);
+    
+    /* Colores especiales */
+    --purple: #9c27b0;
+    --purple-light: rgba(156, 39, 176, 0.2);
+    --voicebot-bg: #f3e5f5;
+    --voicebot-icon: #9c27b0;
+    --time-card-bg: #e3f2fd;
+    --wait-card-bg: #fff3e0;
+    
+    /* Espaciado */
+    --spacing-xs: 5px;
+    --spacing-sm: 10px;
+    --spacing-md: 15px;
+    --spacing-lg: 20px;
+    --spacing-xl: 25px;
+    
+    /* Bordes */
+    --border-color: #ddd;
+    --border-radius: 12px;
+    --border-radius-sm: 6px;
+    
+    /* Sombras */
+    --shadow-card: 0 4px 15px rgba(0, 0, 0, 0.2);
+    --shadow-focus: 0 0 0 2px rgba(33, 150, 243, 0.2);
+}
+
+/* ============================================
+   OVERRIDES Y CONTENEDOR PRINCIPAL
+   ============================================ */
+
+/* Override de estilos base.html cuando está el contact-center-container */
+.wrapper-info .contact-center-container {
+    background-color: var(--bg-dark) !important;
+    margin: 0;
+    padding: var(--spacing-lg);
+}
+
+/* Contenedor principal del dashboard */
+.contact-center-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-dark);
+    color: var(--text-primary);
+    padding: var(--spacing-lg);
+    min-height: calc(100vh - 100px);
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ============================================
+   TIPOGRAFÍA
+   ============================================ */
+
+.contact-center-container h1,
+.contact-center-container h2,
+.contact-center-container h3 {
+    margin: 0;
+    font-weight: 600;
+}
+
+.contact-center-container h1 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+}
+
+.contact-center-container h2 {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-md);
+}
+
+/* ============================================
+   HEADER Y CONTROLES
+   ============================================ */
+
+.contact-center-container .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xl);
+    padding-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+}
+
+.contact-center-container .header h1 {
+    font-size: 1.5rem;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.contact-center-container .header-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    flex-wrap: wrap;
+}
+
+/* Selector de campaña */
+.contact-center-container .campaign-selector {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.contact-center-container .campaign-label {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+.contact-center-container .campaign-select {
+    background-color: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    padding: 8px 12px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.contact-center-container .campaign-select:hover {
+    border-color: var(--info);
+    background-color: var(--bg-card-hover);
+}
+
+.contact-center-container .campaign-select:focus {
+    outline: none;
+    border-color: var(--info);
+    box-shadow: var(--shadow-focus);
+}
+
+/* Información de estado */
+.contact-center-container .status-info {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.contact-center-container .live-indicator {
+    color: var(--success);
+    font-weight: bold;
+}
+
+/* ============================================
+   SISTEMA DE GRID Y LAYOUT
+   ============================================ */
+
+.contact-center-container .dashboard-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+/* Configuraciones específicas de grid */
+.contact-center-container .grid-realtime {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+.contact-center-container .grid-main {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.contact-center-container .grid-bottom {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* ============================================
+   COMPONENTES: TARJETAS
+   ============================================ */
+
+.contact-center-container .card {
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-card);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.contact-center-container .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Tarjetas de métricas (números grandes) */
+.contact-center-container .metric-card {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 120px;
+}
+
+.contact-center-container .metric-value {
+    font-size: 2rem;
+    font-weight: bold;
+    margin: var(--spacing-sm) 0;
+    color: var(--text-primary);
+}
+
+.contact-center-container .metric-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: var(--spacing-xs);
+}
+
+.contact-center-container .metric-icon {
+    font-size: 1.5rem;
+    margin-bottom: var(--spacing-xs);
+}
+
+/* ============================================
+   ESTADOS Y COLORES SEMÁNTICOS
+   ============================================ */
+
+/* Estados de agentes */
+.contact-center-container .status-ready {
+    color: var(--success);
+}
+
+.contact-center-container .status-oncall {
+    color: var(--danger);
+}
+
+.contact-center-container .status-ringing {
+    color: var(--warning);
+}
+
+.contact-center-container .status-pause {
+    color: var(--warning);
+}
+
+.contact-center-container .status-logueados {
+    color: var(--info);
+}
+
+.contact-center-container .status-onconfer {
+    color: var(--purple);
+}
+
+/* Tarjetas especiales */
+.contact-center-container .voicebot-card {
+    background-color: var(--voicebot-bg);
+}
+
+.contact-center-container .voicebot-icon {
+    color: var(--voicebot-icon);
+}
+
+.contact-center-container .time-card {
+    background-color: var(--time-card-bg);
+}
+
+.contact-center-container .wait-card {
+    background-color: var(--wait-card-bg);
+}
+
+/* ============================================
+   ESTADÍSTICAS Y RESUMENES
+   ============================================ */
+
+.contact-center-container .stats-summary {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: var(--spacing-md);
+    text-align: center;
+}
+
+.contact-center-container .stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.contact-center-container .stat-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-primary);
+}
+
+.contact-center-container .stat-positive {
+    color: var(--success);
+}
+
+.contact-center-container .stat-warning {
+    color: var(--warning);
+}
+
+.contact-center-container .stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: var(--spacing-xs);
+}
+
+/* Gestiones positivas */
+.contact-center-container .positive-gestions {
+    margin-top: var(--spacing-md);
+    text-align: center;
+}
+
+.contact-center-container .positive-value {
+    color: var(--success);
+    font-weight: bold;
+}
+
+/* Sección de gestiones y estado discador */
+.contact-center-container .gestiones-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.contact-center-container .gestiones-section {
+    flex: 1;
+}
+
+.contact-center-container .estado-discador-section {
+    flex: 1;
+}
+
+.contact-center-container .estado-discador-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    margin-top: var(--spacing-md);
+}
+
+.contact-center-container .estado-discador-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.contact-center-container .estado-discador-item:last-child {
+    border-bottom: none;
+}
+
+.contact-center-container .estado-discador-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.contact-center-container .estado-discador-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--text-primary);
+    min-width: 60px;
+    text-align: right;
+}
+
+/* ============================================
+   GRÁFICOS Y CONTENEDORES
+   ============================================ */
+
+.contact-center-container .chart-container {
+    position: relative;
+    height: 250px;
+    width: 100%;
+}
+
+.contact-center-container .chart-container-tall {
+    height: 350px;
+}
+
+.contact-center-container .chart-small {
+    height: 200px;
+}
+
+/* ============================================
+   ESTADOS DE CARGA
+   ============================================ */
+
+.contact-center-container .loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.contact-center-container .loading-spinner {
+    text-align: center;
+    color: var(--text-primary);
+}
+
+.contact-center-container .loading-spinner i {
+    font-size: 3rem;
+    color: var(--info);
+    margin-bottom: var(--spacing-md);
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.contact-center-container .loading-spinner p {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* ============================================
+   OVERRIDES DE BOOTSTRAP
+   ============================================ */
+
+.contact-center-container .card {
+    background-color: var(--bg-card) !important;
+    border: none !important;
+    color: var(--text-primary) !important;
+}
+
+.contact-center-container .card-body {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN
+   ============================================ */
+
+/* Tablets grandes */
+@media (max-width: 1200px) {
+    .contact-center-container .grid-main,
+    .contact-center-container .grid-bottom {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Tablets y móviles */
+@media (max-width: 768px) {
+    .contact-center-container {
+        padding: var(--spacing-md);
+    }
+
+    .contact-center-container .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .contact-center-container .header-controls {
+        width: 100%;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .contact-center-container .campaign-selector {
+        width: 100%;
+    }
+
+    .contact-center-container .campaign-select {
+        width: 100%;
+    }
+
+    .contact-center-container .grid-main,
+    .contact-center-container .grid-bottom {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-center-container .grid-realtime {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Móviles pequeños */
+@media (max-width: 480px) {
+    .contact-center-container .grid-realtime {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-center-container .metric-value {
+        font-size: 1.5rem;
+    }
+    
+    .contact-center-container h1 {
+        font-size: 1.2rem;
+    }
+}
+
+/* ============================================
+   TABLAS
+   ============================================ */
+
+.contact-center-container .agents-table-card {
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+}
+
+.contact-center-container .agents-table-card h2 {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    font-size: 1.3rem;
+}
+
+.contact-center-container .agents-count {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: normal;
+}
+
+.contact-center-container .agents-table-container {
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+    border-radius: var(--border-radius-sm);
+}
+
+.contact-center-container .agents-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+.contact-center-container .agents-table thead {
+    position: sticky;
+    top: 0;
+    background-color: #e3f2fd;
+    z-index: 10;
+}
+
+.contact-center-container .agents-table th {
+    padding: 8px 10px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+}
+
+.contact-center-container .agents-table td {
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-secondary);
+}
+
+.contact-center-container .agents-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.contact-center-container .agents-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+/* Indicadores de estado en filas de agentes */
+.contact-center-container .agent-ready {
+    border-left: 3px solid var(--success);
+}
+
+.contact-center-container .agent-oncall {
+    border-left: 3px solid var(--danger);
+}
+
+.contact-center-container .agent-ringing {
+    border-left: 3px solid var(--warning);
+}
+
+.contact-center-container .agent-onconfer {
+    border-left: 3px solid var(--purple);
+}
+
+.contact-center-container .agent-pause {
+    border-left: 3px solid var(--warning);
+}
+
+.contact-center-container .agent-offline {
+    border-left: 3px solid #666;
+    opacity: 0.7;
+}
+
+/* Badges de estado */
+.contact-center-container .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 4px 10px;
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.contact-center-container .badge-ready {
+    background-color: var(--success-light);
+    color: var(--success);
+}
+
+.contact-center-container .badge-oncall {
+    background-color: var(--danger-light);
+    color: var(--danger);
+}
+
+.contact-center-container .badge-ringing {
+    background-color: var(--warning-light);
+    color: var(--warning);
+}
+
+.contact-center-container .badge-onconfer {
+    background-color: var(--purple-light);
+    color: var(--purple);
+}
+
+.contact-center-container .badge-pause {
+    background-color: var(--warning-light);
+    color: var(--warning);
+}
+
+.contact-center-container .badge-offline {
+    background-color: rgba(102, 102, 102, 0.1);
+    color: #666;
+}
+
+/* Mensajes informativos */
+.contact-center-container .no-agents-message {
+    text-align: center;
+    padding: 40px var(--spacing-lg);
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+.contact-center-container .no-agents-message i {
+    margin-right: 8px;
+    color: var(--info);
+}
+
+/* ============================================
+   TABLA DE ESTADÍSTICAS OUTBOUND
+   ============================================ */
+
+.contact-center-container .outbound-stats-table {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: var(--spacing-md);
+}
+
+.contact-center-container .stat-row {
+    display: grid;
+    grid-template-columns: 180px 1fr 80px;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: 8px 0;
+}
+
+.contact-center-container .stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.contact-center-container .stat-bar-container {
+    position: relative;
+    width: 100%;
+    height: 24px;
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.contact-center-container .stat-bar {
+    height: 100%;
+    min-width: 2px;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    position: relative;
+}
+
+.contact-center-container .stat-bar::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+
+.contact-center-container .stat-value {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: right;
+    min-width: 60px;
+}
+
+/* Barra SIP para WebRTC / PhoneJS */
+.contact-center-container .sip-bar-contact-center {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    margin-bottom: var(--spacing-md);
+    background: var(--bg-card);
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    font-size: 0.9rem;
+}
+
+.contact-center-container .sip-bar-contact-center #CallStatus,
+.contact-center-container .sip-bar-contact-center #SipStatus {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.contact-center-container .sip-bar-contact-center #SipStatus img {
+    vertical-align: middle;
+}
+
+.contact-center-container .sip-bar-contact-center #UserStatus {
+    margin-left: auto;
+}
+
+.contact-center-container .sip-bar-contact-center #endCall {
+    margin-left: auto;
+}
+
+/* Acciones de agentes en tabla */
+.contact-center-container .agents-actions-cell {
+    white-space: nowrap;
+    min-width: 200px;
+}
+
+.contact-center-container .agents-actions-btns {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.contact-center-container .btn-agent-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s;
+}
+
+.contact-center-container .btn-agent-action:hover:not(:disabled) {
+    background: var(--accent-blue);
+    color: #fff;
+    border-color: var(--accent-blue);
+}
+
+.contact-center-container .btn-agent-action:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.contact-center-container .btn-agent-action i {
+    font-size: 0.85rem;
+}
+
+/* Modal de mensaje */
+.contact-center-container .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.contact-center-container .modal-content.message-modal {
+    background: var(--bg-dark);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-card);
+    min-width: 400px;
+    max-width: 90vw;
+}
+
+.contact-center-container .modal-content .modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.contact-center-container .modal-content .modal-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.contact-center-container .modal-content .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 4px;
+}
+
+.contact-center-container .modal-content .modal-close:hover {
+    color: var(--text-primary);
+}
+
+.contact-center-container .modal-content .modal-body {
+    padding: var(--spacing-lg);
+}
+
+.contact-center-container .modal-content .modal-body .form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.contact-center-container .modal-content .modal-body .form-group:last-child {
+    margin-bottom: 0;
+}
+
+.contact-center-container .modal-content .modal-body .form-control {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.95rem;
+}
+
+.contact-center-container .modal-content .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-lg);
+    border-top: 1px solid var(--border-color);
+}
+
+.contact-center-container .modal-content .modal-footer .btn {
+    padding: 8px 16px;
+    border-radius: var(--border-radius-sm);
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.contact-center-container .modal-content .modal-footer .btn-secondary {
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.contact-center-container .modal-content .modal-footer .btn-primary {
+    background: var(--accent-blue);
+    color: #fff;
+}
+
+.contact-center-container .modal-content .modal-footer .btn-primary:hover {
+    opacity: 0.9;
+}
+
+/* ============================================
+   RESPONSIVE: TABLAS
+   ============================================ */
+
+@media (max-width: 768px) {
+    .contact-center-container .agents-table {
+        font-size: 0.8rem;
+    }
+
+    .contact-center-container .agents-table th,
+    .contact-center-container .agents-table td {
+        padding: 8px 6px;
+    }
+
+    .contact-center-container .status-badge {
+        font-size: 0.75rem;
+        padding: 3px 8px;
+    }
+
+    .contact-center-container .stat-row {
+        grid-template-columns: 140px 1fr 60px;
+        gap: var(--spacing-sm);
+    }
+
+    .contact-center-container .stat-label {
+        font-size: 0.85rem;
+    }
+
+    .contact-center-container .stat-value {
+        font-size: 0.85rem;
+    }
+}

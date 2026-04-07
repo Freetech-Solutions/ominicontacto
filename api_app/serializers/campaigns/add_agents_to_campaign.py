@@ -54,12 +54,13 @@ class AgenteActivoSerializer(serializers.ModelSerializer):
     agent_full_name = serializers.SerializerMethodField(read_only=True)
     agent_sip_id = serializers.SerializerMethodField(read_only=True)
     agent_penalty = serializers.SerializerMethodField(read_only=True)
+    voicebot = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = AgenteProfile
         fields = (
             'agent_id', 'agent_username',
-            'agent_full_name', 'agent_sip_id', 'agent_penalty',)
+            'agent_full_name', 'agent_sip_id', 'agent_penalty', 'voicebot',)
 
     def get_agent_id(self, agent_profile):
         return agent_profile.id
@@ -75,3 +76,6 @@ class AgenteActivoSerializer(serializers.ModelSerializer):
 
     def get_agent_penalty(self, queue_member):
         return 0
+
+    def get_voicebot(self, agent_profile):
+        return agent_profile.voicebot

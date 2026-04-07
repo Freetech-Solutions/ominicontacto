@@ -90,6 +90,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 <th>{% trans 'Grabación' %}</th>
                 <th>{% trans 'Calificacion' %}</th>
                 <th>{% trans 'Descripción' %}</th>
+                <th>{% trans 'Analisis' %}</th>
                 <th style="display:none;">{% trans 'Username' %}</th>
                 <th style="display:none;">{% trans 'ContactoId' %}</th>
             </tr>
@@ -119,6 +120,47 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                     <button type="button" class="btn btn-default" data-dismiss="modal">
                         {% trans 'Cerrar' %}
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="transcripcionModal" tabindex="-1" role="dialog" aria-labelledby="transcripcionModalLabel">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="transcripcionModalLabel">{% trans 'Transcripción y resumen' %}</h2>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div id="transcripcion-modal-loading" class="transcripcion-modal-loading">
+                        {% trans 'Cargando...' %}
+                    </div>
+                    <div id="transcripcion-modal-content" class="transcripcion-modal-content" style="display: none;">
+                        <div class="form-group">
+                            <label>{% trans 'Transcripción' %}</label>
+                            <div id="transcripcion-modal-text" class="transcripcion-modal-text"></div>
+                        </div>
+                        <div id="transcripcion-modal-summary-wrap" class="form-group" style="display: none;">
+                            <label>{% trans 'Resumen' %}</label>
+                            <div id="transcripcion-modal-summary" class="transcripcion-modal-summary"></div>
+                        </div>
+                        <div class="form-group">
+                            <a href="#" class="btn btn-link btn-sm" data-toggle="collapse" data-target="#transcripcion-modal-json-collapse">{% trans 'Ver JSON' %}</a>
+                            <div id="transcripcion-modal-json-collapse" class="collapse">
+                                <pre id="transcripcion-modal-json" class="transcripcion-modal-json"></pre>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="transcripcion-modal-error" class="transcripcion-modal-error" style="display: none;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="transcripcion-download-transcription" class="btn btn-outline-primary" style="display: none;">{% trans 'Descargar Transcripción' %}</button>
+                    <button type="button" id="transcripcion-download-summary" class="btn btn-outline-primary" style="display: none;">{% trans 'Descargar Resumen' %}</button>
+                    <a id="transcripcion-download-link" href="#" class="btn btn-primary" download>{% trans 'Descargar JSON' %}</a>
+                    <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Cerrar' %}</button>
                 </div>
             </div>
         </div>

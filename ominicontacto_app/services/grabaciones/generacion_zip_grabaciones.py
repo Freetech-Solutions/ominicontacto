@@ -69,14 +69,11 @@ class GeneracionZipGrabaciones:
         self.redis_connection.publish(self.key_task, progreso)
         i = 1
 
-        s3_handler = None
-        if (os.getenv('S3_STORAGE_ENABLED') == 'true'):
-            s3_handler = StorageService()
+        s3_handler = StorageService()
 
         for archivo in self.listado_archivos:
             obs = ''
-            if s3_handler is not None:
-                s3_handler.download_file(archivo['archivo'], settings.SENDFILE_ROOT)
+            s3_handler.download_file(archivo['archivo'], settings.SENDFILE_ROOT)
 
             archivo_path = os.path.join(settings.SENDFILE_ROOT, archivo['archivo'])
             try:

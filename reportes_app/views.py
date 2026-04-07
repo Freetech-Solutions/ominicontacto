@@ -29,7 +29,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 
 # Ominicontacto App
-from ominicontacto_app.models import Campana
+from ominicontacto_app.models import Campana, AgenteProfile, Grupo
 from ominicontacto_app.utiles import (
     fecha_local, fecha_hora_local,
     datetime_hora_minima_dia, UnicodeWriter
@@ -228,4 +228,89 @@ class ReporteDeResultadosView(TemplateView):
         else:
             context['mostrar_export_todos'] = False
 
+        return context
+
+
+class AgentsActivityV2ReportView(TemplateView):
+    """
+    Vista HTML para actividad de agentes (v2). Incluye filtro de agentes y grupos (Todos / uno o varios).
+    """
+    template_name = 'agents_activity_v2.html'
+    TODOS_LOS_AGENTES_VALUE = '__all_agents__'
+    TODOS_LOS_GRUPOS_VALUE = '__all_groups__'
+
+    def _get_campanas_visibles(self, incluir_finalizadas=True):
+        user = self.request.user
+        if user.get_is_administrador():
+            campanas = Campana.objects.obtener_actuales()
+        else:
+            supervisor = user.get_supervisor_profile()
+            campanas = supervisor.campanas_asignadas_actuales()
+        if not incluir_finalizadas:
+            campanas = campanas.exclude(estado=Campana.ESTADO_FINALIZADA)
+        return campanas
+
+    def _get_grupos_visibles(self, campanas_visibles):
+        return (
+            Grupo.objects
+            .filter(agentes__campana_member__queue_name__campana__in=campanas_visibles)
+            .distinct()
+            .order_by('nombre')
+        )
+
+    def _get_agentes_visibles(self, campanas_visibles):
+        return (
+            AgenteProfile.objects
+            .filter(campana_member__queue_name__campana__in=campanas_visibles)
+            .distinct()
+            .select_related('user')
+            .order_by('user__first_name', 'user__last_name', 'id')
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super(AgentsActivityV2ReportView, self).get_context_data(**kwargs)
+        from django.urls import reverse
+        context['api_reportes_agents_activity_v2_url'] = reverse('api_reportes_agents_activity_v2')
+        context['api_exportar_csv_agents_activity_v2_listado_url'] = reverse(
+            'api_exportar_csv_agents_activity_v2_listado'
+        )
+        context['reportes_agents_activity_v2_descargar_listado_csv_url_template'] = reverse(
+            'reportes_agents_activity_v2_descargar_listado_csv',
+            kwargs={'task_id': 'TASKID'},
+        )
+        context['agente_reporte_grafico_url_template'] = reverse(
+            'agente_reporte_grafico', kwargs={'pk_agente': 123456789}
+        )
+        campanas_visibles = self._get_campanas_visibles(incluir_finalizadas=True)
+        grupos = self._get_grupos_visibles(campanas_visibles)
+        agentes = self._get_agentes_visibles(campanas_visibles)
+        context['grupos_list'] = [{'id': g.id, 'nombre': g.nombre} for g in grupos]
+        context['agentes_list'] = [
+            {
+                'id': ap.id,
+                'nombre': ap.user.get_full_name() or ap.user.get_username() or '',
+                'grupo_id': ap.grupo_id,
+            }
+            for ap in agentes
+        ]
+        context['todos_los_agentes_value'] = self.TODOS_LOS_AGENTES_VALUE
+        context['todos_los_grupos_value'] = self.TODOS_LOS_GRUPOS_VALUE
+        context['agente_grupo_map'] = {
+            str(ap.id): ap.grupo_id for ap in agentes if ap.grupo_id is not None
+        }
+        return context
+
+
+class AgenteReporteGraficoView(TemplateView):
+    """
+    Vista placeholder para KPIs de agente por rango de fechas.
+    Por ahora se deja intencionalmente en blanco.
+    """
+    template_name = 'reporte_grafico_agente_blank.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(AgenteReporteGraficoView, self).get_context_data(**kwargs)
+        context['pk_agente'] = kwargs.get('pk_agente')
+        context['date_start'] = self.request.GET.get('date_start')
+        context['date_end'] = self.request.GET.get('date_end')
         return context

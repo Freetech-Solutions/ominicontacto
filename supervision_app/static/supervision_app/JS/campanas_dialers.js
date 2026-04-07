@@ -18,17 +18,23 @@
 
 /* global Urls */
 /* global gettext */
-var agentes = {};
-var campanas = {};
-var campanas_supervisor = [];
-var campanas_id_supervisor = [];
-var resumen_agentes_campanas = {};
+var campaigns;
 var table_dialers;
 var table_data = [];
-var inicio = true;
+var rws;
+
+var agentes = {};
+//var campanas = {};
+var campanas_supervisor = [];
+var campanas_id_supervisor = [];
 const MENSAJE_CONEXION_WEBSOCKET = 'Stream subscribed!';
+var wombat_enabled = false;
+let POLL_DELAY = 30 * 1000;
 
 $(function() {
+    campaigns = JSON.parse(document.getElementById('campaigns-data').textContent);
+    wombat_enabled = JSON.parse(document.getElementById('wombat_enabled').textContent);
+ 
     campanas_supervisor = $('input#campanas_list').val().split(',');
     if (campanas_supervisor.length == 1 && campanas_supervisor[0] == '') {
         campanas_supervisor = [];
@@ -37,20 +43,152 @@ $(function() {
     createDataTable();
     subcribeFilterChange();
     handle_filter();
+    
+    connectToDataChannel();
+    connectToSupervisorStream();
+});
 
+function connectToDataChannel(){
+    const url = `wss://${window.location.host}/channels/supervision/dialer`;
+    rws = new ReconnectingWebSocket(url, [], {
+        connectionTimeout: 10000,
+        maxReconnectionDelay: 3000,
+        minReconnectionDelay: 1000,
+    });
+    rws.addEventListener('message', function(e) {
+        let data = JSON.parse(e.data);
+        processData(data);
+    });
+}
+
+function processData(data){
+    if (data.initial_data != undefined){
+        initializeTable(data.initial_data);
+    }
+    else {
+        updateTable(data);
+    }
+}
+
+function initializeTable(initial_data){
+    table_data = [];
+    for (let camp_id in initial_data){
+        let data = initial_data[camp_id];
+        let name = campaigns[camp_id].name;
+        let camp_data = new DialerStats(camp_id, name);
+        for (let field in data){
+            camp_data[field] = data[field];
+        }
+        updateTarget(camp_id, camp_data);
+        table_data.push(camp_data);
+    }
+    table_dialers.clear();
+    table_dialers.rows.add(table_data).draw();
+    if (wombat_enabled){
+        setTimeout(pollWombatStats, POLL_DELAY);
+    }
+}
+
+function updateTable(event_data){
+    if (event_data.type == 'update' && event_data.args.DIALER != undefined){
+        const payload = event_data.args.DIALER;
+        const updates = Array.isArray(payload) ? payload : [payload];
+        updates.forEach(function(data) {
+            let camp_id = data.campaign_id;
+            let field = data.field;
+            const delta = data.delta || 1;
+            let camp_name = campaigns[camp_id].name;
+            let row = table_dialers.row((idx, rowData) => rowData.name === camp_name);
+            let row_data = row.data();
+            if (field == 'channels'){
+                row_data[field] = Number(data[field]);
+            }
+            else if (field == 'pending'){
+                updatePending(row_data, data);
+            }
+            else if (field == 'status') {
+                row_data.status = data.value;
+            }
+            else {
+                row_data[field] = Number(row_data[field]) + delta;
+                if (field == 'dispositions'){
+                    updateTarget(camp_id, row_data);
+                }
+            }
+            if (field == 'dialed' && Number.isFinite(data.channels)){
+                row_data.channels = data.channels;
+            }
+            row.data(row_data);
+        });
+        table_dialers.draw();
+    }
+}
+
+function updateTarget(camp_id, camp_data){
+    let target = campaigns[camp_id].target;
+    if (target == 0){
+        camp_data.target = 100;
+        return;
+    }
+    camp_data.target = (100 * camp_data.dispositions / target).toFixed(1);
+}
+
+function updatePending(camp_data, data){
+    /** Only for OMniDialer */
+    if (data.pending_initial !== undefined){
+        camp_data.pending_initial = Number(data.pending_initial);
+        camp_data.pending = camp_data.pending_initial + camp_data.pending_retries;
+    }
+    if (data.pending_retries !== undefined){
+        camp_data.pending_retries = Number(data.pending_retries);
+        camp_data.pending = camp_data.pending_initial + camp_data.pending_retries;
+    }
+}
+
+function pollWombatStats() {
+    let url = Urls.supervision_wombat_dialer_stats();
+    $.get(url).success(
+        function(data) {
+            if (data['status'] == 'OK'){
+                // Asumo que vienen los status de todas las campañas
+                for (let id in data['statuses']){
+                    let camp_name = campaigns[id].name;
+                    let row = table_dialers.row((idx, data) => data.name === camp_name);
+                    let row_data=row.data();
+
+                    row_data.status = data['statuses'][id];
+                    let pending = data['pendings'][id];
+                    if (Number.isFinite(pending)){
+                        row_data.pending = pending;
+                    }
+                    let channels = data['channels'][id];
+                    if (Number.isFinite(channels)){
+                        row_data['channels'] = channels;
+                    }
+                    row.data(row_data).draw();
+                }
+            }
+        }
+    );
+    setTimeout(pollWombatStats, POLL_DELAY);
+}
+
+
+/** TODO: Dejar de procesar datos de agentes desde el stream. */
+function connectToSupervisorStream(){
     const url = `wss://${window.location.host}/consumers/stream/supervisor/${$('input#supervisor_id').val()}/dialers`;
-    const rws = new ReconnectingWebSocket(url, [], {
+    const stream_rws = new ReconnectingWebSocket(url, [], {
         connectionTimeout: 10000,
         maxReconnectionDelay: 3000,
         minReconnectionDelay: 1000,
     });
 
-    rws.addEventListener('message', function(e) {
+    stream_rws.addEventListener('message', function(e) {
         if (e.data != MENSAJE_CONEXION_WEBSOCKET) {
             try {
                 var data = JSON.parse(e.data);
                 if (campanas_supervisor.length > 0) {
-                    processData(data);
+                    processAgentData(data);
                 } else {
                     table_dialers.clear().draw();
                 }
@@ -60,9 +198,8 @@ $(function() {
         }
     });
 
-    function processData(data) {
+    function processAgentData(data) {
         let haveAgentsData = false;
-        let fistCallStats = {};
         data.forEach(info => {
             try {
                 let row = JSON.parse(info
@@ -74,30 +211,11 @@ $(function() {
                 if (row['NAME']) {
                     agents.updateAgent(row);
                     haveAgentsData = true;
-                } else if (row['NOMBRE'] && !fistCallStats[row['NOMBRE']]) {
-                    fistCallStats[row['NOMBRE']] = row;
                 }
             } catch (err) {
                 console.log(err);
             }
         });
-
-        for (const campaign in fistCallStats) {
-            const nombre_saneado = campaign
-                .replaceAll('(', '')
-                .replaceAll(')', '');
-            let row = table_dialers
-                .row('#' + nombre_saneado);
-            let dataRow = row.data();
-            if (!dataRow) {
-                let newDataRow = new DialerStats(campanas_id_supervisor[campanas_supervisor.indexOf(campaign)], campaign);
-                newDataRow.updateCallStats(fistCallStats[campaign]);
-                table_dialers.row.add(newDataRow);
-            } else {
-                dataRow.updateCallStats(fistCallStats[campaign]);
-                row.data(dataRow);
-            }
-        }
 
         if (haveAgentsData) {
             let newAgentStats = agents.calculateStats(campanas_supervisor);
@@ -125,11 +243,11 @@ $(function() {
     }
 
     function emptyStats(stats) {
-        return stats.agentes_online == 0 &&
-            stats.agentes_llamada == 0 &&
-            stats.agentes_pausa == 0;
+        return stats.agents_online == 0 &&
+            stats.agents_oncall == 0 &&
+            stats.agents_onpause == 0;
     }
-});
+}
 
 function createDataTable() {
     table_dialers = $('#tableDialers').DataTable({
@@ -137,23 +255,25 @@ function createDataTable() {
         rowId: 'nombre_saneado',
         stateSave: true,
         columns: [
-            { 'data': 'nombre' },
-            { 'data': 'agentes_online' },
-            { 'data': 'agentes_llamada' },
-            { 'data': 'agentes_pausa' },
-            { 'data': 'agentes_ready' },
-            { 'data': 'efectuadas' },
-            { 'data': 'atendidas' },
-            { 'data': 'no_atendidas' },
-            { 'data': 'contestadores' },
-            { 'data': 'canales_discando' },
-            { 'data': 'conectadas_perdidas' },
-            { 'data': 'gestiones' },
-            { 'data': 'pendientes' },
-            { 'data': 'porcentaje_objetivo' },
-            { 'data': 'status', 'visible': false },
+            { 'data': 'name' },
+            { 'data': 'agents_online' },
+            { 'data': 'agents_oncall' },
+            { 'data': 'agents_onpause' },
+            { 'data': 'agents_ready' },
+            { 'data': 'dialed' },
+            { 'data': 'attended' },
+            { 'data': 'shortcall' },
+            { 'data': 'not_attended' },
+            { 'data': 'amd' },
+            { 'data': 'channels' },
+            { 'data': 'connections_lost' },
+            { 'data': 'dispositions' },
+            { 'data': 'pending' },
+            { 'data': 'target' },
+            { 'data': 'status', 'visible': false }, /** TODO ACTIVA(2) O PAUSADA(5) */
         ],
         'searchCols': [
+            null,
             null,
             null,
             null,
@@ -187,25 +307,28 @@ function createDataTable() {
 }
 class DialerStats {
 
-    constructor(id, nombre) {
+    constructor(id, name) {
         this.id = id;
-        this.nombre = nombre;
-        this.nombre_saneado = nombre
+        this.name = name;
+        this.nombre_saneado = name
             .replaceAll('(', '')
             .replaceAll(')', '');
-        this.efectuadas = 0;
-        this.atendidas = 0;
-        this.no_atendidas = 0;
-        this.contestadores = 0;
-        this.conectadas_perdidas = 0;
-        this.gestiones = 0;
-        this.pendientes = 0;
-        this.canales_discando = 0;
-        this.agentes_online = 0;
-        this.agentes_llamada = 0;
-        this.agentes_pausa = 0;
-        this.agentes_ready = 0;
-        this.porcentaje_objetivo = 0;
+        this.dialed = 0;
+        this.attended = 0;
+        this.shortcall = 0;
+        this.not_attended = 0;
+        this.amd = 0;
+        this.connections_lost = 0;
+        this.dispositions = 0;
+        this.pending = 0;
+        this.pending_initial = 0;
+        this.pending_retries = 0;
+        this.channels = 0;
+        this.agents_online = 0;
+        this.agents_oncall = 0;
+        this.agents_onpause = 0;
+        this.agents_ready = 0;
+        this.target = 0;
         this.status = 0;
     }
 
@@ -214,36 +337,19 @@ class DialerStats {
         if (this.atendidas > 0) return false;
         if (this.no_atendidas > 0) return false;
         if (this.contestadores > 0) return false;
-        if (this.conectadas_perdidas > 0) return false;
+        if (this.connections_lost > 0) return false;
         if (this.gestiones > 0) return false;
-        if (this.pendientes > 0) return false;
-        if (this.canales_discando > 0) return false;
-        if (this.porcentaje_objetivo > 0) return false;
+        if (this.pending > 0) return false;
+        if (this.channels > 0) return false;
+        if (this.target > 0) return false;
         return true;
     }
 
-    updateCallStats(newStats) {
-        this.nombre = newStats['NOMBRE'];
-        this.nombre_saneado = this.nombre
-            .replaceAll('(', '')
-            .replaceAll(')', '');
-        this.efectuadas = newStats['ESTADISTICAS']['efectuadas'];
-        this.atendidas = newStats['ESTADISTICAS']['atendidas'];
-        this.no_atendidas = newStats['ESTADISTICAS']['no_atendidas'];
-        this.contestadores = newStats['ESTADISTICAS']['contestadores'];
-        this.conectadas_perdidas = newStats['ESTADISTICAS']['conectadas_perdidas'];
-        this.gestiones = newStats['ESTADISTICAS']['gestiones'];
-        this.pendientes = newStats['ESTADISTICAS']['pendientes'];
-        this.canales_discando = newStats['ESTADISTICAS']['canales_discando'];
-        this.porcentaje_objetivo = newStats['ESTADISTICAS']['porcentaje_objetivo'];
-        this.status = parseInt(newStats['STATUS']);
-    }
-
     updateAgentStats(agentStats) {
-        this.agentes_online = agentStats.agentes_online;
-        this.agentes_llamada = agentStats.agentes_llamada;
-        this.agentes_pausa = agentStats.agentes_pausa;
-        this.agentes_ready = this.agentes_online - this.agentes_llamada - this.agentes_pausa;
+        this.agents_online = agentStats.agents_online;
+        this.agents_oncall = agentStats.agents_oncall;
+        this.agents_onpause = agentStats.agents_onpause;
+        this.agents_ready = this.agents_online - this.agents_oncall - this.agents_onpause;
     }
 
 }
@@ -257,17 +363,17 @@ class Agents {
         let stats = {};
         campaignList.forEach(campaign => {
             stats[campaign] = {
-                'agentes_online': 0,
-                'agentes_llamada': 0,
-                'agentes_pausa': 0
+                'agents_online': 0,
+                'agents_oncall': 0,
+                'agents_onpause': 0
             };
             Object.values(this.agentList).forEach(agent => {
                 if (agent.campanas.includes(campaign) && agent.status != '') {
-                    stats[campaign]['agentes_online']++;
+                    stats[campaign]['agents_online']++;
                     if (agent.status.indexOf('PAUSE') == 0) {
-                        stats[campaign]['agentes_pausa']++;
+                        stats[campaign]['agents_onpause']++;
                     } else if (agent.status.indexOf('ONCALL') == 0) {
-                        stats[campaign]['agentes_llamada']++;
+                        stats[campaign]['agents_oncall']++;
                     }
                 }
             });
@@ -297,9 +403,7 @@ class Agents {
         } else {
             this.agentList[agentId]['status'] = '';
         }
-
     }
-
 }
 
 function subcribeFilterChange() {
@@ -311,10 +415,13 @@ function subcribeFilterChange() {
 function handle_filter() {
     let selection = $('#filter_by_status').find('option:selected');
     let value = selection.val();
+    // Limpiar filtro obsoleto en columna 14 (target) restaurado por stateSave
+    table_dialers.columns(14).search('');
     if(value > 0){
-        table_dialers.columns(14).search(value).draw();
+        table_dialers.columns(15).search(value).draw();
     } else {
-        table_dialers.columns().search('').draw();
+        // Solo mostrar Activas (2) o Pausadas (5)
+        table_dialers.columns(15).search('[2|5]', true, false).draw();
     }
 }
 

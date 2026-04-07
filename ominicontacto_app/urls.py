@@ -598,6 +598,10 @@ urlpatterns = [
             login_required(views_agente.DashboardAgenteView.as_view()),
             name='agente_dashboard',
             ),
+    re_path(r'^agente/dashboard/v2/$',
+            login_required(views_agente.DashboardAgenteV2View.as_view()),
+            name='agente_dashboard_v2',
+            ),
     # ==========================================================================
     # Supervision
     # ==========================================================================

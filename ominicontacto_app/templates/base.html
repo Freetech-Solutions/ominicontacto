@@ -88,7 +88,10 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                             {% include 'cambiar_idioma.html' %}
                             <div id="nav-user">
                                 <a>{{ user.get_full_name }}</a>
-                                <a class="btn" href="{% url 'logout' %}" title="{% trans 'Deslogueo' %}">{% trans 'Salir' %}</a>
+                                <form method="post" action="{% url 'logout' %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn" title="{% trans 'Deslogueo' %}">{% trans 'Salir' %}</button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -148,10 +151,20 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
         <script type="text/javascript">
          $(document).ready(function () {
 
-           /* Toggle */
+           /* Toggle sidebar: normal -> colapsado -> oculto -> normal */
            $('#sidebarCollapse').on('click',function(){
-             $('#sidebar').toggleClass('active');
-
+             var $sidebar = $('#sidebar');
+             
+             if ($sidebar.hasClass('hidden')) {
+               // Si está oculto, volver a mostrar normal
+               $sidebar.removeClass('hidden active');
+             } else if ($sidebar.hasClass('active')) {
+               // Si está colapsado, ocultar completamente
+               $sidebar.removeClass('active').addClass('hidden');
+             } else {
+               // Si está normal, colapsar
+               $sidebar.addClass('active');
+             }
            });
 
            // Modal Register Server

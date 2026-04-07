@@ -25,6 +25,9 @@ from constance import config
 class OminicontactoAppConfig(AppConfig):
     name = 'ominicontacto_app'
 
+    def ready(self):
+        import ominicontacto_app.signal.handlers  # noqa: F401
+
     def supervision_menu_items(self, request, permissions):
         items = []
 

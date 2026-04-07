@@ -420,6 +420,16 @@ class AgenteProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     sip_extension = models.IntegerField(unique=True)
     sip_password = models.CharField(max_length=128, blank=True, null=True)
+    sip_remote = models.BooleanField(default=False, verbose_name=_("SIP remote"))
+    voicebot = models.BooleanField(default=False, verbose_name=_("Voicebot"))
+    voicebot_trunk = models.ForeignKey(
+        'configuracion_telefonia_app.TroncalSIP',
+        null=True, blank=True, on_delete=models.SET_NULL,
+        verbose_name=_("Troncal SIP (voicebot)"), related_name='agentes_voicebot')
+    voicebot_extension = models.PositiveIntegerField(
+        null=True, blank=True,
+        validators=[MinValueValidator(1), MaxValueValidator(999999)],
+        verbose_name=_("Extensión voicebot (1-999999)"))
     grupo = models.ForeignKey(Grupo, related_name='agentes', verbose_name=_("Grupo"),
                               on_delete=models.CASCADE)
     # TODO: Revisar si esta variable se esta usando para algo
@@ -1396,6 +1406,11 @@ class Campana(models.Model):
         self.save()
         if self.type == Campana.TYPE_PREVIEW:
             AgenteEnContacto.objects.filter(campana_id=self.id).delete()
+        # OML:CAMP:{id}:STATUS en Redis (no setear para Wombat Dialer)
+        from ominicontacto_app.services.dialer import wombat_habilitado
+        from ominicontacto_app.services.campaign_redis_status import set_campaign_status_redis
+        if not (self.type == Campana.TYPE_DIALER and wombat_habilitado()):
+            set_campaign_status_redis(self.id, 'finalized')
 
     def ocultar(self):
         """setea la campana como oculta"""
@@ -1717,6 +1732,8 @@ class OpcionCalificacion(models.Model):
         """
         Determina si opción de calificación está siendo usada en la campaña
         """
+        if self.pk is None:
+            return False
         return self.calificaciones_cliente.exists()
 
     def no_editable(self):
@@ -3396,6 +3413,8 @@ class AutenticacionSitioExterno(models.Model):
     Configuración para la autenticación a utilizar en las interacciones con un Sitio Externo
     """
     nombre = models.CharField(max_length=128, unique=True)
+    # Nota Django 6: URLField ahora asume 'https' como esquema por defecto si no se especifica.
+    # Si necesitas 'http', asegúrate de incluir el esquema explícitamente en la URL.
     url = models.URLField(max_length=250)
     username = models.CharField(max_length=128)
     password = models.CharField(max_length=128)
@@ -3460,6 +3479,8 @@ class SitioExterno(models.Model):
     )
 
     nombre = models.CharField(max_length=128, unique=True)
+    # Nota Django 6: URLField ahora asume 'https' como esquema por defecto si no se especifica.
+    # Si necesitas 'http', asegúrate de incluir el esquema explícitamente en la URL.
     url = models.URLField(max_length=250)
     oculto = models.BooleanField(default=False)
     disparador = models.PositiveIntegerField(

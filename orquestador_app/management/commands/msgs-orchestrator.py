@@ -115,8 +115,6 @@ class WhatsappEventsProcessor(object):
                 task = self.slave_tasks.pop(line.pk)
                 task.cancel()
                 logger.info("task -> cancel")
-                for info in task._repr_info()[1:]:
-                    logger.info("task    %s", info)
                 await asyncio.gather(task, return_exceptions=True)
             if line.is_active:
                 self.slave_tasks[line.pk] = asyncio.create_task(

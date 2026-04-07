@@ -987,6 +987,10 @@ msgstr "Tempo médio de espera (em segundos)"
 msgid "Tiempo promedio de abandono (en segundos)"
 msgstr "Tempo médio de abandono (em segundos)"
 
+#: reportes_app/templates/reporte_grafico_campana.html:76
+msgid "WhatsApp Recibidos"
+msgstr "WhatsApp Recebidos"
+
 #: reportes_app/templates/reporte_grafico_campana.html:75
 msgid "Exportar Reporte(PDF)"
 msgstr "Exportar Relatório(PDF)"
@@ -1044,6 +1048,10 @@ msgstr "Fazer download de relatório de chamadas não atendidas (CSV)"
 #: reportes_app/templates/reporte_grafico_campana.html:233
 msgid "Calificaciones por Agente"
 msgstr "Qualificações por agente"
+
+#: reportes_app/templates/reporte_grafico_campana.html
+msgid "WhatsApp conectadas: Humano vs IA"
+msgstr "WhatsApp conectadas: Humano vs IA"
 
 #: reportes_app/templates/reporte_grafico_campana.html:244
 msgid "Contactos calificados"
@@ -1462,3 +1470,303 @@ msgstr ""
 #: reportes_app/views_reportes.py:96 reportes_app/views_reportes.py:281
 msgid "Usted no puede acceder a esta campaña."
 msgstr "Você não pode acessar esta campanha."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Canalidades por campaña"
+msgstr "Canalidades por campanha"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Generar reporte Canalidades por día (CSV)"
+msgstr "Gerar relatório Canalidades por dia (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Descargar Canalidades por día (CSV)"
+msgstr "Baixar Canalidades por dia (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Generar reporte Canalidades por mes (CSV)"
+msgstr "Gerar relatório Canalidades por mês (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Descargar Canalidades por mes (CSV)"
+msgstr "Baixar Canalidades por mês (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Llamadas recibidas"
+msgstr "Ligações recebidas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% llamadas atendidas"
+msgstr "% ligações atendidas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% llamadas no atendidas"
+msgstr "% ligações não atendidas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "WhatsApp recibidos"
+msgstr "WhatsApp recebidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% WhatsApp atendidos"
+msgstr "% WhatsApp atendidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% WhatsApp no atendidos"
+msgstr "% WhatsApp não atendidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Facebook msn recibidos"
+msgstr "Facebook Messenger recebidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% Facebook msn atendidos"
+msgstr "% Facebook Messenger atendidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% Facebook msn no atendidos"
+msgstr "% Facebook Messenger não atendidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Campañas"
+msgstr "Campanhas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Mensajes por campaña"
+msgstr "Mensagens por campanha"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Recibidos"
+msgstr "Recebidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Enviados"
+msgstr "Enviados"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Respondidos"
+msgstr "Respondidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "No respondidos"
+msgstr "Não respondidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "T Espera prom."
+msgstr "T espera méd."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "T Conversacion prom"
+msgstr "T conversação méd."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% Respondidos"
+msgstr "% Respondidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% No respondidos"
+msgstr "% Não respondidos"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "No hay datos para el rango seleccionado."
+msgstr "Não há dados para o intervalo selecionado."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Seleccione campaña y fecha y pulse Buscar para ver mensajes por campaña."
+msgstr "Selecione campanha e data e clique em Buscar para ver mensagens por campanha."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Horas"
+msgstr "Horas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Días"
+msgstr "Dias"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Mes"
+msgstr "Mês"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Meses"
+msgstr "Meses"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Mensajes por mes"
+msgstr "Mensagens por mês"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Seleccione campaña y fecha y pulse Buscar para ver mensajes por mes."
+msgstr "Selecione campanha e data e clique em Buscar para ver mensagens por mês."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Mensajes por dia"
+msgstr "Mensagens por dia"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Seleccione campaña y fecha y pulse Buscar para ver mensajes por dia."
+msgstr "Selecione campanha e data e clique em Buscar para ver mensagens por dia."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Mensajes por hora de día"
+msgstr "Mensagens por hora do dia"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "T. Espera prom."
+msgstr "T. espera méd."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "T. Habla prom."
+msgstr "T. fala méd."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "% Respondidas"
+msgstr "% Respondidas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Seleccione campaña y fecha y pulse Buscar para ver mensajes por hora."
+msgstr "Selecione campanha e data e clique em Buscar para ver mensagens por hora."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Conversaciones Respondidas"
+msgstr "Conversas Respondidas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Conversaciones no respondidas"
+msgstr "Conversas não respondidas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Seleccione campaña y fecha y pulse Buscar para ver conversaciones no respondidas."
+msgstr "Selecione campanha e data e clique em Buscar para ver conversas não respondidas."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Paginación conversaciones no respondidas"
+msgstr "Paginação conversas não respondidas"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Paginación conversaciones no respondidas egresos"
+msgstr "Paginação conversas não respondidas (saídas)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Fecha/Hora"
+msgstr "Data/Hora"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Id contacto"
+msgstr "Id contato"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Whatsapp_id"
+msgstr "Whatsapp_id"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Client_id"
+msgstr "Client_id"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Id campaña"
+msgstr "Id campanha"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Nombre campaña"
+msgstr "Nome campanha"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Id agente"
+msgstr "Id agente"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Nombre agente"
+msgstr "Nome agente"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Username agente"
+msgstr "Username agente"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Grupo de agente"
+msgstr "Grupo de agente"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Tiempo espera"
+msgstr "Tempo espera"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Id calificación"
+msgstr "Id calificação"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Nombre calificación"
+msgstr "Nome calificação"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Nombre subcalificación"
+msgstr "Nome subcalificação"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Conversación"
+msgstr "Conversa"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Ver"
+msgstr "Ver"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Seleccione campaña y fecha y pulse Buscar para ver conversaciones respondidas."
+msgstr "Selecione campanha e data e clique em Buscar para ver conversas respondidas."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Cargando..."
+msgstr "Carregando..."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Error: ID de conversación no disponible."
+msgstr "Erro: ID da conversa não disponível."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "No hay mensajes en esta conversación."
+msgstr "Não há mensagens nesta conversa."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Error al cargar la conversación."
+msgstr "Erro ao carregar a conversa."
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Generar reporte Mensajes por hora de día (CSV)"
+msgstr "Gerar relatório Mensagens por hora do dia (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Descargar Mensajes por hora de día (CSV)"
+msgstr "Baixar Mensagens por hora do dia (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Generar reporte Mensajes por campaña (CSV)"
+msgstr "Gerar relatório Mensagens por campanha (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Descargar Mensajes por campaña (CSV)"
+msgstr "Baixar Mensagens por campanha (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Generar reporte Mensajes por mes (CSV)"
+msgstr "Gerar relatório Mensagens por mês (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Descargar Mensajes por mes (CSV)"
+msgstr "Baixar Mensagens por mês (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Generar reporte Conversaciones Respondidas (CSV)"
+msgstr "Gerar relatório Conversas Respondidas (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Descargar Conversaciones Respondidas (CSV)"
+msgstr "Baixar Conversas Respondidas (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Generar reporte Conversaciones no respondidas (CSV)"
+msgstr "Gerar relatório Conversas não respondidas (CSV)"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Descargar Conversaciones no respondidas (CSV)"
+msgstr "Baixar Conversas não respondidas (CSV)"

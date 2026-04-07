@@ -27,7 +27,7 @@ import logging
 import os
 import re
 
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 from django.utils.translation import gettext as _
 
 from ominicontacto_app.errors import OmlArchivoImportacionInvalidoError, \
@@ -285,7 +285,7 @@ class PredictorMetadataService(object):
 
         Los caracteres invalidos NO son borrados.
         """
-        nombre = smart_text(nombre)
+        nombre = smart_str(nombre)
         nombre = nombre.strip().upper()
         nombre = DOUBLE_SPACES.sub("_", nombre)
         nombre = elimina_tildes(nombre)
@@ -302,7 +302,7 @@ class PredictorMetadataService(object):
         for linea in lineas_unsafe:
             # FIXME: revisar esto del encoding para py3
             lineas.append(
-                [smart_text(col) for col in linea]
+                [smart_str(col) for col in linea]
             )
         del lineas_unsafe
 
@@ -463,7 +463,7 @@ class PredictorMetadataService(object):
         lineas = []
         for linea in lineas_unsafe:
             lineas.append(
-                [smart_text(col) for col in linea]
+                [smart_str(col) for col in linea]
             )
         del lineas_unsafe
 
@@ -624,7 +624,7 @@ class PredictorMetadataService(object):
         lineas = []
         for linea in otras_lineas:
             lineas.append(
-                [smart_text(col) for col in linea]
+                [smart_str(col) for col in linea]
             )
         columnas_con_telefonos = self._inferir_columnas(
             lineas, validate_telefono)

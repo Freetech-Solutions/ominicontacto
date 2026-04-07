@@ -83,7 +83,7 @@ INSTALLED_APPS = [
     'easyaudit'
 ]
 
-MIDDLEWARE_CLASSES = [
+MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
@@ -190,7 +190,7 @@ TIME_ZONE = 'America/Argentina/Cordoba'
 
 USE_I18N = True
 
-USE_L10N = True
+
 
 USE_TZ = True
 
@@ -206,6 +206,9 @@ STATICFILES_DIRS = [
     ("omnileads-frontend", os.path.join(BASE_DIR, "omnileads_ui/dist")),
 ]
 
+# Nota Django 6: El valor por defecto de DEFAULT_AUTO_FIELD cambió a 'django.db.models.BigAutoField'
+# Mantenemos 'AutoField' explícitamente para compatibilidad con migraciones existentes.
+# Si decides cambiar a BigAutoField, necesitarás crear migraciones para actualizar los tipos de columna.
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
 AUTH_USER_MODEL = 'ominicontacto_app.User'
 
@@ -246,18 +249,35 @@ OML_DUMP_HTTP_AMI_RESPONSES = False
 OML_OMNILEADS_HOSTNAME = None
 OML_ASTERISK_REMOTEPATH = None
 OML_SIP_FILENAME = None
+
+# ==============================================================================
+# DEPRECATED: Los siguientes settings están deprecados y ya no se utilizan.
+# Se mantienen únicamente por compatibilidad hacia atrás con despliegues
+# antiguos. Estos archivos de configuración ya no se generan ni se envían
+# a través del stream Redis `asterisk_conf_updater`:
+# - `oml_queues.conf` (colas)
+# - `oml_extensions_outr.conf` (rutas salientes)
+#
+# La funcionalidad de colas y rutas salientes ahora se maneja mediante
+# otros mecanismos (por ejemplo, lógica del dialer/ACD).
+# ==============================================================================
 OML_QUEUES_FILENAME = None
 OML_RUTAS_SALIENTES_FILENAME = None
-"""Path completo (absoluto) al archivo donde se debe generar queues
+"""DEPRECATED: Path completo (absoluto) al archivo donde se generaba queues.
 
-Ejemplos:
+Este setting está deprecado y ya no se utiliza. Los archivos `oml_queues.conf`
+y `oml_extensions_outr.conf` ya no se generan ni se distribuyen.
+
+Se mantiene únicamente por compatibilidad hacia atrás.
+
+Ejemplos históricos (ya no aplican):
 
 .. code-block:: python
 
     OML_ASTERISK_REMOTEPATH = "/etc/asterisk/"
     OML_SIP_FILENAME = "/etc/asterisk/sip_fts.conf"
-    OML_QUEUES_FILENAME = "/etc/asterisk/queues_fts.conf"
-    OML_RUTAS_SALIENTES_FILENAME = "/etc/asterisk/oml_extensions_outr.conf"
+    OML_QUEUES_FILENAME = "/etc/asterisk/queues_fts.conf"  # DEPRECATED
+    OML_RUTAS_SALIENTES_FILENAME = "/etc/asterisk/oml_extensions_outr.conf"  # DEPRECATED
 """
 
 ASTERISK = {
@@ -406,6 +426,17 @@ LANGUAGE_CODE = 'es'
 
 TOKEN_EXPIRED_AFTER_SECONDS = None
 
+VERLOOP_DISPOSITION_OPTION_ID = None
+"""ID de la opción de calificación (disposition option) a usar para las
+dispositions creadas desde el webhook de Verloop.
+
+Esta configuración debe establecerse mediante la variable de entorno
+VERLOOP_DISPOSITION_OPTION_ID o en el archivo de settings local.
+
+Ejemplo:
+    VERLOOP_DISPOSITION_OPTION_ID = 32
+"""
+
 ALLOW_FEEDBACK = False
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
@@ -432,3 +463,16 @@ DJANGO_EASY_AUDIT_REMOTE_ADDR_HEADER = 'HTTP_X_REAL_IP'
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# Presence log: cooldown en ms para idempotencia de SESSION_LOGIN.
+# Si hay LOGOUT y dentro de esta ventana se intenta LOGIN, se considera reconexión
+# y no se persiste otro SESSION_LOGIN (evita flapping login/logout/login).
+# Ejemplo: 1000 = 1 segundo. Configurable por entorno.
+PRESENCE_LOG_RECONNECT_COOLDOWN_MS = 1500
+
+# Presence heartbeat (console browser -> Redis/V2).
+PRESENCE_HEARTBEAT_INTERVAL_SEC = 15
+PRESENCE_HEARTBEAT_TIMEOUT_SEC = 60
+PRESENCE_HEARTBEAT_SWEEP_SEC = 15
+PRESENCE_HEARTBEAT_LOGOUT_RECENT_SEC = 90
+PRESENCE_HEARTBEAT_GUARD_TTL_SEC = 90

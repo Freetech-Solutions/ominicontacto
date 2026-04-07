@@ -54,6 +54,7 @@ class PhoneJSView {
         this.conferButton = $('#Confer');
         this.dtmfButton = $('#dtmf');
         this.endTransferButton = $('#EndTransfer');
+        this.completeTransferButton = $('#CompleteTransfer');
         this.transferOutMenu = $('#modalTransfer');
         this.inboundCallMenu = $('#modalReceiveCalls');
         this.tagCallButton = $('#SignCall');
@@ -67,7 +68,7 @@ class PhoneJSView {
         this.inputs_ids = ['Resume', 'Pause', 'changeCampAssocManualCall',
             'call', 'numberToCall', 'redial', 'onHold', 'Transfer', 'dtmf',
             'Confer', 'EndTransfer', 'SignCall', 'endCall',
-            'call_off_campaign_menu', 'call_another_agent_menu','recordCall'];
+            'call_off_campaign_menu', 'call_another_agent_menu','recordCall', 'CompleteTransfer'];
         this.modal_menus_ids = ['modalPause', 'modalSelectCmp',
             'modalTransfer', 'modalReceiveCalls', 'modalCallOffCamp',
             'modalDtmf',
@@ -287,6 +288,16 @@ class PhoneJSView {
         this.holdClientButton.parent().prop('hidden', true);
         this.holdClientButton.prop('disabled', false);
         this.holdConsultantButton.prop('disabled', false);
+    }
+
+    showCompleteTransferButton() {
+        $('#consultativeTransferActions').show();
+        this.completeTransferButton.prop('disabled', false);
+    }
+
+    hideCompleteTransferButton() {
+        $('#consultativeTransferActions').hide();
+        this.completeTransferButton.prop('disabled', true);
     }
 
     cargarAgentes(agentes) {

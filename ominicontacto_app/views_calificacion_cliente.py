@@ -101,7 +101,11 @@ class CalificacionClienteFormView(FormView):
                             'definir al contacto: {0}'.format(id_contacto))
                 messages.warning(self.request, message)
                 return None
-            return get_object_or_404(Contacto, pk=id_contacto)
+            # En lugar de lanzar 404, retornamos None para mostrar el formulario de creación
+            message = _('El contacto con ID {0} no existe. '
+                        'Se mostrará el formulario para crear un nuevo contacto.'.format(id_contacto))
+            messages.info(self.request, message)
+            return None
         return contacto
 
     def get_object(self):
@@ -417,7 +421,7 @@ class CalificacionClienteFormView(FormView):
             sitio_externo = self.campana.sitio_externo
             if calificacion_form.instance.opcion_calificacion.interaccion_crm and \
                     sitio_externo and sitio_externo.disparador == SitioExterno.CALIFICACION \
-                    and self.call_data and sitio_externo.objetivo:
+                    and self.call_data and sitio_externo.objetivo and self.contacto:
                 agente = self.request.user.get_agente_profile()
                 call_data = json.loads(self.kwargs['call_data_json']) \
                     if self.kwargs['call_data_json'] else {}
@@ -518,6 +522,16 @@ class CalificacionClienteFormView(FormView):
         # modificamos la entrada de la modificación en la instancia para así diferenciar
         # cambios realizados directamente desde una llamada de las otras modificaciones
         update_change_reason(self.object_calificacion, self.kwargs.get('from'))
+        
+        # Actualizar tabla de resumen de llamadas
+        try:
+            from reportes_app.services.llamada_resumen import LlamadaResumenService
+            LlamadaResumenService().actualizar_desde_calificacion(self.object_calificacion)
+        except Exception as e:
+            # No fallar la calificación si falla la actualización del resumen
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Error actualizando resumen desde calificación: {e}", exc_info=True)
 
         # check metadata en calificaciones de no accion y eliminar
         self._check_metadata_no_accion_delete(self.object_calificacion)

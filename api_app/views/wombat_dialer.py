@@ -32,6 +32,10 @@ from constance import config as config_constance
 from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from ominicontacto_app.services.dialer.wombat_api import WombatReloader
+from ominicontacto_app.services.dialer import wombat_habilitado, get_dialer_service
+from ominicontacto_app.services.redis.connection import create_redis_connection
+from ominicontacto_app.models import Campana
+from supervision_app.services.data_management import DialerDataManager
 
 
 class ReiniciarWombat(APIView):
@@ -142,3 +146,43 @@ class WombatStop(APIView):
 def wombat_uptime_str():
     uptime = now() - config_constance.WOMBAT_DIALER_UPDATE_DATETIME
     return str(uptime).split('.')[0]
+
+
+class SupervisionWombatDialerStats(APIView):
+    permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    renderer_classes = (JSONRenderer, )
+    http_method_names = ['get']
+
+    def _current_campaigns(self, user):
+        if user.get_is_administrador():
+            campaigns = Campana.objects.obtener_actuales()
+        else:
+            supervisor = user.get_supervisor_profile()
+            campaigns = supervisor.campanas_asignadas_actuales()
+        return campaigns.filter(type=Campana.TYPE_DIALER).filter(
+            estado__in=[Campana.ESTADO_ACTIVA, Campana.ESTADO_PAUSADA, Campana.ESTADO_INACTIVA])
+
+    def get(self, request):
+        if not wombat_habilitado():
+            return Response(data={'status': 'ERROR', 'message': 'Only with Wombat Enabled'},
+                            status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        campaigns = self._current_campaigns(request.user)
+        data = {
+            'status': 'OK',
+            'statuses': {},
+            'channels': {},
+        }
+        data_manager = DialerDataManager(None, create_redis_connection(db=2))
+        calldata_by_id = data_manager.get_campaigns_calldata(campaigns)
+        campaigns_by_id = {}
+        for campaign in campaigns:
+            campaigns_by_id[campaign.id] = campaign
+            data['statuses'][campaign.id] = campaign.estado
+            channels = data_manager.compute_channels_from_calldata(calldata_by_id[campaign.id])
+            data['channels'][campaign.id] = channels
+        dialer_service = get_dialer_service()
+        pendings_by_id = dialer_service.obtener_llamadas_pendientes_por_id(campaigns_by_id)
+        data['pendings'] = pendings_by_id
+        return Response(data)

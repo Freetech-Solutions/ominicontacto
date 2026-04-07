@@ -1,0 +1,39 @@
+# Docker Compose para ejecutar tests de Django (Postgres + Redis + runner)
+# Uso: ./run_tests.sh [opciones para manage.py test]
+
+services:
+  postgres:
+    image: postgres:18-trixie
+    environment:
+      POSTGRES_USER: omnileads
+      POSTGRES_PASSWORD: omnileads
+      POSTGRES_DB: omnileads
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnileads"]
+      interval: 2s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+
+  django-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: omnileads-django-test:latest
+    container_name: omnileads-django-test
+    user: "0:0"
+    working_dir: /opt/omnileads/ominicontacto
+    volumes:
+      - .:/opt/omnileads/ominicontacto
+    environment:
+      PGHOST: postgres
+      PGPASSWORD: omnileads
+      DEFENDER_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["python", "manage.py", "test", "--settings=ominicontacto.settings.tests_docker"]

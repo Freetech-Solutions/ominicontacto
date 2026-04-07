@@ -1,12 +1,12 @@
 #!/bin/bash
 
-COMMAND="python3 ${INSTALL_PREFIX}ominicontacto/manage.py"
+COMMAND="python3 /opt/omnileads/ominicontacto/manage.py"
 
 $COMMAND migrate --noinput
 $COMMAND createsuperuser --noinput --username=admin --email=admin@example.com || true
 $COMMAND populate_history
 $COMMAND compilemessages
-echo 'yes' | $COMMAND collectstatic
+$COMMAND collectstatic --noinput
 $COMMAND collectstatic_js_reverse
 $COMMAND compress --force
 

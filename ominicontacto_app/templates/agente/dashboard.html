@@ -1,66 +1,315 @@
-<!--
-Copyright (C) 2018 Freetech Solutions
-
-This file is part of OMniLeads
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU Lesser General Public License version 3, as published by
-the Free Software Foundation.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU Lesser General Public License for more details.
-
-You should have received a copy of the GNU Lesser General Public License
-along with this program.  If not, see http://www.gnu.org/licenses/.
-
--->
 {% load static %}
-{% load compress %}
 {% load i18n %}
 
 <!DOCTYPE html>
-<html lang="en" style="--primary-color: {{ PRIMARY_COLOR }}; --primary-light-color: {{ PRIMARY_LIGHT_COLOR }}; --secondary-color: {{ SECONDARY_COLOR }};">
-    <head>
-        <meta charset="utf-8">
-        <!-- Stylesheets -->
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/@mdi/font@5.x/css/materialdesignicons.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge">
-        <link rel="stylesheet" href="{% static 'bootstrap-4.0.0/css/bootstrap.min.css' %}" >
-        <link rel="stylesheet" href="{% static 'ominicontacto/CSS/ext/daterangepicker.css' %}">
-        <!-- Custom CSS -->
-        <link rel="stylesheet" href="{% static 'ominicontacto/CSS/main.css' %}" ></link>
-        <!-- Fonts -->
-        <link rel="stylesheet" href="{% static 'ominicontacto/CSS/ext/google-font.css' %}">
-        <link rel="stylesheet" href="{% static 'ominicontacto/CSS/oml-icons.css' %}">
-        <!-- Scripts -->
-        <!-- Scripts -->
-        <script type="text/javascript" src="{% url 'javascript-catalog' %}"></script>
-        {% compress js %}
-        <script type="text/javascript" src="{% static 'JS/ext/vue.min.js' %}"></script>
-        <script type="text/javascript" src="{% static 'JS/ext/vuetify.js' %}"></script>
-        <script src="{% static 'jquery-2.2.4.min.js' %}"></script>
-        <script src="{% static 'bootstrap-4.0.0/js/bootstrap.bundle.min.js' %}"></script>
-        <script type="text/javascript" src="{% static 'JS/ext/echarts.js' %}"></script>
-        <script type="text/javascript" src="{% static 'JS/ext/vue-echarts@4.0.2.js' %}"></script>
-        <script type="text/javascript" src="{% static 'django_js_reverse/js/reverse.js' %}"></script>
-        <script type="text/javascript" src="{% static 'JS/ext/reconnecting-websocket-iife.min.js' %}"></script>
-    {% endcompress %}
-    </head>
-    <body>
-        <input id="agente_id" type="hidden" value="{{agente_id}}">
-        <div id="dashboard">
-            <v-app>
-                <v-main>
-                    <dashboard-agente v-bind="core"></dashboard-agente>
-                </v-main>
-            </v-app>
+<html lang="{{ LANGUAGE_CODE|default:'es' }}" style="--primary-color: {{ PRIMARY_COLOR }}; --primary-light-color: {{ PRIMARY_LIGHT_COLOR }}; --secondary-color: {{ SECONDARY_COLOR }};">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% trans 'Dashboard del agente' %}</title>
+    <script type="text/javascript" src="{% url 'javascript-catalog' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="{% static 'ominicontacto/CSS/main.css' %}">
+    <style>
+        :root {
+            --ready-color: #0f9d58;
+            --pause-color: #ff5722;
+            --acw-color: #4285f4;
+            /* Nuevo color para conversación (Violeta según tu imagen) */
+            --talk-color: #aa00ff; 
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-main: #333333;
+            --text-muted: #777777;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .grid-layout {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .card-title {
+            font-size: 1rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 0;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .kpi-box {
+            background: #ffffff;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin: 10px 0;
+            color: var(--text-main);
+        }
+
+        .kpi-label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .kpi-label.highlight {
+            color: #d32f2f;
+        }
+
+        .kpi-subtext {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 5px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .arrow-down { color: var(--acw-color); }
+        .arrow-up { color: var(--ready-color); }
+
+        .waiting-card {
+            text-align: center;
+            padding: 3rem;
+            background: var(--card-bg);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+
+        .waiting-card .spinner {
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            border: 3px solid #eee;
+            border-top-color: var(--acw-color);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .logs-table {
+            width: 100%;
+            font-size: 0.875rem;
+            border-collapse: collapse;
+        }
+
+        .logs-table th {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .logs-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        .logs-table .btn-phone {
+            font-size: 0.85rem;
+            padding: 4px 8px;
+        }
+
+        .logs-table .badge-engaged {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+        }
+
+        .logs-table .badge-engaged.yes {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .logs-table .badge-engaged.no {
+            background: #f5f5f5;
+            color: #757575;
+        }
+
+        .logs-table .actions-links a,
+        .logs-table .logs-action-link {
+            margin-right: 6px;
+            font-size: 0.8rem;
+            display: inline-block;
+            padding: 4px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            color: #333;
+            text-decoration: none;
+        }
+
+        .logs-table .actions-links a:hover,
+        .logs-table .logs-action-link:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        @media (max-width: 900px) {
+            .grid-layout { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+    <input id="agente_id" type="hidden" value="{{ agente_id }}">
+    <div class="dashboard-container">
+        <div id="waiting-card" class="waiting-card">
+            <div class="spinner"></div>
+            <p class="mensaje-espera" style="margin-top: 1rem;">{% trans 'Calculando estadísticas del agente ...' %}</p>
         </div>
-        <!-- Dashboard -->
-        <script type="module" src="{% static 'ominicontacto/JS/dashboardAgentes.js' %}"></script>
-    </body>
+
+        <div id="dashboard-content" style="display: none;">
+            <div class="grid-layout">
+                <div class="card">
+                    <h3 class="card-title">{% trans 'Disponibilidad (%)' %}</h3>
+                    <div class="chart-container">
+                        <canvas id="availabilityChart"></canvas>
+                    </div>
+                    <div style="text-align: center; margin-top: 15px; font-size: 0.9rem;">
+                        <p style="margin: 5px 0;">
+                            <strong style="color: var(--ready-color);">Ready:</strong> <span id="ready-display">00:00:00</span>
+                        </p>
+                        <p style="margin: 5px 0;">
+                            <strong style="color: var(--acw-color);">ACW:</strong> <span id="acw-display">00:00:00</span>
+                        </p>
+                        <p style="margin: 5px 0;">
+                            <strong style="color: var(--pause-color);">{% trans 'Pausa' %}:</strong> <span id="pause-display">00:00:00</span>
+                        </p>
+                        <p style="margin: 5px 0;">
+                            <strong style="color: var(--talk-color);">{% trans 'Conversación' %}:</strong> <span id="talk-time">00:00:00</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-title">{% trans 'Interacciones y Eficiencia' %}</h3>
+                    <div class="kpi-grid">
+                        <div class="kpi-box">
+                            <div class="kpi-label">{% trans 'Tiempo de sesión' %}</div>
+                            <div class="kpi-value" id="session-display">00:00:00</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">{% trans 'Gestiones' %}</div>
+                            <div class="kpi-value" id="gestiones-value">0</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">{% trans 'Llamadas' %}</div>
+                            <div class="kpi-value" id="total-interacciones">0</div>
+                            <div class="kpi-subtext">
+                                <span><span class="arrow-down">↓</span> <span id="inbound-count">0</span> {% trans 'Ent' %}</span>
+                                <span><span class="arrow-up">↑</span> <span id="outbound-count">0</span> {% trans 'Sal' %}</span>
+                            </div>
+                        </div>                        
+                        <div class="kpi-box">
+                            <div class="kpi-label">{% trans 'ATT (TMO)' %}</div>
+                            <div class="kpi-value" id="att-value">00:00:00</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">{% trans 'Transferencias' %}</div>
+                            <div class="kpi-value" id="transferencias-total">0</div>
+                            <div class="kpi-subtext">
+                                <span><span class="arrow-down">↓</span> <span id="transfer-in">0</span> {% trans 'Ent' %}</span>
+                                <span><span class="arrow-up">↑</span> <span id="transfer-out">0</span> {% trans 'Sal' %}</span>
+                            </div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">{% trans 'Tiempo en Hold' %}</div>
+                            <div class="kpi-value" id="hold-time">00:00:00</div>
+                        </div>
+                        <div class="kpi-box">
+                            <div class="kpi-label">{% trans 'WhatsApp' %}</div>
+                            <div class="kpi-value" id="whatsapp-total">0</div>
+                            <div class="kpi-subtext">
+                                <span><span class="arrow-down">↓</span> <span id="whatsapp-inbound-count">0</span> {% trans 'Ent' %}</span>
+                                <span><span class="arrow-up">↑</span> <span id="whatsapp-outbound-count">0</span> {% trans 'Sal' %}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top: 24px;">
+                <h3 class="card-title">{% trans 'Últimas interacciones' %}</h3>
+                <div style="overflow-x: auto;">
+                    <table class="logs-table">
+                        <thead>
+                            <tr>
+                                <th>{% trans 'Canal' %}</th>
+                                <th>{% trans 'Número marcado' %}</th>
+                                <th>{% trans 'Datos del contacto' %}</th>
+                                <th>{% trans 'Gestionado' %}</th>
+                                <th>{% trans 'Calificación' %}</th>
+                                <th>{% trans 'Observaciones' %}</th>
+                                <th>{% trans 'Auditoría' %}</th>
+                                <th>{% trans 'Acciones' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="logs-tbody">
+                            <tr>
+                                <td colspan="8" style="text-align: center; color: var(--text-muted); padding: 2rem;">
+                                    {% trans 'Sin registros por el momento.' %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/javascript" src="{% static 'django_js_reverse/js/reverse.js' %}"></script>
+    <script type="text/javascript" src="{% static 'JS/ext/reconnecting-websocket-iife.min.js' %}"></script>
+    <script type="text/javascript" src="{% static 'ominicontacto/JS/dashboardAgentes.js' %}"></script>
+</body>
 </html>

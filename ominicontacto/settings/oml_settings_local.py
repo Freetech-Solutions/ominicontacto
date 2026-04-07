@@ -19,10 +19,9 @@ import os
 
 AMI_USER = os.getenv('AMI_USER')
 AMI_PASSWORD = os.getenv('AMI_PASSWORD')
-ASTERISK_HOSTNAME = os.getenv('ASTERISK_HOSTNAME')
 ASTERISK_LOCATION = os.getenv('ASTERISK_LOCATION')
 EPHEMERAL_USER_TTL = int(os.getenv('EPHEMERAL_USER_TTL'))
-INSTALL_PREFIX = os.getenv('INSTALL_PREFIX')
+INSTALL_PREFIX = os.getenv('INSTALL_PREFIX', '/opt/omnileads/ominicontacto/')
 KAMAILIO_HOSTNAME = os.getenv('KAMAILIO_HOSTNAME')
 KAMAILIO_PORT = os.getenv('KAMAILIO_PORT')
 OML_OMNILEADS_HOSTNAME = os.getenv('OMNILEADS_HOSTNAME')
@@ -33,20 +32,23 @@ POSTGRES_PORT = os.getenv('PGPORT')
 REDIS_HOSTNAME = os.getenv('REDIS_HOSTNAME')
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE'))
 TIME_ZONE = os.getenv('TZ')
+# Configuración de Gearman
+GEARMAN_JOB_SERVERS = os.getenv('GEARMAN_JOB_SERVERS', '').split('|') if os.getenv('GEARMAN_JOB_SERVERS') else []
+GEARMAN_QUEUE_CALL = os.getenv('GEARMAN_QUEUE_CALL', 'acd-call-processor')
 if 'TOKEN_EXPIRED_AFTER_SECONDS' in os.environ:
     TOKEN_EXPIRED_AFTER_SECONDS = int(os.getenv('TOKEN_EXPIRED_AFTER_SECONDS'))
 # Settings para version de OML
-OML_BRANCH = os.getenv('OML_BRANCH')
-OML_COMMIT = os.getenv('OML_COMMIT')
+OML_BRANCH = os.getenv('OML_BUILD_DATE')
+OML_COMMIT = os.getenv('OML_BUILD_DATE')
 OML_BUILD_DATE = os.getenv('OML_BUILD_DATE')
 LOG_LEVEL = os.getenv('DJANGO_LOG_LEVEL', 'INFO')
 
 # Credenciales para wombat API
-OML_DIALER_ENGINE = os.getenv('OML_DIALER_ENGINE')
+OML_DIALER_ENGINE = os.getenv('OML_DIALER_ENGINE') or 'omnidialer'
 if OML_DIALER_ENGINE == 'wombat':
-    DIALER_HOSTNAME = os.getenv('WOMBAT_HOSTNAME')
-    OML_WOMBAT_USER = os.getenv('WOMBAT_USER')
-    OML_WOMBAT_PASSWORD = os.getenv('WOMBAT_PASSWORD')
+    DIALER_HOSTNAME = 'wombat'
+    OML_WOMBAT_USER = 'demoadmin'
+    OML_WOMBAT_PASSWORD = 'demo'
     OML_WOMBAT_TIMEOUT = '600'
 else:
     DIALER_HOSTNAME = os.getenv('OMNIDIALER_HOST')
@@ -69,7 +71,7 @@ if DATABASE_REPLICA_ENABLED and DATABASE_REPLICA_HOST is None:
 # Datos de conexión de base db postgresql
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': POSTGRES_HOST,
         'PORT': POSTGRES_PORT,
         'NAME': POSTGRES_DATABASE,
@@ -78,7 +80,7 @@ DATABASES = {
         'ATOMIC_REQUESTS': True,
     },
     'replica': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': DATABASE_REPLICA_HOST if DATABASE_REPLICA_ENABLED else POSTGRES_HOST,
         'PORT': POSTGRES_PORT,
         'NAME': POSTGRES_DATABASE,
@@ -92,7 +94,7 @@ CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [{"address": (REDIS_HOSTNAME, 6379), "db": 4}],
+            "hosts": [{"host": REDIS_HOSTNAME, "port": 6379, "db": 4}],
             "prefix": "",
             "expiry": 120,
             "group_expiry": 86400,
@@ -111,6 +113,18 @@ OML_WOMBAT_URL = "http://{0}:8080/wombat".format(DIALER_HOSTNAME)
 
 # Ubicaciones de archivos
 OML_SIP_FILENAME = "{0}/etc/asterisk/oml_pjsip_agents.conf".format(ASTERISK_LOCATION)
+
+# ==============================================================================
+# DEPRECATED: Los siguientes settings están deprecados y ya no se utilizan.
+# Se mantienen únicamente por compatibilidad hacia atrás con despliegues
+# antiguos. Estos archivos de configuración ya no se generan ni se envían
+# a través del stream Redis `asterisk_conf_updater`:
+# - `oml_queues.conf` (colas)
+# - `oml_extensions_outr.conf` (rutas salientes)
+#
+# La funcionalidad de colas y rutas salientes ahora se maneja mediante
+# otros mecanismos (por ejemplo, lógica del dialer/ACD).
+# ==============================================================================
 OML_QUEUES_FILENAME = "{0}/etc/asterisk/oml_queues.conf".format(ASTERISK_LOCATION)
 OML_RUTAS_SALIENTES_FILENAME = "{0}/etc/asterisk/oml_extensions_outr.conf".format(ASTERISK_LOCATION)
 OML_ASTERISK_REMOTEPATH = "{0}/etc/asterisk/".format(ASTERISK_LOCATION)
@@ -163,7 +177,7 @@ OML_AUDIO_FOLDER = "oml/"
 OML_PLAYLIST_FOLDER = 'moh/'
 
 # Formato de grabaciones
-MONITORFORMAT = os.getenv('MONITORFORMAT')
+MONITORFORMAT = os.getenv('MONITORFORMAT', 'mp3')
 # Calificacion de agenda
 CALIFICACION_REAGENDA = os.getenv('CALIFICACION_REAGENDA')
 
@@ -193,3 +207,7 @@ EMAIL_SSL_CERTFILE = os.getenv("EMAIL_SSL_CERTFILE", None)
 EMAIL_SSL_KEYFILE = os.getenv("EMAIL_SSL_KEYFILE", None)
 EMAIL_USE_SSL = os.getenv("EMAIL_USE_SSL", False) == "True"
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", False) == "True"
+
+# Configuración para webhook de Verloop
+# Nota: La calificación "Gestion Bot" se crea automáticamente cuando es necesaria
+# No se requiere configuración adicional

@@ -102,5 +102,8 @@ msgid "Llamadas discadas"
 msgstr "تماس های گرفته شده"
 
 #: supervision_app/templates/supervision_campanas_salientes.html:39
+msgid "Shortcall"
+msgstr "Shortcall"
+
 msgid "No atendidas"
 msgstr "Unattended"

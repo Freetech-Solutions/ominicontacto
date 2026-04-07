@@ -105,6 +105,13 @@ CONSTANCE_CONFIG_FIELDSETS = {
                    ),
         'collapse': True
     },
+    'White Label': {
+        'fields': ('ASTERISK_TM', 'OMNILEADS_TM', 'SUGGEST_REGISTER', 'WOMBAT_TM',
+                   'PRIMARY_COLOR', 'PRIMARY_LIGHT_COLOR', 'SECONDARY_COLOR',
+                   'FAVICON', 'IC_LOGO', 'IC_LOGO_FULL', 'IC_LOGO_SYMBOL',
+                   ),
+        'collapse': True
+    },
 }
 
 ADDONS_APPS = []

@@ -18,18 +18,89 @@
 
 /* global Urls */
 /* global gettext */
-var campanas_supervisor = [];
-var campanas_id_supervisor = [];
+var campaigns;
 var table_entrantes;
 var table_data = [];
+var rws;
+var campanas_supervisor = [];
+var campanas_id_supervisor = [];
+
 const MENSAJE_CONEXION_WEBSOCKET = 'Stream subscribed!';
 
 
 $(function() {
+    campaigns = JSON.parse(document.getElementById('campaigns-data').textContent);
+
     campanas_supervisor = $('input#campanas_list').val().split(',');
     campanas_id_supervisor = $('input#campanas_list_id').val().split(',');
     createDataTable();
 
+    connectToDataChannel();
+    connectToSupervisorStream();
+});
+
+function connectToDataChannel(){
+    const url = `wss://${window.location.host}/channels/supervision/inbound`;
+    rws = new ReconnectingWebSocket(url, [], {
+        connectionTimeout: 10000,
+        maxReconnectionDelay: 3000,
+        minReconnectionDelay: 1000,
+    });
+    rws.addEventListener('message', function(e) {
+        let data = JSON.parse(e.data);
+        processData(data);
+    });
+}
+
+function processData(data){
+    if (data.initial_data != undefined){
+        initializeTable(data.initial_data);
+    }
+    else {
+        updateTable(data);
+    }
+}
+
+function initializeTable(initial_data){
+    table_data = [];
+    // let no_calls = [];
+    for (let camp_id in initial_data){
+        let data = initial_data[camp_id];
+        let name = campaigns[camp_id].name;
+        let camp_stats = new InboundStats(camp_id, name);
+        camp_stats.initializeCallStats(data);
+        table_data.push(camp_stats);
+        // if (camp_stats.hasNoCalls()){
+        //     no_calls.push(camp_stats);
+        // }
+    }
+    table_entrantes.clear();
+    table_entrantes.rows.add(table_data).draw();
+
+    // // Remove rows with no calls and no agents
+    // no_calls.forEach(dataRow => {
+    //     let row = ? // Get proper row
+    //     console.log(dataRow)
+    //     if (dataRow && dataRow.hasNoAgents()){
+    //         row.remove();
+    //     }
+    // });
+
+}
+
+function updateTable(event_data){
+    if (event_data.type == 'update' && event_data.args.IN != undefined){
+        let camp_id = event_data.args.IN.campaign_id;
+        let camp_name = campaigns[camp_id].name;
+        let row = table_entrantes.row((idx, data) => data.name === camp_name);
+        let row_data=row.data();
+        row_data.updateCallMetric(event_data.args.IN);
+        row.data(row_data).draw();
+    }
+}
+
+/** TODO: Dejar de procesar datos de agentes desde el stream. */
+function connectToSupervisorStream(){
     const url = `wss://${window.location.host}/consumers/stream/supervisor/${$('input#supervisor_id').val()}/entrantes`;
     const rws = new ReconnectingWebSocket(url, [], {
         connectionTimeout: 10000,
@@ -59,32 +130,8 @@ $(function() {
                 // Agent Stats Data
                 agents.updateAgent(row);
                 haveAgentsData = true;
-            } else if (row['nombre'] && (!fistCallStats[row['nombre']] || row['START'])) {
-                // Campaign Stats Data
-                fistCallStats[row['nombre']] = row;
             }
         });
-
-        let updated_with_no_calls = [];
-        // Update/add rows with received Campaign Stats Data 
-        for (const campaign in fistCallStats) {
-            let row = table_entrantes.row('#' + campaign);
-            let dataRow = row.data();
-            if (dataRow == null) {
-                let campaign_id = campanas_id_supervisor[campanas_supervisor.indexOf(campaign)];
-                let newDataRow = new InboundStats(campaign_id, campaign);
-                newDataRow.updateCallStats(fistCallStats[campaign]);
-                if (!newDataRow.hasNoCalls()){
-                    table_entrantes.row.add(newDataRow);
-                }
-            } else {
-                dataRow.updateCallStats(fistCallStats[campaign]);
-                row.data(dataRow);
-                if (dataRow.hasNoCalls()){
-                    updated_with_no_calls.push(row);
-                }
-            }
-        }
 
         // Update/add rows with received Agents Stats Data 
         if (haveAgentsData) {
@@ -106,15 +153,6 @@ $(function() {
                 }
             }
         }
-
-        // Remove rows with no calls and no agents
-        updated_with_no_calls.forEach(row => {
-            let dataRow = row.data();
-            if (dataRow && dataRow.hasNoAgents()){
-                row.remove();
-            }
-        });
-
         table_entrantes.draw();
     }
 
@@ -124,37 +162,27 @@ $(function() {
             stats.agentes_pausa == 0;
     }
 
-});
+}
 
 function createDataTable() {
     table_entrantes = $('#tableEntrantes').DataTable({
         data: table_data,
-        rowId: 'nombre',
+        rowId: 'name',
         columns: [
-            { 'data': 'nombre' },
+            { 'data': 'name' },
             { 'data': 'agentes_online' },
             { 'data': 'agentes_llamada' },
             { 'data': 'agentes_pausa' },
             { 'data': 'agentes_ready' },
-            { 'data': 'llamadas_en_espera' },
-            { 'data': 'atendidas' },
-            { 'data': 'abandonadas' },
-            { 'data': 'expiradas' },
-            {
-                'data': 't_promedio_abandono',
-                'render': function(data) { // ( data, type, row, meta)
-                    return data.toFixed(1) + gettext(' segundos');
-                },
-            },
-            {
-                'data': 't_promedio_espera',
-                'render': function(data) { // ( data, type, row, meta)
-                    return data.toFixed(1) + gettext(' segundos');
-                },
-            },
-            { 'data': 'porcentaje_abandono' },
-            { 'data': 'gestiones' },
-            { 'data': 'porcentaje_objetivo' },
+            { 'data': 'queue_size' },
+            { 'data': 'attended' },
+            { 'data': 'abandons' },
+            { 'data': 'expired' },
+            { 'data': 'abandon_avg'},
+            { 'data': 'wait_avg'},
+            { 'data': 'abandon_rate' },
+            { 'data': 'dispositions' },
+            { 'data': 'target' },
         ],
         lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500 , gettext('Todos')]],
         language: {
@@ -174,31 +202,32 @@ function createDataTable() {
 
 class InboundStats {
 
-    constructor(id, nombre) {
+    constructor(id, name) {
         this.id = id;
-        this.nombre = nombre;
-        this.llamadas_en_espera = 0;
-        this.atendidas = 0;
-        this.abandonadas = 0;
-        this.expiradas = 0;
-        this.t_promedio_abandono = 0;
-        this.t_promedio_espera = 0;
-        this.gestiones = 0;
+        this.name = name;
+        this.queue_size = 0;
+        this.attended = 0;
+        this.abandons = 0;
+        this.expired = 0;
+        this.total_abandon_time = 0;
+        this.abandon_avg = 0;
+        this.wait_avg = 0;
+        this.dispositions = 0;
         this.agentes_online = 0;
         this.agentes_llamada = 0;
         this.agentes_pausa = 0;
         this.agentes_ready = 0;
-        this.porcentaje_abandono = 0;
-        this.porcentaje_objetivo = 0;
+        this.abandon_rate = 0;
+        this.target = 100;
+        this.disposition_target = campaigns[id].target;
     }
 
     hasNoCalls() {
-        if (this.llamadas_en_espera != 0 ||
-            this.atendidas != 0 ||
-            this.abandonadas != 0 ||
-            this.expiradas != 0 ||
-            this.gestiones != 0 ||
-            this.porcentaje_objetivo != 0) return false;
+        if (this.queue_size != 0 ||
+            this.attended != 0 ||
+            this.abandons != 0 ||
+            this.expired != 0 ||
+            this.dispositions != 0) return false;
         return true;
     }
 
@@ -206,30 +235,50 @@ class InboundStats {
         return this.agentes_online == 0;
     }
 
-    updateCallStats(newStats) {
-        this.llamadas_en_espera = newStats['llamadas_en_espera'];
-        this.atendidas = newStats['llamadas_atendidas'];
-        this.abandonadas = newStats['llamadas_abandonadas'];
-        this.expiradas = newStats['llamadas_expiradas'];
-        this.gestiones = newStats['gestiones'];
-        this.porcentaje_objetivo = newStats['porcentaje_objetivo'];
+    initializeCallStats(newStats) {
+        this.queue_size = newStats['queue_size'];
+        this.attended = parseInt(newStats['attended']);
+        this.abandons = parseInt(newStats['abandons']);
+        this.expired = parseInt(newStats['expired']);
+        this.dispositions = newStats['dispositions'];
+        this.total_abandon_time = parseFloat(newStats['total_abandon_time']);
+        this.total_wait_time = parseFloat(newStats['total_wait_time']);
 
-        var abandonadas = parseInt(newStats['llamadas_abandonadas']);
-        this.t_promedio_abandono = 0;
-        if (abandonadas > 0) {
-            this.t_promedio_abandono = parseFloat(newStats['tiempo_acumulado_abandonadas']) / abandonadas;
+        this.updateAbandonAvg();
+        this.updateAbandonRate();
+        this.updateWaitAvg();
+        this.updateTarget();
+    }
+
+    updateAbandonAvg(){
+        let avg = 0;
+        if (this.abandons > 0) {
+            avg = this.total_abandon_time / this.abandons;
         }
-        let total = this.atendidas + this.abandonadas + this.expiradas;
-        this.porcentaje_abandono = 0;
+        this.abandon_avg = avg.toFixed(1) + gettext(' segundos');
+    }
+
+    updateAbandonRate(){
+        let total = this.attended + this.abandons + this.expired;
+        this.abandon_rate = 0;
         if (total > 0) {
-            this.porcentaje_abandono = this.abandonadas / total * 100;
+            this.abandon_rate = (this.abandons / total * 100).toFixed(1);
+        }
+    }
+
+    updateWaitAvg(){
+        let avg = 0;
+        if (this.attended > 0) {
+            avg = this.total_wait_time / this.attended;
+        }
+        this.wait_avg = avg.toFixed(1) + gettext(' segundos');
+    }
+
+    updateTarget(){
+        if (this.disposition_target > 0){
+            this.target = (100 * this.dispositions / this.disposition_target).toFixed(1);
         }
 
-        var atendidas = parseInt(newStats['llamadas_atendidas']);
-        this.t_promedio_espera = 0;
-        if (atendidas > 0) {
-            this.t_promedio_espera = parseFloat(newStats['tiempo_acumulado_espera']) / atendidas;
-        }
     }
 
     updateAgentStats(agentStats) {
@@ -237,6 +286,36 @@ class InboundStats {
         this.agentes_llamada = agentStats.agentes_llamada;
         this.agentes_pausa = agentStats.agentes_pausa;
         this.agentes_ready = this.agentes_online - this.agentes_llamada - this.agentes_pausa;
+    }
+
+    updateCallMetric(event_data) {
+        switch (event_data.field) {
+        case 'expired':
+            this.expired += 1;
+            break;
+        case 'attended':
+            this.attended += 1;
+            this.total_wait_time += Number(event_data.wait_time);
+            this.updateWaitAvg();
+            break;
+        case 'abandons':
+            this.abandons += 1;
+            this.total_abandon_time += Number(event_data.time);
+            this.updateAbandonAvg();
+            this.updateAbandonRate();
+            break;
+        case 'dispositions':{
+            const delta = event_data.delta || 1;
+            this.dispositions = Number(this.dispositions) + delta;
+            this.updateTarget();
+            break;
+        }
+        case 'queue_size':
+            this.queue_size = Number(event_data.size);
+            break;
+        default:
+            break;
+        }
     }
 
 }

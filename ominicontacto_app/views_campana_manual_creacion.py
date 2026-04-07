@@ -33,6 +33,7 @@ from ominicontacto_app.forms.base import (CampanaManualForm, OpcionCalificacionF
                                           CustomBaseDatosContactoForm,
                                           QueueMemberFormset, CampanaConfiguracionWhatsappForm)
 from ominicontacto_app.models import Campana, Queue
+from ominicontacto_app.services.campaign_redis_status import set_campaign_status_redis
 from ominicontacto_app.views_campana_creacion import (CampanaWizardMixin,
                                                       CampanaTemplateCreateMixin,
                                                       CampanaTemplateCreateCampanaMixin,
@@ -176,6 +177,7 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
     def done(self, form_list, form_dict, **kwargs):
         queue = self._save_forms(form_list, form_dict, Campana.ESTADO_ACTIVA, Campana.TYPE_MANUAL)
         self._insert_queue_asterisk(queue)
+        set_campaign_status_redis(queue.campana.id, 'active')
         # salvamos los supervisores y  agentes asignados a la campaña
         self.save_supervisores(form_list, -2)
         self.save_agentes(form_list, -1)

@@ -21,11 +21,11 @@ import pygal
 import logging
 
 from django.utils.translation import gettext as _
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 from ominicontacto_app.models import Campana
 from ominicontacto_app.utiles import fecha_hora_local
-from reportes_app.models import LlamadaLog
+from reportes_app.models import LlamadaResumen
 from reportes_app.utiles import (
     ESTILO_AMARILLO_VERDE_ROJO, ESTILO_AZUL_VIOLETA_NARANJA_CELESTE, ESTILO_VERDE_AZUL,
     ESTILO_ROJO_VERDE_GRIS_NEGRO, ESTILO_VERDE_GRIS_NEGRO_ROJO, ESTILO_VERDE_ROJO
@@ -143,8 +143,8 @@ class ReporteDeLlamadas(object):
     def __init__(self, desde, hasta, incluir_finalizadas, user):
         self.campanas = self._campanas_implicadas(user, incluir_finalizadas)
         campanas_ids = self.campanas.values_list('id', flat=True)
-        self.logs = LlamadaLog.objects.using('replica')\
-            .filter(time__gte=desde, time__lte=hasta, campana_id__in=campanas_ids)
+        self.logs = LlamadaResumen.objects.using('replica')\
+            .filter(fecha_fin__gte=desde, fecha_fin__lte=hasta, campana_id__in=campanas_ids)
 
         self._inicializar_conteo_de_estadisticas(desde, hasta)
 
@@ -237,7 +237,7 @@ class ReporteDeLlamadas(object):
 
     def _contabilizar_estadisticas(self):
         for log in self.logs:
-            fecha = fecha_hora_local(log.time).strftime('%d-%m-%Y')
+            fecha = fecha_hora_local(log.fecha_fin).strftime('%d-%m-%Y')
             tipo_campana = str(log.tipo_campana)
             # Patch OML-2663 + 3229 <--
             if tipo_campana != self.tipo_por_campana[log.campana_id]:
@@ -317,7 +317,7 @@ class ReporteDeLlamadas(object):
             assert log.tipo_llamada == Campana.TYPE_ENTRANTE
             estadisticas_tipo['total'] += 1
             estadisticas_tipo['abandonadas_anuncio'] += 1
-        elif log.event in LlamadaLog.EVENTOS_NO_CONTACTACION:
+        elif log.event in LlamadaResumen.EVENTOS_NO_CONTACTACION:
             if log.tipo_llamada in LLAMADAS_DE_AGENTE:
                 estadisticas_tipo['no_conectadas'] += 1
             elif log.tipo_llamada == Campana.TYPE_DIALER:
@@ -353,10 +353,10 @@ class ReporteDeLlamadas(object):
             datos_campana['efectuadas'] += 1
         elif log.event == 'ANSWER':
             datos_campana['conectadas'] += 1
-            datos_campana['t_espera_conexion'] += log.bridge_wait_time
-        elif log.event in LlamadaLog.EVENTOS_NO_CONTACTACION:
+            datos_campana['t_espera_conexion'] += log.bridge_wait_time or 0
+        elif log.event in LlamadaResumen.EVENTOS_NO_CONTACTACION:
             datos_campana['no_conectadas'] += 1
-            datos_campana['t_espera_conexion'] += log.bridge_wait_time
+            datos_campana['t_espera_conexion'] += log.bridge_wait_time or 0
 
     def _contabilizar_tipos_de_llamada_por_campana_dialer(self, datos_campana, log):
         if log.tipo_llamada in LLAMADAS_MANUALES:
@@ -365,15 +365,15 @@ class ReporteDeLlamadas(object):
             datos_campana['efectuadas'] += 1
         elif log.event == 'ANSWER':
             datos_campana['atendidas'] += 1
-            datos_campana['t_espera_atencion'] += log.bridge_wait_time
+            datos_campana['t_espera_atencion'] += log.bridge_wait_time or 0
         elif log.event == 'CONNECT':
             datos_campana['conectadas'] += 1
-            datos_campana['t_espera_conexion'] += log.bridge_wait_time
+            datos_campana['t_espera_conexion'] += log.bridge_wait_time or 0
         elif log.event == 'EXITWITHTIMEOUT':
             datos_campana['expiradas'] += 1
         elif log.event == 'ABANDON':
             datos_campana['abandonadas'] += 1
-            datos_campana['t_abandono'] += log.bridge_wait_time
+            datos_campana['t_abandono'] += log.bridge_wait_time or 0
 
     def _contabilizar_tipos_de_llamada_por_campana_entrante(self, datos_campana, log):
         if log.tipo_llamada in LLAMADAS_MANUALES:
@@ -390,7 +390,7 @@ class ReporteDeLlamadas(object):
             datos_campana['expiradas'] += 1
         elif log.event == 'ABANDON':
             datos_campana['abandonadas'] += 1
-            datos_campana['t_abandono'] += log.bridge_wait_time
+            datos_campana['t_abandono'] += log.bridge_wait_time or 0
         elif log.event == 'ABANDONWEL':
             datos_campana['recibidas'] += 1
             datos_campana['abandonadas_anuncio'] += 1
@@ -401,10 +401,10 @@ class ReporteDeLlamadas(object):
             datos_campana['efectuadas_manuales'] += 1
         elif log.event == 'ANSWER':
             datos_campana['conectadas_manuales'] += 1
-            datos_campana['t_espera_conexion_manuales'] += log.bridge_wait_time
-        elif log.event in LlamadaLog.EVENTOS_NO_CONTACTACION:
+            datos_campana['t_espera_conexion_manuales'] += log.bridge_wait_time or 0
+        elif log.event in LlamadaResumen.EVENTOS_NO_CONTACTACION:
             datos_campana['no_conectadas_manuales'] += 1
-            datos_campana['t_espera_conexion_manuales'] += log.bridge_wait_time
+            datos_campana['t_espera_conexion_manuales'] += log.bridge_wait_time or 0
 
     def _aplicar_promedios_a_tiempos(self):
         for tipo, datos_tipo in self.estadisticas['tipos_de_llamada_por_campana'].items():
@@ -671,37 +671,37 @@ class GeneradorReportesLlamadasCSV(object):
                   _('Transferidas Atendidas'), _('Transferidas No Atendidas')], ]
         filas.append([
             str(Campana.TYPE_MANUAL_DISPLAY),
-            force_text(por_tipo[str(Campana.TYPE_MANUAL)]['total']),
-            force_text(por_tipo[str(Campana.TYPE_MANUAL)]['conectadas']),
-            force_text(por_tipo[str(Campana.TYPE_MANUAL)]['no_conectadas']),
+            force_str(por_tipo[str(Campana.TYPE_MANUAL)]['total']),
+            force_str(por_tipo[str(Campana.TYPE_MANUAL)]['conectadas']),
+            force_str(por_tipo[str(Campana.TYPE_MANUAL)]['no_conectadas']),
             '', '', '', '', '', '', '',
         ])
         filas.append([
             str(Campana.TYPE_DIALER_DISPLAY),
-            force_text(por_tipo[str(Campana.TYPE_DIALER)]['total']),
+            force_str(por_tipo[str(Campana.TYPE_DIALER)]['total']),
             '', '',
-            force_text(por_tipo[str(Campana.TYPE_DIALER)]['atendidas']),
-            force_text(por_tipo[str(Campana.TYPE_DIALER)]['no_atendidas']),
-            force_text(por_tipo[str(Campana.TYPE_DIALER)]['perdidas']),
+            force_str(por_tipo[str(Campana.TYPE_DIALER)]['atendidas']),
+            force_str(por_tipo[str(Campana.TYPE_DIALER)]['no_atendidas']),
+            force_str(por_tipo[str(Campana.TYPE_DIALER)]['perdidas']),
             '', '', '', '',
         ])
         filas.append([
             str(Campana.TYPE_ENTRANTE_DISPLAY),
-            force_text(por_tipo[str(Campana.TYPE_ENTRANTE)]['total']),
+            force_str(por_tipo[str(Campana.TYPE_ENTRANTE)]['total']),
             '', '',
-            force_text(por_tipo[str(Campana.TYPE_ENTRANTE)]['atendidas']),
+            force_str(por_tipo[str(Campana.TYPE_ENTRANTE)]['atendidas']),
             '', '',
-            force_text(por_tipo[str(Campana.TYPE_ENTRANTE)]['expiradas']),
-            force_text(por_tipo[str(Campana.TYPE_ENTRANTE)]['abandonadas'],),
-            force_text(por_tipo[str(Campana.TYPE_ENTRANTE)]['abandonadas_anuncio'],),
-            force_text(por_tipo[str(Campana.TYPE_ENTRANTE)]['transferidas_atendidas'],),
-            force_text(por_tipo[str(Campana.TYPE_ENTRANTE)]['transferidas_no_atendidas'],),
+            force_str(por_tipo[str(Campana.TYPE_ENTRANTE)]['expiradas']),
+            force_str(por_tipo[str(Campana.TYPE_ENTRANTE)]['abandonadas'],),
+            force_str(por_tipo[str(Campana.TYPE_ENTRANTE)]['abandonadas_anuncio'],),
+            force_str(por_tipo[str(Campana.TYPE_ENTRANTE)]['transferidas_atendidas'],),
+            force_str(por_tipo[str(Campana.TYPE_ENTRANTE)]['transferidas_no_atendidas'],),
         ])
         filas.append([
             str(Campana.TYPE_PREVIEW_DISPLAY),
-            force_text(por_tipo[str(Campana.TYPE_PREVIEW)]['total']),
-            force_text(por_tipo[str(Campana.TYPE_PREVIEW)]['conectadas']),
-            force_text(por_tipo[str(Campana.TYPE_PREVIEW)]['no_conectadas']),
+            force_str(por_tipo[str(Campana.TYPE_PREVIEW)]['total']),
+            force_str(por_tipo[str(Campana.TYPE_PREVIEW)]['conectadas']),
+            force_str(por_tipo[str(Campana.TYPE_PREVIEW)]['no_conectadas']),
             '', '', '', '', '', '', '',
         ])
         return filas
@@ -712,8 +712,8 @@ class GeneradorReportesLlamadasCSV(object):
         for id, estadisticas_campana in por_campana.items():
             filas.append([estadisticas_campana['nombre'],
                           estadisticas_campana['tipo'],
-                          force_text(estadisticas_campana['total']),
-                          force_text(estadisticas_campana['manuales']),
+                          force_str(estadisticas_campana['total']),
+                          force_str(estadisticas_campana['manuales']),
                           ])
         return filas
 
@@ -723,10 +723,10 @@ class GeneradorReportesLlamadasCSV(object):
                   _('T. Espera Conexion')], ]
         for id, estadisticas_campana in por_campana.items():
             filas.append([estadisticas_campana['nombre'],
-                          force_text(estadisticas_campana['efectuadas']),
-                          force_text(estadisticas_campana['conectadas']),
-                          force_text(estadisticas_campana['no_conectadas']),
-                          force_text(estadisticas_campana['t_espera_conexion']),
+                          force_str(estadisticas_campana['efectuadas']),
+                          force_str(estadisticas_campana['conectadas']),
+                          force_str(estadisticas_campana['no_conectadas']),
+                          force_str(estadisticas_campana['t_espera_conexion']),
                           ])
         return filas
 
@@ -738,18 +738,18 @@ class GeneradorReportesLlamadasCSV(object):
                   _('Manuales No Conectadas'), _('T. Espera Conexión Manuales')], ]
         for id, estadisticas_campana in por_campana.items():
             filas.append([estadisticas_campana['nombre'],
-                          force_text(estadisticas_campana['efectuadas']),
-                          force_text(estadisticas_campana['conectadas']),
-                          force_text(estadisticas_campana['atendidas']),
-                          force_text(estadisticas_campana['expiradas']),
-                          force_text(estadisticas_campana['abandonadas']),
-                          force_text(estadisticas_campana['t_abandono']),
-                          force_text(estadisticas_campana['t_espera_atencion']),
-                          force_text(estadisticas_campana['t_espera_conexion']),
-                          force_text(estadisticas_campana['efectuadas_manuales']),
-                          force_text(estadisticas_campana['conectadas_manuales']),
-                          force_text(estadisticas_campana['no_conectadas_manuales']),
-                          force_text(estadisticas_campana['t_espera_conexion_manuales']),
+                          force_str(estadisticas_campana['efectuadas']),
+                          force_str(estadisticas_campana['conectadas']),
+                          force_str(estadisticas_campana['atendidas']),
+                          force_str(estadisticas_campana['expiradas']),
+                          force_str(estadisticas_campana['abandonadas']),
+                          force_str(estadisticas_campana['t_abandono']),
+                          force_str(estadisticas_campana['t_espera_atencion']),
+                          force_str(estadisticas_campana['t_espera_conexion']),
+                          force_str(estadisticas_campana['efectuadas_manuales']),
+                          force_str(estadisticas_campana['conectadas_manuales']),
+                          force_str(estadisticas_campana['no_conectadas_manuales']),
+                          force_str(estadisticas_campana['t_espera_conexion_manuales']),
                           ])
         return filas
 
@@ -761,17 +761,17 @@ class GeneradorReportesLlamadasCSV(object):
                   _('T. Espera Conexión Manuales')], ]
         for id, estadisticas_campana in por_campana.items():
             filas.append([estadisticas_campana['nombre'],
-                          force_text(estadisticas_campana['recibidas']),
-                          force_text(estadisticas_campana['atendidas']),
-                          force_text(estadisticas_campana['expiradas']),
-                          force_text(estadisticas_campana['abandonadas']),
-                          force_text(estadisticas_campana['abandonadas_anuncio']),
-                          force_text(estadisticas_campana['t_abandono']),
-                          force_text(estadisticas_campana['t_espera_conexion']),
-                          force_text(estadisticas_campana['efectuadas_manuales']),
-                          force_text(estadisticas_campana['conectadas_manuales']),
-                          force_text(estadisticas_campana['no_conectadas_manuales']),
-                          force_text(estadisticas_campana['t_espera_conexion_manuales']),
+                          force_str(estadisticas_campana['recibidas']),
+                          force_str(estadisticas_campana['atendidas']),
+                          force_str(estadisticas_campana['expiradas']),
+                          force_str(estadisticas_campana['abandonadas']),
+                          force_str(estadisticas_campana['abandonadas_anuncio']),
+                          force_str(estadisticas_campana['t_abandono']),
+                          force_str(estadisticas_campana['t_espera_conexion']),
+                          force_str(estadisticas_campana['efectuadas_manuales']),
+                          force_str(estadisticas_campana['conectadas_manuales']),
+                          force_str(estadisticas_campana['no_conectadas_manuales']),
+                          force_str(estadisticas_campana['t_espera_conexion_manuales']),
                           ])
         return filas
 
@@ -782,14 +782,14 @@ class GeneradorReportesLlamadasCSV(object):
                   _('Manuales No Conectadas'), _('T. Espera Conexión Manuales')], ]
         for id, estadisticas_campana in por_campana.items():
             filas.append([estadisticas_campana['nombre'],
-                          force_text(estadisticas_campana['efectuadas']),
-                          force_text(estadisticas_campana['conectadas']),
-                          force_text(estadisticas_campana['no_conectadas']),
-                          force_text(estadisticas_campana['t_espera_conexion']),
-                          force_text(estadisticas_campana['efectuadas_manuales']),
-                          force_text(estadisticas_campana['conectadas_manuales']),
-                          force_text(estadisticas_campana['no_conectadas_manuales']),
-                          force_text(estadisticas_campana['t_espera_conexion_manuales']),
+                          force_str(estadisticas_campana['efectuadas']),
+                          force_str(estadisticas_campana['conectadas']),
+                          force_str(estadisticas_campana['no_conectadas']),
+                          force_str(estadisticas_campana['t_espera_conexion']),
+                          force_str(estadisticas_campana['efectuadas_manuales']),
+                          force_str(estadisticas_campana['conectadas_manuales']),
+                          force_str(estadisticas_campana['no_conectadas_manuales']),
+                          force_str(estadisticas_campana['t_espera_conexion_manuales']),
                           ])
         return filas
 
@@ -797,8 +797,8 @@ class GeneradorReportesLlamadasCSV(object):
 class ReporteTipoDeLlamadasDeCampana(ReporteDeLlamadas):
 
     def __init__(self, desde, hasta, id_campana):
-        self.logs = LlamadaLog.objects.using('replica').filter(time__gte=desde,
-                                                               time__lte=hasta,
+        self.logs = LlamadaResumen.objects.using('replica').filter(fecha_fin__gte=desde,
+                                                               fecha_fin__lte=hasta,
                                                                campana_id=id_campana)
 
         self.campana = Campana.objects.get(id=id_campana)

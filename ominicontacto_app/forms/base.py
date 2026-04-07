@@ -54,7 +54,7 @@ from ominicontacto_app.utiles import (convertir_ascii_string, validar_nombres_ca
                                       validar_solo_alfanumericos_o_guiones,
                                       contiene_solo_alfanumericos_guion_o_punto,
                                       validar_longitud_nombre_base_de_contactos)
-from configuracion_telefonia_app.models import DestinoEntrante, Playlist, RutaSaliente
+from configuracion_telefonia_app.models import DestinoEntrante, Playlist, RutaSaliente, TroncalSIP
 from whatsapp_app.models import ConfiguracionWhatsappCampana
 
 from ominicontacto_app.utiles import convert_fecha_datetime
@@ -90,6 +90,22 @@ class CustomUserCreationForm(UserCreationForm):
     rol = forms.ModelChoiceField(queryset=Group.objects.all(), label=_('Rol del usuario'))
     grupo = forms.ModelChoiceField(
         queryset=Grupo.objects.all(), label=_('Grupo de agentes'), required=False)
+    sip_remote = forms.BooleanField(
+        required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
+        label=_('SIP remote'), initial=False)
+    voicebot = forms.BooleanField(
+        required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
+        label=_('Voicebot'), initial=False)
+    voicebot_trunk = forms.ModelChoiceField(
+        queryset=TroncalSIP.objects.none(),
+        required=False,
+        label=_('Troncal SIP (voicebot)'),
+        empty_label=_('---------'))
+    voicebot_extension = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=999999,
+        label=_('Extensión voicebot (1-999999)'))
     autenticacion_externa = forms.BooleanField(
         required=False, disabled=True, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
         label=_('Autenticación externa'), initial=True)
@@ -122,6 +138,15 @@ class CustomUserCreationForm(UserCreationForm):
         if grupo_queryset:
             self.fields['grupo'].queryset = grupo_queryset
         self.fields['grupo'].widget.attrs['class'] = 'form-control'
+        # El campo sip_remote se mostrará como checkbox.
+        # Si se desea ocultarlo dinámicamente según el rol,
+        # debe hacerse desde el JavaScript del template, no con display:none fijo.
+        # Mantenerlo visible evita que solo se vea la etiqueta sin el control.
+        self.fields['sip_remote'].widget.attrs.pop('style', None)
+        self.fields['voicebot'].widget.attrs.pop('style', None)
+        self.fields['voicebot_trunk'].queryset = TroncalSIP.objects.all()
+        self.fields['voicebot_trunk'].widget.attrs['class'] = 'form-control'
+        self.fields['voicebot_extension'].widget.attrs['class'] = 'form-control'
         if mostrar_autenticacion_externa:
             self.fields['autenticacion_externa'].initial = self.instance.autenticar_con_ldap
             if habilitar_autenticacion_externa:
@@ -133,10 +158,25 @@ class CustomUserCreationForm(UserCreationForm):
         cleaned_data = super().clean()
         rol = cleaned_data.get('rol')
         grupo = cleaned_data.get('grupo')
+        sip_remote = cleaned_data.get('sip_remote', False)
+        voicebot = cleaned_data.get('voicebot', False)
+        
         if rol and rol.name == User.AGENTE and not cleaned_data.get('email'):
             self.add_error("email", _("Este campo es requerido para un usuario de tipo Agente."))
         if rol and rol.name == User.AGENTE and not grupo:
             self.add_error("grupo", _("Este campo es requerido para un usuario de tipo Agente."))
+        if rol and rol.name == User.AGENTE and sip_remote and voicebot:
+            self.add_error("sip_remote", _("SIP remote y Voicebot son mutuamente excluyentes."))
+            self.add_error("voicebot", _("SIP remote y Voicebot son mutuamente excluyentes."))
+        if rol and rol.name == User.AGENTE and voicebot:
+            voicebot_trunk = cleaned_data.get('voicebot_trunk')
+            voicebot_extension = cleaned_data.get('voicebot_extension')
+            if not voicebot_trunk:
+                self.add_error("voicebot_trunk", _("Requerido cuando Voicebot está activado."))
+            if voicebot_extension is None or voicebot_extension == '':
+                self.add_error("voicebot_extension", _("Requerido cuando Voicebot está activado."))
+            elif voicebot_extension < 1 or voicebot_extension > 999999:
+                self.add_error("voicebot_extension", _("Debe ser un número entre 1 y 999999."))
         return cleaned_data
 
     @staticmethod
@@ -202,6 +242,65 @@ class UserChangeForm(forms.ModelForm):
         }
 
 
+class UserAgentUpdateForm(UserChangeForm):
+    """Formulario para editar usuario agente: datos de usuario + campos de perfil (SIP remote, Voicebot, etc.)."""
+    sip_remote = forms.BooleanField(
+        required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
+        label=_('SIP remote'), initial=False)
+    voicebot = forms.BooleanField(
+        required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
+        label=_('Voicebot'), initial=False)
+    voicebot_trunk = forms.ModelChoiceField(
+        queryset=TroncalSIP.objects.all(),
+        required=False,
+        label=_('Troncal SIP (voicebot)'),
+        empty_label=_('---------'))
+    voicebot_extension = forms.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=999999,
+        label=_('Extensión voicebot (1-999999)'))
+
+    class Meta(UserChangeForm.Meta):
+        model = User
+        fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2')
+
+    def __init__(self, mostrar_autenticacion_externa, habilitar_autenticacion_externa, *args, **kwargs):
+        super().__init__(
+            mostrar_autenticacion_externa=mostrar_autenticacion_externa,
+            habilitar_autenticacion_externa=habilitar_autenticacion_externa,
+            *args, **kwargs)
+        self.fields['voicebot_trunk'].widget.attrs['class'] = 'form-control'
+        self.fields['voicebot_extension'].widget.attrs['class'] = 'form-control'
+        agente_profile = getattr(self.instance, 'get_agente_profile', lambda: None)()
+        if agente_profile:
+            self.fields['sip_remote'].initial = agente_profile.sip_remote
+            self.fields['voicebot'].initial = agente_profile.voicebot
+            self.fields['voicebot_trunk'].initial = agente_profile.voicebot_trunk
+            self.fields['voicebot_extension'].initial = agente_profile.voicebot_extension
+
+    def clean(self):
+        cleaned_data = super().clean()
+        sip_remote = cleaned_data.get('sip_remote', False)
+        voicebot = cleaned_data.get('voicebot', False)
+        if sip_remote and voicebot:
+            self.add_error("sip_remote", _("SIP remote y Voicebot son mutuamente excluyentes."))
+            self.add_error("voicebot", _("SIP remote y Voicebot son mutuamente excluyentes."))
+        if voicebot:
+            voicebot_trunk = cleaned_data.get('voicebot_trunk')
+            voicebot_extension = cleaned_data.get('voicebot_extension')
+            if not voicebot_trunk:
+                self.add_error("voicebot_trunk", _("Requerido cuando Voicebot está activado."))
+            if voicebot_extension is None or voicebot_extension == '':
+                self.add_error("voicebot_extension", _("Requerido cuando Voicebot está activado."))
+            elif voicebot_extension < 1 or voicebot_extension > 999999:
+                self.add_error("voicebot_extension", _("Debe ser un número entre 1 y 999999."))
+        else:
+            cleaned_data['voicebot_trunk'] = None
+            cleaned_data['voicebot_extension'] = None
+        return cleaned_data
+
+
 class ForcePasswordChangeForm(UserChangeForm):
     class Meta:
         model = User
@@ -223,12 +322,47 @@ class AgenteProfileForm(forms.ModelForm):
 
     class Meta:
         model = AgenteProfile
-        fields = ('grupo',)
+        fields = ('grupo', 'sip_remote', 'voicebot', 'voicebot_trunk', 'voicebot_extension')
 
     def __init__(self, grupos_queryset, *args, **kwargs):
         super(AgenteProfileForm, self).__init__(*args, **kwargs)
         self.fields['grupo'].widget.attrs['class'] = 'form-control'
         self.fields['grupo'].queryset = grupos_queryset
+        self.fields['sip_remote'].widget = forms.CheckboxInput(attrs={'class': 'form-control'})
+        self.fields['sip_remote'].label = _('SIP remote')
+        self.fields['voicebot'].widget = forms.CheckboxInput(attrs={'class': 'form-control'})
+        self.fields['voicebot'].label = _('Voicebot')
+        self.fields['voicebot_trunk'].queryset = TroncalSIP.objects.all()
+        self.fields['voicebot_trunk'].widget.attrs['class'] = 'form-control'
+        self.fields['voicebot_trunk'].label = _('Troncal SIP (voicebot)')
+        self.fields['voicebot_trunk'].required = False
+        self.fields['voicebot_extension'].widget.attrs['class'] = 'form-control'
+        self.fields['voicebot_extension'].label = _('Extensión voicebot (1-999999)')
+        self.fields['voicebot_extension'].required = False
+
+    def clean(self):
+        cleaned_data = super().clean()
+        sip_remote = cleaned_data.get('sip_remote', False)
+        voicebot = cleaned_data.get('voicebot', False)
+
+        if sip_remote and voicebot:
+            self.add_error("sip_remote", _("SIP remote y Voicebot son mutuamente excluyentes."))
+            self.add_error("voicebot", _("SIP remote y Voicebot son mutuamente excluyentes."))
+
+        if voicebot:
+            voicebot_trunk = cleaned_data.get('voicebot_trunk')
+            voicebot_extension = cleaned_data.get('voicebot_extension')
+            if not voicebot_trunk:
+                self.add_error("voicebot_trunk", _("Requerido cuando Voicebot está activado."))
+            if voicebot_extension is None or voicebot_extension == '':
+                self.add_error("voicebot_extension", _("Requerido cuando Voicebot está activado."))
+            elif voicebot_extension < 1 or voicebot_extension > 999999:
+                self.add_error("voicebot_extension", _("Debe ser un número entre 1 y 999999."))
+        else:
+            cleaned_data['voicebot_trunk'] = None
+            cleaned_data['voicebot_extension'] = None
+
+        return cleaned_data
 
 
 class NoValidationMultipleChoiceField(forms.MultipleChoiceField):
@@ -451,15 +585,46 @@ class QueueEntranteForm(forms.ModelForm):
         return wait_announce_frequency
 
 
+class AgenteModelChoiceField(forms.ModelChoiceField):
+    """
+    Campo personalizado para mostrar agentes con información de voicebot
+    """
+    def label_from_instance(self, obj):
+        label = obj.user.get_full_name() or obj.user.get_username()
+        if obj.voicebot:
+            return f"{label} [Voicebot]"
+        return label
+
+
 class QueueMemberForm(forms.ModelForm):
     """
     El form de miembro de una cola
     """
 
-    def __init__(self, members, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        # Extraer members de kwargs o del primer argumento posicional para compatibilidad
+        members = kwargs.pop('members', None)
+        if members is None and len(args) > 0:
+            # Compatibilidad con llamadas antiguas que pasan members como primer argumento posicional
+            members = args[0]
+            args = args[1:]
+        
         super(QueueMemberForm, self).__init__(*args, **kwargs)
 
-        self.fields['member'].queryset = members.prefetch_related('user')
+        # Si members no está definido, obtener los agentes activos por defecto
+        if members is None:
+            from ominicontacto_app.models import AgenteProfile
+            members = AgenteProfile.objects.obtener_activos().prefetch_related('user')
+
+        # Usar el campo personalizado para mostrar información de voicebot
+        # Asegurarse de que el queryset incluya el campo voicebot
+        members_queryset = members.prefetch_related('user')
+        self.fields['member'] = AgenteModelChoiceField(
+            queryset=members_queryset,
+            empty_label='---------',
+            widget=forms.Select(attrs={'class': 'form-control'}),
+            required=False
+        )
         self.initial['penalty'] = 0
 
     class Meta:
@@ -1098,7 +1263,8 @@ class OpcionCalificacionBaseFormset(BaseInlineFormSet):
         for nombre, subcalificaciones in nombres_calificaciones_qs:
             if nombre not in calificaciones_actuales:
                 nombre_subcalificaciones.append({nombre: subcalificaciones})
-        kwargs['nombre_subcalificaciones'] = nombre_subcalificaciones
+        # Serializar como JSON para evitar problemas de escape en el frontend
+        kwargs['nombre_subcalificaciones'] = json.dumps(nombre_subcalificaciones)
 
         return super(OpcionCalificacionBaseFormset, self)._construct_form(index, **kwargs)
 
@@ -2039,6 +2205,7 @@ class QueueDialerForm(forms.ModelForm):
         tipo_destino_dialer_choices = [
             ('', DestinoEntrante.AGENTE_STR),
             (DestinoEntrante.SURVEY, DestinoEntrante.SURVEY_STR),
+            (DestinoEntrante.REMOTE_AGENT, DestinoEntrante.REMOTE_AGENT_STR),
         ]
         self.fields['tipo_destino_dialer'].choices = tipo_destino_dialer_choices
         self.fields['audio_previo_conexion_llamada'].queryset = ArchivoDeAudio.objects.all()
@@ -2395,19 +2562,54 @@ class ParametrosCrmForm(forms.ModelForm):
 
 class QueueMemberBaseFomset(BaseInlineFormSet):
 
+    def __init__(self, *args, **kwargs):
+        # Extraer tipo_destino_dialer y members de form_kwargs si está presente
+        form_kwargs = kwargs.pop('form_kwargs', {})
+        self.tipo_destino_dialer = form_kwargs.get('tipo_destino_dialer')
+        self.members = form_kwargs.get('members')
+        super(QueueMemberBaseFomset, self).__init__(*args, **kwargs)
+
+    def _construct_form(self, index, **kwargs):
+        # Pasar members como kwarg al formulario
+        # Si members no está definido, obtener los agentes activos por defecto
+        # Esto puede ocurrir si el formset se crea sin form_kwargs (por ejemplo, en tests)
+        if self.members is None:
+            from ominicontacto_app.models import AgenteProfile
+            self.members = AgenteProfile.objects.obtener_activos().prefetch_related('user')
+        # Pasar members como kwarg y llamar al método padre para que inicialice correctamente el formulario
+        kwargs['members'] = self.members
+        return super(QueueMemberBaseFomset, self)._construct_form(index, **kwargs)
+
     def clean(self):
-        """Realiza la  validación de que no existan miembros de cola repetidas para una misma
-        cola de campaña
+        """Realiza la validación de que no existan miembros de cola repetidos para una misma
+        cola de campaña, y que haya al menos un voicebot cuando el tipo de destino es Agente Remoto.
         """
         if any(self.errors):
             return
         members = []
+        voicebots = []
         for form in self.forms:
+            # Ignorar formularios vacíos o marcados para eliminar
+            if form.cleaned_data.get('DELETE', False):
+                continue
             member = form.cleaned_data.get('member')
+            if member is None:
+                continue
             if member in members:
                 raise forms.ValidationError(
                     _("Los agentes deben ser distintos"))
             members.append(member)
+            # Verificar si es voicebot
+            if hasattr(member, 'voicebot') and member.voicebot:
+                voicebots.append(member)
+        
+        # Validar que haya al menos un voicebot cuando tipo_destino_dialer es REMOTE_AGENT
+        from configuracion_telefonia_app.models import DestinoEntrante
+        if self.tipo_destino_dialer and str(self.tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT):
+            if len(voicebots) == 0:
+                raise forms.ValidationError(
+                    _("Cuando el destino de llamada Dialer es 'Agente Remoto', "
+                      "debe asignarse al menos un agente voicebot a la campaña."))
 
 
 ParametrosCrmFormSet = inlineformset_factory(

@@ -26,7 +26,7 @@ import redis
 from django.conf import settings
 from django.utils.timezone import localtime
 from django.utils.translation import gettext as _
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.shortcuts import redirect
 
 
@@ -86,7 +86,7 @@ class ReporteCalificacionesCampanaCSV(ReporteCSV):
             encabezado.append(_("Calificado"))
             encabezado.append(_("Subcalificación"))
             encabezado.append(_("Observaciones"))
-        lista_datos_utf8 = [force_text(item) for item in encabezado]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
         self.datos.append(lista_datos_utf8)
 
     def _escribir_linea_calificacion(self, calificacion, log_llamada):
@@ -112,7 +112,7 @@ class ReporteCalificacionesCampanaCSV(ReporteCSV):
             lista_opciones.append(subcalificacion)
             if calificacion.observaciones:
                 lista_opciones.append(calificacion.observaciones.replace('\r\n', ' '))
-        lista_datos_utf8 = [force_text(item) for item in lista_opciones]
+        lista_datos_utf8 = [force_str(item) for item in lista_opciones]
         self.datos.append(lista_datos_utf8)
 
 

@@ -127,7 +127,7 @@ def s2a_inbound_chat_event(line, timestamp, message_id, origen, content, sender,
                 autoresponse_out_of_time(line, conversation, timestamp)
                 conversation.is_disposition = True
                 conversation.save()
-                return
+                return notifications
             #  ## notificar a agentes
             if created_conversation and conversation.campana:
                 redis_2.sadd(

@@ -234,3 +234,19 @@ msgstr ""
 #: supervision_app/static/supervision_app/JS/supervision_agentes.js:84
 msgid "Debe finalizar la acción actual antes de salir de esta pantalla."
 msgstr "Você deve terminar a ação atual antes de sair dessa tela."
+
+#: supervision_app/static/supervision_app/JS/supervision.js
+msgid "Conferencia 3 vías"
+msgstr "Conferência de 3 vias"
+
+#: supervision_app/static/supervision_app/JS/supervision_agentes.js
+msgid "Conferencia 3 vías solicitada correctamente."
+msgstr "Conferência de 3 vias solicitada com sucesso."
+
+#: supervision_app/static/supervision_app/JS/supervision_agentes.js
+msgid "Error al solicitar conferencia 3 vías."
+msgstr "Erro ao solicitar conferência de 3 vias."
+
+#: supervision_app/static/supervision_app/JS/supervision_agentes.js
+msgid "Error al ejecutar conferencia 3 vías => "
+msgstr "Erro ao executar conferência de 3 vias => "

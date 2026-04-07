@@ -47,7 +47,23 @@ function asociarDatosRow(row) {
         var elemDataParsed = JSON.parse(elemData);
         var selectionMemberNode = '.member>select option[value='+ elemDataParsed.id + ']';
         var $fieldMemberRow = row.find(selectionMemberNode);
+        var $select = row.find('.member>select');
+        
         $fieldMemberRow.prop('selected', true);
+        
+        // Actualizar select2 y badge de tipo de agente
+        if ($select.length) {
+            // Si select2 está inicializado, actualizarlo
+            if ($select.hasClass('select2-hidden-accessible')) {
+                $select.trigger('change');
+            }
+            // Actualizar badge después de un pequeño delay para asegurar que select2 se actualizó
+            setTimeout(function() {
+                if (typeof updateAgentTypeBadge === 'function') {
+                    updateAgentTypeBadge($select[0]);
+                }
+            }, 100);
+        }
     }
     // cuando se adiciona desde API la fila chequeamos si no duplica a alguna ya existente,
     // en ese caso la eliminamos

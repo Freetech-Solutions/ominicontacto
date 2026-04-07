@@ -31,7 +31,7 @@ import time
 import redis
 
 from django.conf import settings
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.core.paginator import Paginator
 
 from django.utils.translation import gettext as _
@@ -42,22 +42,27 @@ from ominicontacto_app.utiles import crear_archivo_en_media_root
 from ominicontacto_app.models import (
     BaseDatosContacto, Campana, Contacto, OpcionCalificacion, HistoricalCalificacionCliente)
 from ominicontacto_app.services.estadisticas_campana import EstadisticasBaseCampana
+from ominicontacto_app.services.estadisticas_campana_v2 import EstadisticasServiceV2
 
-from reportes_app.models import LlamadaLog
+from reportes_app.models import LlamadaResumen
 
 logger = logging.getLogger(__name__)
 
 NO_CONECTADO_DESCRIPCION = {
-    'NOANSWER': _('Cliente no atiende'),
+    'NOANSWER': _('No atiende'),
     'CANCEL': _('Se corta antes que atienda el cliente'),
     'BUSY': _('Ocupado'),
     'CHANUNAVAIL': _('Canales Saturados'),
     'OTHER': _('Motivo no especificado'),
     'FAIL': _('Fallo'),
-    'AMD': _('Contestador'),
+    'AMD': _('AMD Detected'),
+    'EXIT_AMD': _('AMD Detected'),
     'BLACKLIST': _('Blacklist'),
     'ABANDON': _('Abandonada por cliente'),
-    'EXITWITHTIMEOUT': _('Expirada'),
+    'EXIT_ABANDON': _('Abandonada por cliente'),
+    'EXIT_HANDOFF_ABANDON': _('Abandonada tras handoff (espera agente)'),
+    'EXIT_TIMEOUT': _('Expirada'),
+    'EXIT_HANDOFF_TIMEOUT': _('Expirada tras handoff (espera agente)'),
     'CONGESTION': _('Canal congestionado'),
     'NONDIALPLAN': _('Problema de enrutamiento'),
     'ABANDONWEL': _('Abandonadas durante anuncio'),
@@ -105,7 +110,7 @@ class ReporteContactadosCSV(EstadisticasBaseCampana, ReporteCSV):
         self._escribir_encabezado()
 
         logs_llamadas = self._obtener_logs_de_llamadas() \
-                            .filter(event__in=LlamadaLog.EVENTOS_FIN_CONEXION) \
+                            .filter(event__in=LlamadaResumen.EVENTOS_FIN_CONEXION) \
                             .exclude(agente_id=-1)
 
         numero_logs_llamadas = logs_llamadas.count()
@@ -196,7 +201,7 @@ class ReporteContactadosCSV(EstadisticasBaseCampana, ReporteCSV):
                         nombre = campo.nombre_campo
                         encabezado.append(nombre)
 
-        lista_datos_utf8 = [force_text(item) for item in encabezado]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
         self.datos.append(lista_datos_utf8)
 
     def _escribir_linea_log(self, llamada_log, datos_calificacion, calificacion):
@@ -206,10 +211,10 @@ class ReporteContactadosCSV(EstadisticasBaseCampana, ReporteCSV):
         tel_status, bd_contacto, datos_contacto = self.\
             _obtener_datos_contacto_contactados(llamada_log, calificacion, datos_contacto)
 
-        fecha_local_llamada = localtime(llamada_log.time)
-        duracion_llamada = llamada_log.duracion_llamada
-        if duracion_llamada > 0:
-            duracion_llamada = timedelta(0, duracion_llamada)
+        fecha_local_llamada = localtime(llamada_log.fecha_fin)
+        duracion_llamada = llamada_log.duracion_segundos
+        if duracion_llamada and float(duracion_llamada) > 0:
+            duracion_llamada = timedelta(seconds=float(duracion_llamada))
         else:
             duracion_llamada = 'N/A'
         registro = []
@@ -252,7 +257,7 @@ class ReporteContactadosCSV(EstadisticasBaseCampana, ReporteCSV):
                 for campo in campos:
                     registro.append(str(datos.get(campo.nombre_campo, '')).replace('\r\n', ' '))
 
-        lista_datos_utf8 = [force_text(item) for item in registro]
+        lista_datos_utf8 = [force_str(item) for item in registro]
         self.datos.append(lista_datos_utf8)
 
 
@@ -321,7 +326,7 @@ class ReporteCalificadosCSV(EstadisticasBaseCampana, ReporteCSV):
                     for campo in campos:
                         nombre = campo.nombre_campo
                         encabezado.append(nombre)
-        lista_datos_utf8 = [force_text(item) for item in encabezado]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
         self.datos.append(lista_datos_utf8)
 
     def _escribir_linea_calificacion(self, calificacion_val, log_llamada):
@@ -339,7 +344,7 @@ class ReporteCalificadosCSV(EstadisticasBaseCampana, ReporteCSV):
         # analizamos el log para ver si se muestra como contactado o no
         # mas alla de que se haya calificado, ya que deberíamos estar analizando el
         # ultimo evento disponible
-        if log_llamada.event in LlamadaLog.EVENTOS_NO_CONEXION:
+        if log_llamada.event in LlamadaResumen.EVENTOS_NO_CONEXION:
             lista_opciones.append(NO_CONECTADO_DESCRIPCION[log_llamada.event])
         else:
             lista_opciones.append(_("Contactado"))
@@ -388,7 +393,7 @@ class ReporteCalificadosCSV(EstadisticasBaseCampana, ReporteCSV):
                 lista_opciones.append(
                     str(datos.get(campo.nombre_campo, '')).replace('\r\n', ' '))
 
-        lista_datos_utf8 = [force_text(item) for item in lista_opciones]
+        lista_datos_utf8 = [force_str(item) for item in lista_opciones]
         self.datos.append(lista_datos_utf8)
 
 
@@ -432,13 +437,13 @@ class ReporteNoAtendidosCSV(EstadisticasBaseCampana, ReporteCSV):
         encabezado.append(_("id base de datos"))
         encabezado.append(_("base de datos"))
 
-        lista_datos_utf8 = [force_text(item) for item in encabezado]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
         self.datos.append(lista_datos_utf8)
 
     def _escribir_linea_log(self, log_no_contactado, contactos_dict, agentes_dict):
         lista_opciones = []
         # --- Buscamos datos
-        log_no_contactado_fecha_local = localtime(log_no_contactado.time)
+        log_no_contactado_fecha_local = localtime(log_no_contactado.fecha_fin)
         estado = NO_CONECTADO_DESCRIPCION.get(log_no_contactado.event, False)
         if estado:
             lista_opciones.append(log_no_contactado.numero_marcado)
@@ -469,7 +474,7 @@ class ReporteNoAtendidosCSV(EstadisticasBaseCampana, ReporteCSV):
             lista_opciones.append(bd_contacto)
 
             # --- Finalmente, escribimos la linea
-            lista_datos_utf8 = [force_text(item) for item in lista_opciones]
+            lista_datos_utf8 = [force_str(item) for item in lista_opciones]
             self.datos.append(lista_datos_utf8)
 
     def inicializar_datos_contacto_base_anterior(self, logs_llamadas):
@@ -488,6 +493,180 @@ class ReporteNoAtendidosCSV(EstadisticasBaseCampana, ReporteCSV):
             contacto.bd_contacto_id,
             self.nombres_bases[contacto.bd_contacto_id]
         )
+
+
+class ReporteCalificacionesPorAgenteCSV(ReporteCSV):
+    def __init__(self, campana, key_task, fecha_desde, fecha_hasta):
+        self.campana = campana
+        self.fecha_desde = fecha_desde
+        self.fecha_hasta = fecha_hasta
+        self.datos = []
+
+        service = EstadisticasServiceV2(self.campana, self.fecha_desde, self.fecha_hasta)
+        estadisticas = service._calcular_estadisticas(
+            self.campana, self.fecha_desde, self.fecha_hasta
+        )
+        agentes_venta = estadisticas.get('agentes_venta', {})
+        calificaciones = list(estadisticas.get('calificaciones', ()))
+        total_ventas = estadisticas.get('total_ventas', 0)
+        total_calificados = estadisticas.get('total_calificados', 0)
+
+        self._escribir_encabezado(calificaciones)
+
+        cantidad_agentes = len(agentes_venta)
+        porcentaje_inicial = 100 if cantidad_agentes == 0 else 0
+        self.redis_connection.publish(key_task, porcentaje_inicial)
+
+        for i, estadisticas_agente in enumerate(agentes_venta.values(), start=1):
+            percentage = int((i / cantidad_agentes) * 100)
+            self.redis_connection.publish(key_task, percentage)
+            self._escribir_linea_agente(estadisticas_agente, calificaciones)
+
+        self._escribir_linea_totales(calificaciones, total_ventas, total_calificados)
+        self.redis_connection.publish(key_task, 100)
+
+    def _escribir_encabezado(self, calificaciones):
+        encabezado = [_('Agente'), _('Gestiones')]
+        encabezado.extend(calificaciones)
+        encabezado.append(_('Contactos calificados'))
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
+        self.datos.append(lista_datos_utf8)
+
+    def _escribir_linea_agente(self, estadisticas_agente, calificaciones):
+        registro = [
+            estadisticas_agente.get('nombre', ''),
+            estadisticas_agente.get('total_gestionados', 0),
+        ]
+        totales_calificaciones = estadisticas_agente.get('totales_calificaciones', {})
+        for calificacion in calificaciones:
+            registro.append(totales_calificaciones.get(calificacion, 0))
+        registro.append(estadisticas_agente.get('total_calificados', 0))
+        lista_datos_utf8 = [force_str(item) for item in registro]
+        self.datos.append(lista_datos_utf8)
+
+    def _escribir_linea_totales(self, calificaciones, total_ventas, total_calificados):
+        registro = [_('Totales'), total_ventas]
+        registro.extend([''] * len(calificaciones))
+        registro.append(total_calificados)
+        lista_datos_utf8 = [force_str(item) for item in registro]
+        self.datos.append(lista_datos_utf8)
+
+
+class ReporteInteraccionesPorAgenteCSV(ReporteCSV):
+    """Reporte CSV de interacciones por agente (tel/wa/fbmsn/email outbound-inbound)."""
+    def __init__(self, campana, key_task, fecha_desde, fecha_hasta):
+        self.campana = campana
+        self.fecha_desde = fecha_desde
+        self.fecha_hasta = fecha_hasta
+        self.datos = []
+
+        service = EstadisticasServiceV2(self.campana, self.fecha_desde, self.fecha_hasta)
+        estadisticas = service._calcular_estadisticas(
+            self.campana, self.fecha_desde, self.fecha_hasta
+        )
+        interacciones = estadisticas.get('interacciones_por_agente', [])
+
+        self._escribir_encabezado()
+
+        cantidad = len(interacciones)
+        porcentaje_inicial = 100 if cantidad == 0 else 0
+        self.redis_connection.publish(key_task, porcentaje_inicial)
+
+        for i, row in enumerate(interacciones, start=1):
+            percentage = int((i / cantidad) * 100)
+            self.redis_connection.publish(key_task, percentage)
+            self._escribir_linea_agente(row)
+
+        self.redis_connection.publish(key_task, 100)
+
+    def _escribir_encabezado(self):
+        encabezado = [
+            _('Agente'),
+            _('[tel] outbound'),
+            _('[tel] inbound'),
+            _('[whatsapp] outbound'),
+            _('[whatsapp] inbound'),
+            _('[fb msn] outbound'),
+            _('[fb msn] inbound'),
+            _('[email] outbound'),
+            _('[email] inbound'),
+        ]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
+        self.datos.append(lista_datos_utf8)
+
+    def _escribir_linea_agente(self, row):
+        registro = [
+            row.get('nombre', ''),
+            row.get('tel_out', 0) or 0,
+            row.get('tel_in', 0) or 0,
+            row.get('wa_out', 0) or 0,
+            row.get('wa_in', 0) or 0,
+            row.get('fbmsn_out', 0) or 0,
+            row.get('fbmsn_in', 0) or 0,
+            row.get('email_out', 0) or 0,
+            row.get('email_in', 0) or 0,
+        ]
+        lista_datos_utf8 = [force_str(item) for item in registro]
+        self.datos.append(lista_datos_utf8)
+
+
+class ReportePerformanceAgentesCSV(ReporteCSV):
+    """Reporte CSV de performance de agentes (Telefonía + Chat)."""
+    def __init__(self, campana, key_task, fecha_desde, fecha_hasta):
+        self.campana = campana
+        self.fecha_desde = fecha_desde
+        self.fecha_hasta = fecha_hasta
+        self.datos = []
+
+        service = EstadisticasServiceV2(self.campana, self.fecha_desde, self.fecha_hasta)
+        estadisticas = service._calcular_estadisticas(
+            self.campana, self.fecha_desde, self.fecha_hasta
+        )
+        performance = estadisticas.get('performance_agentes', [])
+
+        self._escribir_encabezado()
+
+        cantidad = len(performance)
+        porcentaje_inicial = 100 if cantidad == 0 else 0
+        self.redis_connection.publish(key_task, porcentaje_inicial)
+
+        for i, row in enumerate(performance, start=1):
+            percentage = int((i / cantidad) * 100)
+            self.redis_connection.publish(key_task, percentage)
+            self._escribir_linea_agente(row)
+
+        self.redis_connection.publish(key_task, 100)
+
+    def _escribir_encabezado(self):
+        encabezado = [
+            _('Agente'),
+            _('Telefonía - Gestiones %'),
+            _('Telefonía - ATV (s)'),
+            _('Telefonía - Transfer %'),
+            _('Chat - Gestiones %'),
+            _('Chat - Tiempo resolución (s)'),
+            _('Chat - Transfer %'),
+        ]
+        lista_datos_utf8 = [force_str(item) for item in encabezado]
+        self.datos.append(lista_datos_utf8)
+
+    def _escribir_linea_agente(self, row):
+        def _fmt(val):
+            if val is None:
+                return '--'
+            return val if isinstance(val, (int, float)) else str(val)
+
+        registro = [
+            row.get('nombre', ''),
+            _fmt(row.get('tel_gestiones_pct')),
+            _fmt(row.get('tel_atv')),
+            _fmt(row.get('tel_transfer_pct')),
+            _fmt(row.get('chat_gestiones_pct')),
+            _fmt(row.get('chat_avg_resolution')),
+            _fmt(row.get('chat_transfer_pct')),
+        ]
+        lista_datos_utf8 = [force_str(item) for item in registro]
+        self.datos.append(lista_datos_utf8)
 
 
 class ArchivoDeReporteCsv(object):
@@ -521,7 +700,7 @@ class ArchivoDeReporteCsv(object):
             self.sufijo_nombre_de_archivo)
 
     def _escribir_csv_writer_utf_8(self, csvwriter, datos):
-        lista_datos_utf8 = [force_text(item) for item in datos]
+        lista_datos_utf8 = [force_str(item) for item in datos]
         csvwriter.writerow(lista_datos_utf8)
 
     def ya_existe(self):
@@ -549,7 +728,10 @@ class ExportacionCampanaCSV(object):
         assert os.path.exists(archivo_de_reporte.url_descarga)
 
     def exportar_reportes_csv(self, campana, datos_contactados=None,
-                              datos_calificados=None, datos_no_atendidos=None):
+                              datos_calificados=None, datos_no_atendidos=None,
+                              datos_calificaciones_por_agente=None,
+                              datos_interacciones_por_agente=None,
+                              datos_performance_agentes=None):
 
         if datos_contactados is not None:
             # Reporte contactados
@@ -569,5 +751,26 @@ class ExportacionCampanaCSV(object):
             # Reporte no atendidos
             archivo_de_reporte = ArchivoDeReporteCsv(
                 campana, "no_atendidos", datos_no_atendidos)
+            archivo_de_reporte.crear_archivo_en_directorio()
+            archivo_de_reporte.escribir_archivo_datos_csv()
+
+        if datos_calificaciones_por_agente is not None:
+            # Reporte calificaciones por agente
+            archivo_de_reporte = ArchivoDeReporteCsv(
+                campana, "calificaciones_por_agente", datos_calificaciones_por_agente)
+            archivo_de_reporte.crear_archivo_en_directorio()
+            archivo_de_reporte.escribir_archivo_datos_csv()
+
+        if datos_interacciones_por_agente is not None:
+            # Reporte interacciones por agente
+            archivo_de_reporte = ArchivoDeReporteCsv(
+                campana, "interacciones_por_agente", datos_interacciones_por_agente)
+            archivo_de_reporte.crear_archivo_en_directorio()
+            archivo_de_reporte.escribir_archivo_datos_csv()
+
+        if datos_performance_agentes is not None:
+            # Reporte performance de agentes
+            archivo_de_reporte = ArchivoDeReporteCsv(
+                campana, "performance_agentes", datos_performance_agentes)
             archivo_de_reporte.crear_archivo_en_directorio()
             archivo_de_reporte.escribir_archivo_datos_csv()

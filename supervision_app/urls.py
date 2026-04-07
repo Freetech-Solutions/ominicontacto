@@ -19,8 +19,17 @@
 from django.urls import path
 from django.contrib.auth.decorators import login_required
 from supervision_app.views import (
-    SupervisionAgentesView, SupervisionCampanasEntrantesView, SupervisionCampanasSalientesView,
-    SupervisionCampanasDialerView
+    SupervisionAgentesView,
+    SupervisionCampanasEntrantesView,
+    SupervisionCampanasSalientesView,
+    SupervisionCampanasDialerView,
+    DashboardContactCenterView,
+    DashboardContactCenterCampaignView,
+    dashboard_contact_center_data,
+    dashboard_contact_center_agentes,
+    dashboard_contact_center_agentes_lista,
+    dashboard_contact_center_bots_campana,
+    dashboard_contact_center_llamadas,
 )
 
 urlpatterns = [
@@ -39,5 +48,34 @@ urlpatterns = [
     path('supervision/campanas/dialer/',
          login_required(SupervisionCampanasDialerView.as_view()),
          name='supervision_campanas_dialer',
+         ),
+    # Rutas de Dashboard (Panel General)
+    path('supervision/<int:id_camp>/panel-general/',
+         login_required(DashboardContactCenterCampaignView.as_view()),
+         name='supervision_contact_center_campaign',
+         ),
+    path('supervision/panel-general/',
+         login_required(DashboardContactCenterView.as_view()),
+         name='supervision_contact_center',
+         ),
+    path('supervision/panel-general/data/',
+         login_required(dashboard_contact_center_data),
+         name='supervision_contact_center_data',
+         ),
+    path('supervision/panel-general/data/agentes/',
+         login_required(dashboard_contact_center_agentes),
+         name='supervision_contact_center_agentes',
+         ),
+    path('supervision/panel-general/data/agentes-lista/',
+         login_required(dashboard_contact_center_agentes_lista),
+         name='supervision_contact_center_agentes_lista',
+         ),
+    path('supervision/panel-general/data/bots-campana/',
+         login_required(dashboard_contact_center_bots_campana),
+         name='supervision_contact_center_bots_campana',
+         ),
+    path('supervision/panel-general/data/llamadas/',
+         login_required(dashboard_contact_center_llamadas),
+         name='supervision_contact_center_llamadas',
          ),
 ]

@@ -30,7 +30,7 @@ import datetime
 import json
 
 from django.conf import settings
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.translation import gettext as _
 
 from ominicontacto_app.utiles import crear_archivo_en_media_root
@@ -85,7 +85,7 @@ class ArchivoDeReporteCsv(object):
             csvwiter = csv.writer(csvfile)
 
             # guardamos encabezado
-            lista_encabezados_utf8 = [force_text(item) for item in encabezado]
+            lista_encabezados_utf8 = [force_str(item) for item in encabezado]
             csvwiter.writerow(lista_encabezados_utf8)
 
             # Iteramos cada una de las calificaciones del agente
@@ -109,7 +109,7 @@ class ArchivoDeReporteCsv(object):
                     lista_opciones.append(dato)
                 # --- Finalmente, escribimos la linea
 
-                lista_opciones_utf8 = [force_text(item) for item in lista_opciones]
+                lista_opciones_utf8 = [force_str(item) for item in lista_opciones]
                 csvwiter.writerow(lista_opciones_utf8)
 
     def ya_existe(self):

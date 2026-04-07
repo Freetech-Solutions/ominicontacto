@@ -27,6 +27,7 @@ export default {
     preview: 'Preview | Previews',
     group: 'Group | Groups',
     group_info: 'Group {info} | Groups {info}',
+    bots: 'Bot | Bots',
     penalty: 'Penalty',
     agents_campaign: 'Campaign agents',
     clean_object: 'Clean {object}',

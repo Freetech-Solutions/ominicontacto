@@ -26,6 +26,9 @@ from ominicontacto_app.services.asterisk.redis_database import AgenteFamily
 from ominicontacto_app.services.asterisk.asterisk_ami import AMIManagerConnector
 from notification_app.notification import RedisStreamNotifier, AgentNotifier
 
+import logging
+logger = logging.getLogger(__name__)
+
 
 class AgentActivityAmiManager(object):
     redis_connection = None
@@ -41,30 +44,17 @@ class AgentActivityAmiManager(object):
         self.manager.disconnect()
 
     def login_agent(self, agente_profile, manage_connection=False):
-        if manage_connection:
-            self.connect_manager()
-        error = self._close_open_session(agente_profile)
-        # Inicio nueva sesión
-        if not error:
-            error = self._queue_add_remove(agente_profile, 'QueueAdd')
-        if not error:
-            error = self._set_agent_redis_status(agente_profile, 'login')
-        if manage_connection:
-            self.disconnect_manager()
+        # Solo actualiza el estado en Redis, sin ejecutar comandos AMI
+        error = self._set_agent_redis_status(agente_profile, 'login')
         return error
 
     def logout_agent(self, agente_profile, manage_connection=False):
-        if manage_connection:
-            self.connect_manager()
-        queue_remove_error = self._queue_add_remove(agente_profile, 'QueueRemove')
-        if manage_connection:
-            self.disconnect_manager()
+        # Solo actualiza el estado en Redis, sin ejecutar comandos AMI
         insert_redis_error = self._set_agent_redis_status(agente_profile, 'logout')
-        return queue_remove_error, insert_redis_error
+        return False, insert_redis_error
 
     def set_agent_ringing(self, agente_profile, ringing, manage_connection=False):
-        if manage_connection:
-            self.connect_manager()
+        # Sin conexión AMI; solo actualiza estado en Redis
         if ringing:
             insert_redis_error = self._set_agent_redis_status(agente_profile, 'RINGING')
         else:
@@ -82,33 +72,24 @@ class AgentActivityAmiManager(object):
         else:
             pause_name = Pausa.objects.activa_by_pauseid(pause_id).nombre
 
-        if manage_connection:
-            self.connect_manager()
-        queue_pause_error = self._queue_pause_unpause(agente_profile, pause_id, 'pause')
-        if manage_connection:
-            self.disconnect_manager()
-
+        # Solo actualiza el estado en Redis, sin ejecutar comandos AMI
         insert_redis_error = self._set_agent_pause_redis_status(
             agente_profile, pause_name, pause_id)
 
         if not insert_redis_error and supervisor:
             AgentNotifier().notify_pause(agente_profile.user.id, pause_id, pause_name)
-        return queue_pause_error, insert_redis_error
+        return False, insert_redis_error
 
     def unpause_agent(self, agente_profile, pause_id, manage_connection=False, supervisor=False):
         # Me aseguro q exista la pausa activa:
         if pause_id not in ('0', '00', 'OW'):
             pause_id = Pausa.objects.activa_by_pauseid(pause_id).id
 
-        if manage_connection:
-            self.connect_manager()
-        queue_unpause_error = self._queue_pause_unpause(agente_profile, pause_id, 'unpause')
-        if manage_connection:
-            self.disconnect_manager()
+        # Solo actualiza el estado en Redis, sin ejecutar comandos AMI
         insert_redis_error = self._set_agent_redis_status(agente_profile, 'unpause')
         if not insert_redis_error and supervisor:
             AgentNotifier().notify_unpause(agente_profile.user.id, pause_id)
-        return queue_unpause_error, insert_redis_error
+        return False, insert_redis_error
 
     def set_agent_as_unavailable(self, agente_profile):
         self._set_agent_redis_status(agente_profile, 'UNAVAILABLE')
@@ -116,12 +97,21 @@ class AgentActivityAmiManager(object):
     def set_agent_as_disabled(self, agente_profile):
         self._set_agent_redis_status(agente_profile, 'DISABLED')
 
+    def set_agent_as_ready(self, agente_profile):
+        """
+        Establece el estado del agente en READY sin realizar acciones sobre
+        las colas de Asterisk. Solo actualiza el estado en Redis.
+        """
+        # Reutilizamos la semántica de 'login', que en Redis mapea a READY
+        self._set_agent_redis_status(agente_profile, 'login')
+
     def hangup_current_call(self, agente_profile):
-        self.connect_manager()
-        data_returned, error = self.manager._ami_manager(action='Hangup',
-                                                         content=agente_profile.sip_extension)
-        self.disconnect_manager()
-        return error
+        # Django no conecta a Asterisk; hangup debe hacerse vía Redis/ACD si se implementa
+        logger.debug(
+            "hangup_current_call: omitido (sin conexión AMI); agente=%s",
+            agente_profile.id,
+        )
+        return False
 
     def _get_family(self, agente_profile):
         agente_family = AgenteFamily()
@@ -155,29 +145,16 @@ class AgentActivityAmiManager(object):
         return content
 
     def _queue_add_remove(self, agente_profile, action):
-        content = self._get_queue_data(agente_profile)
-        data_returned, error = self.manager._ami_manager(action, content)
-        return error
+        # Sincronización con Asterisk la hace el ACD (p. ej. asterisk_transition.py)
+        return False
 
     def _queue_pause_unpause(self, agente_profile, pause_id, action):
-        if action == 'unpause':
-            pause_state = 'false'
-        elif action == 'pause':
-            pause_state = 'true'
-        content = self._get_queue_data(agente_profile)
-        content.append(pause_id)
-        content.append(pause_state)
-        data_returned, error = self.manager._ami_manager('QueuePause', content)
+        # Sincronización con Asterisk la hace el ACD
+        return False
 
     def _close_open_session(self, agente_profile):
-        status, error = self._get_redis_agent_status(agente_profile)
-        if not error and not status == 'OFFLINE':
-            # Finalizo posibles pausas en curso.
-            error = self._queue_pause_unpause(agente_profile, '', 'unpause')
-            # Finalizo posible sesión en curso.
-            if not error:
-                error = self._queue_add_remove(agente_profile, 'QueueRemove')
-        return error
+        # Sin AMI; la sincronización de colas con Asterisk la hace el ACD
+        return False
 
     def get_redis_connection(self):
         if self.redis_connection is None:

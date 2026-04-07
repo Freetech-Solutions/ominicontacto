@@ -447,7 +447,7 @@ input[type=file].form-control {
     max-width: 230px;
     min-height: 100vh;
     background-color: #ECEEEA;
-   /* transition: 0.3s;*/
+    transition: all 0.3s ease;
 }
 .sidebar-header {
     height: 60px;
@@ -533,6 +533,17 @@ input[type=file].form-control {
 }
 
 @media (min-width: 768px) {
+    #topbar #sidebarCollapse {
+        display: inline-block;
+    }
+    /* Sidebar completamente oculto */
+    #sidebar.hidden {
+        min-width: 0;
+        max-width: 0;
+        width: 0;
+        overflow: hidden;
+        transition: all 0.3s;
+    }
 
     #sidebar.active {
         min-width: 60px;
@@ -879,6 +890,13 @@ body.wrapper-page-error {
 
     #sidebar {
         margin-left: -220px;
+        &.hidden {
+            margin-left: -220px;
+            min-width: 0;
+            max-width: 0;
+            width: 0;
+            overflow: hidden;
+        }
         .active {
         margin-left: 0;
         min-width: 220px;

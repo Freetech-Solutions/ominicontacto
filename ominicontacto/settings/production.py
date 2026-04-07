@@ -18,10 +18,9 @@
 from .addons import *
 from .defaults import *
 from .checks import (check_settings_variables, process_middleware_settings,
-                     check_asterisk_connect_settings, check_audio_conversor_settings)
+                     check_audio_conversor_settings)
 
 COMPRESS_ENABLED = True
-TEMPLATE_DEBUG = DEBUG
 DJANGO_CORS_HEADERS = False
 INTERNAL_IPS = ['127.0.0.1']
 
@@ -35,9 +34,9 @@ try:
 except ImportError:
     raise Exception("No se pudo importar oml_settings_local")
 
-(MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE_CLASSES,
+(MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE,
  TEMPLATES_CONTEXT_PROCESORS_APPEND, TEMPLATES) = process_middleware_settings(
-     MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE_CLASSES,
+     MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE,
      TEMPLATES_CONTEXT_PROCESORS_APPEND, TEMPLATES)
 
 VARIABLES_LIST = [
@@ -60,7 +59,7 @@ VARIABLES_LIST = [
     (ASTERISK_AUDIO_PATH, 'ASTERISK_AUDIO_PATH'),
     (OML_AUDIO_FOLDER, 'OML_AUDIO_FOLDER'),
     (OML_PLAYLIST_FOLDER, 'OML_PLAYLIST_FOLDER'),
-    (MONITORFORMAT, 'MONITORFORMAT'),
+    (MONITORFORMAT, 'MONITORFORMAT') or 'mp3',
     (TOKEN_EXPIRED_AFTER_SECONDS, 'TOKEN_EXPIRED_AFTER_SECONDS'),
     (OML_BRANCH, 'OML_BRANCH'),
     (OML_COMMIT, 'OML_COMMIT'),
@@ -83,13 +82,9 @@ else:
 
 check_settings_variables(VARIABLES_LIST)
 
-check_asterisk_connect_settings(ASTERISK)
-
 check_audio_conversor_settings(TMPL_OML_AUDIO_CONVERSOR)
 
 # Una vez que tengo ASTERISK_AUDIO_PATH y OML_AUDIO_FOLDER puedo calcular OML_AUDIO_PATH_ASTERISK
 OML_AUDIO_PATH_ASTERISK = ASTERISK_AUDIO_PATH + OML_AUDIO_FOLDER
 # Lo mismo con OML_PLAYLIST_PATH_ASTERISK
 OML_PLAYLIST_PATH_ASTERISK = ASTERISK_AUDIO_PATH + OML_PLAYLIST_FOLDER
-
-MIDDLEWARE = MIDDLEWARE_CLASSES

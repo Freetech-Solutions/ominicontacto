@@ -21,7 +21,7 @@ Excepciones base del sistema.
 """
 
 from __future__ import unicode_literals
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 
 class OmlError(Exception):
@@ -83,11 +83,11 @@ class OmlParserCsvImportacionError(OmlError):
         self._numero_columna = numero_columna
 
         # Transformamos en unicode, ignorando errores ('replace')
-        fila_unicode = [force_text(item, errors='ignore') for item in fila]
+        fila_unicode = [force_str(item, errors='ignore') for item in fila]
         self._fila = u', '.join(fila_unicode)
 
         # Transformamos en unicode, ignorando errores ('replace')
-        self._valor_celda = force_text(valor_celda, errors='ignore')
+        self._valor_celda = force_str(valor_celda, errors='ignore')
 
     @property
     def numero_fila(self):

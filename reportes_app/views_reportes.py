@@ -34,7 +34,7 @@ from ominicontacto_app.forms.base import ReporteCampanaForm
 
 from ominicontacto_app.models import AgenteProfile, Campana, RespuestaFormularioGestion
 
-from ominicontacto_app.services.estadisticas_campana import EstadisticasService
+from ominicontacto_app.services.estadisticas_campana_v2 import EstadisticasServiceV2
 
 from ominicontacto_app.services.reporte_agente import EstadisticasAgenteService
 from ominicontacto_app.services.reporte_campana_calificacion import ReporteCampanaService
@@ -48,6 +48,107 @@ from reportes_app.reportes.reporte_llamados_contactados_csv import (
 )
 from ominicontacto_app.services.reporte_resultados_de_base_csv import (
     ExportacionReporteCSV
+)
+from reportes_app.reportes.reporte_nivel_servicio import ReporteNivelServicio
+from reportes_app.forms import ReporteNivelServicioForm
+from reportes_app.services.exportacion_canalidades_centro_contacto import (
+    obtener_url_descarga_canalidades,
+)
+from reportes_app.services.exportacion_canalidades_egresos_centro_contacto import (
+    obtener_url_descarga_canalidades_egresos,
+)
+from reportes_app.services.exportacion_canalidades_por_hora_centro_contacto import (
+    obtener_url_descarga_canalidades_por_hora,
+)
+from reportes_app.services.exportacion_canalidades_por_hora_egresos_centro_contacto import (
+    obtener_url_descarga_canalidades_por_hora_egresos,
+)
+from reportes_app.services.exportacion_canalidades_por_dia_centro_contacto import (
+    obtener_url_descarga_canalidades_por_dia,
+)
+from reportes_app.services.exportacion_canalidades_por_dia_egresos_centro_contacto import (
+    obtener_url_descarga_canalidades_por_dia_egresos,
+)
+from reportes_app.services.exportacion_canalidades_por_mes_centro_contacto import (
+    obtener_url_descarga_canalidades_por_mes,
+)
+from reportes_app.services.exportacion_canalidades_por_mes_egresos_centro_contacto import (
+    obtener_url_descarga_canalidades_por_mes_egresos,
+)
+from reportes_app.services.exportacion_llamadas_atendidas_centro_contacto import (
+    obtener_url_descarga_llamadas_atendidas,
+)
+from reportes_app.services.exportacion_llamadas_atendidas_egresos_centro_contacto import (
+    obtener_url_descarga_llamadas_atendidas_egresos,
+)
+from reportes_app.services.exportacion_llamadas_no_atendidas_centro_contacto import (
+    obtener_url_descarga_llamadas_no_atendidas,
+)
+from reportes_app.services.exportacion_llamadas_no_atendidas_egresos_centro_contacto import (
+    obtener_url_descarga_llamadas_no_atendidas_egresos,
+)
+from reportes_app.services.exportacion_llamadas_voz_centro_contacto import (
+    obtener_url_descarga_llamadas_voz,
+)
+from reportes_app.services.exportacion_llamadas_voz_egresos_centro_contacto import (
+    obtener_url_descarga_llamadas_voz_egresos,
+)
+from reportes_app.services.exportacion_llamadas_por_hora_centro_contacto import (
+    obtener_url_descarga_llamadas_por_hora,
+)
+from reportes_app.services.exportacion_llamadas_por_hora_egresos_centro_contacto import (
+    obtener_url_descarga_llamadas_por_hora_egresos,
+)
+from reportes_app.services.exportacion_llamadas_por_dia_centro_contacto import (
+    obtener_url_descarga_llamadas_por_dia,
+)
+from reportes_app.services.exportacion_llamadas_por_dia_egresos_centro_contacto import (
+    obtener_url_descarga_llamadas_por_dia_egresos,
+)
+from reportes_app.services.exportacion_llamadas_por_mes_centro_contacto import (
+    obtener_url_descarga_llamadas_por_mes,
+)
+from reportes_app.services.exportacion_llamadas_por_mes_egresos_centro_contacto import (
+    obtener_url_descarga_llamadas_por_mes_egresos,
+)
+from reportes_app.services.exportacion_conversaciones_respondidas_centro_contacto import (
+    obtener_url_descarga_conversaciones_respondidas,
+)
+from reportes_app.services.exportacion_conversaciones_respondidas_egresos_centro_contacto import (
+    obtener_url_descarga_conversaciones_respondidas_egresos,
+)
+from reportes_app.services.exportacion_conversaciones_no_respondidas_centro_contacto import (
+    obtener_url_descarga_conversaciones_no_respondidas,
+)
+from reportes_app.services.exportacion_conversaciones_no_respondidas_egresos_centro_contacto import (
+    obtener_url_descarga_conversaciones_no_respondidas_egresos,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_hora,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_egresos_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_hora_egresos,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_campana,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_egresos_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_campana_egresos,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_dia_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_dia,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_dia_egresos_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_dia_egresos,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_mes_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_mes,
+)
+from reportes_app.services.exportacion_whatsapp_mensajes_por_mes_egresos_centro_contacto import (
+    obtener_url_descarga_whatsapp_mensajes_por_mes_egresos,
+)
+from reportes_app.services.exportacion_agents_activity_v2_listado import (
+    obtener_url_descarga_agents_activity_v2_listado,
 )
 
 
@@ -284,7 +385,7 @@ class CampanaReporteGraficoView(FormView):
         hoy = hoy_ahora.date()
         fecha_desde = fecha_hora_local(datetime.datetime.combine(hoy, datetime.time.min))
         fecha_hasta = fecha_hora_local(datetime.datetime.combine(hoy_ahora, datetime.time.max))
-        service = EstadisticasService(campana, fecha_desde, fecha_hasta)
+        service = EstadisticasServiceV2(campana, fecha_desde, fecha_hasta)
         # genera los reportes grafico de la campana
         graficos_estadisticas = service.general_campana()
         # generar el reporte pdf
@@ -295,12 +396,16 @@ class CampanaReporteGraficoView(FormView):
             pk_campana=self.kwargs['pk_campana']))
 
     def get_context_data(self, **kwargs):
+        from django.conf import settings
         context = super(CampanaReporteGraficoView, self).get_context_data(
             **kwargs)
         self.campana = self.get_object()
         context['campana'] = self.campana
         context['campana_entrante'] = (self.campana.type == Campana.TYPE_ENTRANTE)
         context['task_id'] = get_random_string(8)
+        # Agregar setting para verificar si es omnidialer
+        context['es_omnidialer'] = (hasattr(settings, 'OML_DIALER_ENGINE') and 
+                                     settings.OML_DIALER_ENGINE == 'omnidialer')
         return context
 
     def form_valid(self, form):
@@ -308,11 +413,9 @@ class CampanaReporteGraficoView(FormView):
         fecha = form.cleaned_data.get('fecha')
         fecha_desde, fecha_hasta = fecha.split('-')
         fecha_desde = convert_fecha_datetime(fecha_desde)
-        fecha_hasta = convert_fecha_datetime(fecha_hasta)
-        fecha_desde = datetime.datetime.combine(fecha_desde, datetime.time.min)
-        fecha_hasta = datetime.datetime.combine(fecha_hasta, datetime.time.max)
+        fecha_hasta = convert_fecha_datetime(fecha_hasta, final_dia=True)
         # generar el reporte grafico de acuerdo al periodo de fecha seleccionado
-        service = EstadisticasService(campana, fecha_desde, fecha_hasta)
+        service = EstadisticasServiceV2(campana, fecha_desde, fecha_hasta)
         graficos_estadisticas = service.general_campana()
         # genera el reporte pdf de la campana
         service_pdf = ReporteCampanaPDFService()
@@ -402,6 +505,66 @@ class ExportaReporteCalificadosView(View):
         return redirect(url)
 
 
+class ExportaReporteCalificacionesPorAgenteView(View):
+    """
+    Esta vista invoca a generar un csv de calificaciones por agente de la campana.
+    """
+
+    model = Campana
+    context_object_name = 'campana'
+
+    def get_object(self, queryset=None):
+        return Campana.objects.get(pk=self.kwargs['pk_campana'])
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        service_csv = ExportacionCampanaCSV()
+        url = service_csv.obtener_url_reporte_csv_descargar(
+            self.object, "calificaciones_por_agente")
+
+        return redirect(url)
+
+
+class ExportaReporteInteraccionesPorAgenteView(View):
+    """
+    Vista de descarga del CSV de interacciones por agente de la campana.
+    """
+
+    model = Campana
+    context_object_name = 'campana'
+
+    def get_object(self, queryset=None):
+        return Campana.objects.get(pk=self.kwargs['pk_campana'])
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        service_csv = ExportacionCampanaCSV()
+        url = service_csv.obtener_url_reporte_csv_descargar(
+            self.object, "interacciones_por_agente")
+
+        return redirect(url)
+
+
+class ExportaReportePerformanceAgentesView(View):
+    """
+    Vista de descarga del CSV de performance de agentes de la campana.
+    """
+
+    model = Campana
+    context_object_name = 'campana'
+
+    def get_object(self, queryset=None):
+        return Campana.objects.get(pk=self.kwargs['pk_campana'])
+
+    def get(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        service_csv = ExportacionCampanaCSV()
+        url = service_csv.obtener_url_reporte_csv_descargar(
+            self.object, "performance_agentes")
+
+        return redirect(url)
+
+
 class ExportaReporteResultadosDeBaseView(View):
     """
     Esta vista invoca un servicio para descargar
@@ -474,3 +637,734 @@ class AgenteCampanaReporteGrafico(FormView):
                                                         fecha_hasta)
         return self.render_to_response(self.get_context_data(
             graficos_estadisticas=graficos_estadisticas))
+
+
+class ReporteNivelServicioView(FormView):
+    """
+    Vista que muestra el reporte de Nivel de Servicio (Service Level)
+    """
+    template_name = 'reporte_nivel_servicio.html'
+    form_class = ReporteNivelServicioForm
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        user = self.request.user
+        
+        # Obtener campañas asignadas según el tipo de usuario
+        if user.get_is_administrador():
+            campanas_asignadas = Campana.objects.obtener_actuales()
+        else:
+            supervisor = user.get_supervisor_profile()
+            campanas_asignadas = supervisor.campanas_asignadas_actuales()
+        
+        kwargs['campanas_asignadas'] = campanas_asignadas
+        return kwargs
+
+    def get_initial(self):
+        initial = super().get_initial()
+        hoy = fecha_hora_local(timezone.now()).date()
+        initial['fecha'] = ' - '.join([hoy.strftime('%d/%m/%Y')] * 2)
+        initial['tiempo_objetivo'] = 20
+        return initial
+
+    def get(self, request, *args, **kwargs):
+        """Muestra el reporte con datos del día actual por defecto"""
+        hoy_ahora = fecha_hora_local(timezone.now())
+        hoy = hoy_ahora.date()
+        fecha_desde = datetime.datetime.combine(hoy, datetime.time.min)
+        fecha_hasta = datetime.datetime.combine(hoy_ahora, datetime.time.max)
+        
+        # Obtener campañas entrantes y Dialer
+        user = request.user
+        if user.get_is_administrador():
+            campanas = Campana.objects.obtener_actuales().filter(
+                type__in=[Campana.TYPE_ENTRANTE, Campana.TYPE_DIALER])
+        else:
+            supervisor = user.get_supervisor_profile()
+            campanas = supervisor.campanas_asignadas_actuales().filter(
+                type__in=[Campana.TYPE_ENTRANTE, Campana.TYPE_DIALER])
+        
+        # Generar reporte
+        reporte = ReporteNivelServicio(
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            campanas=campanas,
+            tiempo_objetivo=20
+        )
+        
+        return self.render_to_response(self.get_context_data(
+            desde=fecha_desde,
+            hasta=fecha_hasta,
+            estadisticas=reporte.estadisticas,
+            estadisticas_por_campana=reporte.estadisticas_por_campana,
+            kpis=reporte.obtener_kpis(),
+        ))
+
+    def form_valid(self, form):
+        """Procesa el formulario y genera el reporte"""
+        fecha_desde = form.desde
+        fecha_hasta = form.hasta
+        tiempo_objetivo = form.cleaned_data.get('tiempo_objetivo', 20)
+        campana_id = form.cleaned_data.get('campana')
+        
+        # Obtener campañas según filtro (entrantes y Dialer)
+        user = self.request.user
+        if user.get_is_administrador():
+            campanas = Campana.objects.obtener_actuales().filter(
+                type__in=[Campana.TYPE_ENTRANTE, Campana.TYPE_DIALER])
+        else:
+            supervisor = user.get_supervisor_profile()
+            campanas = supervisor.campanas_asignadas_actuales().filter(
+                type__in=[Campana.TYPE_ENTRANTE, Campana.TYPE_DIALER])
+        
+        # Filtrar por campaña específica si se seleccionó
+        if campana_id:
+            campanas = campanas.filter(id=campana_id)
+        
+        # Generar reporte
+        reporte = ReporteNivelServicio(
+            fecha_desde=fecha_desde,
+            fecha_hasta=fecha_hasta,
+            campanas=campanas,
+            tiempo_objetivo=tiempo_objetivo
+        )
+        
+        return self.render_to_response(self.get_context_data(
+            desde=fecha_desde,
+            hasta=fecha_hasta,
+            estadisticas=reporte.estadisticas,
+            estadisticas_por_campana=reporte.estadisticas_por_campana,
+            kpis=reporte.obtener_kpis(),
+            tiempo_objetivo=tiempo_objetivo,
+        ))
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context.update(kwargs)
+        return context
+
+
+class DescargarCSVCanalidadesCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por campaña generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVCanalidadesEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por campaña (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVCanalidadesPorHoraCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por hora generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades_por_hora(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVCanalidadesPorHoraEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por hora (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades_por_hora_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVCanalidadesPorDiaCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por día generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades_por_dia(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVCanalidadesPorDiaEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por día (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades_por_dia_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVCanalidadesPorMesCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por mes generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades_por_mes(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVCanalidadesPorMesEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Canalidades por mes (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_canalidades_por_mes_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasAtendidasCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Listado de llamadas atendidas generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_atendidas(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasAtendidasEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Listado de llamadas atendidas (Egresos/Voz)
+    generado para task_id. El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_atendidas_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasNoAtendidasCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Listado de llamadas no atendidas generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_no_atendidas(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasNoAtendidasEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Listado de llamadas no atendidas (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_no_atendidas_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasVozCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas de voz por campaña generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_voz(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasVozEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas de voz por campaña (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_voz_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasPorHoraCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas por hora de día generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_por_hora(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasPorHoraEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas por hora de día (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_por_hora_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasPorDiaCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas por día generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_por_dia(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasPorDiaEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas por día (Egresos/Voz) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_por_dia_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasPorMesCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas por mes generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_por_mes(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVLlamadasPorMesEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Llamadas por mes (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_llamadas_por_mes_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVConversacionesRespondidasCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Conversaciones Respondidas generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_conversaciones_respondidas(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVConversacionesRespondidasEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Conversaciones Respondidas (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_conversaciones_respondidas_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVConversacionesNoRespondidasCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Conversaciones no respondidas generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_conversaciones_no_respondidas(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVConversacionesNoRespondidasEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Conversaciones no respondidas (Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_conversaciones_no_respondidas_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorHoraCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por hora de día (WhatsApp) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_hora(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorHoraEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por hora (WhatsApp Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_hora_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorCampanaCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por campaña (WhatsApp Ingresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_campana(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorCampanaEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por campaña (WhatsApp Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_campana_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorDiaCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por día (WhatsApp Ingresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_dia(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorDiaEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por día (WhatsApp Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_dia_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorMesCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por mes (WhatsApp Ingresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_mes(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVWhatsappMensajesPorMesEgresosCentroContactoView(View):
+    """
+    GET: redirige al archivo CSV de Mensajes por mes (WhatsApp Egresos) generado para task_id.
+    El usuario debe tener permiso de reporte centro de contacto.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_whatsapp_mensajes_por_mes_egresos(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)
+
+
+class DescargarCSVAgentsActivityV2ListadoView(View):
+    """
+    GET: redirige al archivo CSV de agents-activity-v2/Listado generado para task_id.
+    """
+    def get(self, request, *args, **kwargs):
+        task_id = kwargs.get('task_id', '').strip()
+        if not task_id:
+            from django.http import HttpResponseBadRequest
+            return HttpResponseBadRequest(_('Falta task_id'))
+        url = obtener_url_descarga_agents_activity_v2_listado(task_id)
+        if url is None:
+            from django.http import HttpResponseNotFound
+            return HttpResponseNotFound(
+                _('El archivo no existe o aún no ha sido generado.')
+            )
+        return redirect(url)

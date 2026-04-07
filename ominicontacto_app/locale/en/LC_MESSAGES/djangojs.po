@@ -657,6 +657,11 @@ msgstr "Audit"
 msgid "Acciones"
 msgstr "Actions"
 
+#: ominicontacto_app/static/ominicontacto/JS/dashboardAgentes.js:67
+#: ominicontacto_app/static/ominicontacto/JS/dashboardAgentes.js:104
+msgid "Pausa"
+msgstr "Pause"
+
 #: ominicontacto_app/static/ominicontacto/JS/l18n_constantes.js:1
 msgid "Agregar campo"
 msgstr "Add field"

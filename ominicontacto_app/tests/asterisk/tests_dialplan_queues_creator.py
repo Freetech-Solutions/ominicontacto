@@ -36,7 +36,12 @@ from django.db import connections
 
 class QueuesCreatorTest(OMLBaseTest):
     """
-    Testea que se generen bien los dialplan para Campañas
+    Testea que se generen bien los dialplan para Campañas.
+
+    Nota: Estos tests verifican únicamente la generación del dialplan en memoria.
+    A partir de OML-XXX, el archivo oml_queues.conf ya no se genera ni se escribe
+    en el sistema de archivos. La configuración de colas se gestiona ahora por
+    otros mecanismos (ARI/ACD).
     """
 
     def setUp(self):

@@ -1,0 +1,43 @@
+/* ============================================
+   DASHBOARD DE CAMPAÑAS - ESTILOS
+   ============================================
+   
+   Este archivo contiene los estilos específicos
+   para la vista de dashboard de campañas.
+   ============================================ */
+
+/* ============================================
+   COMPONENTES: TARJETAS Y MÉTRICAS
+   ============================================ */
+
+/* Tamaño de fuente para valores grandes en tarjetas */
+.card .display-4 {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: inherit;
+}
+
+/* Espaciado del título en tarjetas */
+.card .card-title {
+    margin-bottom: 1rem;
+    font-weight: 600;
+}
+
+/* ============================================
+   MEJORAS DE LEGIBILIDAD
+   ============================================ */
+
+/* Mejora la legibilidad de las métricas */
+.card-body .display-4 {
+    line-height: 1.2;
+}
+
+/* Espaciado consistente en listas de métricas */
+.card-body .d-flex {
+    padding: 0.25rem 0;
+}
+
+/* Mejora visual para valores destacados */
+.font-weight-bold {
+    font-weight: 600 !important;
+}

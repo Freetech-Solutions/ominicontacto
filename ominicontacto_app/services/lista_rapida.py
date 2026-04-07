@@ -19,7 +19,7 @@
 
 from __future__ import unicode_literals
 
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 from django.utils.translation import gettext as _
 from django.contrib import messages
 
@@ -142,7 +142,7 @@ class ListaRapidaArchivoCSVParser(object):
 
         Los caracteres invalidos NO son borrados.
         """
-        nombre = smart_text(nombre)
+        nombre = smart_str(nombre)
         nombre = nombre.strip()
         nombre = DOUBLE_SPACES.sub("_", nombre)
         nombre = elimina_tildes(nombre)
@@ -230,7 +230,7 @@ class ValidaListaRapidaService(object):
         lineas = []
         for linea in lineas_unsafe:
             lineas.append(
-                [smart_text(col) for col in linea]
+                [smart_str(col) for col in linea]
             )
         del lineas_unsafe
 

@@ -26,7 +26,7 @@ from django.utils.timezone import now
 from mock import patch
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
 from ominicontacto_app.models import User
-from reportes_app.models import ActividadAgenteLog
+from reportes_app.models import AgentActivityEventV2
 from ominicontacto_app.tests.factories import ActividadAgenteLogFactory
 
 
@@ -89,7 +89,7 @@ class LoginTests(OMLBaseTest):
     def test_logs_agent_login(
             self, add_login_attempt_to_db, check_request, is_already_locked,
             generar_sip_password, generar_sip_user):
-        cant_logs = ActividadAgenteLog.objects.count()
+        cant_v2 = AgentActivityEventV2.objects.count()
         is_already_locked.return_value = False
         check_request.return_value = True
         consola_agente_url = reverse('consola_de_agente')
@@ -97,7 +97,7 @@ class LoginTests(OMLBaseTest):
         login_data = {'username': self.agente.user.username, 'password': PASSWORD}
         response = self.client.post(login_url, login_data, follow=True)
         self.assertRedirects(response, consola_agente_url)
-        self.assertEqual(ActividadAgenteLog.objects.count(), cant_logs + 1)
-        log = ActividadAgenteLog.objects.last()
-        self.assertEqual(log.agente_id, self.agente.id)
-        self.assertEqual(log.event, ActividadAgenteLog.LOGIN)
+        self.assertEqual(AgentActivityEventV2.objects.count(), cant_v2 + 1)
+        last_event = AgentActivityEventV2.objects.order_by('-id').first()
+        self.assertEqual(last_event.agente_id, self.agente.id)
+        self.assertEqual(last_event.event_type, AgentActivityEventV2.EventType.SESSION_LOGIN)

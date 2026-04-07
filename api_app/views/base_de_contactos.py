@@ -17,7 +17,7 @@
 #
 
 import re
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.utils.encoding import smart_str
 from django.core.exceptions import ValidationError
 from rest_framework.renderers import JSONRenderer

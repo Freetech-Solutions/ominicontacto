@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'supervision_app/CSS/contact_center.css' %}">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+{% endblock %}
+
+{% block head_js %}
+{% include 'config.html' %}
+<script type="text/javascript" src="{% static 'ominicontacto/JS/config.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/csrf.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/ext/jssip.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/ext/state-machine-min.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/agente/phoneJsFSM.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/agente/phoneJsSip.js' %}"></script>
+<script type="text/javascript" src="{% static 'supervision_app/JS/phoneJsView.js' %}"></script>
+<script type="text/javascript" src="{% static 'supervision_app/JS/phoneJsController.js' %}"></script>
+<script type="text/javascript">
+$(function() {
+    var supervisorId = $('#supervisor_id').val();
+    var sipExt = $('#sipExt').val();
+    var sipSec = $('#sipSec').val();
+    if (supervisorId && sipExt && sipSec) {
+        window.contactCenterPhoneController = new PhoneJSController(supervisorId, sipExt, sipSec);
+    }
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Definir las URLs antes de que Alpine.js se cargue
+    window.CONTACT_CENTER_DATA_URL = "{% url 'supervision_contact_center_data' %}";
+    window.CONTACT_CENTER_AGENTES_URL = "{% url 'supervision_contact_center_agentes' %}";
+    window.CONTACT_CENTER_AGENTES_LISTA_URL = "{% url 'supervision_contact_center_agentes_lista' %}";
+    window.CONTACT_CENTER_LLAMADAS_URL = "{% url 'supervision_contact_center_llamadas' %}";
+    window.CONTACT_CENTER_BOTS_CAMPANA_URL = "{% url 'supervision_contact_center_bots_campana' %}";
+    window.CONTACT_CENTER_SUPERVISOR_ID = {{ supervisor_id|default:0 }};
+    window.CONTACT_CENTER_API_ACTION_AGENT = "{% url 'api_accion_sobre_agente' pk=0 %}".replace(/\/0\/$/, '/');
+    window.CONTACT_CENTER_API_SPY = "{% url 'api_call_spy' %}";
+    window.CONTACT_CENTER_API_THREE_WAY = "{% url 'api_three_way_conf' %}";
+    window.CONTACT_CENTER_API_SEND_MESSAGE = "{% url 'api_enviar_mensaje_agentes' %}";
+    {% if initial_campaign_id %}
+    window.CONTACT_CENTER_INITIAL_CAMPAIGN_ID = {{ initial_campaign_id }};
+    {% else %}
+    window.CONTACT_CENTER_INITIAL_CAMPAIGN_ID = null;
+    {% endif %}
+</script>
+<script type="text/javascript" src="{% static 'supervision_app/JS/contact_center.js' %}"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div x-data="contactCenterDashboard" x-init="init()" @alpine:destroy="cleanup()" class="contact-center-container">
+    <!-- Contenido oculto necesario para PhoneJS / WebRTC -->
+    <input type="hidden" value="{{ supervisor_id|default:'' }}" id="supervisor_id" />
+    <input type="hidden" value="{{ sip_usuario|default:'' }}" id="sipExt" />
+    <input type="hidden" value="{{ sip_password|default:'' }}" id="sipSec" />
+    <audio id="remoteAudio" autoplay="autoplay"></audio>
+    <audio id="localAudio" muted="muted"></audio>
+    <audio id="RingIn">
+        <source id="fuenteIn" src="{% static 'ominicontacto/ring/Kuma.ogg' %}" type="audio/mpeg">
+    </audio>
+    <audio id="RingOut">
+        <source id="fuenteOut" src="{% static 'ominicontacto/ring/tonoallamar.ogg' %}" type="audio/mpeg">
+    </audio>
+    <audio id="RingBusy">
+        <source id="fuentebOut" src="{% static 'ominicontacto/ring/busy.ogg' %}" type="audio/mpeg">
+    </audio>
+    <!-- Barra SIP mínima (requerida por PhoneJSView) -->
+    <div class="sip-bar-contact-center" id="timeBar">
+        <div id="CallStatus"></div>
+        <div id="SipStatus"></div>
+        <span id="UserStatus"></span>
+        <button type="button" id="call" class="btn btn-sm" style="display: none;" aria-hidden="true"></button>
+        <button type="button" class="btn btn-danger btn-sm" id="endCall">{% trans "Finalizar" %}</button>
+    </div>
+
+    <div class="header">
+        <h1><i class="fas fa-headset"></i> Panel general</h1>
+        <div class="header-controls">
+            <div class="campaign-selector">
+                <label for="campaign-select" class="campaign-label">
+                    <i class="fas fa-filter"></i> Campaña:
+                </label>
+                <select 
+                    id="campaign-select" 
+                    x-model="campaignId" 
+                    @change="onCampaignChange()"
+                    class="campaign-select"
+                    required
+                >
+                    <option value="">{% trans 'Seleccione una campaña' %}</option>
+                    {% for campana in campanas %}
+                    <option value="{{ campana.id }}">{{ campana.nombre }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="status-info">
+                <span class="live-indicator">● En Vivo</span> | 
+                Última act: <span x-text="lastUpdate || '--:--:--'"></span>
+            </div>
+        </div>
+    </div>
+
+    <h2>Agentes, Tiempos y Llamadas (Real-Time)</h2>
+    <div class="dashboard-grid grid-realtime">
+        <div class="card metric-card">
+            <i class="fas fa-users metric-icon status-logueados"></i>
+            <div class="metric-value" x-text="data.agentes?.logueados || 0">0</div>
+            <div class="metric-label">Logueados Total</div>
+        </div>
+        <div class="card metric-card">
+            <i class="fas fa-check-circle metric-icon status-ready"></i>
+            <div class="metric-value" x-text="data.agentes?.ready || 0">0</div>
+            <div class="metric-label">LIBRE</div>
+        </div>
+        <div class="card metric-card">
+            <i class="fas fa-phone-volume metric-icon status-oncall"></i>
+            <div class="metric-value" x-text="data.agentes?.oncall || 0">0</div>
+            <div class="metric-label">EN LLAMADA</div>
+        </div>
+        <div class="card metric-card">
+            <i class="fas fa-pause-circle metric-icon status-pause"></i>
+            <div class="metric-value" x-text="data.agentes?.paused || 0">0</div>
+            <div class="metric-label">PAUSA</div>
+        </div>
+        <div class="card metric-card time-card">
+            <div class="metric-value" x-text="formatTime(data.llamadas?.call_times?.aht || 0)">0s</div>
+            <div class="metric-label">
+                <i class="fas fa-clock"></i> T. Promedio (AHT)
+            </div>
+        </div>
+        <div class="card metric-card time-card wait-card">
+            <div class="metric-value status-ringing" x-text="formatNumber(data.llamadas?.call_times?.gestion_positiva || 0)">0</div>
+            <div class="metric-label">
+                <i class="fas fa-check-circle"></i> Gestión positiva
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid grid-main">
+        <div class="card">
+            <h2>
+                <i class="fas fa-arrow-circle-up" style="color: #ff9800;"></i> Llamadas Outbound
+            </h2>
+            <div class="stats-summary" style="display: none;">
+                <div class="stat-item">
+                    <div class="stat-value" x-text="formatNumber(data.llamadas?.outbound?.discadas || 0)">0</div>
+                    <div class="stat-label">LL Discadas Total</div>
+                </div>
+            </div>
+            <div class="outbound-stats-table">
+                <template x-for="(item, index) in [
+                    { label: 'Atendidas (Human)', key: 'atendidas_human', color: '#4caf50' },
+                    { label: 'Atendidas (Bot)', key: 'atendidas_bot', color: '#8bc34a' },
+                    { label: 'Atendidas (Mixta)', key: 'atendidas_mix', color: '#66bb6a' },
+                    { label: 'Contestadores', key: 'contestadores', color: '#2196f3' },
+                    { label: 'Ocupado', key: 'ocupado', color: '#ff9800' },
+                    { label: 'Timeout', key: 'timeout', color: '#ff5722' },
+                    { label: 'Canceladas', key: 'canceladas', color: '#f44336' },
+                    { label: 'Shortcall', key: 'shortcall', color: '#607d8b' },
+                    { label: 'Congestión', key: 'congestion', color: '#9c27b0' },
+                    { label: 'Canal no disponible', key: 'chanunavail', color: '#795548' },
+                    { label: 'Num sin ruta', key: 'num_sin_ruta', color: '#6d4c41' },
+                    { label: 'Otro Error', key: 'errores', color: '#9e9e9e' }
+                ]" :key="index">
+                    <div class="stat-row">
+                        <div class="stat-label" x-text="item.label"></div>
+                        <div class="stat-bar-container">
+                            <div class="stat-bar" 
+                                 :style="`width: ${Math.min(((data.llamadas?.outbound?.[item.key] || 0) / Math.max(data.llamadas?.outbound?.discadas || 1, 1)) * 100, 100)}%; background-color: ${item.color};`">
+                            </div>
+                        </div>
+                        <div class="stat-value" x-text="formatNumber(data.llamadas?.outbound?.[item.key] || 0)">0</div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <div class="card gestiones-card">
+            <div class="estado-discador-section">
+                <h2><i class="fas fa-phone-alt"></i> Estado Discador</h2>
+                <div class="stats-summary">
+                    <div class="stat-item">
+                        <div class="stat-value stat-positive" x-text="formatNumber(data.llamadas?.outbound?.llamadas_discando || 0)">0</div>
+                        <div class="stat-label">Canales activos</div>
+                    </div>
+                </div>
+                <div class="estado-discador-metrics">
+                    <div class="estado-discador-item">
+                        <div class="estado-discador-label">Llamadas Discadas</div>
+                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.attempted_calls || 0)">0</div>
+                    </div>
+                    <div class="estado-discador-item">
+                        <div class="estado-discador-label">Atendidas en destino</div>
+                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.answered_pstn || 0)">0</div>
+                    </div>
+                    <div class="estado-discador-item">
+                        <div class="estado-discador-label">Conectadas al agente</div>
+                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.answered_agent || 0)">0</div>
+                    </div>
+                    <div class="estado-discador-item">
+                        <div class="estado-discador-label">Contactos pendientes</div>
+                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.pending_initial || 0)">0</div>
+                    </div>
+                    <div class="estado-discador-item">
+                        <div class="estado-discador-label">Contactos con reintentos pendientes</div>
+                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.pending_retries || 0)">0</div>
+                    </div>
+                    <div class="estado-discador-item">
+                        <div class="estado-discador-label">Finalizados sin contacto</div>
+                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.finalized_no_contact || 0)">0</div>
+                    </div>
+                    <div class="estado-discador-item">
+                        <div class="estado-discador-label">Contactados exitosamente</div>
+                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.contacted_successfully || 0)">0</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>
+                <i class="fas fa-arrow-circle-down" style="color: #2196f3;"></i> Llamadas Inbound
+            </h2>
+            <div class="stats-summary">
+                <div class="stat-item">
+                    <div class="stat-value" x-text="formatNumber(data.llamadas?.inbound?.entrantes || 0)">0</div>
+                    <div class="stat-label">Entrantes Total</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value stat-warning" x-text="data.llamadas?.inbound?.en_cola || 0">0</div>
+                    <div class="stat-label">En Cola Ahora</div>
+                </div>
+            </div>
+            <div class="chart-container">
+                <canvas id="inboundChart"></canvas>
+            </div>
+            <div class="positive-gestions">
+                <span class="positive-value" x-text="formatNumber(data.llamadas?.inbound?.positivas || 0)">0</span> 
+                Gestiones Positivas
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla de Agentes -->
+    <div class="card agents-table-card" style="margin-top: 20px;">
+        <h2>
+            <i class="fas fa-users"></i> Agentes de la Campaña
+            <span class="agents-count" x-text="`(${filteredAgentes.length || 0})`"></span>
+        </h2>
+        <div class="agents-table-container">
+            <table class="agents-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Estado</th>
+                        <th>Campaña</th>
+                        <th>Contacto</th>
+                        <th>Llamadas Entrantes</th>
+                        <th>Llamadas Discador</th>
+                        <th>Llamadas Manuales</th>
+                        <th>ATT</th>
+                        <th>Última Actualización</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="agente in filteredAgentes" :key="agente.id">
+                        <tr :class="getAgentStatusClass(agente.STATUS)">
+                            <td x-text="agente.id"></td>
+                            <td>
+                                <strong x-text="agente.nombre || `Agente ${agente.id}`"></strong>
+                            </td>
+                            <td>
+                                <span class="status-badge" :class="getStatusBadgeClass(agente.STATUS)">
+                                    <i :class="getStatusIcon(agente.STATUS)"></i>
+                                    <span x-text="agente.STATUS || 'OFFLINE'"></span>
+                                </span>
+                            </td>
+                            <td x-text="agente.CAMPAIGN || '-'"></td>
+                            <td x-text="agente.CONTACT_NUMBER || '-'"></td>
+                            <td x-text="formatNumber(agente.ANSWERED_TOTAL_CALLS_IN || 0)"></td>
+                            <td x-text="formatNumber(agente.ANSWERED_TOTAL_CALLS_DIALER || 0)"></td>
+                            <td x-text="formatNumber(agente.ANSWERED_TOTAL_CALLS_MANUAL || 0)"></td>
+                            <td x-text="formatTime(agente.ATT || 0)"></td>
+                            <td x-text="formatTimestamp(agente.TIMESTAMP)"></td>
+                            <td class="agents-actions-cell">
+                                <div class="agents-actions-btns" x-show="window.CONTACT_CENTER_SUPERVISOR_ID">
+                                    <button type="button" class="btn-agent-action" title="Monitoreo" @click="executeSpy(agente)" :disabled="actionLoading"><i class="fas fa-volume-up"></i></button>
+                                    <button type="button" class="btn-agent-action" title="Susurrar" @click="executeWhisper(agente)" :disabled="actionLoading"><i class="fas fa-comment"></i></button>
+                                    <button type="button" class="btn-agent-action" title="Conferencia 3 vías" @click="executeThreeWay(agente)" :disabled="actionLoading"><i class="fas fa-users"></i></button>
+                                    <button type="button" class="btn-agent-action" :title="(agente.STATUS || '').indexOf('PAUSE') === 0 ? 'Unpause' : 'Pause'" @click="executePause(agente)" :disabled="actionLoading"><i class="fas fa-pause-circle"></i></button>
+                                    <button type="button" class="btn-agent-action" title="Logout" @click="executeLogout(agente.id)" :disabled="actionLoading"><i class="fas fa-sign-out-alt"></i></button>
+                                    <button type="button" class="btn-agent-action" title="Enviar mensaje" @click="openMessageModal(agente.id)" :disabled="actionLoading"><i class="fas fa-paper-plane"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="filteredAgentes.length === 0">
+                        <td colspan="11" class="no-agents-message">
+                            <i class="fas fa-info-circle"></i>
+                            <span x-show="!campaignId">Seleccione una campaña para ver los agentes asignados</span>
+                            <span x-show="campaignId">No hay agentes en estados activos (READY, ONCALL, RINGING o PAUSED) para esta campaña</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Tabla Bots de la Campaña -->
+    <div class="card agents-table-card" style="margin-top: 20px;">
+        <h2>
+            <i class="fas fa-robot"></i> Bots de la Campaña
+            <span class="agents-count" x-text="`(${listaBots.length || 0})`"></span>
+        </h2>
+        <div class="agents-table-container">
+            <table class="agents-table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Llamadas activas</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <template x-for="bot in listaBots" :key="bot.id">
+                        <tr>
+                            <td><strong x-text="bot.nombre || ('Bot ' + bot.id)"></strong></td>
+                            <td x-text="formatNumber(bot.llamadas_activas || 0)">0</td>
+                            <td class="agents-actions-cell">
+                                <div class="agents-actions-btns" x-show="window.CONTACT_CENTER_SUPERVISOR_ID">
+                                    <button type="button" class="btn-agent-action" title="Monitoreo" @click="executeSpy(bot)" :disabled="actionLoading"><i class="fas fa-volume-up"></i></button>
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
+                    <tr x-show="listaBots.length === 0">
+                        <td colspan="3" class="no-agents-message">
+                            <i class="fas fa-info-circle"></i>
+                            <span x-show="!campaignId">Seleccione una campaña para ver los bots asignados</span>
+                            <span x-show="campaignId">No hay agentes voicebot en esta campaña</span>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div x-show="messageModalOpen" class="modal-overlay" x-transition @click.self="messageModalOpen = false">
+        <div class="modal-content message-modal" @click.stop>
+            <div class="modal-header">
+                <h3>{% trans 'New message' %}</h3>
+                <button type="button" class="modal-close" @click="messageModalOpen = false" aria-label="Close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="col-form-label">{% trans 'Recipient' %}</label>
+                    <input type="text" class="form-control" x-model="messageModalRecipientId" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="col-form-label">{% trans 'Type' %}</label>
+                    <input type="text" class="form-control" x-model="messageModalRecipientType" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="col-form-label">{% trans 'Message' %}</label>
+                    <textarea class="form-control" x-model="messageModalText" rows="3"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" @click="messageModalOpen = false">{% trans 'Close' %}</button>
+                <button type="button" class="btn btn-primary" @click="sendMessage()">{% trans 'Send message' %}</button>
+            </div>
+        </div>
+    </div>
+
+    <div x-show="loading" class="loading-overlay">
+        <div class="loading-spinner">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Cargando datos...</p>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+{% endblock %}

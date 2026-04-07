@@ -23,9 +23,6 @@ from django.contrib.sessions.models import Session
 from django.utils.timezone import now
 
 from ominicontacto_app.services.asterisk.agent_activity import AgentActivityAmiManager
-from ominicontacto_app.services.asterisk.supervisor_activity import SupervisorActivityAmiManager
-from ominicontacto_app.services.agent.presence import AgentPresenceManager
-
 from ominicontacto_app.models import AgenteProfile
 
 logger = logging.getLogger(__name__)
@@ -33,53 +30,44 @@ logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     """
-    Comando para desloguear agentes que no se hayan deslogueado correctamente
+    Comando que marca como Unavailable en Redis a los agentes cuya sesión ha expirado.
+    No utiliza AMI; solo actualiza el estado en Redis.
     """
 
-    help = u"Comando para desloguear agentes que no se hayan deslogueado correctamente"
+    help = (
+        u"Comando que marca como Unavailable en Redis a los agentes cuya sesión ha expirado. "
+        u"No utiliza AMI."
+    )
 
-    def logout_expired_sessions(self):
-        agentes_deslogueados = []
-        presence_manager = AgentPresenceManager()
+    def set_agent_unavailable_state_redis(self):
+        """Marca como Unavailable en Redis a los agentes con sesión expirada (sin usar AMI)."""
         agent_activity = AgentActivityAmiManager()
-        conectado = False
         hora_actual = now()
+        agentes_marcados = []
+
         for agente_profile in AgenteProfile.objects.obtener_activos():
             session = None
             if agente_profile.user.last_session_key:
                 try:
-                    session = Session.objects.get(session_key=agente_profile.user.last_session_key)
+                    session = Session.objects.get(
+                        session_key=agente_profile.user.last_session_key
+                    )
                 except Session.DoesNotExist:
                     pass
-            if session and session.expire_date < hora_actual:
-                if not conectado:
-                    agent_activity.connect_manager()
-                    conectado = True
-                agentes_deslogueados.append(str(agente_profile.id))
-                agente_profile.force_logout()
-                agent_activity.logout_agent(agente_profile, manage_connection=False)
-                # TODO: Todo el logout deberia manejarse desde AgentPresenceManager.logout
-                presence_manager.logout(agente_profile)
-        if conectado:
-            agent_activity.disconnect_manager()
-        if agentes_deslogueados:
-            logger.info("Expired Sessions detected: " + str(agentes_deslogueados))
 
-    """
-    Comando para desloguear agentes que no se hayan deslogueado correctamente
-    """
+            if session is None or session.expire_date < hora_actual:
+                agent_activity.set_agent_as_unavailable(agente_profile)
+                agentes_marcados.append(str(agente_profile.id))
 
-    help = u"Comando para desloguear agentes que no se hayan deslogueado correctamente"
-
-    def set_agent_unavailable_state_redis(self):
-        supervisor_activity = SupervisorActivityAmiManager()
-        supervisor_activity.escribir_estado_agentes_unavailable()
+        if agentes_marcados:
+            logger.info(
+                "Agentes marcados como Unavailable en Redis (sesión expirada): %s",
+                agentes_marcados,
+            )
 
     def handle(self, *args, **options):
         try:
-            # TODO: Estas 2 funciones generan conexiones distintas a asterisk AMIManagerConnector.
-            self.logout_expired_sessions()
             self.set_agent_unavailable_state_redis()
         except Exception as e:
-            logging.error('Fallo del comando: {0}'.format(e))
-            raise CommandError('Fallo del comando: {0}'.format(e))
+            logger.error("Fallo del comando: %s", e)
+            raise CommandError("Fallo del comando: %s" % e)

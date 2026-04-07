@@ -18,7 +18,7 @@
 
 from __future__ import unicode_literals
 from django.db import models
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from api_app.utils.group_of_hours import (
     eliminar_grupo_horario_config, escribir_grupo_horario_config
 )

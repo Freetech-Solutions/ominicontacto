@@ -166,7 +166,9 @@ class DashboardAgenteView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super(DashboardAgenteView, self).get_context_data(**kwargs)
-        context['agente_id'] = self.request.user.get_agente_profile().pk
+        agent_profile = self.request.user.get_agente_profile()
+        context['agente_id'] = agent_profile.pk
+        context['agent_name'] = self.request.user.get_full_name() or self.request.user.username
         return context
 
     def dispatch(self, request, *args, **kwargs):
@@ -174,6 +176,26 @@ class DashboardAgenteView(TemplateView):
         agent_group = agent_profile.grupo
         if agent_group.acceso_dashboard_agente:
             return super(DashboardAgenteView, self).dispatch(
+                request, *args, **kwargs)
+        else:
+            raise PermissionDenied
+
+
+class DashboardAgenteV2View(TemplateView):
+    """Vista que renderiza la v2 del dashboard con los datos diarios del agente
+    """
+    template_name = 'agente/dashboard_v2.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(DashboardAgenteV2View, self).get_context_data(**kwargs)
+        context['agente_id'] = self.request.user.get_agente_profile().pk
+        return context
+
+    def dispatch(self, request, *args, **kwargs):
+        agent_profile = request.user.get_agente_profile()
+        agent_group = agent_profile.grupo
+        if agent_group.acceso_dashboard_agente:
+            return super(DashboardAgenteV2View, self).dispatch(
                 request, *args, **kwargs)
         else:
             raise PermissionDenied

@@ -17,7 +17,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 from __future__ import unicode_literals
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from api_app.utils import HttpResponseStatus, get_response_data
 from api_app.utils.ivr import (
     eliminar_nodo_ivr_config, eliminar_nodos_y_asociaciones, escribir_nodo_ivr_config)

@@ -34,7 +34,7 @@ from ominicontacto_app.models import RespuestaFormularioGestion
 
 from django.conf import settings
 from django.utils.translation import gettext as _
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 
 
 logger = logging.getLogger(__name__)
@@ -83,7 +83,7 @@ class ArchivoDeReporteCsv(object):
             csvwiter = csv.writer(csvfile)
 
             # guardamos encabezado
-            lista_encabezados_utf8 = [force_text(item) for item in encabezado]
+            lista_encabezados_utf8 = [force_str(item) for item in encabezado]
             csvwiter.writerow(lista_encabezados_utf8)
 
             # Iteramos cada una de las calificaciones del agente
@@ -103,7 +103,7 @@ class ArchivoDeReporteCsv(object):
 
                 # --- Finalmente, escribimos la linea
 
-                lista_opciones_utf8 = [force_text(item) for item in lista_opciones]
+                lista_opciones_utf8 = [force_str(item) for item in lista_opciones]
                 csvwiter.writerow(lista_opciones_utf8)
 
     def ya_existe(self):

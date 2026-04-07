@@ -24,6 +24,7 @@ from __future__ import unicode_literals, division
 
 from mock import patch
 
+from django.test import override_settings
 from django.utils import timezone
 from ominicontacto_app.tests.utiles import OMLBaseTest
 from reportes_app.tests.utiles import GeneradorDeLlamadaLogs
@@ -37,6 +38,7 @@ from ominicontacto_app.utiles import cast_datetime_part_date, datetime_hora_maxi
 from reportes_app.reportes.reporte_agentes import ReporteAgentes, ActividadAgente
 
 
+@override_settings(REPORTE_AGENTES_USE_LEGACY_ACTIVITY_LOG=True)
 class ReportesAgenteTiemposTest(OMLBaseTest):
 
     def setUp(self):

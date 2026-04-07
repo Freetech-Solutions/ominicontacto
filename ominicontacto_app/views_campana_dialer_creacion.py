@@ -36,6 +36,7 @@ from ominicontacto_app.forms.base import (QueueDialerForm, SincronizaDialerForm,
 from ominicontacto_app.models import Campana
 
 from ominicontacto_app.services.dialer import get_dialer_service, wombat_habilitado
+from ominicontacto_app.services.campaign_redis_status import set_campaign_status_redis
 
 from formtools.wizard.views import SessionWizardView
 
@@ -107,6 +108,19 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
             new_formset = ReglasIncidenciaFormSet()
             new_formset.prefix = form.prefix
             context['wizard']['form'] = new_formset
+        elif current_step == self.ADICION_AGENTES:
+            # Pasar tipo_destino_dialer para validación en JavaScript
+            try:
+                cola_data = self.get_cleaned_data_for_step(self.COLA)
+                if cola_data:
+                    from configuracion_telefonia_app.models import DestinoEntrante
+                    tipo_destino_dialer = cola_data.get('tipo_destino_dialer')
+                    context['tipo_destino_dialer'] = tipo_destino_dialer
+                    context['is_remote_agent'] = (tipo_destino_dialer and 
+                                                  str(tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT))
+            except (KeyError, AttributeError):
+                context['tipo_destino_dialer'] = None
+                context['is_remote_agent'] = False
         return context
 
     def _save_campana(self, campana_form, estado):
@@ -198,13 +212,39 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
                     offset = offset - 1
                 if campana.whatsapp_habilitado:
                     offset = offset - 1
+                
+                # Validar que haya al menos un voicebot si tipo_destino_dialer es REMOTE_AGENT
+                queue_form = list(form_list)[int(self.COLA)]
+                from configuracion_telefonia_app.models import DestinoEntrante
+                tipo_destino_dialer = queue_form.cleaned_data.get('tipo_destino_dialer')
+                if tipo_destino_dialer and str(tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT):
+                    # Obtener formset de agentes (el offset ya está calculado arriba)
+                    agentes_formset = list(form_list)[int(self.ADICION_AGENTES) - offset]
+                    voicebots_count = 0
+                    for form in agentes_formset.forms:
+                        if form.cleaned_data.get('DELETE', False):
+                            continue
+                        member = form.cleaned_data.get('member')
+                        if member and hasattr(member, 'voicebot') and member.voicebot:
+                            voicebots_count += 1
+                    if voicebots_count == 0:
+                        messages.add_message(
+                            self.request,
+                            messages.ERROR,
+                            _('Cuando el destino de llamada Dialer es "Agente Remoto", '
+                              'debe asignarse al menos un agente voicebot a la campaña.'))
+                        return HttpResponseRedirect(reverse('campana_dialer_list'))
+                
                 sincronizar_form = list(form_list)[int(self.SINCRONIZAR) - offset]
                 # Intento crear la campaña en wombat como parte de la transaccion
                 if wombat_habilitado():
                     self._sincronizar_campana(sincronizar_form, campana)
-                self._insert_queue_asterisk(campana.queue_campana)
                 self.save_supervisores(form_list, -3)
                 self.save_agentes(form_list, -2)
+                # sincronizar hash OML:CAMP (incl. VOICEBOT) después de tener los agentes en la cola
+                self._insert_queue_asterisk(campana.queue_campana)
+                if not wombat_habilitado():
+                    set_campaign_status_redis(campana.id, 'created')
                 self.alertas_por_sistema_externo(campana)
                 success = True
 

@@ -21,7 +21,7 @@
 /*      - omlAPI.js         */
 /* 		- click2Call.js     */
 
-/* globals Timer OMLAPI KeepAliveSender Click2CallDispatcher PhoneJSController gettext */
+/* globals Timer OMLAPI KeepAliveSender PresenceHeartbeatSender Click2CallDispatcher PhoneJSController gettext */
 /* globals AgendasNotifier, NotificationSocket NotificationSocketWhatsapp */
 
 /* DEBUG*/
@@ -34,6 +34,7 @@ var USER_STATUS_PAUSE = 3; //  Agente en estado pausa
 var phone_controller = undefined;
 var click2call = undefined;
 var keep_alive_sender = undefined;
+var presence_heartbeat_sender = undefined;
 
 var logoffEvent = undefined;
 var agendas_notifier = undefined;
@@ -71,6 +72,9 @@ function startPhoneJs() {
     var video_domain = $('#video_domain').val();
     var dtmf_duration = $('#dtmf_duration').val();
     var dtmf_inter_tone_gap = $('#dtmf_inter_tone_gap').val();
+    var presence_heartbeat_interval_sec = parseInt($('#presence_heartbeat_interval_sec').val(), 10) || 15;
+    var presence_heartbeat_leader_lock_ttl_sec =
+        parseInt($('#presence_heartbeat_leader_lock_ttl_sec').val(), 10) || 45;
 
     var oml_api = new OMLAPI();
 
@@ -82,8 +86,14 @@ function startPhoneJs() {
 
     click2call = new Click2CallDispatcher(oml_api, agent_id);
     keep_alive_sender = new KeepAliveSender(max_session_age);
+    presence_heartbeat_sender = new PresenceHeartbeatSender(
+        agent_id,
+        presence_heartbeat_interval_sec,
+        presence_heartbeat_leader_lock_ttl_sec
+    );
     phone_controller = new PhoneJSController(
-        agent_id, sipExtension, sipSecret, timers, click2call, keep_alive_sender, video_domain, notification_agent,
+        agent_id, sipExtension, sipSecret, timers, click2call, keep_alive_sender,
+        presence_heartbeat_sender, video_domain, notification_agent,
         notification_agent_whatsapp, dtmf_duration, dtmf_inter_tone_gap);
 
     subscribirEventosBotonesGenerales(oml_api, agent_id, timers);
@@ -98,13 +108,19 @@ function subscribirEventosBotonesGenerales(oml_api, agent_id) {
 
     $('#logout').click(function () {
         window.removeEventListener('beforeunload', preventLeaveWithoutLogoff);
+        if (phone_controller) {
+            phone_controller.deactivatePresenceHeartbeat();
+        }
     });
 }
 
 function preventLeaveWithoutLogoff(event) {
     // Cancel the event as stated by the standard.
     event.preventDefault();
-    phone_controller.hangUp();
+    if (phone_controller) {
+        phone_controller.hangUp();
+        phone_controller.deactivatePresenceHeartbeat();
+    }
     // Chrome requires returnValue to be set.
     event.returnValue = gettext('Recuerde cerrar la sesión antes de salir de esta pantalla.');
     return gettext('Recuerde cerrar la sesión antes de salir de esta pantalla.');

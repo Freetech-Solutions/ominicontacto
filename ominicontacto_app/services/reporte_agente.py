@@ -36,7 +36,7 @@ from ominicontacto_app.models import CalificacionCliente, Campana
 
 from utiles_globales import obtener_cantidad_no_calificados, adicionar_render_unicode
 from reportes_app.reportes.reporte_agentes import ReporteAgentes
-from reportes_app.models import LlamadaLog
+from reportes_app.models import ActividadAgenteLog, LlamadaLog
 
 logger = _logging.getLogger(__name__)
 
@@ -109,6 +109,7 @@ class EstadisticasAgenteService():
         return calificaciones_nombre, calificaciones_cantidad, total_asignados
 
     def _obtener_actividad_agente(self, logs_actividad_agente):
+        # ADDMEMBER/REMOVEMEMBER deprecated; equivalent to SESSION_LOGIN/SESSION_LOGOUT
         tiempo_sesion, tiempo_pausa = (timedelta(), timedelta())
         tiempo_actual_sesion, tiempo_actual_pausa = (None, None)
         evento_anterior = None
@@ -118,34 +119,36 @@ class EstadisticasAgenteService():
             evento = log_actividad_agente.event
             tiempo_log = log_actividad_agente.time
             inicio_dia = tiempo_log.replace(hour=0, minute=0, second=0, microsecond=0)
-            if evento == 'REMOVEMEMBER' and evento_anterior == 'UNPAUSEALL' and i == 1:
+            if (evento in ActividadAgenteLog.EVENTOS_LOGOUT
+                    and evento_anterior == ActividadAgenteLog.UNPAUSE and i == 1):
                 # el agente inicio sesión el día anterior, sumamos el tiempo desde el inicio del día
                 tiempo_sesion += tiempo_log - inicio_dia
-            elif evento == 'REMOVEMEMBER' and tiempo_actual_sesion is not None:
+            elif evento in ActividadAgenteLog.EVENTOS_LOGOUT and tiempo_actual_sesion is not None:
                 # se cierra la sesión de un agente que estuvo conectado previamente
                 tiempo_sesion += tiempo_log - tiempo_actual_sesion
                 tiempo_actual_sesion = None
                 if tiempo_actual_pausa is not None:
                     tiempo_pausa += tiempo_log - tiempo_actual_pausa
                     tiempo_actual_pausa = None
-            elif (evento == 'ADDMEMBER' and evento_anterior == 'UNPAUSEALL' and i == 1):
+            elif (evento in ActividadAgenteLog.EVENTOS_LOGIN
+                    and evento_anterior == ActividadAgenteLog.UNPAUSE and i == 1):
                 tiempo_actual_sesion = tiempo_log
                 # reiniciamos el tiempo que se generó de pausa desde el inicio del día pues no es
                 # un evento de día anterior sino que se genera antes de loguearse el agente
                 tiempo_pausa = timedelta()
-            elif (evento == 'ADDMEMBER' and tiempo_actual_sesion is None and
-                  evento_anterior != 'UNPAUSEALL'):
+            elif (evento in ActividadAgenteLog.EVENTOS_LOGIN and tiempo_actual_sesion is None
+                  and evento_anterior != ActividadAgenteLog.UNPAUSE):
                 tiempo_actual_sesion = tiempo_log
             # se calculan los tiempos de pausa del agente
-            elif evento == 'UNPAUSEALL' and evento_anterior is None:
+            elif evento == ActividadAgenteLog.UNPAUSE and evento_anterior is None:
                 # al parecer el agente estaba en pausa desde el día anterior, sumamos el tiempo
                 # desde el inicio del día
                 tiempo_pausa += tiempo_log - inicio_dia
-            elif evento == 'UNPAUSEALL' and tiempo_actual_pausa is not None:
+            elif evento == ActividadAgenteLog.UNPAUSE and tiempo_actual_pausa is not None:
                 # se cierra la pausa de un agente que estuvo pausado previamente
                 tiempo_pausa += tiempo_log - tiempo_actual_pausa
                 tiempo_actual_pausa = None
-            elif evento == 'PAUSEALL':
+            elif evento == ActividadAgenteLog.PAUSE:
                 # comienza una pausa del agente se marca el tiempo en que comienza
                 tiempo_actual_pausa = tiempo_log
             evento_anterior = evento

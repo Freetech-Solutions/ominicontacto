@@ -104,6 +104,21 @@ $(function() {
     var $barraCSVNoAtendidos = $('#barraProgresoCSVNoAtendidos');
     var urlExportacionNoAtendidos = Urls.api_exportar_csv_no_atendidos();
 
+    var $csvCalificacionesPorAgenteDescarga = $('#csvCalificacionesPorAgenteDescarga');
+    var $csvCalificacionesPorAgenteDescargaLink = $('#csvCalificacionesPorAgenteDescargaLink');
+    var $barraCSVCalificacionesPorAgente = $('#barraProgresoCSVCalificacionesPorAgente');
+    var urlExportacionCalificacionesPorAgente = Urls.api_exportar_csv_calificaciones_por_agente();
+
+    var $csvInteraccionesPorAgenteDescarga = $('#csvInteraccionesPorAgenteDescarga');
+    var $csvInteraccionesPorAgenteDescargaLink = $('#csvInteraccionesPorAgenteDescargaLink');
+    var $barraCSVInteraccionesPorAgente = $('#barraProgresoCSVInteraccionesPorAgente');
+    var urlExportacionInteraccionesPorAgente = Urls.api_exportar_csv_interacciones_por_agente();
+
+    var $csvPerformanceAgentesDescarga = $('#csvPerformanceAgentesDescarga');
+    var $csvPerformanceAgentesDescargaLink = $('#csvPerformanceAgentesDescargaLink');
+    var $barraCSVPerformanceAgentes = $('#barraProgresoCSVPerformanceAgentes');
+    var urlExportacionPerformanceAgentes = Urls.api_exportar_csv_performance_agentes();
+
     var $fechaElegidaDesde = $('#reporte_fecha_desde_elegida');
     var $fechaElegidaHasta = $('#reporte_fecha_hasta_elegida');
 
@@ -166,6 +181,45 @@ $(function() {
         var $self = $(this);
         exportarReporteCSV('no_atendidos', $self, urlExportacionNoAtendidos, $barraCSVNoAtendidos,
             $csvNoAtendidosDescargaLink, start, end);
+    });
+
+    $csvCalificacionesPorAgenteDescarga.on('click', function() {
+        var $self = $(this);
+        exportarReporteCSV(
+            'calificaciones_por_agente',
+            $self,
+            urlExportacionCalificacionesPorAgente,
+            $barraCSVCalificacionesPorAgente,
+            $csvCalificacionesPorAgenteDescargaLink,
+            start,
+            end
+        );
+    });
+
+    $csvInteraccionesPorAgenteDescarga.on('click', function() {
+        var $self = $(this);
+        exportarReporteCSV(
+            'interacciones_por_agente',
+            $self,
+            urlExportacionInteraccionesPorAgente,
+            $barraCSVInteraccionesPorAgente,
+            $csvInteraccionesPorAgenteDescargaLink,
+            start,
+            end
+        );
+    });
+
+    $csvPerformanceAgentesDescarga.on('click', function() {
+        var $self = $(this);
+        exportarReporteCSV(
+            'performance_agentes',
+            $self,
+            urlExportacionPerformanceAgentes,
+            $barraCSVPerformanceAgentes,
+            $csvPerformanceAgentesDescargaLink,
+            start,
+            end
+        );
     });
 
 });

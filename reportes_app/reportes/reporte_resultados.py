@@ -25,7 +25,7 @@ from django.db import connection
 from django.db.models import Count
 from ominicontacto_app.models import CalificacionCliente, Campana, AgenteEnContacto
 from reportes_app.reportes.reporte_llamados_contactados_csv import NO_CONECTADO_DESCRIPCION
-from reportes_app.models import LlamadaLog
+from reportes_app.models import LlamadaResumen
 
 
 class ReporteDeResultadosDeCampana(object):
@@ -100,9 +100,9 @@ class ReporteDeResultadosDeCampana(object):
             filtro_calificados += "','".join([str(x) for x in calificados_ids])
             filtro_calificados += "')"
         filtro_eventos = " AND event IN ('"
-        filtro_eventos += "','".join(LlamadaLog.EVENTOS_NO_CONEXION)
+        filtro_eventos += "','".join(LlamadaResumen.EVENTOS_NO_CONEXION)
         filtro_eventos += "','"
-        filtro_eventos += "','".join(LlamadaLog.EVENTOS_FIN_CONEXION)
+        filtro_eventos += "','".join(LlamadaResumen.EVENTOS_FIN_CONEXION)
         filtro_eventos += "')"
         params = {'campana_id': self.campana.id,
                   'filtro_contactos': filtro_contactos,
@@ -112,13 +112,13 @@ class ReporteDeResultadosDeCampana(object):
         sql = """
             SELECT contacto_id, event
             FROM (
-                SELECT id, campana_id, event, numero_marcado, contacto_id, "time",
-                       max("time") OVER (PARTITION BY contacto_id) max_my_date
-                FROM public.reportes_app_llamadalog
+                SELECT id, campana_id, event, numero_marcado, contacto_id, fecha_fin,
+                       max(fecha_fin) OVER (PARTITION BY contacto_id) max_my_date
+                FROM public.reportes_app_llamada_resumen
                 WHERE campana_id = {campana_id} AND contacto_id != -1
                 {filtro_contactos}{filtro_calificados}{filtro_eventos}
             ) sub_query
-            WHERE "time" = max_my_date """.format(**params)
+            WHERE fecha_fin = max_my_date """.format(**params)
 
         cursor = connection.cursor()
         cursor.execute(sql)
@@ -128,16 +128,16 @@ class ReporteDeResultadosDeCampana(object):
             self.contactaciones[contacto_id]['contactacion'] = descripcion
 
     def _get_descripcion_evento(self, evento):
-        if evento in LlamadaLog.EVENTOS_NO_CONEXION:
+        if evento in LlamadaResumen.EVENTOS_NO_CONEXION:
             return NO_CONECTADO_DESCRIPCION[evento]
-        if evento in LlamadaLog.EVENTOS_FIN_CONEXION:
+        if evento in LlamadaResumen.EVENTOS_FIN_CONEXION:
             return _("Contactado")
         # No debería ocurrir:
         return _("Sin datos")
 
     def registrar_cantidad_de_contactos(self):
         ids = self.contactaciones.keys()
-        cantidades = LlamadaLog.objects.filter(campana_id=self.campana.id, contacto_id__in=ids).\
+        cantidades = LlamadaResumen.objects.filter(campana_id=self.campana.id, contacto_id__in=ids).\
             values('contacto_id').annotate(intentos=Count('callid', distinct=True))
         for cantidad in cantidades:
             self.contactaciones[cantidad['contacto_id']]['intentos'] = cantidad['intentos']

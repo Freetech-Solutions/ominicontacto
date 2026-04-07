@@ -22,6 +22,8 @@ import logging as _logging
 from asterisk.manager import Manager, ManagerSocketException, ManagerAuthException, ManagerException
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
+
 from ominicontacto_app.errors import OmlError
 
 logger = _logging.getLogger(__name__)
@@ -36,23 +38,10 @@ class AMIManagerConnector(object):
         self.disconnected = False
 
     def connect(self):
-        error = False
-        ami_manager_user = settings.ASTERISK['AMI_USERNAME']
-        ami_manager_pass = settings.ASTERISK['AMI_PASSWORD']
-        ami_manager_host = str(settings.ASTERISK_HOSTNAME)
-        try:
-            self.manager.connect(ami_manager_host)
-            self.manager.login(ami_manager_user, ami_manager_pass)
-        except ManagerSocketException as e:
-            logger.exception("Error connecting to the manager: {0}".format(e))
-            error = True
-        except ManagerAuthException as e:
-            logger.exception("Error logging in to the manager: {0}".format(e))
-            error = True
-        except ManagerException as e:
-            logger.exception("Error {0}".format(e))
-            error = True
-        return error
+        raise ImproperlyConfigured(
+            "Django no debe conectar directamente a Asterisk; "
+            "usar Redis/ACD para acciones sobre llamadas/colas."
+        )
 
     def disconnect(self):
         # Atención: El Manager solo permite una sola conexión
@@ -199,9 +188,6 @@ class AmiManagerClient(AMIManagerConnector):
         content[4] = content[0] = interface
 
         return self._ami_action('QueueRemove', content)
-
-    def pjsip_show_endpoints(self):
-        return self._ami_manager('command', 'pjsip show endpoints')
 
 
 class AMIManagerConnectorError(OmlError):

@@ -92,7 +92,12 @@ function setSubdispositionsOptions(select_nombre){
     var row_id = $(select_nombre).prop('name').slice(0,-6);
     var form_input_subcalificaciones = row_id + 'subcalificaciones';
     var form_input_nombre_subcalificaciones = row_id + 'nombre_subcalificaciones';
-    var lista = JSON.parse($('#id_' + form_input_nombre_subcalificaciones).val().replace(/'/g, '"'));
+    var valor_campo = $('#id_' + form_input_nombre_subcalificaciones).val();
+    if (!valor_campo) {
+        return;
+    }
+    // El valor ya viene como JSON válido desde el backend
+    var lista = JSON.parse(valor_campo);
     lista.forEach((obj, index) => {
         if ($(select_nombre).val() in obj){
             $('#id_' + form_input_subcalificaciones).val(JSON.stringify(obj[$(select_nombre).val()]));

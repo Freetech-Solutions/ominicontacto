@@ -110,10 +110,8 @@ class AddAgentsToCampaignTest(APITest):
            'agregar_agentes_en_cola')
     @patch('ominicontacto_app.services.queue_member_service.QueueMemberService.'
            'eliminar_agentes_de_cola')
-    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AmiManagerClient.disconnect')
-    @patch('ominicontacto_app.services.asterisk.asterisk_ami.AmiManagerClient.connect')
     def test_actualizar_agentes_de_campana(
-            self, ami_connect, ami_disconnect, eliminar_agentes_de_cola,
+            self, eliminar_agentes_de_cola,
             agregar_agentes_en_cola):
         URL = reverse(self.urls_api['UpdateAgentsCampaign'])
         response = self.client.post(URL, json.dumps(self.post_update_agents_campaign),
@@ -124,8 +122,6 @@ class AddAgentsToCampaignTest(APITest):
         self.assertEqual(
             response_json['message'],
             _('Se agregaron los agentes de forma exitosa a la campaña'))
-        ami_connect.assert_called()
-        ami_disconnect.assert_called()
         args, kwargs = eliminar_agentes_de_cola.call_args
         self.assertEqual(self.campana, args[0])
         query_agente2 = AgenteProfile.objects.filter(id=self.agente2.id)

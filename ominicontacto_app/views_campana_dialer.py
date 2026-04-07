@@ -38,6 +38,7 @@ from ominicontacto_app.models import Campana, ReglaIncidenciaPorCalificacion, Re
 from configuracion_telefonia_app.models import DestinoEntrante
 from ominicontacto_app.services.dialer.campana_wombat import WombatDialerError
 from ominicontacto_app.services.dialer import wombat_habilitado, get_dialer_service
+from ominicontacto_app.services.campaign_redis_status import set_campaign_status_redis
 from ominicontacto_app.forms.base import (
     UpdateBaseDatosForm, ReglaIncidenciaPorCalificacionForm, ReglasIncidenciaForm)
 from ominicontacto_app.views_campana import CampanaSupervisorUpdateView, CampanasDeleteMixin
@@ -125,6 +126,8 @@ class PlayCampanaDialerView(View):
             dialer_service = get_dialer_service()
             dialer_service.iniciar_campana(campana)
             campana.play()
+            if not wombat_habilitado():
+                set_campaign_status_redis(campana.id, 'active')
             message = _(u'<strong>Operación Exitosa!</strong>\
                         Se llevó a cabo con éxito la activación de\
                         la Campaña.')
@@ -156,6 +159,8 @@ class PausarCampanaDialerView(View):
             dialer_service = get_dialer_service()
             dialer_service.pausar_campana(campana)
             campana.pausar()
+            if not wombat_habilitado():
+                set_campaign_status_redis(campana.id, 'paused')
             message = _('<strong>Operación Exitosa!</strong>\
                          Se llevó a cabo con éxito la pausa de\
                          la Campaña.')
@@ -188,6 +193,8 @@ class ActivarCampanaDialerView(View):
             dialer_service = get_dialer_service()
             dialer_service.reanudar_campana(campana)
             campana.activar()
+            if not wombat_habilitado():
+                set_campaign_status_redis(campana.id, 'active')
             message = _('<strong>Operación Exitosa!</strong>\
                          Se llevó a cabo con éxito la activación dela Campaña.')
 

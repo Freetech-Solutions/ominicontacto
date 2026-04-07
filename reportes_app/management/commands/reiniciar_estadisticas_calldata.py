@@ -22,6 +22,7 @@ from django.core.management.base import BaseCommand
 
 from ominicontacto_app.services.redis.connection import create_redis_connection
 from reportes_app.services.redis.call_data_generation import CallDataGenerator
+from reportes_app.services.redis.disposition_cache import CampaignDispositionsCache
 
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,8 @@ class Command(BaseCommand):
         redis_calldata_connection = create_redis_connection(2)
         calldata_generator = CallDataGenerator(redis_calldata_connection)
         calldata_generator.eliminar_datos()
+        disposition_cache = CampaignDispositionsCache()
+        disposition_cache.eliminar_datos()
         if not os.getenv('WALLBOARD_VERSION', '') == '':
             from wallboard_app.redis.regeneracion import reiniciar_wallboard_cache
             reiniciar_wallboard_cache(redis_oml_connection, redis_calldata_connection)

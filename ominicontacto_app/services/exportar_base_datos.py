@@ -29,7 +29,7 @@ import os
 import json
 
 from django.conf import settings
-from django.utils.encoding import force_text
+from django.utils.encoding import force_str
 from django.utils.translation import gettext as _
 
 from ominicontacto_app.utiles import crear_archivo_en_media_root
@@ -92,7 +92,7 @@ class ArchivoDeReporteCsv(object):
             csvwiter = csv.writer(csvfile)
 
             # guardamos encabezado
-            lista_encabezados_utf8 = [force_text(item).encode('utf-8')
+            lista_encabezados_utf8 = [force_str(item).encode('utf-8')
                                       for item in encabezado]
             csvwiter.writerow(lista_encabezados_utf8)
 
@@ -116,7 +116,7 @@ class ArchivoDeReporteCsv(object):
 
                 # --- Finalmente, escribimos la linea
 
-                lista_opciones_utf8 = [force_text(item).encode('utf-8')
+                lista_opciones_utf8 = [force_str(item).encode('utf-8')
                                        for item in lista_opciones]
                 csvwiter.writerow(lista_opciones_utf8)
 

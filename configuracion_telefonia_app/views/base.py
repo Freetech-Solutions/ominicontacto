@@ -207,10 +207,29 @@ class ApiObtenerDestinosEntrantes(View):
     def get(self, *args, **kwargs):
         tipo_destino = kwargs.get('tipo_destino')
         data = []
-        for nodo_entrante in DestinoEntrante.objects.filter(tipo=tipo_destino):
-            repr_nombre = str(nodo_entrante)
-            pk = nodo_entrante.pk
-            data.append({'nombre': repr_nombre, 'id': pk})
+        
+        # Si el tipo es REMOTE_AGENT, devolver los troncales SIP
+        if tipo_destino == DestinoEntrante.REMOTE_AGENT:
+            from configuracion_telefonia_app.models import TroncalSIP
+            from django.contrib.contenttypes.models import ContentType
+            
+            # Obtener o crear DestinoEntrante para cada troncal SIP
+            content_type = ContentType.objects.get_for_model(TroncalSIP)
+            for troncal in TroncalSIP.objects.all():
+                # Buscar si ya existe un DestinoEntrante para este troncal
+                destino, created = DestinoEntrante.objects.get_or_create(
+                    tipo=DestinoEntrante.REMOTE_AGENT,
+                    content_type=content_type,
+                    object_id=troncal.pk,
+                    defaults={'nombre': troncal.nombre}
+                )
+                data.append({'nombre': destino.nombre, 'id': destino.pk})
+        else:
+            # Para otros tipos, devolver los destinos entrantes normales
+            for nodo_entrante in DestinoEntrante.objects.filter(tipo=tipo_destino):
+                repr_nombre = str(nodo_entrante)
+                pk = nodo_entrante.pk
+                data.append({'nombre': repr_nombre, 'id': pk})
         return JsonResponse(data, safe=False)
 
 

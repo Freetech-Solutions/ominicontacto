@@ -63,6 +63,19 @@
             {% trans 'Descripción' %}
         </button>
     </td>
+    <td class="agents-actions-cell">
+        <div class="agents-actions-btns">
+            <button type="button" class="btn-agent-action" title="{% trans 'Transcripción' %}" data-callid="{{ obj.callid }}" data-task="transcription">
+                <i class="fas fa-pencil-alt"></i>
+            </button>
+            <button type="button" class="btn-agent-action" title="{% trans 'Sentimiento' %}" data-callid="{{ obj.callid }}" data-task="sentiment">
+                <i class="fas fa-chart-bar"></i>
+            </button>
+            <button type="button" class="btn-agent-action" title="{% trans 'Calificación QA' %}" data-callid="{{ obj.callid }}" data-task="qa">
+                <i class="fas fa-check-square"></i>
+            </button>
+        </div>
+    </td>
     <td style="display:none;">{{ obj.origen.agente.user }}</td>
     <td style="display:none;">{{ obj.origen | select_contacto_id }}</td>
 </tr>
@@ -126,6 +139,6 @@
 {% endif %}
 {% empty %}
 <tr>
-    <td colspan="12">{% trans 'No existen grabaciones' %}</td>
+    <td colspan="13">{% trans 'No existen grabaciones' %}</td>
 </tr>
 {% endfor %}

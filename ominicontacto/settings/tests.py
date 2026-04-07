@@ -28,7 +28,7 @@ Para utilizar estos settings, crear ``fts_web_settings_local``
     if 'USE_PG' in os.environ:
         DATABASES = {
             'default': {
-                'ENGINE': 'django.db.backends.postgresql_psycopg2',
+                'ENGINE': 'django.db.backends.postgresql',
                 'NAME': 'xxxxxxx',
                 'USER': 'xxxxxxx',
                 'PASSWORD': 'xxxxxxx',
@@ -48,7 +48,6 @@ from .defaults import *
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 DEBUG = True
-TEMPLATE_DEBUG = DEBUG
 COMPRESS_ENABLED = False
 
 INSTALLED_APPS += ADDONS_APPS
@@ -64,7 +63,7 @@ POSTGRES_HOST = os.getenv('PGHOST')
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': POSTGRES_HOST,
         'PORT': 5432,
         'NAME': 'omnileads',
@@ -73,7 +72,7 @@ DATABASES = {
         'ATOMIC_REQUESTS': True,
     },
     'replica': {
-        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'ENGINE': 'django.db.backends.postgresql',
         'HOST': POSTGRES_HOST,
         'PORT': 5432,
         'NAME': 'omnileads',
@@ -96,7 +95,6 @@ SESSION_COOKIE_AGE = 600
 
 #  para hacer un include de este archivo
 # **** RECORDAR: revisar permisos y que existan los directorios ****
-ASTERISK_HOSTNAME = "172.16.20.222"
 OML_ASTERISK_REMOTEPATH = "/etc/asterisk/"
 OML_SIP_FILENAME = "/opt/omnileads/sip_fts.conf"
 OML_QUEUES_FILENAME = "/opt/omnileads/queues_fts.conf"
@@ -239,8 +237,6 @@ KAMAILIO_PORT = 'trash'
 NGINX_HOSTNAME = 'trash'
 OML_EXTERNAL_PORT = 'trash'
 
-MIDDLEWARE = MIDDLEWARE_CLASSES
-
 
 class DisableMigrations(object):
 
@@ -253,7 +249,7 @@ class DisableMigrations(object):
 # MIGRATION_MODULES = DisableMigrations()
 
 
-INSTALL_PREFIX = os.getenv('INSTALL_PREFIX')
+INSTALL_PREFIX = os.getenv('INSTALL_PREFIX', '/opt/omnileads/ominicontacto/')
 # configuraciones de django_sendfile para grabaciones
 SENDFILE_ROOT = "/var/spool/asterisk/monitor"
 SENDFILE_URL = '/grabaciones'

@@ -25,12 +25,16 @@ SUBSCRIBERS_KEY = "OML:DIALER-STATS:SUBSCRIBERS:{0}"
 class DialerStatsSubscriptionManager():
     _redis_connection = None
 
+    def __init__(self, redis_connection=None):
+        self._redis_connection = redis_connection
+
     @property
     def redis_connection(self):
         if self._redis_connection is None:
             self._redis_connection = create_redis_connection(db=2)
         return self._redis_connection
 
+    # Decorar para permitir uso de base de datos
     def get_dialer_campaigns_ids(self, user):
         campanas = Campana.objects.obtener_campanas_dialer()
         if not user.get_is_administrador():
@@ -38,6 +42,7 @@ class DialerStatsSubscriptionManager():
         return campanas.values_list('id', flat=True)
 
     def add_subscription(self, user):
+        """ Registra al usuario supervisor para recibir datos de cada campaña dialer """
         for campana_id in self.get_dialer_campaigns_ids(user):
             subscribers_key = SUBSCRIBERS_KEY.format(campana_id)
             self.redis_connection.sadd(subscribers_key, user.id)

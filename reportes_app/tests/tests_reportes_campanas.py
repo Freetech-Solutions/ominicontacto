@@ -33,10 +33,11 @@ from django.db import connections
 
 from ominicontacto_app.models import Campana, CalificacionCliente, OpcionCalificacion
 from ominicontacto_app.services.estadisticas_campana import EstadisticasService
+from ominicontacto_app.services.estadisticas_campana_v2 import EstadisticasServiceV2
 from ominicontacto_app.services.dialer.campana_wombat import CampanaService
 from ominicontacto_app.services.reporte_campana_pdf import ReporteCampanaPDFService
 from reportes_app.reportes.reporte_llamados_contactados_csv import (
-    ReporteContactadosCSV, ExportacionCampanaCSV)
+    ReporteCalificacionesPorAgenteCSV, ReporteContactadosCSV, ExportacionCampanaCSV)
 from ominicontacto_app.services.reporte_campana_csv import (
     ExportacionArchivoCampanaCSV, CrearArchivoDeReporteCsv)
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
@@ -527,6 +528,98 @@ class ReportesCampanasTests(BaseTestDeReportes):
             self.campana_activa, key_task, fecha_desde, fecha_hasta)
         # muestra el histórico de contactados (aqui cuenta la linea de header)
         self.assertEqual(len(reporte_contactados_csv.datos), 4)
+
+    @patch('redis.Redis.publish')
+    def test_reporte_calificaciones_por_agente_csv_contiene_header_dinamico_y_totales(
+            self, publish):
+        key_task = 'key_task'
+        hoy_ahora = fecha_hora_local(timezone.now())
+        fecha_desde = datetime_hora_minima_dia_utc(hoy_ahora)
+        fecha_hasta = datetime_hora_maxima_dia_utc(hoy_ahora)
+
+        service_v2 = EstadisticasServiceV2(self.campana_activa, fecha_desde, fecha_hasta)
+        estadisticas = service_v2._calcular_estadisticas(
+            self.campana_activa, fecha_desde, fecha_hasta
+        )
+
+        reporte_csv = ReporteCalificacionesPorAgenteCSV(
+            self.campana_activa, key_task, fecha_desde, fecha_hasta
+        )
+        datos = reporte_csv.datos
+
+        self.assertEqual(len(datos), len(estadisticas['agentes_venta']) + 2)
+        opciones_ordenadas = list(
+            self.campana_activa.opciones_calificacion.all().order_by('pk').values_list(
+                'nombre', flat=True
+            )
+        )
+        encabezado = datos[0]
+        self.assertEqual(encabezado[2:2 + len(opciones_ordenadas)], opciones_ordenadas)
+        self.assertEqual(len(encabezado), len(opciones_ordenadas) + 3)
+
+        agentes_venta = list(estadisticas['agentes_venta'].values())
+        if agentes_venta:
+            agente_esperado = agentes_venta[0]
+            fila_agente = None
+            for row in datos[1:-1]:
+                if row[0] == agente_esperado['nombre']:
+                    fila_agente = row
+                    break
+            self.assertIsNotNone(fila_agente)
+            self.assertEqual(int(fila_agente[1]), agente_esperado['total_gestionados'])
+            self.assertEqual(int(fila_agente[-1]), agente_esperado['total_calificados'])
+
+        fila_totales = datos[-1]
+        self.assertEqual(int(fila_totales[1]), estadisticas['total_ventas'])
+        self.assertEqual(int(fila_totales[-1]), estadisticas['total_calificados'])
+        self.assertEqual(
+            fila_totales[2:2 + len(opciones_ordenadas)],
+            [''] * len(opciones_ordenadas)
+        )
+
+    @patch.object(ReporteCampanaPDFService, 'crea_reporte_pdf')
+    def test_reporte_grafico_campana_incluye_controles_csv_calificaciones_por_agente(
+            self, crea_reporte_pdf):
+        url = reverse('campana_reporte_grafico', args=[self.campana_activa.pk])
+        response = self.client.get(url, follow=True)
+        self.assertContains(response, 'id="csvCalificacionesPorAgenteDescarga"')
+        self.assertContains(response, 'id="csvCalificacionesPorAgenteDescargaLink"')
+        self.assertContains(response, 'id="barraProgresoCSVCalificacionesPorAgente"')
+
+    @patch.object(ReporteCampanaPDFService, 'crea_reporte_pdf')
+    def test_reporte_grafico_campana_incluye_controles_csv_interacciones_por_agente(
+            self, crea_reporte_pdf):
+        url = reverse('campana_reporte_grafico', args=[self.campana_activa.pk])
+        response = self.client.get(url, follow=True)
+        self.assertContains(response, 'id="csvInteraccionesPorAgenteDescarga"')
+        self.assertContains(response, 'id="csvInteraccionesPorAgenteDescargaLink"')
+        self.assertContains(response, 'id="barraProgresoCSVInteraccionesPorAgente"')
+
+    @patch.object(ExportacionCampanaCSV, 'obtener_url_reporte_csv_descargar')
+    def test_exporta_reporte_calificaciones_por_agente_redirige_a_archivo_csv(
+            self, obtener_url_reporte_csv_descargar):
+        obtener_url_reporte_csv_descargar.return_value = '/media/reporte_campana/fake.csv'
+        url = reverse('exporta_reporte_calificaciones_por_agente', args=[self.campana_activa.pk])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/media/reporte_campana/fake.csv')
+        args = obtener_url_reporte_csv_descargar.call_args[0]
+        self.assertEqual(args[0], self.campana_activa)
+        self.assertEqual(args[1], 'calificaciones_por_agente')
+
+    @patch.object(ExportacionCampanaCSV, 'obtener_url_reporte_csv_descargar')
+    def test_exporta_reporte_interacciones_por_agente_redirige_a_archivo_csv(
+            self, obtener_url_reporte_csv_descargar):
+        obtener_url_reporte_csv_descargar.return_value = '/media/reporte_campana/fake_interacciones.csv'
+        url = reverse('exporta_reporte_interacciones_por_agente', args=[self.campana_activa.pk])
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/media/reporte_campana/fake_interacciones.csv')
+        args = obtener_url_reporte_csv_descargar.call_args[0]
+        self.assertEqual(args[0], self.campana_activa)
+        self.assertEqual(args[1], 'interacciones_por_agente')
 
     @patch('redis.Redis.publish')
     @patch.object(ReporteCampanaPDFService, 'crea_reporte_pdf')

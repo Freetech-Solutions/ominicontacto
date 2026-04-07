@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-from inspect import getargspec
+from inspect import getfullargspec
 from django.apps import apps
 from django.core.exceptions import PermissionDenied
 from django.urls import reverse
@@ -42,7 +42,7 @@ class EmailListView(TemplateView):
                 ],
             }
             if self.request.user.is_superuser:
-                params = {key: "~" for key in getargspec(handler).args[1:]}
+                params = {key: "~" for key in getfullargspec(handler).args[1:]}
                 item["urls"].append((
                     "random-sample",
                     "{}?{}".format(item["urls"][0][1], urlencode(params)),

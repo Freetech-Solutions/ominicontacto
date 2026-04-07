@@ -43,13 +43,13 @@ from ominicontacto_app.models import (Campana, ArchivoDeAudio, SitioExterno, Sup
                                       AgenteProfile)
 from ominicontacto_app.services.creacion_queue import (ActivacionQueueService,
                                                        RestablecerDialplanError)
+from ominicontacto_app.services.campaign_redis_status import set_campaign_status_redis
 from ominicontacto_app.tests.factories import COLUMNAS_DB_DEFAULT
 from ominicontacto_app.tests.factories import COLUMNAS_DB_DEFAULT_TELEFONO
 from ominicontacto_app.tests.factories import COLUMNAS_DB_DEFAULT_ID_EXTERNO
 from ominicontacto_app.utiles import cast_datetime_part_date, obtener_opciones_columnas_bd
 
 import logging as logging_
-from ominicontacto_app.services.asterisk.asterisk_ami import AMIManagerConnectorError
 
 from django.core.serializers import json
 
@@ -255,7 +255,15 @@ class CampanaWizardMixin(object):
             return {'supervisors_choices': supervisors_choices}
         if step == self.ADICION_AGENTES:
             members = AgenteProfile.objects.obtener_activos().prefetch_related('user')
-            return {'form_kwargs': {'members': members}}
+            # Obtener tipo_destino_dialer del paso COLA para validación
+            tipo_destino_dialer = None
+            try:
+                cola_data = self.get_cleaned_data_for_step(self.COLA)
+                if cola_data:
+                    tipo_destino_dialer = cola_data.get('tipo_destino_dialer')
+            except (KeyError, AttributeError):
+                pass
+            return {'form_kwargs': {'members': members, 'tipo_destino_dialer': tipo_destino_dialer}}
         if step == self.OPCIONES_CALIFICACION:
             cleaned_data = self.get_cleaned_data_for_step(self.INICIAL)
             con_formulario = cleaned_data.get('tipo_interaccion') in \
@@ -365,13 +373,15 @@ class CampanaWizardMixin(object):
                     agente = queue_form.instance.member
                     agentes.add(agente)
                     penalties[agente.id] = queue_form.instance.penalty
+            queue_service = None
             try:
                 queue_service = QueueMemberService()
                 queue_service.agregar_agentes_en_cola(campana, agentes, penalties)
-                queue_service.disconnect()
-            except AMIManagerConnectorError:
-                logger.exception(_("QueueAdd failed "))
-            queue_service.disconnect()
+            except Exception:
+                logger.exception(_("Error al agregar agentes a la campaña"))
+            finally:
+                if queue_service is not None:
+                    queue_service.disconnect()
 
     def alertas_por_sistema_externo(self, campana):
         if campana.sistema_externo:
@@ -492,10 +502,12 @@ class CampanaEntranteCreateView(CampanaEntranteMixin, SessionWizardView):
 
     def done(self, form_list, form_dict, **kwargs):
         queue = self._save_forms(form_list, form_dict, Campana.ESTADO_ACTIVA)
-        self._insert_queue_asterisk(queue)
         # salvamos los supervisores y agentes asignados a la campaña
         self.save_supervisores(form_list, -2)
         self.save_agentes(form_list, -1)
+        # sincronizar hash OML:CAMP (incl. VOICEBOT) después de tener los agentes en la cola
+        self._insert_queue_asterisk(queue)
+        set_campaign_status_redis(queue.campana.id, 'active')
         # creamos un nodo destino de ruta entrante para ser que a la campaña se le pueda
         # configurar un acceso en alguna ruta entrante
         DestinoEntrante.crear_nodo_ruta_entrante(queue.campana)

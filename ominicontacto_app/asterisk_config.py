@@ -27,7 +27,6 @@ import json
 import logging
 import os
 import tempfile
-import time
 import traceback
 from pathlib import Path
 
@@ -48,7 +47,6 @@ from ominicontacto_app.models import (
     ClienteWebPhoneProfile,
     SupervisorProfile
 )
-from ominicontacto_app.services.asterisk.asterisk_ami import AMIManagerConnector
 from ominicontacto_app.services.redis.redis_streams import RedisStreams
 
 logger = logging.getLogger(__name__)
@@ -85,10 +83,20 @@ class SipConfigCreator(object):
         assert agente.sip_extension is not None, "agente.sip_extension  == None"
 
         partes = []
+        # Por defecto no seteamos password en el endpoint SIP.
+        # Solo se utilizará cuando corresponda (ej. agentes con SIP remote).
+        oml_agente_password = ""
+
+        # Agentes con flag "SIP remote" usan su sip_password como password.
+        from ominicontacto_app.models import AgenteProfile  # import local para evitar ciclos
+        if isinstance(agente, AgenteProfile) and getattr(agente, "sip_remote", False):
+            oml_agente_password = getattr(agente, "sip_password", "") or ""
+
         param_generales = {
             'oml_agente_name': agente.get_asterisk_caller_id(),
             'oml_agente_sip': agente.sip_extension,
             'oml_context': context,
+            'oml_agente_password': oml_agente_password,
             'kamailio_hostname': settings.KAMAILIO_HOSTNAME,
             'kamailio_port': settings.KAMAILIO_PORT,
         }
@@ -358,7 +366,6 @@ class QueuesCreator(object):
         (si `queue` es None). Si `queue` es pasada por parametro,
         se genera solo para dicha queue.
         """
-
         if campanas:
             pass
         elif campana:
@@ -427,7 +434,14 @@ class QueuesCreator(object):
 
             dialplan.append(config_chunk)
 
-        self._queues_config_file.write(dialplan)
+        # A partir de OML-XXX dejamos de generar el archivo oml_queues.conf.
+        # Mantenemos la generación en memoria para no romper tests ni lógica
+        # que reutiliza los pedazos de dialplan, pero no se escribe archivo
+        # ni se envía contenido a través del stream de Redis.
+        logger.info(
+            _("Se omite la escritura de oml_queues.conf; "
+              "la configuración de colas ya no se genera como archivo.")
+        )
 
 
 class RutasSalientesConfigCreator(object):
@@ -502,15 +516,7 @@ class RutasSalientesConfigCreator(object):
 
         # Agrega parametros
         rutas_file.append("exten => i,1,Verbose(2, dont exist pattern)\n")
-        rutas_file.append("same => n,Set(__DIALSTATUS=NONDIALPLAN)\n")
-        rutas_file.append("same => n,ExecIf($[${CUT(OMLCALLSTATUS,-,1)} == BTOUT]"
-                          "?Set(__DIALSTATUS=BTOUT-NONDIALPLAN))\n")
-        rutas_file.append("same => n,ExecIf($[${CUT(OMLCALLSTATUS,-,1)} == CTOUT]"
-                          "?Set(__DIALSTATUS=CTOUT-NONDIALPLAN))\n")
-        rutas_file.append("same => n,Set(SHARED(OMLCALLSTATUS,${OMLMOTHERCHAN})=${DIALSTATUS})\n")
-        gosub = \
-            "same => n,Gosub(sub-oml-hangup,s,1(FAIL FAIL FAIL no hay ruta para ${OMLOUTNUM}))\n"
-        rutas_file.append(gosub)
+        rutas_file.append("same => n,Hangup()\n")
 
         # agrego las rutas con los patrones de discado
         for ruta in rutas:
@@ -546,7 +552,14 @@ class RutasSalientesConfigCreator(object):
 
             rutas_file.append(config_chunk)
 
-        self._rutas_config_file.write(rutas_file)
+        # A partir de OML-XXX dejamos de generar el archivo oml_extensions_outr.conf.
+        # Se mantiene la construcción del contenido en memoria para no romper
+        # lógica reutilizada ni tests, pero no se escribe archivo ni se publica
+        # el contenido vía Redis.
+        logger.info(
+            _("Se omite la escritura de oml_extensions_outr.conf; "
+              "la configuración de rutas salientes ya no se genera como archivo.")
+        )
 
 
 class SipTrunksConfigCreator(object):
@@ -596,7 +609,7 @@ class SipTrunksConfigCreator(object):
                     trunk.nombre, trunk.text_config.replace("\r", "")))
             elif trunk.tecnologia == TroncalSIP.PJSIP:
                 modifica_pjsip = True
-                pjsip_trunk_file.append("\n[{0}]\n{1}\n".format(
+                pjsip_trunk_file.append("\n[{0}](sip-trunks)\n{1}\n".format(
                     trunk.nombre, trunk.text_config.replace("\r", "")))
         if modifica_chan:
             self._chansip_trunks_config_file.write(chansip_trunk_file)
@@ -712,52 +725,6 @@ class PlaylistsConfigCreator(object):
             playlists_file.append(config_chunk)
 
         self._playlist_config_file.write(playlists_file)
-
-
-# #########################################
-#    Reloader
-# #########################################
-
-class AsteriskConfigReloader(object):
-
-    MOH_MODULE = 'res_musiconhold.so'
-    SIP_TRUNKS_MODULE = 'res_pjsip.so'
-    AGENTS_SIP_MODULE = 'res_pjsip.so'
-    OUT_ROUTE_MODULE = 'pbx_config.so'
-
-    def reload_asterisk(self):
-        """Realiza reload de configuracion de Asterisk usando AMI
-        """
-        manager = AMIManagerConnector()
-        manager.connect()
-        manager._ami_manager('command', 'module reload')
-        manager.disconnect()
-
-    def reload_module(self, module):
-        """
-        Realiza reload de configuracion de Asterisk usando AMI
-        ATENCION: El comando parece estar blacklisted.
-        """
-        manager = AMIManagerConnector()
-        manager.connect()
-        manager._ami_manager('command', 'module reload {0}'.format(module))
-        manager.disconnect()
-
-
-class AsteriskMOHConfigReloader(object):
-
-    def reload_music_on_hold_config(self):
-        """Realiza reload de configuracion de Asterisk usando AMI
-        """
-        # TODO: Actualmente  el comando  manager.command(content) del metodo _ami_action
-        #       esta devolviendo estos headers:
-        #       {'Response': 'Error', 'ActionID': 'xxx', 'Message': 'Command blacklisted'}
-        manager = AMIManagerConnector()
-        manager.connect()
-        manager._ami_manager('command', 'module unload res_musiconhold.so')
-        time.sleep(2)
-        manager._ami_manager('command', 'module load res_musiconhold.so')
-        manager.disconnect()
 
 
 # #########################################
@@ -931,9 +898,8 @@ class AudioConfigFile:
             return False
 
     def _ensure_local_if_s3(self):
-        s3_enabled = _is_true(os.getenv("S3_STORAGE_ENABLED"))
         file_missing = not os.path.exists(self._filename)
-        if s3_enabled and file_missing:
+        if file_missing:
             media_root = os.path.normpath(settings.MEDIA_ROOT)
             s3 = StorageService()
             s3.download_file(self.file_name, media_root, "media_root")

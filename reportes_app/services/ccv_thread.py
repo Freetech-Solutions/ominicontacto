@@ -13,7 +13,7 @@ WSURL = f'wss://{OMNILEADS_HOSTNAME}/consumers/stream/survey_app/answers/updates
 QUEUE_KEY = 'OML:QUEUE:CALL_CUSTOM_VAR'
 
 logger = logging.getLogger("asyncio")
-INSTALL_PREFIX = os.getenv('INSTALL_PREFIX')
+INSTALL_PREFIX = os.getenv('INSTALL_PREFIX', '/opt/omnileads/ominicontacto/')
 fh = logging.FileHandler(f'{INSTALL_PREFIX}/log/call_custom_var.log')
 
 logger.addHandler(fh)

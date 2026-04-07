@@ -51,6 +51,8 @@ class Command(BaseCommand):
     EVENTOS_AGENTE = [
         'ADDMEMBER',
         'REMOVEMEMBER',
+        'SESSION_LOGIN',
+        'SESSION_LOGOUT',
         'PAUSEALL',
         'UNPAUSEALL',
     ]

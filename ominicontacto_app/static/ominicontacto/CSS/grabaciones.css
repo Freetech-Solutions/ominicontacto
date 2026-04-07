@@ -7,3 +7,78 @@
     opacity: 100% !important;
     background-color: #ECEEEA;
 }
+
+/* Estética unificada con columna Acciones (supervision/panel-general) */
+.agents-actions-cell {
+    white-space: nowrap;
+    min-width: 200px;
+}
+
+.agents-actions-btns {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 4px;
+    align-items: center;
+}
+
+.btn-agent-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #f5f5f5;
+    color: #4a4a4a;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.btn-agent-action:hover:not(:disabled) {
+    background: #0f3460;
+    color: #fff;
+    border-color: #0f3460;
+}
+
+.btn-agent-action:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.btn-agent-action i {
+    font-size: 0.85rem;
+}
+
+/* Modal transcripción y resumen */
+.transcripcion-modal-loading {
+    padding: 1rem 0;
+}
+
+.transcripcion-modal-text,
+.transcripcion-modal-summary {
+    max-height: 200px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f9f9f9;
+}
+
+.transcripcion-modal-json {
+    max-height: 300px;
+    overflow: auto;
+    font-size: 0.85rem;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: #f5f5f5;
+}
+
+.transcripcion-modal-error {
+    color: #a94442;
+    padding: 0.5rem 0;
+}

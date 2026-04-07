@@ -9,8 +9,6 @@ COMMAND="python3 manage.py"
 set -e
 
 echo "******** OMniLeads UWSGI server ********"
-echo "Remove omlcron crontabs"
-cat /dev/null > /var/spool/cron/crontabs/root
 
 echo "uwsgi.ini settings"
 if [[ $UWSGI_CUSTOM == "True" ]]; then
@@ -28,15 +26,13 @@ max-requests=${UWSGI_MAX_REQUESTS:-2000}
 EOF
 fi
 
-touch /var/spool/cron/crontabs/omnileads
-chown omnileads:omnileads "${INSTALL_PREFIX}/run/oml_uwsgi.ini" /var/spool/cron/crontabs/omnileads
-chmod 600 /var/spool/cron/crontabs/omnileads
+chown omnileads:omnileads "${INSTALL_PREFIX}/run/oml_uwsgi.ini"
 
 echo "Run django command compilemessages"
 $COMMAND compilemessages
 
 echo "Run django command collectstatic"
-echo 'yes' | $COMMAND collectstatic
+$COMMAND collectstatic --noinput
 $COMMAND collectstatic_js_reverse
 
 echo "Run django command compress"
@@ -50,10 +46,10 @@ $COMMAND regenerar_asterisk
 
 echo "WA mkdir zip calrec dir with omnileads ownership"
 mkdir -p /opt/omnileads/asterisk/var/spool/asterisk/
-chown -R omnileads:omnileads /opt/omnileads/asterisk/var/spool/asterisk/
+chown -R omnileads:omnileads /opt/omnileads/asterisk/var/spool/asterisk/ || true
 
 echo "Init uWSGI"
-exec /usr/local/bin/uwsgi \
+exec uwsgi \
     --ini "${INSTALL_PREFIX}/run/oml_uwsgi.ini" \
     --http-socket "${DJANGO_HOSTNAME}:${UWSGI_PORT}" \
     --stats "${DJANGO_HOSTNAME}:9191" \

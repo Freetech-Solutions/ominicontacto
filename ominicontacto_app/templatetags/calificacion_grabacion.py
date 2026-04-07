@@ -34,6 +34,24 @@ def es_calificacion_llamada(grabacion, calificacion):
 @register.filter(name='select_contacto_id')
 def select_contacto_id(grabacion):
     """Devuelve el id del contacto de la grabación"""
-    if int(grabacion.contacto_id) == -1:
-        return LlamadaLog.objects.filter(callid=grabacion.callid).first().contacto_id
-    return grabacion.contacto_id
+    # Manejar el caso donde contacto_id puede ser None
+    if grabacion.contacto_id is None:
+        # Si contacto_id es None, intentar obtenerlo de LlamadaLog
+        llamada_log = LlamadaLog.objects.filter(callid=grabacion.callid).first()
+        if llamada_log and llamada_log.contacto_id is not None:
+            return llamada_log.contacto_id
+        return None
+    
+    # Convertir a int de forma segura
+    try:
+        contacto_id_int = int(grabacion.contacto_id)
+        if contacto_id_int == -1:
+            # Si es -1, intentar obtener el contacto_id real de LlamadaLog
+            llamada_log = LlamadaLog.objects.filter(callid=grabacion.callid).first()
+            if llamada_log and llamada_log.contacto_id is not None:
+                return llamada_log.contacto_id
+            return contacto_id_int
+        return contacto_id_int
+    except (ValueError, TypeError):
+        # Si no se puede convertir, retornar el valor original o None
+        return grabacion.contacto_id if grabacion.contacto_id is not None else None

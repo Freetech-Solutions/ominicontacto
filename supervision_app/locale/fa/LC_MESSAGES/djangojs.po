@@ -176,3 +176,19 @@ msgstr "توجه!"
 #: supervision_app/static/supervision_app/JS/supervision_agentes.js:35
 msgid "Debe finalizar la acción actual antes de realizar otra."
 msgstr "You must end current action before executing another."
+
+#: supervision_app/static/supervision_app/JS/supervision.js
+msgid "Conferencia 3 vías"
+msgstr "3-way conference"
+
+#: supervision_app/static/supervision_app/JS/supervision_agentes.js
+msgid "Conferencia 3 vías solicitada correctamente."
+msgstr "3-way conference requested successfully."
+
+#: supervision_app/static/supervision_app/JS/supervision_agentes.js
+msgid "Error al solicitar conferencia 3 vías."
+msgstr "Error requesting 3-way conference."
+
+#: supervision_app/static/supervision_app/JS/supervision_agentes.js
+msgid "Error al ejecutar conferencia 3 vías => "
+msgstr "Error executing 3-way conference => "

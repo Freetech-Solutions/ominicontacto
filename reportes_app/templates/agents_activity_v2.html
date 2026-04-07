@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'ominicontacto/CSS/ext/select2.min.css' %}">
+<style>
+    .reporte-agentes-v2-body { font-family: 'Inter', sans-serif; }
+    .f-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; }
+    .reporte-cc-tabla-llamadas-campana { font-size: 0.75rem; }
+    /* Restaurar collapse de Bootstrap en el sidebar (Tailwind pisa .collapse con visibility: collapse) */
+    #sidebar .collapse { visibility: visible; }
+    #sidebar .collapse:not(.show) { display: none; }
+    #sidebar .collapse.show { display: block; }
+    /* Restaurar collapse de Bootstrap en el wrapper de filtros */
+    #wrapperSearchForm.collapse { visibility: visible; }
+    #wrapperSearchForm.collapse:not(.show) { display: none; }
+    #wrapperSearchForm.collapse.show { display: block; }
+</style>
+{% endblock %}
+
+{% block head_js %}
+<script>
+(function(){var o=console.warn;console.warn=function(m){if(typeof m==='string'&&m.indexOf('cdn.tailwindcss.com')!==-1)return;o.apply(console,arguments);};})();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/csrf.js' %}"></script>
+<script type="text/javascript" src="{% static 'JS/ext/reconnecting-websocket-iife.min.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/ext/select2.min.js' %}"></script>
+{% get_current_language as LANGUAGE_CODE %}
+<input type="hidden" value="{{ LANGUAGE_CODE }}" id="languageCode">
+<input type="hidden" id="api_reportes_agents_activity_v2_url" data-url="{{ api_reportes_agents_activity_v2_url }}">
+<input type="hidden" id="csv_agents_activity_listado_api_export_url" value="{{ api_exportar_csv_agents_activity_v2_listado_url }}">
+<input type="hidden" id="csv_agents_activity_listado_download_url_prefix" value="{{ reportes_agents_activity_v2_descargar_listado_csv_url_template }}">
+<input type="hidden" id="agente_reporte_grafico_url_template" data-url-template="{{ agente_reporte_grafico_url_template }}">
+{{ agente_grupo_map|json_script:"agente-grupo-map" }}
+<script type="text/javascript" src="{% static 'reportes_app/JS/agents_activity_v2.js' %}?v=agent-csv-listado-1"></script>
+{% endblock %}
+
+{% block content %}
+<div class="reporte-agentes-v2-body bg-white p-10 overflow-x-hidden">
+    <div class="w-full max-w-7xl mx-auto">
+
+        <div id="wrapper-search">
+            <button id="btnCollapse" class="btn btn-block" type="button"
+                    data-toggle="collapse" data-target="#wrapperSearchForm"
+                    aria-expanded="true" aria-controls="wrapperSearchForm">
+                <span class="icon icon-search"></span>{% trans 'Buscar' %}
+            </button>
+            <div id="wrapperSearchForm" class="collapse show">
+                <div class="mb-6 bg-white rounded-lg border border-gray-200 p-4">
+                    <form id="form-filtro-performance" method="get">
+                        <div class="form-row align-items-end">
+                            <div class="col-md-4 col-lg-3 form-group mb-0">
+                                <label for="id_fecha">{% trans 'Fecha' %}</label>
+                                <input type="text" id="id_fecha" name="fecha" class="form-control" placeholder="{% trans 'Rango de fechas' %}" autocomplete="off">
+                            </div>
+                            <div class="col-md-4 col-lg-3 form-group mb-0">
+                                <label for="id_agente">{% trans 'Agentes' %}</label>
+                                <select id="id_agente" name="agente" multiple="multiple" class="form-control"
+                                        data-all-agents-value="{{ todos_los_agentes_value }}"
+                                        data-placeholder="{% trans 'Seleccione agentes' %}">
+                                    <option value="{{ todos_los_agentes_value }}" selected="selected">{% trans 'Todos' %}</option>
+                                    {% for agente in agentes_list %}
+                                    <option value="{{ agente.id }}">{{ agente.nombre|default:agente.id }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-lg-3 form-group mb-0">
+                                <label for="id_grupo_agente">{% trans 'Grupo de agentes' %}</label>
+                                <select id="id_grupo_agente" name="grupo_agente" multiple="multiple" class="form-control"
+                                        data-all-groups-value="{{ todos_los_grupos_value }}"
+                                        data-placeholder="{% trans 'Seleccione grupos de agentes' %}">
+                                    <option value="{{ todos_los_grupos_value }}" selected="selected">{% trans 'Todos' %}</option>
+                                    {% for grupo in grupos_list %}
+                                    <option value="{{ grupo.id }}">{{ grupo.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-4 col-lg-2 form-group mb-0">
+                                <label class="d-block">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary">{% trans 'Buscar' %}</button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex justify-between items-end mb-6 border-b border-gray-200 pb-4">
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900 tracking-tight">Reporte de Performance</h1>
+                <p class="text-sm text-gray-500 mt-1" id="reporte-performance-subtitulo">Datos del rango seleccionado</p>
+            </div>
+            <div class="text-xs text-gray-400 font-mono">
+                API: agents_kpis_v2
+            </div>
+        </div>
+
+        <ul class="nav nav-tabs mb-3" id="agentsActivityTabsL1" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link active" id="tab-listado-link" data-toggle="tab" href="#tab-listado" role="tab" aria-controls="tab-listado" aria-selected="true">{% trans 'Listado' %}</a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link" id="tab-analisis-link" data-toggle="tab" href="#tab-analisis" role="tab" aria-controls="tab-analisis" aria-selected="false">{% trans 'Analisis' %}</a>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="agentsActivityTabsL1Content">
+            <div class="tab-pane fade show active" id="tab-listado" role="tabpanel" aria-labelledby="tab-listado-link">
+                <input type="hidden" id="csv_agents_activity_listado_task_id" value="">
+                <div class="d-flex flex-wrap align-items-center mb-3">
+                    <input type="button" class="btn btn-outline-primary btn-sm mr-2 mb-2" id="csvAgentsActivityListadoDescarga" value="{% trans 'Generar reporte Listado (CSV)' %}">
+                    <a class="btn btn-outline-primary btn-sm hidden mb-2" id="csvAgentsActivityListadoDescargaLink" href="">{% trans 'Descargar Listado (CSV)' %}</a>
+                    <div id="barraProgresoCSVAgentsActivityListado" class="hidden ml-2 mb-2" style="min-width: 220px;">
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                                 role="progressbar"
+                                 style="width: 0%;"
+                                 aria-valuenow="0"
+                                 aria-valuemin="0"
+                                 aria-valuemax="100">0%</div>
+                        </div>
+                    </div>
+                    <div class="ml-auto d-flex align-items-center mb-2">
+                        <label for="reporte-performance-page-size" class="mb-0 mr-2 text-sm text-gray-600">{% trans 'Mostrar agentes' %}</label>
+                        <select id="reporte-performance-page-size" class="form-control form-control-sm" style="width: auto;">
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="30">30</option>
+                            <option value="40">40</option>
+                            <option value="50">50</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 reporte-cc-tabla-llamadas-campana">
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm table-bordered table-hover mb-0 min-w-full">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th scope="col"></th>
+                                    <th scope="col" colspan="4" class="text-center">Disponibilidad (Segundos / %)</th>
+                                    <th scope="col" colspan="5" class="text-center">Interacciones</th>
+                                    <th scope="col" colspan="4" class="text-center">Eficiencia</th>
+                                </tr>
+                                <tr>
+                                    <th scope="col">Agente</th>
+                                    <th scope="col" class="text-right">Sesión</th>
+                                    <th scope="col" class="text-right text-green-700">Ready</th>
+                                    <th scope="col" class="text-right text-orange-600">Pause</th>
+                                    <th scope="col" class="text-right text-blue-600">ACW</th>
+                                    <th scope="col" class="text-right">Total</th>
+                                    <th scope="col" class="text-right">{% trans 'Gestiones' %}</th>
+                                    <th scope="col" class="text-center">Llamadas: In / Out</th>
+                                    <th scope="col" class="text-center">Chat: In / Out</th>
+                                    <th scope="col" class="text-right">Talk Time</th>
+                                    <th scope="col" class="text-right">ATT</th>
+                                    <th scope="col" class="text-right">ACT</th>
+                                    <th scope="col" class="text-right">Transfer (In/Out)</th>
+                                    <th scope="col" class="text-right">Hold</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reporte-performance-tbody">
+                                <!-- Filas generadas por JS según API -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <nav id="reporte-performance-pagination" class="mt-3" aria-label="{% trans 'Paginación listado' %}"></nav>
+                <div class="mt-4 flex justify-end">
+                    <p class="text-xs text-gray-400" id="reporte-performance-contador">—</p>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="tab-analisis" role="tabpanel" aria-labelledby="tab-analisis-link">
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

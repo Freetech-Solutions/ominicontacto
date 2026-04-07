@@ -11,6 +11,12 @@
         <AddGroupAgents />
       </div>
     </div>
+    <div class="formgrid grid mt-3">
+      <div class="field col-6">
+        <h2>{{ $t("globals.bots") }}</h2>
+        <AddBotAgents />
+      </div>
+    </div>
     <hr />
     <div class="grid mt-5">
       <div class="field col-12">
@@ -46,6 +52,7 @@
 import { mapActions, mapState } from 'vuex';
 import AddAgents from '@/components/supervisor/campaigns/agents/AddAgents.vue';
 import AddGroupAgents from '@/components/supervisor/campaigns/agents/AddGroupAgents.vue';
+import AddBotAgents from '@/components/supervisor/campaigns/agents/AddBotAgents.vue';
 import AgentsCampaignTable from '@/components/supervisor/campaigns/agents/AgentsCampaignTable.vue';
 import AgentsCampaignService from '@/services/supervisor/agents_campaign_service';
 import { CONFIRM_BTN_COLOR, CANCEL_BTN_COLOR } from '@/globals';
@@ -55,7 +62,8 @@ export default {
     components: {
         AgentsCampaignTable,
         AddGroupAgents,
-        AddAgents
+        AddAgents,
+        AddBotAgents
     },
     inject: ['$helpers'],
     data () {

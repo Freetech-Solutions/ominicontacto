@@ -40,7 +40,7 @@ from ominicontacto_app.models import AgenteProfile, User
 from ominicontacto_app.permisos import PermisoOML
 from ominicontacto_app.errors import OmlArchivoImportacionInvalidoError, OmlError, \
     OmlParserRepeatedColumnsError
-from django.utils.encoding import smart_text
+from django.utils.encoding import smart_str
 from ominicontacto_app.utiles import elimina_tildes, validar_longitud_nombre_base_de_contactos
 import re
 
@@ -247,7 +247,7 @@ class SubirBaseContactosView(APIView):
         Los caracteres invalidos NO son borrados.
         """
         if nombre is not None:
-            nombre = smart_text(nombre)
+            nombre = smart_str(nombre)
             nombre = nombre.strip()
             nombre = DOUBLE_SPACES.sub("_", nombre)
             nombre = elimina_tildes(nombre)

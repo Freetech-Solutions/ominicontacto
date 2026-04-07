@@ -56,7 +56,7 @@ class CallDataGeneratorTests(OMLBaseTest):
         key = CallDataGenerator.CALLDATA_CAMP_KEY.format(self.campana1.id)
         eventos = {}
         for evento in CallDataGenerator.EVENTOS_FIN_CONEXION_ORIGINAL:
-            key_evento = f'CALLTYPE:{self.tipo_llamada}:{evento}'
+            key_evento = f'CALL_TYPE:{self.tipo_llamada}:{evento}'
             eventos[key_evento] = cantidad
         redis_hset.assert_called_with(key, mapping=eventos)
 
@@ -67,7 +67,7 @@ class CallDataGeneratorTests(OMLBaseTest):
         max_duracion = min_duracion + len(CallDataGenerator.EVENTOS_FIN_CONEXION_ORIGINAL) - 1
 
         generador = CallDataGenerator(create_redis_connection())
-        generador.regenerar_wait_times()
+        generador.regenerar_wait_and_abandon_times()
         args, kwargs = sadd.call_args
         key = args[0]
         duraciones_registradas = list(args[1:len(args)])

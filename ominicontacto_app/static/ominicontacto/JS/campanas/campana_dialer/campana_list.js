@@ -324,6 +324,15 @@ class NotificationSocket {
             maxReconnectionDelay: 3000,
             minReconnectionDelay: 1000,
         });
+
+        rws.onopen = () => {
+            console.log('Websocket Connected');
+            rws.send(JSON.stringify({
+                action: 'subscribe',
+                payload: { service: 'dialer_stats' }
+            }));
+        };
+
         var self = this;
         rws.addEventListener('message', function(e) {
             const event_data = JSON.parse(e.data);

@@ -19,9 +19,9 @@ import datetime
 import time
 import json
 from channels.layers import get_channel_layer
-from asgiref.sync import async_to_sync
-from asgiref.sync import sync_to_async
-from notification_app.consumers import AgentConsole, AgentConsoleWhatsapp, DialerStatsConsumer
+from asgiref.sync import async_to_sync, sync_to_async
+from notification_app.consumers import \
+    AgentConsole, AgentConsoleWhatsapp, DialerStatsConsumer, SupervisionConsumer
 from ominicontacto_app.services.redis.redis_streams import RedisStreams
 MESSAGE_SENDERS = {
     'AGENT': 0,
@@ -45,6 +45,7 @@ class AgentNotifier:
     TYPE_EXTERNAL_SITE_INTERACTION_ERROR = 'external_site_interaction_error'
     TYPE_END_TRANSFERRED_CALL = 'end_transferred_call'
     TYPE_ATTENDED_MULTINUM_CALL = 'attended_multinum_call'
+    TYPE_CALL_BLOCKED = 'call_blocked'
     TYPE_WHATSAPP_NEW_CHAT = 'whatsapp_new_chat'
     TYPE_WHATSAPP_CHAT_ATTENDED = 'whatsapp_chat_attended'
     TYPE_WHATSAPP_CHAT_TRANSFERED = 'whatsapp_chat_transfered'
@@ -122,6 +123,27 @@ class AgentNotifier:
         }
         self.send_message(
             self.TYPE_ATTENDED_MULTINUM_CALL,
+            message,
+            user_id=user_id
+        )
+
+    def notify_call_blocked(self, user_id, phone_number, campaign_id, reason):
+        """
+        Notifica al agente que una llamada fue bloqueada.
+        
+        Args:
+            user_id: ID del usuario agente
+            phone_number: Número de teléfono que se intentó llamar
+            campaign_id: ID de la campaña
+            reason: Razón del bloqueo
+        """
+        message = {
+            'phone_number': phone_number,
+            'campaign_id': campaign_id,
+            'reason': reason
+        }
+        self.send_message(
+            self.TYPE_CALL_BLOCKED,
             message,
             user_id=user_id
         )
@@ -293,3 +315,35 @@ class DialerStatsNotifier:
 
     async def notify(self, event_data, user_id):
         return await self.async_send_message(type='stats', message=event_data, user_id=user_id)
+
+
+class SupervisionNotifier:
+
+    def get_group_name(self, user_id=None):
+        if user_id is not None:
+            return SupervisionConsumer.GROUP_USER_OBJ.format(user_id=user_id)
+        else:
+            return SupervisionConsumer.GROUP_USER_CLS
+
+    async def send_message(self, type, message, user_id=None):
+        await get_channel_layer().group_send(
+            self.get_group_name(user_id),
+            {
+                'type': 'broadcast',
+                'payload': {
+                    'type': type,
+                    'args': message
+                }
+            })
+
+    def sync_send_message(self, type, message, user_id=None):
+        async_to_sync(
+            get_channel_layer().group_send)(
+                self.get_group_name(user_id),
+                {
+                    'type': 'broadcast',
+                    'payload': {
+                        'type': type,
+                        'args': message
+                    }
+                })

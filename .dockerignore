@@ -35,3 +35,8 @@ TRANSLATING.md
 check-js.sh
 checks.py
 coverage.sh
+
+node_modules
+npm-debug.log*
+yarn-error.log*
+dist

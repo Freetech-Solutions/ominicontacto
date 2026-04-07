@@ -18,13 +18,11 @@
 
 import logging
 from django.db import transaction
-from django.utils.translation import gettext as _
 from ominicontacto_app.models import QueueMember
-from ominicontacto_app.services.asterisk.asterisk_ami import (
-    AMIManagerConnectorError, AmiManagerClient)
 from ominicontacto_app.services.asterisk.redis_database import CampanasDeAgenteFamily
 from ominicontacto_app.services.asterisk.redis_database import CampaignAgentsFamily
 from ominicontacto_app.services.asterisk.supervisor_activity import SupervisorActivityAmiManager
+from ominicontacto_app.services.creacion_queue import ActivacionQueueService
 from ominicontacto_app.services.redis.connection import create_redis_connection
 
 logger = logging.getLogger(__name__)
@@ -43,23 +41,27 @@ def obtener_sip_agentes_sesiones_activas():
 
 class QueueMemberService(object):
     """ Se encarga de manejar las asignaciones de Agentes a Campañas y mantener los datos
-    en base de datos, Asterisk via AMI, y Redis
+    en base de datos y Redis. La sincronización de miembros de cola con Asterisk (si se
+    requiere) puede hacerse fuera de Django, por ejemplo con el script asterisk_transition.py
+    del ACD, que consume /api/v1/asterisk/queues_data/ y aplica QueueAdd por AMI.
     """
 
     def __init__(self, ami_client=None, conectar_ami=True):
-        if ami_client:
-            self.ami_client = ami_client
-        elif conectar_ami:
-            self.ami_client = AmiManagerClient()
-            self.ami_client.connect()
+        # ami_client y conectar_ami se mantienen por compatibilidad con tests; ya no se usa AMI
         self.campanas_de_agente_family = CampanasDeAgenteFamily()
         self.campaign_agents_family = CampaignAgentsFamily()
         self.redis_connection = None
 
     def disconnect(self):
-        self.ami_client.disconnect()
+        """No-op: ya no se mantiene conexión AMI desde este servicio."""
+        pass
 
     def eliminar_agente_de_colas_asignadas(self, agente):
+        # obtener campañas afectadas antes de borrar los QueueMember
+        campanas_afectadas = list(
+            qm.queue_name.campana for qm in
+            agente.campana_member.select_related('queue_name__campana').all()
+        )
         # ahora vamos a remover el agente de la cola de asterisk
         sip_agentes_logueados = obtener_sip_agentes_sesiones_activas()
         if agente.sip_extension in sip_agentes_logueados:
@@ -70,6 +72,9 @@ class QueueMemberService(object):
         QueueMember.objects.borrar_member_queue(agente)
         self.campanas_de_agente_family.eliminar_datos_de_agente(agente.id)
         self.campaign_agents_family.eliminar_datos_de_agente(agente.id)
+        activacion = ActivacionQueueService()
+        for campana in campanas_afectadas:
+            activacion.activar(campana)
 
     def eliminar_agentes_de_cola(self, campana, agentes):
         QueueMember.objects.filter(
@@ -81,6 +86,7 @@ class QueueMemberService(object):
                 self._remover_agente_cola_asterisk(campana, agente)
             self.campanas_de_agente_family.borrar_agente_de_campana(campana.id, agente.id)
             self.campaign_agents_family.borrar_agente_de_campana(campana.id, agente.id)
+        ActivacionQueueService().activar(campana)
 
     def eliminar_agente_de_colas(self, agente, campanas, campanas_ids):
         QueueMember.objects.filter(
@@ -93,16 +99,15 @@ class QueueMemberService(object):
         self.campanas_de_agente_family.borrar_agente_de_campanas(campanas_ids, agente.id)
         for campana_id in campanas_ids:
             self.campaign_agents_family.borrar_agente_de_campana(campana_id, agente.id)
+        activacion = ActivacionQueueService()
+        for campana in campanas:
+            activacion.activar(campana)
 
     def _remover_agente_cola_asterisk(self, campana, agente):
-        queue = campana.get_queue_id_name()
-        interface = 'PJSIP/{0}'.format(agente.sip_extension)
-        try:
-            self.ami_client.queue_remove(queue, interface)
-        except AMIManagerConnectorError:
-            logger.exception(
-                _('QueueRemove failed - agente: {0} de la campana: {1}'.format(
-                    agente, campana)))
+        """Sincronización de miembros de cola con Asterisk se hace fuera de Django (p. ej.
+        script asterisk_transition.py del ACD). Aquí solo se mantiene el flujo por compatibilidad.
+        """
+        pass
 
     def _generar_penalties_default(self, agentes):
         return {agente.id: 0 for agente in agentes}
@@ -127,19 +132,13 @@ class QueueMemberService(object):
                         agente, queue_member, campana)
         self.campanas_de_agente_family.registrar_agentes_en_campana(campana.id, penalties.keys())
         self.campaign_agents_family.registrar_agentes_en_campana(campana.id, penalties.keys())
+        ActivacionQueueService().activar(campana)
 
     def _adicionar_agente_cola_asterisk(self, agente, queue_member, campana):
-        """Adiciona agente a la cola de su respectiva campaña"""
-        queue = campana.get_queue_id_name()
-        interface = "PJSIP/{0}".format(agente.sip_extension)
-        penalty = queue_member.penalty
-        paused = queue_member.paused
-        member_name = agente.get_asterisk_caller_id()
-        try:
-            self.ami_client.queue_add(queue, interface, penalty, paused, member_name)
-        except AMIManagerConnectorError:
-            logger.exception(_("QueueAdd failed - agente: {0} de la campana: {1} ".format(
-                agente, campana)))
+        """Sincronización de miembros de cola con Asterisk se hace fuera de Django (p. ej.
+        script asterisk_transition.py del ACD). Aquí solo se mantiene el flujo por compatibilidad.
+        """
+        pass
 
     def agregar_agente_a_campanas(self, agente, campanas, verificar_sesion_activa=False):
         """ Agrega el agente a multiples campañas """
@@ -159,6 +158,9 @@ class QueueMemberService(object):
                     self._adicionar_agente_cola_asterisk(agente, queue_member, campana)
             self.campanas_de_agente_family.registrar_campanas_a_agente(agente.id, campanas_ids)
             self.campaign_agents_family.registrar_campanas_a_agente(campanas_ids, agente.id)
+            activacion = ActivacionQueueService()
+            for campana in campanas:
+                activacion.activar(campana)
         except Exception as e:
             logger.exception(f'Error al adicionar agente a la cola de la campaña {e.__str__()}')
 

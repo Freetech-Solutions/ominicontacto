@@ -55,8 +55,6 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'api_supervision_campanas_entrantes',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
-            {'nombre': 'api_supervision_campanas_salientes',
-             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'api_accion_sobre_agente',
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'api_supervision_llamadas_campana',
@@ -73,12 +71,84 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'api_exportar_csv_no_atendidos',
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
+            {'nombre': 'api_exportar_csv_calificaciones_por_agente',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
+            {'nombre': 'api_exportar_csv_interacciones_por_agente',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
+            {'nombre': 'api_exportar_csv_performance_agentes',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'api_exportar_csv_calificaciones_campana',
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'api_exportar_csv_formulario_gestion_campana',
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'api_exportar_csv_resultados_base_contactados',
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
+            {'nombre': 'api_exportar_csv_canalidades_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_canalidades_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_canalidades_por_hora_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_canalidades_por_hora_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_canalidades_por_dia_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_canalidades_por_dia_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_canalidades_por_mes_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_canalidades_por_mes_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_atendidas_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_atendidas_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_no_atendidas_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_no_atendidas_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_voz_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_voz_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_por_hora_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_por_hora_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_por_dia_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_por_dia_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_por_mes_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_llamadas_por_mes_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_conversaciones_respondidas_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_conversaciones_respondidas_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_conversaciones_no_respondidas_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_conversaciones_no_respondidas_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_hora_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_hora_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_campana_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_campana_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_dia_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_dia_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_mes_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_exportar_csv_agents_activity_v2_listado',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'api_contactos_campana',
              'roles': ['Agente', ]},
             {'nombre': 'api_click2call',
@@ -88,6 +158,8 @@ class ApiAppConfig(AppConfig):
             {'nombre': 'api_hangup_call',
              'roles': ['Agente', ]},
             {'nombre': 'api_agent_asterisk_login',
+             'roles': ['Agente', ]},
+            {'nombre': 'api_agent_asterisk_ready',
              'roles': ['Agente', ]},
             {'nombre': 'api_agent_asterisk_logout',
              'roles': ['Agente', ]},
@@ -119,11 +191,17 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Agente']},
             {'nombre': 'api_call_record_url',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Agente']},
+            {'nombre': 'api_call_record_analysis',
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_contactos_asignados_campana_preview',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_evento_hold',
              'roles': ['Agente', ]},
+            {'nombre': 'api_call_hold',
+             'roles': ['Agente', ]},
             {'nombre': 'api_consultative_confer_hold',
+             'roles': ['Agente', ]},
+            {'nombre': 'api_agent_presence_heartbeat',
              'roles': ['Agente', ]},
             {'nombre': 'api_agent_call_transfer_options',
              'roles': ['Agente', ]},
@@ -147,6 +225,8 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', ]},
             {'nombre': 'api_wombat_stop',
              'roles': ['Administrador', ]},
+            {'nombre': 'supervision_wombat_dialer_stats',
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_agents_campaign',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_update_campaign_agents',
@@ -319,7 +399,19 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_call_status',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
+            {'nombre': 'api_reportes_agents_activity_v2',
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_notify_end_transferred_call',
+             'roles': ['Agente', ]},
+            {'nombre': 'api_transfer_blind_agent',
+             'roles': ['Agente', ]},
+            {'nombre': 'api_transfer_blind_endpoint',
+             'roles': ['Agente', ]},
+            {'nombre': 'api_transfer_blind_campaign',
+             'roles': ['Agente', ]},
+            {'nombre': 'api_transfer_blind_campaign_agent',
+             'roles': ['Agente', ]},
+            {'nombre': 'api_transfer_3way',
              'roles': ['Agente', ]},
         ]
 
@@ -356,9 +448,6 @@ class ApiAppConfig(AppConfig):
              'version': '2.4.3'},
         'api_supervision_campanas_entrantes':
             {'descripcion': _('Reporte de llamadas entrantes de supervisión.'), 'version': '1.7.0'},
-        'api_supervision_campanas_salientes':
-            {'descripcion': _('Reporte de llamadas salientes no dialer de supervisión.'),
-             'version': '1.7.0'},
         'api_accion_sobre_agente':
             {'descripcion':
              _('Ejecuta acciones de supervisión sobre agente (Deslogueo, pausas, etc..)'),
@@ -382,6 +471,15 @@ class ApiAppConfig(AppConfig):
         'api_exportar_csv_no_atendidos':
             {'descripcion': _('Exportar reporte de no atendidos de una campaña a csv'),
              'version': '1.11.6'},
+        'api_exportar_csv_calificaciones_por_agente':
+            {'descripcion': _('Exportar reporte de calificaciones por agente de una campaña a csv'),
+             'version': '1.19.0'},
+        'api_exportar_csv_interacciones_por_agente':
+            {'descripcion': _('Exportar reporte de interacciones por agente de una campaña a csv'),
+             'version': '1.19.0'},
+        'api_exportar_csv_performance_agentes':
+            {'descripcion': _('Exportar reporte de performance de agentes de una campaña a csv'),
+             'version': '1.19.0'},
         'api_exportar_csv_calificaciones_campana':
             {'descripcion': _('Exportar reporte de calificaciones de una campaña a csv'),
              'version': '1.11.6'},
@@ -390,6 +488,105 @@ class ApiAppConfig(AppConfig):
              'version': '1.11.6'},
         'api_exportar_csv_resultados_base_contactados':
             {'descripcion': _('API para exportar resultados de base contactados a csv'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por campaña del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por campaña (Egresos) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_por_hora_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por hora del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_por_hora_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por hora (Egresos) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_por_dia_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por día del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_por_dia_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por día (Egresos) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_por_mes_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por mes del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_canalidades_por_mes_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Canalidades por mes (Egresos) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_atendidas_centro_contacto':
+            {'descripcion': _('Exportar tabla Listado de llamadas atendidas del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_atendidas_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Listado de llamadas atendidas (Egresos) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_no_atendidas_centro_contacto':
+            {'descripcion': _('Exportar tabla Listado de llamadas no atendidas del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_no_atendidas_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Listado de llamadas no atendidas (Egresos) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_voz_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas de voz por campaña del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_voz_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas de voz por campaña (Egresos) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_por_hora_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas por hora de día (Voz) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_por_hora_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas por hora de día (Egresos/Voz) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_por_dia_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas por día (Voz) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_por_dia_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas por día (Egresos/Voz) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_por_mes_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas por mes (Voz) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_llamadas_por_mes_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Llamadas por mes (Egresos/Voz) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_conversaciones_respondidas_centro_contacto':
+            {'descripcion': _('Exportar tabla Conversaciones Respondidas (WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_conversaciones_respondidas_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Conversaciones Respondidas (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_conversaciones_no_respondidas_centro_contacto':
+            {'descripcion': _('Exportar tabla Conversaciones no respondidas (WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_conversaciones_no_respondidas_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Conversaciones no respondidas (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_hora_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por hora de día (WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_hora_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por hora (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_campana_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por campaña (WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_campana_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por campaña (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_dia_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por día (WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_dia_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por día (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_mes_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por mes (WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto':
+            {'descripcion': _('Exportar tabla Mensajes por mes (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_exportar_csv_agents_activity_v2_listado':
+            {'descripcion': _('Exportar tabla Listado del reporte de actividad de agentes (v2) a CSV'),
              'version': '1.19.0'},
         'api_contactos_campana':
             {'descripcion': _('Contactos de una campaña'), 'version': '1.7.0'},
@@ -401,6 +598,9 @@ class ApiAppConfig(AppConfig):
             {'descripcion': _('Ejecuta un hangup call via AMI'), 'version': '1.32.0'},
         'api_agent_asterisk_login':
             {'descripcion': _('Ejecuta el login del agente en Asterisk.'),
+             'version': '1.7.0'},
+        'api_agent_asterisk_ready':
+            {'descripcion': _('Establece el estado READY del agente sin ejecutar login.'),
              'version': '1.7.0'},
         'api_agent_asterisk_logout':
             {'descripcion': _('Ejecuta el logout del agente en Asterisk'),
@@ -442,15 +642,24 @@ class ApiAppConfig(AppConfig):
         'api_call_record_url':
             {'descripcion': _('Retorna URL del archivos de grabación asociado al callid'),
              'version': '1.25.0'},
+        'api_call_record_analysis':
+            {'descripcion': _('Dispara tareas de analisis de grabaciones'),
+             'version': '2.6.X'},
         'api_contactos_asignados_campana_preview':
             {'descripcion': _('Devuelve los contactos asignados de una campaña preview'),
              'version': '1.8.0'},
         'api_evento_hold':
             {'descripcion': _('Loggea el evento hold o unhold'),
              'version': '1.13.0'},
+        'api_call_hold':
+            {'descripcion': _('Hold/Unhold llamada vía ACD (MOH)'),
+             'version': '1.0.0'},
         'api_consultative_confer_hold':
             {'descripcion': _('Des/Silenciar participante conferencia transferencia consultativa'),
              'version': '2.6.0'},
+        'api_agent_presence_heartbeat':
+            {'descripcion': _('Heartbeat de presencia del agente (consola web)'),
+             'version': '2.8.0'},
         'api_agent_call_transfer_options':
             {'descripcion': _('Lista de agentes para transferir llamadas'),
              'version': '1.29.0'},
@@ -484,6 +693,9 @@ class ApiAppConfig(AppConfig):
         'api_wombat_stop':
             {'descripcion': _('Stop servicio Dialer'),
              'version': '2.4.4'},
+        'supervision_wombat_dialer_stats':
+            {'descripcion': _('supervision_wombat_dialer_stats'),
+             'version': '2.6.2'},
         'api_agents_campaign':
             {'descripcion': _('Lista de agentes por campaña'),
              'version': '1.19.0'},
@@ -742,7 +954,25 @@ class ApiAppConfig(AppConfig):
         'api_call_status':
             {'descripcion': _('Obtener la cantidad de llamadas Atendidas, Abandonadas, Expiradas'),
              'version': '1.27.0'},
+        'api_reportes_agents_activity_v2':
+            {'descripcion': _('Reporte de KPIs de actividad de agentes (AgentActivityEventV2)'),
+             'version': '1.33.5'},
         'api_notify_end_transferred_call':
             {'descripcion': _('Notificar que la llamada transferida ha finalizado'),
-             'version': '1.27.0'}
+             'version': '1.27.0'},
+        'api_transfer_blind_agent':
+            {'descripcion': _('Transferencia ciega a un agente'),
+             'version': '2.7.0'},
+        'api_transfer_blind_endpoint':
+            {'descripcion': _('Transferencia ciega a un endpoint SIP/PJSIP'),
+             'version': '2.7.0'},
+        'api_transfer_blind_campaign':
+            {'descripcion': _('Transferencia ciega a otra campaña (re-encolar)'),
+             'version': '2.7.0'},
+        'api_transfer_blind_campaign_agent':
+            {'descripcion': _('Transferencia ciega a cualquier agente READY de la propia campaña'),
+             'version': '2.7.0'},
+        'api_transfer_3way':
+            {'descripcion': _('Agregar un tercer participante (3-way conference) a la llamada'),
+             'version': '2.7.0'}
     }
