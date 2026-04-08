@@ -1460,6 +1460,7 @@
                                                     <th scope="col">{% trans 'Nombre agente' %}</th>
                                                     <th scope="col">{% trans 'Username agente' %}</th>
                                                     <th scope="col">{% trans 'Grupo de agente' %}</th>
+                                                    <th scope="col">{% trans 'Transfer' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Tiempo espera' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Duración agente' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Duración bot' %}</th>
@@ -1482,6 +1483,7 @@
                                                     <td>{{ row.nombre_agente }}</td>
                                                     <td>{{ row.username_agente }}</td>
                                                     <td>{{ row.grupo_agente }}</td>
+                                                    <td>{% if row.is_transferred %}{% trans 'Sí' %}{% else %}{% trans 'No' %}{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.tiempo_espera is not None %}{{ row.tiempo_espera|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_agente is not None %}{{ row.duracion_agente|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_bot is not None %}{{ row.duracion_bot|format_seconds_int }}{% else %}—{% endif %}</td>
@@ -1500,7 +1502,7 @@
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="17">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
+                                                    <td colspan="18">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>
@@ -3083,6 +3085,7 @@
                                                     <th scope="col">{% trans 'Nombre agente' %}</th>
                                                     <th scope="col">{% trans 'Username agente' %}</th>
                                                     <th scope="col">{% trans 'Grupo de agente' %}</th>
+                                                    <th scope="col">{% trans 'Transfer' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Tiempo espera' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Duración agente' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Duración bot' %}</th>
@@ -3105,6 +3108,7 @@
                                                     <td>{{ row.nombre_agente }}</td>
                                                     <td>{{ row.username_agente }}</td>
                                                     <td>{{ row.grupo_agente }}</td>
+                                                    <td>{% if row.is_transferred %}{% trans 'Sí' %}{% else %}{% trans 'No' %}{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.tiempo_espera is not None %}{{ row.tiempo_espera|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_agente is not None %}{{ row.duracion_agente|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_bot is not None %}{{ row.duracion_bot|format_seconds_int }}{% else %}—{% endif %}</td>
@@ -3123,7 +3127,7 @@
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="17">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
+                                                    <td colspan="18">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>

@@ -3782,8 +3782,8 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
     direction_filter: 'INBOUND' o 'OUTBOUND'. Mismos filtros que obtener_llamadas_por_campana.
     Retorna un Page de Django con object_list siendo lista de dicts con columnas para la tabla
     (fecha_hora, id_contacto, telefono, id_campana, nombre_campana, id_agente, nombre_agente,
-    username_agente, grupo_agente, tiempo_espera, duracion_agente, duracion_bot, quien_corto,
-    id_calificacion, nombre_calificacion, nombre_subcalificacion, url_grabacion).
+    username_agente, grupo_agente, is_transferred, tiempo_espera, duracion_agente, duracion_bot,
+    quien_corto, id_calificacion, nombre_calificacion, nombre_subcalificacion, url_grabacion).
     id_calificacion y nombre_calificacion provienen de CalificacionCliente (por callid=interaction_id).
     """
     queryset = InteractionsSummary.objects.filter(
@@ -3906,6 +3906,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
             'nombre_agente': ag_info['nombre'],
             'username_agente': ag_info['username'],
             'grupo_agente': ag_info['grupo'],
+            'is_transferred': obj.is_transferred,
             'tiempo_espera': wait_sec,
             'duracion_agente': agent_sec,
             'duracion_bot': bot_sec,

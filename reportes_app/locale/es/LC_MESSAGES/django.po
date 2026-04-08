@@ -1706,6 +1706,18 @@ msgid "Grupo de agente"
 msgstr "Grupo de agente"
 
 #: reportes_app/templates/reporte_centro_contacto.html
+msgid "Transfer"
+msgstr "Transferencia"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Sí"
+msgstr "Sí"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "No"
+msgstr "No"
+
+#: reportes_app/templates/reporte_centro_contacto.html
 msgid "Tiempo espera"
 msgstr "Tiempo espera"
 

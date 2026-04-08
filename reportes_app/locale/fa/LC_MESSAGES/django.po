@@ -1199,3 +1199,15 @@ msgstr "% فیسبوک مسنجر پاسخ داده شده"
 #: reportes_app/templates/reporte_centro_contacto.html
 msgid "% Facebook msn no atendidos"
 msgstr "% فیسبوک مسنجر پاسخ داده نشده"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Transfer"
+msgstr "انتقال"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "Sí"
+msgstr "بله"
+
+#: reportes_app/templates/reporte_centro_contacto.html
+msgid "No"
+msgstr "خیر"
