@@ -4,6 +4,159 @@
 var analysis_stats = {};
 const MENSAJE_CONEXION_WEBSOCKET = 'Subscribed!';
 
+/**
+ * Modal de transferencias (misma API y UI que reporte centro de contacto).
+ */
+function initTransferenciasModalBusquedaGrabacion() {
+    var $modal = $('#modalTransferenciasLlamada');
+    var $apiInput = $('#interaction_transfers_api_url');
+    if (!$modal.length || !$apiInput.length) {
+        return;
+    }
+    var apiUrlTemplate = ($apiInput.val() || '').trim();
+    if (!apiUrlTemplate) {
+        return;
+    }
+
+    var $tbody = $('#transferencias-llamada-tbody');
+    var $loading = $('#transferencias-llamada-loading');
+    var $tableWrap = $('#transferencias-llamada-table-wrap');
+    var $vacio = $('#transferencias-llamada-vacio');
+    var $alert = $('#transferencias-llamada-alert');
+    var metaEl = document.getElementById('transferencias-llamada-meta');
+
+    function gettextMsg(key, fallback) {
+        return (typeof gettext !== 'undefined' ? gettext(key) : fallback);
+    }
+
+    function resetModalBody() {
+        $tbody.empty();
+        $loading.removeClass('d-none');
+        $tableWrap.addClass('d-none');
+        $vacio.addClass('d-none');
+        $alert.addClass('d-none').text('');
+        if (metaEl) {
+            metaEl.textContent = '';
+        }
+    }
+
+    function showError(msg) {
+        $loading.addClass('d-none');
+        $tableWrap.addClass('d-none');
+        $vacio.addClass('d-none');
+        $alert.text(msg).removeClass('d-none');
+    }
+
+    $(document).on('click', '.reporte-cc-transferencias-trigger', function (e) {
+        e.preventDefault();
+        var callId = ($(this).attr('data-call-id') || '').trim();
+        var recUrl = ($(this).attr('data-recording-url') || '').trim();
+        if (!callId) {
+            return;
+        }
+
+        resetModalBody();
+
+        if (metaEl) {
+            metaEl.textContent = '';
+            var strong = document.createElement('strong');
+            strong.textContent = gettextMsg('ID llamada', 'ID llamada') + ': ';
+            metaEl.appendChild(strong);
+            metaEl.appendChild(document.createTextNode(callId));
+            if (recUrl) {
+                metaEl.appendChild(document.createTextNode(' · '));
+                var a = document.createElement('a');
+                a.href = recUrl;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                a.textContent = gettextMsg('Grabación', 'Grabación');
+                metaEl.appendChild(a);
+            }
+        }
+
+        var sep = apiUrlTemplate.indexOf('?') >= 0 ? '&' : '?';
+        var url = apiUrlTemplate + sep + 'interaction_id=' + encodeURIComponent(callId);
+
+        $modal.modal('show');
+
+        fetch(url, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+        })
+            .then(function (response) {
+                return response.text().then(function (text) {
+                    var data = null;
+                    if (text) {
+                        try {
+                            data = JSON.parse(text);
+                        } catch (ignore) {
+                            data = null;
+                        }
+                    }
+                    if (!response.ok) {
+                        var errText = (data && data.error) ? data.error : response.statusText;
+                        throw new Error(errText || gettextMsg('Error al cargar transferencias.', 'Error al cargar transferencias.'));
+                    }
+                    return data || {};
+                });
+            })
+            .then(function (data) {
+                var transfers = data.transfers || [];
+                $loading.addClass('d-none');
+                if (!transfers.length) {
+                    $vacio.removeClass('d-none');
+                    return;
+                }
+                transfers.forEach(function (t) {
+                    var tr = document.createElement('tr');
+                    function cellLabel(labelKey, idKey) {
+                        var v = t[labelKey];
+                        if (v !== null && v !== undefined && v !== '') {
+                            return v;
+                        }
+                        var idv = t[idKey];
+                        if (idv !== null && idv !== undefined && idv !== '') {
+                            return String(idv);
+                        }
+                        return '—';
+                    }
+                    var dur = t.segment_duration;
+                    if (dur === null || dur === undefined || dur === '') {
+                        dur = '—';
+                    }
+                    var cells = [
+                        t.destination_target,
+                        t.destination_type,
+                        t.transfer_type,
+                        t.status,
+                        cellLabel('source_agent_label', 'source_agent_id'),
+                        cellLabel('destination_agent_label', 'destination_agent_id'),
+                        cellLabel('destination_campaign_label', 'destination_campaign_id'),
+                        dur,
+                    ];
+                    cells.forEach(function (val) {
+                        var td = document.createElement('td');
+                        if (val !== null && val !== undefined && val !== '') {
+                            td.textContent = String(val);
+                        } else {
+                            td.textContent = '—';
+                        }
+                        tr.appendChild(td);
+                    });
+                    $tbody[0].appendChild(tr);
+                });
+                $tableWrap.removeClass('d-none');
+            })
+            .catch(function (err) {
+                showError(err.message || gettextMsg('Error al cargar transferencias.', 'Error al cargar transferencias.'));
+            });
+    });
+
+    $modal.on('hidden.bs.modal', function () {
+        resetModalBody();
+    });
+}
+
 $(document).ready(function () {
 
     const $fecha = $('#id_fecha');
@@ -524,4 +677,5 @@ $(document).ready(function () {
         downloadTextAsFile(text, base + '_resumen.txt');
     });
 
+    initTransferenciasModalBusquedaGrabacion();
 });

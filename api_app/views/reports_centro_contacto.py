@@ -45,7 +45,7 @@ from ominicontacto_app.utiles import (
     datetime_hora_minima_dia,
     datetime_hora_maxima_dia,
 )
-from reportes_app.models import InteractionsSummary
+from reportes_app.models import InteractionsSummary, InteractionTransfers
 from reportes_app.serializers import CentroContactoKPISerializer
 from reportes_app.forms import ReporteCentroContactoForm
 from reportes_app.services.whatsapp_tiempos_respuesta import (
@@ -3898,6 +3898,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
 
         rows.append({
             'fecha_hora': obj.start_time,
+            'interaction_id': obj.interaction_id,
             'id_contacto': obj.customer_id,
             'telefono': obj.source_address or obj.destination_address or '—',
             'id_campana': obj.campaign_id,
@@ -5790,7 +5791,362 @@ from reportes_app.services.exportacion_whatsapp_mensajes_por_mes_egresos_centro_
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_MES_EGRESOS,
     generar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto,
 )
-from api_app.views.permissions import TienePermisoOML
+from api_app.views.permissions import (
+    TienePermisoInteractionTransfersOGrabacionBuscar,
+    TienePermisoOML,
+)
+
+
+def _parse_agent_segments(channel_data):
+    """Extrae la lista agent_segments de channel_data (interactions_summary)."""
+    if not isinstance(channel_data, dict):
+        return []
+    raw = channel_data.get('agent_segments')
+    if not isinstance(raw, list):
+        return []
+    return [s for s in raw if isinstance(s, dict)]
+
+
+def _parse_iso_datetime_for_segment(value):
+    """Parsea start_ts/end_ts de segmentos (ISO con o sin zona)."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    s = str(value).strip()
+    if not s:
+        return None
+    try:
+        s_norm = s.replace('Z', '+00:00')
+        return datetime.fromisoformat(s_norm)
+    except ValueError:
+        pass
+    from django.utils.dateparse import parse_datetime
+    return parse_datetime(s)
+
+
+def _segment_start_ts_sort_tuple(seg):
+    """
+    Tupla comparable para ordenar segmentos por start_ts sin mezclar naive/aware
+    (evita TypeError en sort entre datetimes con y sin tzinfo).
+    """
+    if not isinstance(seg, dict):
+        return (2, 0.0, 0)
+    dt = _parse_iso_datetime_for_segment(seg.get('start_ts'))
+    if dt is None:
+        return (1, 0.0, 0)
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+    # timestamp() es comparable entre instancias aware
+    return (0, dt.timestamp(), 0)
+
+
+def _ordered_segments_for_agent(segments, agent_id):
+    """
+    Segmentos cuyo agent_id coincide con agent_id, ordenados por start_ts;
+    sin parse válido conservan el orden relativo original (índice en lista).
+    """
+    if agent_id is None:
+        return []
+    matching_indexed = []
+    for idx, seg in enumerate(segments):
+        aid = seg.get('agent_id')
+        if aid is None:
+            continue
+        try:
+            if int(aid) != int(agent_id):
+                continue
+        except (TypeError, ValueError):
+            continue
+        matching_indexed.append((idx, seg))
+
+    def sort_key(item):
+        list_idx, seg = item
+        kind, ts, _ = _segment_start_ts_sort_tuple(seg)
+        if kind == 0:
+            return (0, ts, list_idx)
+        if kind == 1:
+            return (1, list_idx, list_idx)
+        return (2, list_idx, list_idx)
+
+    matching_indexed.sort(key=sort_key)
+    return [seg for _, seg in matching_indexed]
+
+
+def _ordered_segments_chronologically(segments):
+    """
+    Todos los agent_segments ordenados por start_ts (misma clave de orden que
+    _ordered_segments_for_agent). Sirve para alinear la fila i de transferencias
+    con el segmento i cuando no hay destination_agent_id (p. ej. CAMPAIGN).
+    """
+    indexed = list(enumerate(segments))
+
+    def sort_key(item):
+        list_idx, seg = item
+        kind, ts, _ = _segment_start_ts_sort_tuple(seg)
+        if kind == 0:
+            return (0, ts, list_idx)
+        if kind == 1:
+            return (1, list_idx, list_idx)
+        return (2, list_idx, list_idx)
+
+    indexed.sort(key=sort_key)
+    return [seg for _, seg in indexed if isinstance(seg, dict)]
+
+
+def _talk_duration_seconds_from_segment(seg):
+    """Extrae talk_duration de un dict de segmento como float o None."""
+    if not isinstance(seg, dict):
+        return None
+    raw = seg.get('talk_duration')
+    if raw is None:
+        return None
+    try:
+        sec = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if sec < 0:
+        return None
+    return sec
+
+
+def _segment_duration_seconds_for_transfer(transfer, transfers_ordered, segments):
+    """
+    talk_duration (segundos) para la fila de transferencia.
+
+    Paso A: si hay destination_agent_id, segmentos de ese agente ordenados por
+    tiempo; k = nº de transferencias anteriores con el mismo destino.
+
+    Paso B (fallback): índice de la transferencia en la lista ordenada → mismo
+    índice en agent_segments ordenados cronológicamente (p. ej. transfer a
+    CAMPAIGN sin agente destino).
+    """
+    sec = None
+    dest = transfer.destination_agent_id
+    if dest is not None:
+        ordered = _ordered_segments_for_agent(segments, dest)
+        if ordered:
+            k = sum(
+                1 for t in transfers_ordered
+                if t.id < transfer.id and t.destination_agent_id == dest
+            )
+            if k < len(ordered):
+                sec = _talk_duration_seconds_from_segment(ordered[k])
+
+    if sec is None:
+        chronological = _ordered_segments_chronologically(segments)
+        transfer_index = next(
+            (
+                i for i, t in enumerate(transfers_ordered)
+                if t.id == transfer.id
+            ),
+            None,
+        )
+        if (
+            transfer_index is not None
+            and transfer_index < len(chronological)
+        ):
+            sec = _talk_duration_seconds_from_segment(
+                chronological[transfer_index],
+            )
+
+    return sec
+
+
+def _format_duration_mmss(seconds):
+    """
+    Formato MM:SS si < 1 h; si no H:MM:SS (sin relleno de horas a 2 dígitos).
+    """
+    if seconds is None:
+        return '—'
+    try:
+        total = int(round(float(seconds)))
+    except (TypeError, ValueError):
+        return '—'
+    if total < 0:
+        total = 0
+    h, rem = divmod(total, 3600)
+    m, s = divmod(rem, 60)
+    if h:
+        return '{:d}:{:02d}:{:02d}'.format(h, m, s)
+    return '{:02d}:{:02d}'.format(m, s)
+
+
+def _segment_duration_display_for_transfer(transfer, transfers_ordered, segments):
+    """Etiqueta de duración del segmento (channel_data) o fallback talk_time_after."""
+    sec = _segment_duration_seconds_for_transfer(transfer, transfers_ordered, segments)
+    if sec is None:
+        tta = getattr(transfer, 'talk_time_after', None)
+        if tta is not None:
+            try:
+                tta_f = float(tta)
+                if tta_f > 0:
+                    sec = tta_f
+            except (TypeError, ValueError):
+                pass
+    if sec is None:
+        return '—'
+    return _format_duration_mmss(sec)
+
+
+def _build_agent_labels_map(agent_ids):
+    """
+    id -> nombre legible (mismo criterio que listado llamadas atendidas:
+    nombre completo o username).
+    """
+    ids = {aid for aid in agent_ids if aid is not None and aid != -1}
+    if not ids:
+        return {}
+    labels = {}
+    for ap in AgenteProfile.objects.filter(pk__in=ids).select_related('user'):
+        nombre = (ap.user.get_full_name() or ap.user.username) if ap.user else ''
+        labels[ap.id] = nombre if nombre else str(ap.id)
+    return labels
+
+
+def _build_campaign_labels_map(campaign_ids):
+    """id campaña -> nombre."""
+    ids = {cid for cid in campaign_ids if cid is not None}
+    if not ids:
+        return {}
+    return dict(Campana.objects.filter(pk__in=ids).values_list('id', 'nombre'))
+
+
+def _agent_label_for_transfer(agent_id, labels_map):
+    if agent_id is None or agent_id == -1:
+        return '—'
+    if agent_id in labels_map:
+        return labels_map[agent_id]
+    return str(agent_id)
+
+
+def _campaign_label_for_transfer(campaign_id, labels_map):
+    if campaign_id is None:
+        return '—'
+    if campaign_id in labels_map:
+        return labels_map[campaign_id]
+    return str(campaign_id)
+
+
+def _interaction_transfer_to_dict(
+        transfer, agent_labels, campaign_labels, segment_duration_display='—'):
+    """Serializa InteractionTransfers a dict JSON-friendly."""
+    def _dt_iso(dt):
+        if dt is None:
+            return None
+        return dt.isoformat()
+
+    return {
+        'id': transfer.id,
+        'destination_target': transfer.destination_target,
+        'destination_type': transfer.destination_type,
+        'transfer_type': transfer.transfer_type,
+        'status': transfer.status,
+        'source_agent_id': transfer.source_agent_id,
+        'destination_agent_id': transfer.destination_agent_id,
+        'destination_campaign_id': transfer.destination_campaign_id,
+        'source_agent_label': _agent_label_for_transfer(
+            transfer.source_agent_id, agent_labels,
+        ),
+        'destination_agent_label': _agent_label_for_transfer(
+            transfer.destination_agent_id, agent_labels,
+        ),
+        'destination_campaign_label': _campaign_label_for_transfer(
+            transfer.destination_campaign_id, campaign_labels,
+        ),
+        'segment_duration': segment_duration_display,
+        'destination_external_endpoint': transfer.destination_external_endpoint,
+        'source_channel': transfer.source_channel,
+        'created_at': _dt_iso(transfer.created_at),
+        'completed_at': _dt_iso(transfer.completed_at),
+        'talk_time_after': _decimal_to_float(transfer.talk_time_after),
+        'fail_reason': transfer.fail_reason,
+    }
+
+
+class InteractionTransfersPorLlamadaAPIView(APIView):
+    """
+    GET /api/v1/reporte/centro_contacto/interaction_transfers/
+    Query: interaction_id (obligatorio). Lista registros de interaction_transfers
+    si el usuario puede ver la interacción (misma regla de campañas que el reporte).
+    """
+    permission_classes = (TienePermisoInteractionTransfersOGrabacionBuscar,)
+    renderer_classes = (JSONRenderer,)
+    http_method_names = ['get']
+
+    def get(self, request):
+        raw_id = request.query_params.get('interaction_id')
+        if raw_id is None or not str(raw_id).strip():
+            return Response(
+                {'error': _('Parámetro interaction_id requerido.')},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        interaction_id = str(raw_id).strip()
+        if len(interaction_id) > 64:
+            return Response(
+                {'error': _('interaction_id inválido.')},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        summary = InteractionsSummary.objects.filter(
+            interaction_id=interaction_id,
+        ).first()
+        if not summary:
+            return Response(
+                {'error': _('Interacción no encontrada.')},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        is_admin = request.user.get_is_administrador()
+        if not is_admin:
+            if summary.campaign_id is None:
+                # Sin campaña solo administradores (evita filtrar por visibilidad ambigua).
+                return Response(
+                    {'error': _('No autorizado.')},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            supervisor = request.user.get_supervisor_profile()
+            campanas = supervisor.campanas_asignadas_actuales()
+            allowed_ids = set(campanas.values_list('pk', flat=True))
+            if summary.campaign_id not in allowed_ids:
+                return Response(
+                    {'error': _('No autorizado.')},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+
+        transfers = list(
+            InteractionTransfers.objects.filter(
+                interaction_id=interaction_id,
+            ).order_by('id')
+        )
+        agent_ids = set()
+        campaign_ids = set()
+        for t in transfers:
+            if t.source_agent_id is not None:
+                agent_ids.add(t.source_agent_id)
+            if t.destination_agent_id is not None:
+                agent_ids.add(t.destination_agent_id)
+            if t.destination_campaign_id is not None:
+                campaign_ids.add(t.destination_campaign_id)
+        agent_labels = _build_agent_labels_map(agent_ids)
+        campaign_labels = _build_campaign_labels_map(campaign_ids)
+        segments = _parse_agent_segments(summary.channel_data)
+        return Response(
+            {
+                'transfers': [
+                    _interaction_transfer_to_dict(
+                        t,
+                        agent_labels,
+                        campaign_labels,
+                        segment_duration_display=_segment_duration_display_for_transfer(
+                            t, transfers, segments,
+                        ),
+                    )
+                    for t in transfers
+                ],
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 def _parse_time(value):

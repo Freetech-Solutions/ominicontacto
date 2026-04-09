@@ -2,7 +2,9 @@
 
 from __future__ import unicode_literals
 
-from mock import Mock, patch
+from decimal import Decimal
+
+from mock import MagicMock, Mock, patch
 from django.db.models import Q
 from django.test import SimpleTestCase
 from django.urls import reverse
@@ -17,6 +19,10 @@ from ominicontacto_app.tests.factories import (
 )
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
 from api_app.views.reports_centro_contacto import (
+    _format_duration_mmss,
+    _parse_agent_segments,
+    _segment_duration_display_for_transfer,
+    _segment_duration_seconds_for_transfer,
     get_omnichannel_share_data,
     obtener_kpis_centro_contacto,
 )
@@ -726,3 +732,274 @@ class GetOmnichannelShareDataViewTest(OMLBaseTest):
         data = response.json()
         self.assertIsInstance(data['total_volume'], int)
         self.assertEqual(len(data['chart_data']['datasets'][0]['data']), 4)
+
+
+class AgentSegmentsTransferDurationTest(SimpleTestCase):
+    """Correlación agent_segments (channel_data) con filas de transferencia."""
+
+    def test_format_duration_mmss(self):
+        self.assertEqual(_format_duration_mmss(8), '00:08')
+        self.assertEqual(_format_duration_mmss(65), '01:05')
+        self.assertEqual(_format_duration_mmss(3661), '1:01:01')
+        self.assertEqual(_format_duration_mmss(None), '—')
+
+    def test_correlacion_dos_transferencias_distinto_agente_destino(self):
+        channel = {
+            'agent_segments': [
+                {'agent_id': 2, 'start_ts': '2026-04-09T10:54:45', 'talk_duration': 8.029},
+                {'agent_id': 1, 'start_ts': '2026-04-09T10:54:53', 'talk_duration': 5.448},
+            ],
+        }
+        segments = _parse_agent_segments(channel)
+        t1 = MagicMock()
+        t1.id = 10
+        t1.destination_agent_id = 2
+        t2 = MagicMock()
+        t2.id = 20
+        t2.destination_agent_id = 1
+        transfers = [t1, t2]
+        self.assertEqual(round(_segment_duration_seconds_for_transfer(t1, transfers, segments)), 8)
+        self.assertEqual(round(_segment_duration_seconds_for_transfer(t2, transfers, segments)), 5)
+        self.assertEqual(
+            _segment_duration_display_for_transfer(t1, transfers, segments),
+            '00:08',
+        )
+        self.assertEqual(
+            _segment_duration_display_for_transfer(t2, transfers, segments),
+            '00:05',
+        )
+
+    def test_primera_fila_campaign_sin_agente_destino_usa_segmento_cronologico(self):
+        """Transferencia a CAMPAIGN sin destination_agent_id: duración por índice 0."""
+        channel = {
+            'agent_segments': [
+                {'agent_id': 2, 'start_ts': '2026-04-09T10:54:45', 'talk_duration': 8.029},
+                {'agent_id': 1, 'start_ts': '2026-04-09T10:54:53', 'talk_duration': 5.448},
+            ],
+        }
+        segments = _parse_agent_segments(channel)
+        t_campaign = MagicMock()
+        t_campaign.id = 5
+        t_campaign.destination_agent_id = None
+        t_agent = MagicMock()
+        t_agent.id = 99
+        t_agent.destination_agent_id = 1
+        transfers = [t_campaign, t_agent]
+        self.assertEqual(
+            round(_segment_duration_seconds_for_transfer(t_campaign, transfers, segments)),
+            8,
+        )
+        self.assertEqual(
+            round(_segment_duration_seconds_for_transfer(t_agent, transfers, segments)),
+            5,
+        )
+        self.assertEqual(
+            _segment_duration_display_for_transfer(t_campaign, transfers, segments),
+            '00:08',
+        )
+        self.assertEqual(
+            _segment_duration_display_for_transfer(t_agent, transfers, segments),
+            '00:05',
+        )
+
+    def test_fallback_talk_time_after_sin_segmento(self):
+        t1 = MagicMock()
+        t1.id = 1
+        t1.destination_agent_id = None
+        t1.talk_time_after = Decimal('30')
+        segments = []
+        self.assertEqual(
+            _segment_duration_display_for_transfer(t1, [t1], segments),
+            '00:30',
+        )
+
+
+class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
+    """Tests para GET api_interaction_transfers_centro_contacto."""
+
+    def setUp(self):
+        super(InteractionTransfersPorLlamadaAPIViewTest, self).setUp()
+        self.admin_user = self.crear_administrador(username='admin_xfer_llamada')
+        self.supervisor_profile = self.crear_supervisor_profile(rol=User.SUPERVISOR)
+        self.supervisor_user = self.supervisor_profile.user
+        self.url = reverse('api_interaction_transfers_centro_contacto')
+
+    def test_get_sin_interaction_id_devuelve_400(self):
+        self.client.login(username=self.admin_user.username, password=PASSWORD)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, 400)
+
+    @patch('api_app.views.reports_centro_contacto.Campana.objects')
+    @patch('api_app.views.reports_centro_contacto.AgenteProfile.objects')
+    @patch('api_app.views.reports_centro_contacto.InteractionTransfers.objects')
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary.objects')
+    def test_get_admin_devuelve_200_y_lista(
+            self, mock_summary_mgr, mock_transfer_mgr, mock_agent_mgr, mock_campana_mgr):
+        summary = MagicMock()
+        summary.campaign_id = 1
+        summary.channel_data = {
+            'agent_segments': [
+                {'agent_id': 2, 'start_ts': '2026-04-09T10:54:45', 'talk_duration': 90},
+            ],
+        }
+        qs_sum = MagicMock()
+        qs_sum.first.return_value = summary
+        mock_summary_mgr.filter.return_value = qs_sum
+
+        t1 = MagicMock()
+        t1.id = 10
+        t1.destination_target = 'cola-a'
+        t1.destination_type = 'QUEUE'
+        t1.transfer_type = 'BLIND'
+        t1.status = 'COMPLETED'
+        t1.source_agent_id = 1
+        t1.destination_agent_id = 2
+        t1.destination_campaign_id = 3
+        t1.destination_external_endpoint = None
+        t1.source_channel = 'VOICE'
+        t1.created_at = None
+        t1.completed_at = None
+        t1.talk_time_after = None
+        t1.fail_reason = None
+
+        qs_tr = MagicMock()
+        qs_tr.order_by.return_value = [t1]
+        mock_transfer_mgr.filter.return_value = qs_tr
+
+        ap1 = MagicMock()
+        ap1.id = 1
+        ap1.user = MagicMock()
+        ap1.user.get_full_name.return_value = 'Agente Origen'
+        ap1.user.username = 'a1'
+        ap2 = MagicMock()
+        ap2.id = 2
+        ap2.user = MagicMock()
+        ap2.user.get_full_name.return_value = ''
+        ap2.user.username = 'agente_dest'
+        agent_qs = MagicMock()
+        agent_qs.select_related.return_value = [ap1, ap2]
+        mock_agent_mgr.filter.return_value = agent_qs
+
+        camp_qs = MagicMock()
+        camp_qs.values_list.return_value = [(3, 'Campaña destino test')]
+        mock_campana_mgr.filter.return_value = camp_qs
+
+        self.client.login(username=self.admin_user.username, password=PASSWORD)
+        response = self.client.get(self.url, {'interaction_id': 'call-test-1'})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['transfers']), 1)
+        row = data['transfers'][0]
+        self.assertEqual(row['destination_target'], 'cola-a')
+        self.assertEqual(row['source_agent_label'], 'Agente Origen')
+        self.assertEqual(row['destination_agent_label'], 'agente_dest')
+        self.assertEqual(row['destination_campaign_label'], 'Campaña destino test')
+        self.assertEqual(row['segment_duration'], '01:30')
+
+    @patch('api_app.views.reports_centro_contacto.Campana.objects')
+    @patch('api_app.views.reports_centro_contacto.AgenteProfile.objects')
+    @patch('api_app.views.reports_centro_contacto.InteractionTransfers.objects')
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary.objects')
+    def test_get_supervisor_solo_grabacion_buscar_devuelve_200(
+            self, mock_summary_mgr, mock_transfer_mgr, mock_agent_mgr, mock_campana_mgr):
+        """Acceso desde búsqueda de grabaciones sin permiso del reporte CC."""
+        summary = MagicMock()
+        summary.campaign_id = 1
+        summary.channel_data = {'agent_segments': []}
+        qs_sum = MagicMock()
+        qs_sum.first.return_value = summary
+        mock_summary_mgr.filter.return_value = qs_sum
+
+        t1 = MagicMock()
+        t1.id = 11
+        t1.destination_target = 'agent-5'
+        t1.destination_type = 'AGENT'
+        t1.transfer_type = 'BLIND'
+        t1.status = 'OK'
+        t1.source_agent_id = 1
+        t1.destination_agent_id = 2
+        t1.destination_campaign_id = None
+        t1.destination_external_endpoint = None
+        t1.source_channel = 'VOICE'
+        t1.created_at = None
+        t1.completed_at = None
+        t1.talk_time_after = None
+        t1.fail_reason = None
+
+        qs_tr = MagicMock()
+        qs_tr.order_by.return_value = [t1]
+        mock_transfer_mgr.filter.return_value = qs_tr
+
+        ap1 = MagicMock()
+        ap1.id = 1
+        ap1.user = MagicMock()
+        ap1.user.get_full_name.return_value = 'A'
+        ap1.user.username = 'a1'
+        ap2 = MagicMock()
+        ap2.id = 2
+        ap2.user = MagicMock()
+        ap2.user.get_full_name.return_value = 'B'
+        ap2.user.username = 'b1'
+        agent_qs = MagicMock()
+        agent_qs.select_related.return_value = [ap1, ap2]
+        mock_agent_mgr.filter.return_value = agent_qs
+
+        camp_qs = MagicMock()
+        camp_qs.values_list.return_value = []
+        mock_campana_mgr.filter.return_value = camp_qs
+
+        supervisor = MagicMock()
+        campanas_qs = MagicMock()
+        campanas_qs.values_list.return_value = [1, 2]
+        supervisor.campanas_asignadas_actuales.return_value = campanas_qs
+
+        def _solo_grabacion_buscar(user_self, nombre_permiso):
+            return nombre_permiso == 'grabacion_buscar'
+
+        self.client.login(username=self.supervisor_user.username, password=PASSWORD)
+        with patch.object(User, 'tiene_permiso_oml', _solo_grabacion_buscar):
+            with patch.object(User, 'get_is_administrador', return_value=False):
+                with patch.object(User, 'get_supervisor_profile', return_value=supervisor):
+                    response = self.client.get(self.url, {'interaction_id': 'call-grab-1'})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['transfers']), 1)
+        self.assertEqual(data['transfers'][0]['destination_target'], 'agent-5')
+
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary.objects')
+    def test_get_interaccion_inexistente_devuelve_404(self, mock_summary_mgr):
+        qs = MagicMock()
+        qs.first.return_value = None
+        mock_summary_mgr.filter.return_value = qs
+        self.client.login(username=self.admin_user.username, password=PASSWORD)
+        response = self.client.get(self.url, {'interaction_id': 'no-existe'})
+        self.assertEqual(response.status_code, 404)
+
+    @patch('api_app.views.reports_centro_contacto.InteractionTransfers.objects')
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary.objects')
+    def test_get_supervisor_campana_no_permitida_devuelve_403(
+            self, mock_summary_mgr, mock_transfer_mgr):
+        summary = MagicMock()
+        summary.campaign_id = 99999
+        qs_sum = MagicMock()
+        qs_sum.first.return_value = summary
+        mock_summary_mgr.filter.return_value = qs_sum
+
+        qs_tr = MagicMock()
+        qs_tr.order_by.return_value = []
+        mock_transfer_mgr.filter.return_value = qs_tr
+
+        supervisor = MagicMock()
+        campanas_qs = MagicMock()
+        campanas_qs.values_list.return_value = [1, 2]
+        supervisor.campanas_asignadas_actuales.return_value = campanas_qs
+
+        self.client.login(username=self.supervisor_user.username, password=PASSWORD)
+        with patch.object(
+            User,
+            'get_supervisor_profile',
+            return_value=supervisor,
+        ):
+            with patch.object(User, 'get_is_administrador', return_value=False):
+                response = self.client.get(self.url, {'interaction_id': 'call-x'})
+        self.assertEqual(response.status_code, 403)

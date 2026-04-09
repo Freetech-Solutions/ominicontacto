@@ -101,6 +101,8 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'api_exportar_csv_llamadas_atendidas_centro_contacto',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'api_interaction_transfers_centro_contacto',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'api_exportar_csv_llamadas_atendidas_egresos_centro_contacto',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'api_exportar_csv_llamadas_no_atendidas_centro_contacto',
@@ -515,6 +517,9 @@ class ApiAppConfig(AppConfig):
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_atendidas_centro_contacto':
             {'descripcion': _('Exportar tabla Listado de llamadas atendidas del reporte centro de contacto a CSV'),
+             'version': '1.19.0'},
+        'api_interaction_transfers_centro_contacto':
+            {'descripcion': _('Listar transferencias de una llamada (reporte centro de contacto)'),
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_atendidas_egresos_centro_contacto':
             {'descripcion': _('Exportar tabla Listado de llamadas atendidas (Egresos) del reporte centro de contacto a CSV'),

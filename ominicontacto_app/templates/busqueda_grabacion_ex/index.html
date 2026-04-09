@@ -86,6 +86,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 <th>{% trans 'Tipo de llamada' %}</th>
                 <th>{% trans 'Teléfono cliente' %}</th>
                 <th>{% trans 'Agente' %}</th>
+                <th>{% trans 'Transferencia' %}</th>
                 <th>{% trans 'Campaña' %}</th>
                 <th>{% trans 'Grabación' %}</th>
                 <th>{% trans 'Calificacion' %}</th>
@@ -161,6 +162,47 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                     <button type="button" id="transcripcion-download-summary" class="btn btn-outline-primary" style="display: none;">{% trans 'Descargar Resumen' %}</button>
                     <a id="transcripcion-download-link" href="#" class="btn btn-primary" download>{% trans 'Descargar JSON' %}</a>
                     <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Cerrar' %}</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="interaction_transfers_api_url" value="{% url 'api_interaction_transfers_centro_contacto' %}">
+
+    <div class="modal fade" id="modalTransferenciasLlamada" tabindex="-1" role="dialog" aria-labelledby="modalTransferenciasLlamadaLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTransferenciasLlamadaLabel">{% trans 'Transferencias de la llamada' %}</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'Cerrar' %}">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2" id="transferencias-llamada-meta"></p>
+                    <div id="transferencias-llamada-alert" class="alert alert-danger d-none" role="alert"></div>
+                    <p id="transferencias-llamada-loading" class="text-muted text-center mb-0">{% trans 'Cargando...' %}</p>
+                    <div id="transferencias-llamada-table-wrap" class="table-responsive d-none">
+                        <table class="table table-sm table-bordered mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th scope="col">{% trans 'Destino' %}</th>
+                                    <th scope="col">{% trans 'Tipo destino' %}</th>
+                                    <th scope="col">{% trans 'Tipo transferencia' %}</th>
+                                    <th scope="col">{% trans 'Estado' %}</th>
+                                    <th scope="col">{% trans 'Agente origen' %}</th>
+                                    <th scope="col">{% trans 'Agente destino' %}</th>
+                                    <th scope="col">{% trans 'Campaña destino' %}</th>
+                                    <th scope="col">{% trans 'Duración' %}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="transferencias-llamada-tbody"></tbody>
+                        </table>
+                    </div>
+                    <p id="transferencias-llamada-vacio" class="text-muted text-center mb-0 d-none">{% trans 'No hay registros de transferencia para esta llamada.' %}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cerrar' %}</button>
                 </div>
             </div>
         </div>

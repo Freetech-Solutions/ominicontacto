@@ -1483,7 +1483,15 @@
                                                     <td>{{ row.nombre_agente }}</td>
                                                     <td>{{ row.username_agente }}</td>
                                                     <td>{{ row.grupo_agente }}</td>
-                                                    <td>{% if row.is_transferred %}{% trans 'Sí' %}{% else %}{% trans 'No' %}{% endif %}</td>
+                                                    <td>
+                                                        {% if row.is_transferred %}
+                                                        <a href="#" class="reporte-cc-transferencias-trigger"
+                                                           data-call-id="{{ row.interaction_id|escape }}"
+                                                           {% if row.url_grabacion %}data-recording-url="{{ base_url }}{{ row.url_grabacion|escape }}"{% endif %}>{% trans 'Sí' %}</a>
+                                                        {% else %}
+                                                        {% trans 'No' %}
+                                                        {% endif %}
+                                                    </td>
                                                     <td class="text-right f-mono">{% if row.tiempo_espera is not None %}{{ row.tiempo_espera|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_agente is not None %}{{ row.duracion_agente|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_bot is not None %}{{ row.duracion_bot|format_seconds_int }}{% else %}—{% endif %}</td>
@@ -3108,7 +3116,15 @@
                                                     <td>{{ row.nombre_agente }}</td>
                                                     <td>{{ row.username_agente }}</td>
                                                     <td>{{ row.grupo_agente }}</td>
-                                                    <td>{% if row.is_transferred %}{% trans 'Sí' %}{% else %}{% trans 'No' %}{% endif %}</td>
+                                                    <td>
+                                                        {% if row.is_transferred %}
+                                                        <a href="#" class="reporte-cc-transferencias-trigger"
+                                                           data-call-id="{{ row.interaction_id|escape }}"
+                                                           {% if row.url_grabacion %}data-recording-url="{{ base_url }}{{ row.url_grabacion|escape }}"{% endif %}>{% trans 'Sí' %}</a>
+                                                        {% else %}
+                                                        {% trans 'No' %}
+                                                        {% endif %}
+                                                    </td>
                                                     <td class="text-right f-mono">{% if row.tiempo_espera is not None %}{{ row.tiempo_espera|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_agente is not None %}{{ row.duracion_agente|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_bot is not None %}{{ row.duracion_bot|format_seconds_int }}{% else %}—{% endif %}</td>
@@ -3762,6 +3778,48 @@
             </div>
         </div>
 
+    </div>
+</div>
+
+<input type="hidden" id="interaction_transfers_api_url" value="{% url 'api_interaction_transfers_centro_contacto' %}">
+
+<!-- Modal transferencias de llamada (listado atendidas centro de contacto) -->
+<div class="modal fade" id="modalTransferenciasLlamada" tabindex="-1" role="dialog" aria-labelledby="modalTransferenciasLlamadaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTransferenciasLlamadaLabel">{% trans 'Transferencias de la llamada' %}</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="{% trans 'Cerrar' %}">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2" id="transferencias-llamada-meta"></p>
+                <div id="transferencias-llamada-alert" class="alert alert-danger d-none" role="alert"></div>
+                <p id="transferencias-llamada-loading" class="text-muted text-center mb-0">{% trans 'Cargando...' %}</p>
+                <div id="transferencias-llamada-table-wrap" class="table-responsive d-none">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th scope="col">{% trans 'Destino' %}</th>
+                                <th scope="col">{% trans 'Tipo destino' %}</th>
+                                <th scope="col">{% trans 'Tipo transferencia' %}</th>
+                                <th scope="col">{% trans 'Estado' %}</th>
+                                <th scope="col">{% trans 'Agente origen' %}</th>
+                                <th scope="col">{% trans 'Agente destino' %}</th>
+                                <th scope="col">{% trans 'Campaña destino' %}</th>
+                                <th scope="col">{% trans 'Duración' %}</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transferencias-llamada-tbody"></tbody>
+                    </table>
+                </div>
+                <p id="transferencias-llamada-vacio" class="text-muted text-center mb-0 d-none">{% trans 'No hay registros de transferencia para esta llamada.' %}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">{% trans 'Cerrar' %}</button>
+            </div>
+        </div>
     </div>
 </div>
 

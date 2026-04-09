@@ -18,6 +18,15 @@
     <td>{{ obj.origen.tipo_llamada_show }}</td>
     <td>{{ obj.origen.numero_marcado }}</td>
     <td>{{ obj.origen.agente }}</td>
+    <td>
+        {% if obj.origen.is_transferred %}
+        <a href="#" class="reporte-cc-transferencias-trigger"
+           data-call-id="{{ obj.callid|escape }}"
+           {% if obj.origen.url_archivo_grabacion_url_encoded %}data-recording-url="{{ BASE_URL }}{{ obj.origen.url_archivo_grabacion_url_encoded|escape }}"{% endif %}>{% trans 'Si' %}</a>
+        {% else %}
+        {% trans 'No' %}
+        {% endif %}
+    </td>
     <td>{{ obj.origen.campana }}</td>
     <td>
         <audio controls>
@@ -94,6 +103,7 @@
         {{ transfer.numero_extra }}
     {% endif %}
     </td>
+    <td>—</td>
     <td>{{ transfer.campana }}</td>
     <td>
         <audio controls>
@@ -139,6 +149,6 @@
 {% endif %}
 {% empty %}
 <tr>
-    <td colspan="13">{% trans 'No existen grabaciones' %}</td>
+    <td colspan="14">{% trans 'No existen grabaciones' %}</td>
 </tr>
 {% endfor %}

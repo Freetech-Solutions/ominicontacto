@@ -33,3 +33,21 @@ class TienePermisoOML(IsAuthenticated):
         if hasattr(view, 'basename') and view.basename:
             current_url_name = view.basename
         return request.user.tiene_permiso_oml(current_url_name)
+
+
+class TienePermisoInteractionTransfersOGrabacionBuscar(IsAuthenticated):
+    """
+    Permite listar transferencias de una llamada desde el reporte centro de contacto
+    (api_interaction_transfers_centro_contacto) o desde la búsqueda de grabaciones
+    (grabacion_buscar), con la misma autorización por campaña en la vista.
+    """
+
+    def has_permission(self, request, view):
+        if not super(TienePermisoInteractionTransfersOGrabacionBuscar, self).has_permission(
+                request, view):
+            return False
+        user = request.user
+        return (
+            user.tiene_permiso_oml('api_interaction_transfers_centro_contacto')
+            or user.tiene_permiso_oml('grabacion_buscar')
+        )
