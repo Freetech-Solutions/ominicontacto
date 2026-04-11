@@ -16,6 +16,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+from collections import defaultdict
 from decimal import Decimal
 
 from datetime import date, datetime, timedelta
@@ -62,6 +63,131 @@ def _decimal_to_float(value):
     if isinstance(value, Decimal):
         return float(value)
     return float(value)
+
+
+def _apply_interactions_summary_filters(
+        queryset,
+        start_date=None,
+        end_date=None,
+        campaign_scope=None,
+        allow_null_campaigns=True,
+        allowed_agent_ids=None,
+        customer_id=None,
+        address_query=None,
+        direction_filter=None,
+        channel_filter=None,
+        hora_desde=None,
+        hora_hasta=None,
+        duracion_agente_min=None,
+        duracion_bot_min=None):
+    """Aplica el conjunto común de filtros sobre InteractionsSummary."""
+    if direction_filter:
+        queryset = queryset.filter(direction__iexact=direction_filter)
+    if channel_filter and channel_filter.upper() == 'VOICE':
+        queryset = queryset.filter(channel_type__iexact='VOICE')
+    if campaign_scope is not None:
+        if allow_null_campaigns:
+            queryset = queryset.filter(
+                Q(campaign_id__in=campaign_scope) | Q(campaign_id__isnull=True)
+            )
+        else:
+            queryset = queryset.filter(campaign_id__in=campaign_scope)
+    if start_date:
+        queryset = queryset.filter(start_time__gte=start_date)
+    if end_date:
+        queryset = queryset.filter(start_time__lte=end_date)
+    if allowed_agent_ids is not None:
+        queryset = queryset.filter(
+            Q(agent_id__in=allowed_agent_ids) | Q(agent_id__isnull=True) | Q(agent_id=-1)
+        )
+    if customer_id is not None:
+        queryset = queryset.filter(customer_id=customer_id)
+    if address_query:
+        queryset = queryset.filter(
+            Q(source_address__icontains=address_query) |
+            Q(destination_address__icontains=address_query)
+        )
+    if hora_desde is not None:
+        queryset = queryset.filter(start_time__time__gte=hora_desde)
+    if hora_hasta is not None:
+        queryset = queryset.filter(start_time__time__lte=hora_hasta)
+    if duracion_agente_min is not None:
+        queryset = queryset.filter(agent_duration__gte=duracion_agente_min)
+    if duracion_bot_min is not None:
+        queryset = queryset.filter(bot_duration__gte=duracion_bot_min)
+    return queryset
+
+
+def _obtener_transferencias_entre_campanas_por_campana(
+        start_date=None,
+        end_date=None,
+        selected_campaigns=None,
+        visible_campaigns=None,
+        allowed_agent_ids=None,
+        customer_id=None,
+        address_query=None,
+        direction_filter=None,
+        channel_filter=None,
+        hora_desde=None,
+        hora_hasta=None,
+        duracion_agente_min=None,
+        duracion_bot_min=None):
+    """
+    Cuenta transferencias entre campañas para la agregación por campaña.
+
+    `Transfer Out` agrupa por la campaña de origen de la interacción.
+    `Transfer In` agrupa por `destination_campaign_id`.
+    """
+    source_campaign_scope = visible_campaigns if visible_campaigns is not None else selected_campaigns
+    base_queryset = _apply_interactions_summary_filters(
+        InteractionsSummary.objects.all(),
+        start_date=start_date,
+        end_date=end_date,
+        campaign_scope=source_campaign_scope,
+        allow_null_campaigns=False,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
+    interaction_campaign_pairs = list(base_queryset.values_list('interaction_id', 'campaign_id'))
+    if not interaction_campaign_pairs:
+        return {}, {}
+
+    selected_campaigns_set = set(selected_campaigns) if selected_campaigns is not None else None
+    source_campaign_by_interaction = {
+        interaction_id: campaign_id
+        for interaction_id, campaign_id in interaction_campaign_pairs
+        if campaign_id is not None
+    }
+    transfers_queryset = InteractionTransfers.objects.filter(
+        interaction_id__in=[interaction_id for interaction_id, _ in interaction_campaign_pairs],
+        destination_campaign_id__isnull=False,
+        status__iexact='OK',
+    )
+
+    transfer_in_counts = defaultdict(int)
+    transfer_out_counts = defaultdict(int)
+    for interaction_id, destination_campaign_id in transfers_queryset.values_list(
+            'interaction_id', 'destination_campaign_id'):
+        source_campaign_id = source_campaign_by_interaction.get(interaction_id)
+        if (
+            source_campaign_id is not None and
+            (selected_campaigns_set is None or source_campaign_id in selected_campaigns_set)
+        ):
+            transfer_out_counts[source_campaign_id] += 1
+        if (
+            destination_campaign_id is not None and
+            (selected_campaigns_set is None or destination_campaign_id in selected_campaigns_set)
+        ):
+            transfer_in_counts[destination_campaign_id] += 1
+
+    return dict(transfer_in_counts), dict(transfer_out_counts)
 
 
 # Colores para el gráfico Donut Market Share Omnicanal (Chart.js)
@@ -327,6 +453,7 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
                                  customer_id=None, address_query=None,
                                  direction_filter=None,
                                  channel_filter=None,
+                                 visible_campaigns=None,
                                  hora_desde=None, hora_hasta=None,
                                  duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -339,44 +466,28 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
     - channel_filter: si es 'VOICE', filtra por channel_type VOICE (solo llamadas de voz).
     - expired: EXIT_TIMEOUT y EXIT_HANDOFF_TIMEOUT; abandoned: EXIT_ABANDON y EXIT_HANDOFF_ABANDON.
     """
-    queryset = InteractionsSummary.objects.all()
-    if direction_filter:
-        queryset = queryset.filter(direction__iexact=direction_filter)
-    if channel_filter and channel_filter.upper() == 'VOICE':
-        queryset = queryset.filter(channel_type__iexact='VOICE')
-    if allowed_campaigns is not None:
-        queryset = queryset.filter(
-            Q(campaign_id__in=allowed_campaigns) | Q(campaign_id__isnull=True)
-        )
-    if start_date:
-        queryset = queryset.filter(start_time__gte=start_date)
-    if end_date:
-        queryset = queryset.filter(start_time__lte=end_date)
-    if allowed_agent_ids is not None:
-        queryset = queryset.filter(
-            Q(agent_id__in=allowed_agent_ids) | Q(agent_id__isnull=True) | Q(agent_id=-1)
-        )
-    if customer_id is not None:
-        queryset = queryset.filter(customer_id=customer_id)
-    if address_query:
-        queryset = queryset.filter(
-            Q(source_address__icontains=address_query) |
-            Q(destination_address__icontains=address_query)
-        )
-    if hora_desde is not None:
-        queryset = queryset.filter(start_time__time__gte=hora_desde)
-    if hora_hasta is not None:
-        queryset = queryset.filter(start_time__time__lte=hora_hasta)
-    if duracion_agente_min is not None:
-        queryset = queryset.filter(agent_duration__gte=duracion_agente_min)
-    if duracion_bot_min is not None:
-        queryset = queryset.filter(bot_duration__gte=duracion_bot_min)
+    queryset = _apply_interactions_summary_filters(
+        InteractionsSummary.objects.all(),
+        start_date=start_date,
+        end_date=end_date,
+        campaign_scope=allowed_campaigns,
+        allow_null_campaigns=True,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
 
     Q_answered = Q(status__iexact='EXIT_ANSWERED')
     Q_expired = Q(status__in=['EXIT_TIMEOUT', 'EXIT_HANDOFF_TIMEOUT'])
     Q_abandoned = Q(status__in=['EXIT_ABANDON', 'EXIT_HANDOFF_ABANDON'])
 
-    rows = (
+    rows = list(
         queryset
         .values('campaign_id')
         .annotate(
@@ -391,15 +502,32 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         )
         .order_by('-received')
     )
+    transfer_in_counts, transfer_out_counts = _obtener_transferencias_entre_campanas_por_campana(
+        start_date=start_date,
+        end_date=end_date,
+        selected_campaigns=allowed_campaigns,
+        visible_campaigns=visible_campaigns,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
 
-    campaign_ids = [r['campaign_id'] for r in rows if r['campaign_id'] is not None]
+    campaign_ids = {r['campaign_id'] for r in rows if r['campaign_id'] is not None}
+    campaign_ids.update(transfer_in_counts.keys())
+    campaign_ids.update(transfer_out_counts.keys())
     names_map = {}
     if campaign_ids:
         names_map = dict(
             Campana.objects.filter(pk__in=campaign_ids).values_list('id', 'nombre')
         )
 
-    result = []
+    result_by_campaign = {}
     for r in rows:
         cid = r['campaign_id']
         received = r['received'] or 0
@@ -422,7 +550,7 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         pct_abandoned = (100.0 * abandoned / received) if received else 0.0
         pct_transferred = (100.0 * transferred / received) if received else 0.0
 
-        result.append({
+        result_by_campaign[cid] = {
             'campaign_id': cid,
             'campaign_name': campaign_name,
             'received': received,
@@ -438,7 +566,34 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
             'pct_expired': round(pct_expired, 2),
             'pct_abandoned': round(pct_abandoned, 2),
             'pct_transferred': round(pct_transferred, 2),
-        })
+            'transfer_in_count': transfer_in_counts.get(cid, 0),
+            'transfer_out_count': transfer_out_counts.get(cid, 0),
+        }
+
+    for cid in sorted(set(transfer_in_counts.keys()) | set(transfer_out_counts.keys())):
+        if cid in result_by_campaign:
+            continue
+        result_by_campaign[cid] = {
+            'campaign_id': cid,
+            'campaign_name': names_map.get(cid) or str(cid),
+            'received': 0,
+            'answered': 0,
+            'unanswered': 0,
+            'expired': 0,
+            'abandoned': 0,
+            'transferred': 0,
+            'avg_wait_seconds': None,
+            'avg_talk_seconds': None,
+            'pct_answered': 0.0,
+            'pct_unanswered': 0.0,
+            'pct_expired': 0.0,
+            'pct_abandoned': 0.0,
+            'pct_transferred': 0.0,
+            'transfer_in_count': transfer_in_counts.get(cid, 0),
+            'transfer_out_count': transfer_out_counts.get(cid, 0),
+        }
+    result = list(result_by_campaign.values())
+    result.sort(key=lambda row: (-row['received'], row['campaign_name']))
     return result
 
 
@@ -4252,6 +4407,7 @@ class ReporteCentroContactoFormView(FormView):
             start_date=desde,
             end_date=hasta,
             allowed_campaigns=allowed_campaigns,
+            visible_campaigns=campanas_visibles_ids,
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
@@ -4269,12 +4425,20 @@ class ReporteCentroContactoFormView(FormView):
             total_expired = sum(r['expired'] for r in ingresos_voz_por_campana)
             total_abandoned = sum(r['abandoned'] for r in ingresos_voz_por_campana)
             total_transferred = sum(r['transferred'] for r in ingresos_voz_por_campana)
+            total_transfer_in_count = sum(
+                r.get('transfer_in_count', 0) for r in ingresos_voz_por_campana
+            )
+            total_transfer_out_count = sum(
+                r.get('transfer_out_count', 0) for r in ingresos_voz_por_campana
+            )
             ingresos_voz_por_campana_totals = {
                 'received': total_received,
                 'answered': total_answered,
                 'expired': total_expired,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
+                'transfer_in_count': total_transfer_in_count,
+                'transfer_out_count': total_transfer_out_count,
                 'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
                 'pct_expired': round(100.0 * total_expired / total_received, 2) if total_received else 0.0,
                 'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
@@ -5953,6 +6117,49 @@ def _segment_duration_seconds_for_transfer(transfer, transfers_ordered, segments
     return sec
 
 
+def _segment_agent_id_value(seg):
+    """Extrae agent_id entero de un dict de segmento o None si no es válido."""
+    if not isinstance(seg, dict):
+        return None
+    raw = seg.get('agent_id')
+    if raw is None:
+        return None
+    try:
+        aid = int(raw)
+    except (TypeError, ValueError):
+        return None
+    if aid == -1:
+        return None
+    return aid
+
+
+def _campaign_answering_agent_id_from_segments(transfer, transfers_ordered, segments):
+    """
+    Para transferencia a CAMPAIGN sin destination_agent_id y status OK, infiere el
+    agent_id del tramo siguiente en agent_segments (quien atiende tras la transferencia).
+    """
+    if (transfer.destination_type or '').upper() != 'CAMPAIGN':
+        return None
+    if transfer.destination_agent_id is not None:
+        return None
+    if (transfer.status or '').upper() != 'OK':
+        return None
+    chronological = _ordered_segments_chronologically(segments)
+    transfer_index = next(
+        (
+            i for i, t in enumerate(transfers_ordered)
+            if t.id == transfer.id
+        ),
+        None,
+    )
+    if transfer_index is None:
+        return None
+    seg_idx = transfer_index + 1
+    if seg_idx >= len(chronological):
+        return None
+    return _segment_agent_id_value(chronological[seg_idx])
+
+
 def _format_duration_mmss(seconds):
     """
     Formato MM:SS si < 1 h; si no H:MM:SS (sin relleno de horas a 2 dígitos).
@@ -6029,12 +6236,17 @@ def _campaign_label_for_transfer(campaign_id, labels_map):
 
 
 def _interaction_transfer_to_dict(
-        transfer, agent_labels, campaign_labels, segment_duration_display='—'):
+        transfer, agent_labels, campaign_labels, segment_duration_display='—',
+        campaign_answered_agent_id=None):
     """Serializa InteractionTransfers a dict JSON-friendly."""
     def _dt_iso(dt):
         if dt is None:
             return None
         return dt.isoformat()
+
+    dest_label_id = transfer.destination_agent_id
+    if dest_label_id is None and campaign_answered_agent_id is not None:
+        dest_label_id = campaign_answered_agent_id
 
     return {
         'id': transfer.id,
@@ -6049,7 +6261,7 @@ def _interaction_transfer_to_dict(
             transfer.source_agent_id, agent_labels,
         ),
         'destination_agent_label': _agent_label_for_transfer(
-            transfer.destination_agent_id, agent_labels,
+            dest_label_id, agent_labels,
         ),
         'destination_campaign_label': _campaign_label_for_transfer(
             transfer.destination_campaign_id, campaign_labels,
@@ -6119,6 +6331,11 @@ class InteractionTransfersPorLlamadaAPIView(APIView):
                 interaction_id=interaction_id,
             ).order_by('id')
         )
+        segments = _parse_agent_segments(summary.channel_data)
+        campaign_answered_agent_by_transfer_id = {
+            t.id: _campaign_answering_agent_id_from_segments(t, transfers, segments)
+            for t in transfers
+        }
         agent_ids = set()
         campaign_ids = set()
         for t in transfers:
@@ -6128,9 +6345,11 @@ class InteractionTransfersPorLlamadaAPIView(APIView):
                 agent_ids.add(t.destination_agent_id)
             if t.destination_campaign_id is not None:
                 campaign_ids.add(t.destination_campaign_id)
+            answered_id = campaign_answered_agent_by_transfer_id.get(t.id)
+            if answered_id is not None:
+                agent_ids.add(answered_id)
         agent_labels = _build_agent_labels_map(agent_ids)
         campaign_labels = _build_campaign_labels_map(campaign_ids)
-        segments = _parse_agent_segments(summary.channel_data)
         return Response(
             {
                 'transfers': [
@@ -6140,6 +6359,9 @@ class InteractionTransfersPorLlamadaAPIView(APIView):
                         campaign_labels,
                         segment_duration_display=_segment_duration_display_for_transfer(
                             t, transfers, segments,
+                        ),
+                        campaign_answered_agent_id=campaign_answered_agent_by_transfer_id.get(
+                            t.id,
                         ),
                     )
                     for t in transfers
@@ -6330,6 +6552,19 @@ def _get_campanas_visibles(user, incluir_finalizadas=True):
     if not incluir_finalizadas:
         campanas = campanas.exclude(estado=Campana.ESTADO_FINALIZADA)
     return campanas
+
+
+def _parse_export_filters_with_visible_campaigns(request):
+    """Extiende _parse_export_filters con campañas visibles del usuario."""
+    parsed, err_response = _parse_export_filters(request)
+    if err_response is not None:
+        return None, err_response
+    data = request.data or {}
+    incluir_finalizadas = data.get('incluir_finalizadas') in (True, 'true', '1', 1)
+    visible_campaigns = list(
+        _get_campanas_visibles(request.user, incluir_finalizadas).values_list('pk', flat=True)
+    )
+    return parsed + (visible_campaigns,), None
 
 
 class ExportarCSVCanalidadesCentroContacto(APIView):
@@ -6867,12 +7102,12 @@ class ExportarCSVLlamadasVozCentroContacto(APIView):
     http_method_names = ['post']
 
     def post(self, request):
-        parsed, err_response = _parse_export_filters(request)
+        parsed, err_response = _parse_export_filters_with_visible_campaigns(request)
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
          customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
-         duracion_bot_min) = parsed
+         duracion_bot_min, visible_campaigns) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_VOZ.format(task_id=task_id)
         thread = threading.Thread(
@@ -6883,6 +7118,7 @@ class ExportarCSVLlamadasVozCentroContacto(APIView):
                 'start_date': desde,
                 'end_date': hasta,
                 'allowed_campaigns': allowed_campaigns,
+                'visible_campaigns': visible_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,

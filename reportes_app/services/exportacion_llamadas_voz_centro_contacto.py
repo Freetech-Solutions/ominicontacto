@@ -63,6 +63,7 @@ def generar_csv_llamadas_voz_centro_contacto(
     start_date=None,
     end_date=None,
     allowed_campaigns=None,
+    visible_campaigns=None,
     allowed_agent_ids=None,
     customer_id=None,
     address_query=None,
@@ -93,6 +94,7 @@ def generar_csv_llamadas_voz_centro_contacto(
             start_date=start_date,
             end_date=end_date,
             allowed_campaigns=allowed_campaigns,
+            visible_campaigns=visible_campaigns,
             allowed_agent_ids=allowed_agent_ids,
             customer_id=customer_id,
             address_query=address_query,
@@ -117,21 +119,21 @@ def generar_csv_llamadas_voz_centro_contacto(
         total_answered = sum(r['answered'] for r in rows)
         total_expired = sum(r['expired'] for r in rows)
         total_abandoned = sum(r['abandoned'] for r in rows)
-        total_transferred = sum(r['transferred'] for r in rows)
+        total_transfer_in_count = sum(r.get('transfer_in_count', 0) for r in rows)
+        total_transfer_out_count = sum(r.get('transfer_out_count', 0) for r in rows)
         pct_answered = (100.0 * total_answered / total_received) if total_received else 0.0
         pct_expired = (100.0 * total_expired / total_received) if total_received else 0.0
         pct_abandoned = (100.0 * total_abandoned / total_received) if total_received else 0.0
-        pct_transferred = (100.0 * total_transferred / total_received) if total_received else 0.0
         totals = {
             'received': total_received,
             'answered': total_answered,
             'expired': total_expired,
             'abandoned': total_abandoned,
-            'transferred': total_transferred,
+            'transfer_in_count': total_transfer_in_count,
+            'transfer_out_count': total_transfer_out_count,
             'pct_answered': round(pct_answered, 2),
             'pct_expired': round(pct_expired, 2),
             'pct_abandoned': round(pct_abandoned, 2),
-            'pct_transferred': round(pct_transferred, 2),
         }
 
     dir_abs = os.path.join(settings.MEDIA_ROOT, DIRECTORIO_REPORTE)
@@ -146,13 +148,13 @@ def generar_csv_llamadas_voz_centro_contacto(
         _('Respondidas'),
         _('Expiradas'),
         _('Abandonadas'),
-        _('Transferidas'),
+        _('Transfer In'),
+        _('Transfer Out'),
         _('Espera prom.'),
         _('Habla prom.'),
         _('% Respondidas'),
         _('% Expiradas'),
         _('% Abandonadas'),
-        _('% Transferidas'),
     ]
 
     with open(ruta, 'w', newline='', encoding='utf-8') as f:
@@ -165,13 +167,13 @@ def generar_csv_llamadas_voz_centro_contacto(
                 _to_str(row.get('answered')),
                 _to_str(row.get('expired')),
                 _to_str(row.get('abandoned')),
-                _to_str(row.get('transferred')),
+                _to_str(row.get('transfer_in_count', 0)),
+                _to_str(row.get('transfer_out_count', 0)),
                 _format_seconds(row.get('avg_wait_seconds')),
                 _format_seconds(row.get('avg_talk_seconds')),
                 _to_str(row.get('pct_answered')),
                 _to_str(row.get('pct_expired')),
                 _to_str(row.get('pct_abandoned')),
-                _to_str(row.get('pct_transferred')),
             ])
         if totals:
             writer.writerow([
@@ -180,13 +182,13 @@ def generar_csv_llamadas_voz_centro_contacto(
                 _to_str(totals.get('answered')),
                 _to_str(totals.get('expired')),
                 _to_str(totals.get('abandoned')),
-                _to_str(totals.get('transferred')),
+                _to_str(totals.get('transfer_in_count')),
+                _to_str(totals.get('transfer_out_count')),
                 '',  # Espera prom. total
                 '',  # Habla prom. total
                 _to_str(totals.get('pct_answered')),
                 _to_str(totals.get('pct_expired')),
                 _to_str(totals.get('pct_abandoned')),
-                _to_str(totals.get('pct_transferred')),
             ])
 
     try:

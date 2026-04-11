@@ -854,13 +854,12 @@
                                                     <th scope="col" class="text-right">{% trans 'Respondidas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Expiradas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Abandonadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Transferidas' %}</th>
+                                                    <th scope="col" class="text-center">{% trans 'Transfer (In/Out)' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% Respondidas' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% Expiradas' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% Abandonadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Transferidas' %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -994,13 +993,12 @@
                                                     <th scope="col" class="text-right">{% trans 'Respondidas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Expiradas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Abandonadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Transferidas' %}</th>
+                                                    <th scope="col" class="text-center">{% trans 'Transfer (In/Out)' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% Respondidas' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% Expiradas' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% Abandonadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Transferidas' %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -1011,13 +1009,15 @@
                                                     <td class="text-right f-mono">{{ row.answered }}</td>
                                                     <td class="text-right f-mono">{{ row.expired }}</td>
                                                     <td class="text-right f-mono">{{ row.abandoned }}</td>
-                                                    <td class="text-right f-mono">{{ row.transferred }}</td>
+                                                    <td class="text-center text-gray-500 text-xs">
+                                                        <span class="bg-gray-100 px-2 py-1 rounded f-mono">{{ row.transfer_in_count|default:0 }} <i class="fas fa-arrow-down text-gray-400 ml-1"></i></span>
+                                                        <span class="bg-gray-100 px-2 py-1 rounded ml-1 f-mono">{{ row.transfer_out_count|default:0 }} <i class="fas fa-arrow-up text-gray-400 ml-1"></i></span>
+                                                    </td>
                                                     <td class="text-right f-mono">{% if row.avg_wait_seconds is not None %}{{ row.avg_wait_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.avg_talk_seconds is not None %}{{ row.avg_talk_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{{ row.pct_answered|floatformat:1 }}%</td>
                                                     <td class="text-right f-mono">{{ row.pct_expired|floatformat:1 }}%</td>
                                                     <td class="text-right f-mono">{{ row.pct_abandoned|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_transferred|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endfor %}
                                                 {% if ingresos_voz_por_campana_totals %}
@@ -1027,13 +1027,15 @@
                                                     <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.answered }}</td>
                                                     <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.expired }}</td>
                                                     <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.abandoned }}</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.transferred }}</td>
+                                                    <td class="text-center text-gray-500 text-xs">
+                                                        <span class="bg-gray-100 px-2 py-1 rounded f-mono">{{ ingresos_voz_por_campana_totals.transfer_in_count|default:0 }} <i class="fas fa-arrow-down text-gray-400 ml-1"></i></span>
+                                                        <span class="bg-gray-100 px-2 py-1 rounded ml-1 f-mono">{{ ingresos_voz_por_campana_totals.transfer_out_count|default:0 }} <i class="fas fa-arrow-up text-gray-400 ml-1"></i></span>
+                                                    </td>
                                                     <td class="text-right">—</td>
                                                     <td class="text-right">—</td>
                                                     <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.pct_answered|floatformat:1 }}%</td>
                                                     <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.pct_expired|floatformat:1 }}%</td>
                                                     <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.pct_abandoned|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.pct_transferred|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endif %}
                                             </tbody>
@@ -3801,7 +3803,6 @@
                     <table class="table table-sm table-bordered mb-0">
                         <thead class="thead-light">
                             <tr>
-                                <th scope="col">{% trans 'Destino' %}</th>
                                 <th scope="col">{% trans 'Tipo destino' %}</th>
                                 <th scope="col">{% trans 'Tipo transferencia' %}</th>
                                 <th scope="col">{% trans 'Estado' %}</th>

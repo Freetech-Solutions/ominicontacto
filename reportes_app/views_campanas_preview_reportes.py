@@ -26,6 +26,7 @@ from django.db.models import Count
 from django.views.generic import DetailView
 
 from ominicontacto_app.models import Campana, CalificacionCliente, OpcionCalificacion
+from reportes_app.models import InteractionTransfers
 
 
 class CampanaPreviewDetailView(DetailView):
@@ -59,6 +60,9 @@ class CampanaPreviewDetailView(DetailView):
             tipo=OpcionCalificacion.GESTION).values('nombre')
         context['terminadas'] = qs_campana_calificaciones.count()
         context['estimadas'] = campana.bd_contacto.contactos.count() - context['terminadas']
+        context['recibidas_transferidas'] = InteractionTransfers.objects.filter(
+            destination_campaign_id=campana.pk,
+        ).count()
 
         if context['terminadas']:
             qs_finalizadas_gestiones = qs_campana_calificaciones.filter(

@@ -6388,8 +6388,13 @@ msgstr ""
 msgid "Contactos restantes por calificar"
 msgstr ""
 
-#: ominicontacto_app/templates/campanas/campana_preview/detalle.html:52
-#: ominicontacto_app/templates/campanas/campana_preview/detalle_express.html:51
+#: ominicontacto_app/templates/campanas/campana_preview/detalle.html:51
+#: ominicontacto_app/templates/campanas/campana_preview/detalle_express.html:49
+msgid "Recibidas transferidas"
+msgstr ""
+
+#: ominicontacto_app/templates/campanas/campana_preview/detalle.html:53
+#: ominicontacto_app/templates/campanas/campana_preview/detalle_express.html:52
 msgid "Finalizados por"
 msgstr ""
 

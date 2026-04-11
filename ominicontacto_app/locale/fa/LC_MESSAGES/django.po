@@ -4181,6 +4181,11 @@ msgstr "مخازبین دارای نتیجه"
 msgid "Contactos restantes por calificar"
 msgstr "مخاطبین منتظر دریافت نتیجه"
 
+#: ominicontacto_app/templates/campanas/campana_preview/detalle.html:51
+#: ominicontacto_app/templates/campanas/campana_preview/detalle_express.html:49
+msgid "Recibidas transferidas"
+msgstr "دریافتی از انتقال"
+
 #: ominicontacto_app/templates/campanas/campana_پیش نمایش/detalle.html:53
 #: نمایش/detalle_express.html:52
 msgid "Finalizados por"

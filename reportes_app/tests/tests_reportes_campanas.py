@@ -484,6 +484,7 @@ class ReportesCampanasTests(BaseTestDeReportes):
         url = reverse('campana_preview_detalle', args=[self.campana_activa.pk])
         response = self.client.get(url, follow=True)
         self.assertTemplateUsed(response, u'campanas/campana_preview/detalle.html')
+        self.assertEqual(response.context_data['recibidas_transferidas'], 0)
         self.assertEqual(
             response.context_data['categorias'][self.calif_gestion.opcion_calificacion.nombre], 1)
         self.assertEqual(
@@ -493,6 +494,7 @@ class ReportesCampanasTests(BaseTestDeReportes):
         url = reverse('campana_preview_detalle_express', args=[self.campana_activa.pk])
         response = self.client.get(url, follow=True)
         self.assertTemplateUsed(response, u'campanas/campana_preview/detalle_express.html')
+        self.assertEqual(response.context_data['recibidas_transferidas'], 0)
         self.assertEqual(
             response.context_data['categorias'][self.calif_gestion.opcion_calificacion.nombre], 1)
         self.assertEqual(

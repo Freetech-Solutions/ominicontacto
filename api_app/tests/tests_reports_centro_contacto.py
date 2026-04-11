@@ -19,11 +19,14 @@ from ominicontacto_app.tests.factories import (
 )
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
 from api_app.views.reports_centro_contacto import (
+    _campaign_answering_agent_id_from_segments,
     _format_duration_mmss,
+    _interaction_transfer_to_dict,
     _parse_agent_segments,
     _segment_duration_display_for_transfer,
     _segment_duration_seconds_for_transfer,
     get_omnichannel_share_data,
+    obtener_llamadas_por_campana,
     obtener_kpis_centro_contacto,
 )
 from reportes_app.forms import ReporteCentroContactoForm
@@ -139,6 +142,56 @@ class ReporteCentroContactoFormViewTest(OMLBaseTest):
         self.assertEqual(response.status_code, 200)
         self.assertIsNotNone(mock_kpis.call_args[1]['start_date'])
         self.assertIsNotNone(mock_kpis.call_args[1]['end_date'])
+
+    @patch('api_app.views.reports_centro_contacto.obtener_llamadas_por_campana')
+    @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
+    def test_ingresos_voz_por_campana_renderiza_transfer_in_out(
+            self, mock_kpis, mock_llamadas_por_campana):
+        mock_kpis.return_value = MOCK_KPIS
+        mock_llamadas_por_campana.side_effect = [
+            [],
+            [
+                {
+                    'campaign_id': self.campana_activa.id,
+                    'campaign_name': self.campana_activa.nombre,
+                    'received': 10,
+                    'answered': 8,
+                    'unanswered': 2,
+                    'expired': 1,
+                    'abandoned': 1,
+                    'transferred': 3,
+                    'avg_wait_seconds': 12.0,
+                    'avg_talk_seconds': 45.0,
+                    'pct_answered': 80.0,
+                    'pct_unanswered': 20.0,
+                    'pct_expired': 10.0,
+                    'pct_abandoned': 10.0,
+                    'pct_transferred': 30.0,
+                    'transfer_in_count': 2,
+                    'transfer_out_count': 3,
+                },
+            ],
+        ]
+
+        response = self._post_form(
+            self.admin_user.username,
+            {
+                'fecha': self.fecha,
+                'campana': [ReporteCentroContactoForm.TODAS_LAS_CAMPANAS_VALUE],
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        section_start = content.index('Llamadas de voz por campaña')
+        table_start = content.index('<table', section_start)
+        table_end = content.index('</table>', table_start)
+        table_html = content[table_start:table_end]
+
+        self.assertIn('Transfer (In/Out)', table_html)
+        self.assertNotIn('Transferidas', table_html)
+        self.assertIn('fa-arrow-down', table_html)
+        self.assertIn('fa-arrow-up', table_html)
 
     @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
     def test_form_submit_passes_duracion_bot_min_to_kpis(self, mock_kpis):
@@ -697,6 +750,73 @@ class GetOmnichannelShareDataTest(SimpleTestCase):
         self.assertEqual(result['shares']['email'], '13.3%')
 
 
+class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
+
+    @patch('api_app.views.reports_centro_contacto.Campana')
+    @patch('api_app.views.reports_centro_contacto.InteractionTransfers')
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary')
+    def test_desdobla_transferencias_in_out_y_agrega_campana_destino(
+            self, mock_interactions_summary, mock_interaction_transfers, mock_campana):
+        queryset = Mock()
+        queryset.filter.return_value = queryset
+        values_qs = Mock()
+        annotate_qs = Mock()
+        annotate_qs.order_by.return_value = [
+            {
+                'campaign_id': 1,
+                'received': 5,
+                'answered': 4,
+                'unanswered': 1,
+                'expired': 0,
+                'abandoned': 1,
+                'transferred': 1,
+                'avg_wait': Decimal('8.0'),
+                'avg_talk': Decimal('30.0'),
+            },
+        ]
+        values_qs.annotate.return_value = annotate_qs
+        queryset.values.return_value = values_qs
+        queryset.values_list.return_value = [
+            ('call-1', 1),
+            ('call-2', 3),
+        ]
+        mock_interactions_summary.objects.all.return_value = queryset
+
+        transfer_queryset = Mock()
+        transfer_queryset.values_list.return_value = [
+            ('call-1', 2),
+            ('call-2', 2),
+        ]
+        mock_interaction_transfers.objects.filter.return_value = transfer_queryset
+
+        campana_qs = Mock()
+        campana_qs.values_list.return_value = [
+            (1, 'Campaña Uno'),
+            (2, 'Campaña Dos'),
+        ]
+        mock_campana.objects.filter.return_value = campana_qs
+
+        rows = obtener_llamadas_por_campana(
+            start_date=None,
+            end_date=None,
+            allowed_campaigns=[1, 2],
+            visible_campaigns=[1, 2, 3],
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+
+        rows_by_campaign = {row['campaign_id']: row for row in rows}
+        self.assertEqual(rows_by_campaign[1]['transfer_in_count'], 0)
+        self.assertEqual(rows_by_campaign[1]['transfer_out_count'], 1)
+        self.assertEqual(rows_by_campaign[2]['received'], 0)
+        self.assertEqual(rows_by_campaign[2]['transfer_in_count'], 2)
+        self.assertEqual(rows_by_campaign[2]['transfer_out_count'], 0)
+
+        transfer_kwargs = mock_interaction_transfers.objects.filter.call_args[1]
+        self.assertEqual(transfer_kwargs['status__iexact'], 'OK')
+        self.assertEqual(transfer_kwargs['destination_campaign_id__isnull'], False)
+
+
 class GetOmnichannelShareDataViewTest(OMLBaseTest):
 
     def setUp(self):
@@ -814,6 +934,112 @@ class AgentSegmentsTransferDurationTest(SimpleTestCase):
         )
 
 
+class CampaignAnsweringAgentFromSegmentsTest(SimpleTestCase):
+    """Inferencia de agente que atiende transferencia a CAMPAIGN desde agent_segments."""
+
+    def _channel_two_segments(self):
+        return {
+            'agent_segments': [
+                {'agent_id': 2, 'start_ts': '2026-04-09T10:54:45', 'talk_duration': 8.029},
+                {'agent_id': 1, 'start_ts': '2026-04-09T10:54:53', 'talk_duration': 5.448},
+            ],
+        }
+
+    def test_campaign_ok_sin_destino_usa_segmento_siguiente(self):
+        segments = _parse_agent_segments(self._channel_two_segments())
+        t = MagicMock()
+        t.id = 5
+        t.destination_type = 'CAMPAIGN'
+        t.destination_agent_id = None
+        t.status = 'OK'
+        transfers = [t]
+        self.assertEqual(
+            _campaign_answering_agent_id_from_segments(t, transfers, segments),
+            1,
+        )
+
+    def test_un_solo_segmento_devuelve_none(self):
+        channel = {
+            'agent_segments': [
+                {'agent_id': 2, 'start_ts': '2026-04-09T10:54:45', 'talk_duration': 8.029},
+            ],
+        }
+        segments = _parse_agent_segments(channel)
+        t = MagicMock()
+        t.id = 5
+        t.destination_type = 'CAMPAIGN'
+        t.destination_agent_id = None
+        t.status = 'OK'
+        transfers = [t]
+        self.assertIsNone(
+            _campaign_answering_agent_id_from_segments(t, transfers, segments),
+        )
+
+    def test_no_campaign_no_infere(self):
+        segments = _parse_agent_segments(self._channel_two_segments())
+        t = MagicMock()
+        t.id = 5
+        t.destination_type = 'QUEUE'
+        t.destination_agent_id = None
+        t.status = 'OK'
+        transfers = [t]
+        self.assertIsNone(
+            _campaign_answering_agent_id_from_segments(t, transfers, segments),
+        )
+
+    def test_status_no_ok_no_infere(self):
+        segments = _parse_agent_segments(self._channel_two_segments())
+        t = MagicMock()
+        t.id = 5
+        t.destination_type = 'CAMPAIGN'
+        t.destination_agent_id = None
+        t.status = 'BUSY'
+        transfers = [t]
+        self.assertIsNone(
+            _campaign_answering_agent_id_from_segments(t, transfers, segments),
+        )
+
+    def test_con_destination_agent_id_no_infere(self):
+        segments = _parse_agent_segments(self._channel_two_segments())
+        t = MagicMock()
+        t.id = 5
+        t.destination_type = 'CAMPAIGN'
+        t.destination_agent_id = 99
+        t.status = 'OK'
+        transfers = [t]
+        self.assertIsNone(
+            _campaign_answering_agent_id_from_segments(t, transfers, segments),
+        )
+
+    def test_interaction_transfer_to_dict_enriquece_etiqueta(self):
+        t = MagicMock()
+        t.id = 10
+        t.destination_target = 'campaign-3'
+        t.destination_type = 'CAMPAIGN'
+        t.transfer_type = 'BLIND'
+        t.status = 'OK'
+        t.source_agent_id = 8
+        t.destination_agent_id = None
+        t.destination_campaign_id = 3
+        t.destination_external_endpoint = None
+        t.source_channel = 'VOICE'
+        t.created_at = None
+        t.completed_at = None
+        t.talk_time_after = None
+        t.fail_reason = None
+        agent_labels = {8: 'Origen', 1: 'Quien atendió campaña'}
+        campaign_labels = {3: 'inbound-3'}
+        row = _interaction_transfer_to_dict(
+            t,
+            agent_labels,
+            campaign_labels,
+            segment_duration_display='00:05',
+            campaign_answered_agent_id=1,
+        )
+        self.assertIsNone(row['destination_agent_id'])
+        self.assertEqual(row['destination_agent_label'], 'Quien atendió campaña')
+
+
 class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
     """Tests para GET api_interaction_transfers_centro_contacto."""
 
@@ -895,6 +1121,72 @@ class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
         self.assertEqual(row['destination_agent_label'], 'agente_dest')
         self.assertEqual(row['destination_campaign_label'], 'Campaña destino test')
         self.assertEqual(row['segment_duration'], '01:30')
+
+    @patch('api_app.views.reports_centro_contacto.Campana.objects')
+    @patch('api_app.views.reports_centro_contacto.AgenteProfile.objects')
+    @patch('api_app.views.reports_centro_contacto.InteractionTransfers.objects')
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary.objects')
+    def test_get_admin_campaign_sin_agente_destino_etiqueta_desde_segmento(
+            self, mock_summary_mgr, mock_transfer_mgr, mock_agent_mgr, mock_campana_mgr):
+        summary = MagicMock()
+        summary.campaign_id = 1
+        summary.channel_data = {
+            'agent_segments': [
+                {'agent_id': 8, 'start_ts': '2026-04-09T10:54:45', 'talk_duration': 8.0},
+                {'agent_id': 1, 'start_ts': '2026-04-09T10:54:53', 'talk_duration': 5.0},
+            ],
+        }
+        qs_sum = MagicMock()
+        qs_sum.first.return_value = summary
+        mock_summary_mgr.filter.return_value = qs_sum
+
+        t1 = MagicMock()
+        t1.id = 10
+        t1.destination_target = 'campaign-3'
+        t1.destination_type = 'CAMPAIGN'
+        t1.transfer_type = 'BLIND'
+        t1.status = 'OK'
+        t1.source_agent_id = 8
+        t1.destination_agent_id = None
+        t1.destination_campaign_id = 3
+        t1.destination_external_endpoint = None
+        t1.source_channel = 'VOICE'
+        t1.created_at = None
+        t1.completed_at = None
+        t1.talk_time_after = None
+        t1.fail_reason = None
+
+        qs_tr = MagicMock()
+        qs_tr.order_by.return_value = [t1]
+        mock_transfer_mgr.filter.return_value = qs_tr
+
+        ap8 = MagicMock()
+        ap8.id = 8
+        ap8.user = MagicMock()
+        ap8.user.get_full_name.return_value = 'Andrew Reid'
+        ap8.user.username = 'a8'
+        ap1 = MagicMock()
+        ap1.id = 1
+        ap1.user = MagicMock()
+        ap1.user.get_full_name.return_value = 'Agente campaña'
+        ap1.user.username = 'a1'
+        agent_qs = MagicMock()
+        agent_qs.select_related.return_value = [ap8, ap1]
+        mock_agent_mgr.filter.return_value = agent_qs
+
+        camp_qs = MagicMock()
+        camp_qs.values_list.return_value = [(3, 'inbound-3')]
+        mock_campana_mgr.filter.return_value = camp_qs
+
+        self.client.login(username=self.admin_user.username, password=PASSWORD)
+        response = self.client.get(self.url, {'interaction_id': 'call-campaign-1'})
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        row = data['transfers'][0]
+        self.assertIsNone(row['destination_agent_id'])
+        self.assertEqual(row['destination_agent_label'], 'Agente campaña')
+        self.assertEqual(row['destination_campaign_label'], 'inbound-3')
+        self.assertEqual(row['segment_duration'], '00:08')
 
     @patch('api_app.views.reports_centro_contacto.Campana.objects')
     @patch('api_app.views.reports_centro_contacto.AgenteProfile.objects')
