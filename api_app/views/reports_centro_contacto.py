@@ -26,6 +26,7 @@ from django.urls import reverse
 from django.db.models import (
     Count, Sum, Avg, Q, F, Value,
     ExpressionWrapper, DurationField, IntegerField,
+    Exists, OuterRef,
 )
 from django.utils import timezone
 from django.db.models.functions import (
@@ -46,7 +47,11 @@ from ominicontacto_app.utiles import (
     datetime_hora_minima_dia,
     datetime_hora_maxima_dia,
 )
-from reportes_app.models import InteractionsSummary, InteractionTransfers
+from reportes_app.models import (
+    InteractionsSummary,
+    InteractionTransfers,
+    q_interaction_transfers_campaign_blind_consult,
+)
 from reportes_app.serializers import CentroContactoKPISerializer
 from reportes_app.forms import ReporteCentroContactoForm
 from reportes_app.services.whatsapp_tiempos_respuesta import (
@@ -137,6 +142,7 @@ def _obtener_transferencias_entre_campanas_por_campana(
 
     `Transfer Out` agrupa por la campaña de origen de la interacción.
     `Transfer In` agrupa por `destination_campaign_id`.
+    Solo cuenta transferencias OK con destination_type CAMPAIGN y transfer_type BLIND o CONSULT.
     """
     source_campaign_scope = visible_campaigns if visible_campaigns is not None else selected_campaigns
     base_queryset = _apply_interactions_summary_filters(
@@ -167,9 +173,7 @@ def _obtener_transferencias_entre_campanas_por_campana(
     }
     transfers_queryset = InteractionTransfers.objects.filter(
         interaction_id__in=[interaction_id for interaction_id, _ in interaction_campaign_pairs],
-        destination_campaign_id__isnull=False,
-        status__iexact='OK',
-    )
+    ).filter(q_interaction_transfers_campaign_blind_consult())
 
     transfer_in_counts = defaultdict(int)
     transfer_out_counts = defaultdict(int)
@@ -188,6 +192,210 @@ def _obtener_transferencias_entre_campanas_por_campana(
             transfer_in_counts[destination_campaign_id] += 1
 
     return dict(transfer_in_counts), dict(transfer_out_counts)
+
+
+def _obtener_metricas_inbound_transferidas_por_campana(
+        start_date=None,
+        end_date=None,
+        selected_campaigns=None,
+        allowed_agent_ids=None,
+        customer_id=None,
+        address_query=None,
+        direction_filter=None,
+        channel_filter=None,
+        hora_desde=None,
+        hora_hasta=None,
+        duracion_agente_min=None,
+        duracion_bot_min=None):
+    """
+    Cuenta estados inbound para campañas destino cuando la interacción llegó por transferencia.
+
+    Usa el status final de InteractionsSummary para exponer en la campaña destino
+    métricas como Respondidas, Expiradas y Abandonadas.
+    Solo considera transferencias OK con destino CAMPAIGN y mecánica BLIND o CONSULT
+    (mismo criterio que Transfer In/Out y que el campo transferred del reporte).
+    Si campaign_id del resumen coincide con el destino de la transferencia, no suma
+    (evita duplicar la agregación principal). Si el resumen sigue en la campaña origen
+    y el status es EXIT_ANSWERED, la fila nativa de origen ya cuenta la respondida;
+    en destino solo incrementa answered cuando hay evidencia de atención en destino
+    (talk_time_after > 0 o segmento de agente post-transfer, con tolerancia de
+    timestamps frente a created_at de la transferencia).
+    """
+    base_queryset = _apply_interactions_summary_filters(
+        InteractionsSummary.objects.all(),
+        start_date=start_date,
+        end_date=end_date,
+        campaign_scope=None,
+        allow_null_campaigns=True,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
+    interaction_summary_rows = list(
+        base_queryset.values_list('interaction_id', 'campaign_id', 'status', 'channel_data'),
+    )
+    if not interaction_summary_rows:
+        return {}
+
+    selected_campaigns_set = set(selected_campaigns) if selected_campaigns is not None else None
+    status_by_interaction = {}
+    summary_campaign_by_interaction = {}
+    channel_data_by_interaction = {}
+    for interaction_id, campaign_id, status, channel_data in interaction_summary_rows:
+        status_by_interaction[interaction_id] = (status or '').strip().upper()
+        summary_campaign_by_interaction[interaction_id] = campaign_id
+        channel_data_by_interaction[interaction_id] = channel_data
+
+    transfer_queryset = InteractionTransfers.objects.filter(
+        interaction_id__in=list(status_by_interaction.keys()),
+    ).filter(q_interaction_transfers_campaign_blind_consult())
+
+    # Desfase típico entre created_at del registro de transferencia y start_ts del
+    # segmento del agente en destino (ms); sin tolerancia se infiere abandono falso.
+    _POST_TRANSFER_SEGMENT_TOLERANCE = timedelta(seconds=2)
+
+    def _numeric_talk_time_after(val):
+        if val is None:
+            return None
+        try:
+            return float(val)
+        except (TypeError, ValueError):
+            return None
+
+    def _normalize_transfer_dt(transfer_created_at):
+        if transfer_created_at is None:
+            return None
+        transfer_dt = transfer_created_at
+        if timezone.is_naive(transfer_dt):
+            transfer_dt = timezone.make_aware(
+                transfer_dt, timezone.get_current_timezone(),
+            )
+        return transfer_dt
+
+    def _segment_post_transfer_agent_attendance(interaction_id, transfer_created_at):
+        """
+        True si hay evidencia de atención por agente en destino tras la transferencia
+        (mismo criterio que evita inferir abandono por desfase de timestamps).
+        """
+        transfer_dt = _normalize_transfer_dt(transfer_created_at)
+        if transfer_dt is None:
+            return False
+
+        channel_data = channel_data_by_interaction.get(interaction_id)
+        segments = _parse_agent_segments(channel_data)
+        tol = _POST_TRANSFER_SEGMENT_TOLERANCE
+        for seg in segments:
+            agent_id = seg.get('agent_id') if isinstance(seg, dict) else None
+            try:
+                if agent_id is None or int(agent_id) == -1:
+                    continue
+            except (TypeError, ValueError):
+                continue
+
+            start_ts = _parse_iso_datetime_for_segment(seg.get('start_ts'))
+            if start_ts is None:
+                continue
+            if timezone.is_naive(start_ts):
+                start_ts = timezone.make_aware(
+                    start_ts, timezone.get_current_timezone(),
+                )
+
+            if start_ts >= transfer_dt - tol:
+                return True
+
+            end_ts = _parse_iso_datetime_for_segment(seg.get('end_ts'))
+            if end_ts is not None:
+                if timezone.is_naive(end_ts):
+                    end_ts = timezone.make_aware(
+                        end_ts, timezone.get_current_timezone(),
+                    )
+                if end_ts > transfer_dt:
+                    try:
+                        td = seg.get('talk_duration')
+                        if td is not None and float(td) > 0:
+                            return True
+                    except (TypeError, ValueError):
+                        if (end_ts - start_ts).total_seconds() > 0:
+                            return True
+        return False
+
+    def _inferred_abandon_exit_answered_destino(
+            status, interaction_id, transfer_created_at, transfer_talk_time_after):
+        """
+        Abandono inferido en cola de campaña destino con status global EXIT_ANSWERED.
+        No infiere si falta talk_time_after (dato ausente) o hay atención post-transfer.
+        """
+        if status != 'EXIT_ANSWERED':
+            return False
+        ntt = _numeric_talk_time_after(transfer_talk_time_after)
+        if ntt is not None and ntt > 0:
+            return False
+        if _segment_post_transfer_agent_attendance(
+                interaction_id, transfer_created_at):
+            return False
+        if ntt is None:
+            return False
+        return True
+
+    metrics_by_campaign = defaultdict(lambda: {
+        'received': 0,
+        'answered': 0,
+        'unanswered': 0,
+        'expired': 0,
+        'abandoned': 0,
+    })
+    for interaction_id, destination_campaign_id, transfer_created_at, transfer_talk_time_after in (
+            transfer_queryset.values_list(
+                'interaction_id',
+                'destination_campaign_id',
+                'created_at',
+                'talk_time_after',
+            )):
+        if (
+            selected_campaigns_set is not None and
+            destination_campaign_id not in selected_campaigns_set
+        ):
+            continue
+        status = status_by_interaction.get(interaction_id)
+        if status is None:
+            continue
+        summary_campaign_id = summary_campaign_by_interaction.get(interaction_id)
+        if summary_campaign_id == destination_campaign_id:
+            continue
+        row = metrics_by_campaign[destination_campaign_id]
+        row['received'] += 1
+        inferred_abandon_in_destination = _inferred_abandon_exit_answered_destino(
+            status,
+            interaction_id,
+            transfer_created_at,
+            transfer_talk_time_after,
+        )
+        ntt = _numeric_talk_time_after(transfer_talk_time_after)
+        destino_atendida_exit_answered = status == 'EXIT_ANSWERED' and (
+            (ntt is not None and ntt > 0) or
+            _segment_post_transfer_agent_attendance(
+                interaction_id, transfer_created_at,
+            )
+        )
+        if destino_atendida_exit_answered:
+            row['answered'] += 1
+        if status != 'EXIT_ANSWERED' or inferred_abandon_in_destination:
+            row['unanswered'] += 1
+        if status in ('EXIT_TIMEOUT', 'EXIT_HANDOFF_TIMEOUT'):
+            row['expired'] += 1
+        if (
+            status in ('EXIT_ABANDON', 'EXIT_HANDOFF_ABANDON', 'EXIT_ABANDON_WEL') or
+            inferred_abandon_in_destination
+        ):
+            row['abandoned'] += 1
+
+    return dict(metrics_by_campaign)
 
 
 # Colores para el gráfico Donut Market Share Omnicanal (Chart.js)
@@ -462,9 +670,18 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
     campaign_id, campaign_name, received, answered, unanswered, expired, abandoned,
     transferred, avg_wait_seconds, avg_talk_seconds, pct_answered, pct_unanswered,
     pct_expired, pct_abandoned, pct_transferred.
+    Para campañas destino, también suma estados finales de interacciones que llegaron
+    por transferencia recibida (destination_campaign_id).
     - direction_filter: si es 'INBOUND' o 'OUTBOUND', filtra por esa dirección; si None, no filtra.
     - channel_filter: si es 'VOICE', filtra por channel_type VOICE (solo llamadas de voz).
     - expired: EXIT_TIMEOUT y EXIT_HANDOFF_TIMEOUT; abandoned: EXIT_ABANDON y EXIT_HANDOFF_ABANDON.
+    - Interacciones con transferencia OK hacia otra campaña (CAMPAIGN, BLIND/CONSULT; destination
+      distinta del campaign_id de la fila) no cuentan en expired/abandoned/unanswered; cuentan
+      como answered si EXIT_ANSWERED o si is_transferred y el xfer (el estado final puede ser
+      distinto de EXIT_ANSWERED, p. ej. EXIT_TIMEOUT con agent_duration 0 en el resumen). Siguen en
+      received y en transfer_out_count vía _obtener_transferencias_entre_campanas_por_campana.
+    - transferred y pct_transferred: suma transfer_in_count + transfer_out_count (mismo criterio;
+      no usa is_transferred del resumen).
     """
     queryset = _apply_interactions_summary_filters(
         InteractionsSummary.objects.all(),
@@ -483,9 +700,21 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         duracion_bot_min=duracion_bot_min,
     )
 
-    Q_answered = Q(status__iexact='EXIT_ANSWERED')
-    Q_expired = Q(status__in=['EXIT_TIMEOUT', 'EXIT_HANDOFF_TIMEOUT'])
-    Q_abandoned = Q(status__in=['EXIT_ABANDON', 'EXIT_HANDOFF_ABANDON'])
+    xfer_out_other_campaign = Exists(
+        InteractionTransfers.objects.filter(
+            interaction_id=OuterRef('interaction_id'),
+        )
+        .filter(q_interaction_transfers_campaign_blind_consult())
+        .exclude(destination_campaign_id=OuterRef('campaign_id'))
+    )
+    queryset = queryset.annotate(_xfer_out_other_campaign=xfer_out_other_campaign)
+
+    Q_xfer_out = Q(_xfer_out_other_campaign=True)
+    Q_answered = Q(status__iexact='EXIT_ANSWERED') | (
+        Q_xfer_out & Q(is_transferred=True)
+    )
+    Q_expired = Q(status__in=['EXIT_TIMEOUT', 'EXIT_HANDOFF_TIMEOUT']) & ~Q_xfer_out
+    Q_abandoned = Q(status__in=['EXIT_ABANDON', 'EXIT_HANDOFF_ABANDON']) & ~Q_xfer_out
 
     rows = list(
         queryset
@@ -493,10 +722,9 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         .annotate(
             received=Count('id'),
             answered=Count('id', filter=Q_answered),
-            unanswered=Count('id', filter=~Q_answered),
+            unanswered=Count('id', filter=(~Q(status__iexact='EXIT_ANSWERED')) & ~Q_xfer_out),
             expired=Count('id', filter=Q_expired),
             abandoned=Count('id', filter=Q_abandoned),
-            transferred=Count('id', filter=Q(is_transferred=True)),
             avg_wait=Avg('wait_conn_duration', filter=Q_answered),
             avg_talk=Avg('agent_duration', filter=Q_answered),
         )
@@ -517,10 +745,25 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
     )
+    transferred_in_metrics = _obtener_metricas_inbound_transferidas_por_campana(
+        start_date=start_date,
+        end_date=end_date,
+        selected_campaigns=allowed_campaigns,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
 
     campaign_ids = {r['campaign_id'] for r in rows if r['campaign_id'] is not None}
     campaign_ids.update(transfer_in_counts.keys())
     campaign_ids.update(transfer_out_counts.keys())
+    campaign_ids.update(transferred_in_metrics.keys())
     names_map = {}
     if campaign_ids:
         names_map = dict(
@@ -530,12 +773,19 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
     result_by_campaign = {}
     for r in rows:
         cid = r['campaign_id']
+        transfer_metrics = transferred_in_metrics.get(cid, {})
         received = r['received'] or 0
-        answered = r['answered'] or 0
-        unanswered = r['unanswered'] or 0
-        expired = r['expired'] or 0
-        abandoned = r['abandoned'] or 0
-        transferred = r['transferred'] or 0
+        effective_received = received + transfer_metrics.get('received', 0)
+        answered = (r['answered'] or 0) + transfer_metrics.get('answered', 0)
+        unanswered = (r['unanswered'] or 0) + transfer_metrics.get('unanswered', 0)
+        expired = (r['expired'] or 0) + transfer_metrics.get('expired', 0)
+        abandoned = (r['abandoned'] or 0) + transfer_metrics.get('abandoned', 0)
+        if cid is not None:
+            transferred = (
+                transfer_in_counts.get(cid, 0) + transfer_out_counts.get(cid, 0)
+            )
+        else:
+            transferred = 0
         avg_wait = r['avg_wait']
         avg_talk = r['avg_talk']
 
@@ -544,16 +794,17 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         else:
             campaign_name = names_map.get(cid) or str(cid)
 
-        pct_answered = (100.0 * answered / received) if received else 0.0
-        pct_unanswered = (100.0 * unanswered / received) if received else 0.0
-        pct_expired = (100.0 * expired / received) if received else 0.0
-        pct_abandoned = (100.0 * abandoned / received) if received else 0.0
-        pct_transferred = (100.0 * transferred / received) if received else 0.0
+        pct_answered = (100.0 * answered / effective_received) if effective_received else 0.0
+        pct_unanswered = (100.0 * unanswered / effective_received) if effective_received else 0.0
+        pct_expired = (100.0 * expired / effective_received) if effective_received else 0.0
+        pct_abandoned = (100.0 * abandoned / effective_received) if effective_received else 0.0
+        pct_transferred = (100.0 * transferred / effective_received) if effective_received else 0.0
 
         result_by_campaign[cid] = {
             'campaign_id': cid,
             'campaign_name': campaign_name,
             'received': received,
+            'effective_received': effective_received,
             'answered': answered,
             'unanswered': unanswered,
             'expired': expired,
@@ -570,25 +821,43 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
             'transfer_out_count': transfer_out_counts.get(cid, 0),
         }
 
-    for cid in sorted(set(transfer_in_counts.keys()) | set(transfer_out_counts.keys())):
+    all_transfer_campaign_ids = (
+        set(transfer_in_counts.keys()) |
+        set(transfer_out_counts.keys()) |
+        set(transferred_in_metrics.keys())
+    )
+    for cid in sorted(all_transfer_campaign_ids):
         if cid in result_by_campaign:
             continue
+        transfer_metrics = transferred_in_metrics.get(cid, {})
+        received = 0
+        effective_received = transfer_metrics.get('received', 0)
+        answered = transfer_metrics.get('answered', 0)
+        unanswered = transfer_metrics.get('unanswered', 0)
+        expired = transfer_metrics.get('expired', 0)
+        abandoned = transfer_metrics.get('abandoned', 0)
+        transferred = (
+            transfer_in_counts.get(cid, 0) + transfer_out_counts.get(cid, 0)
+        )
         result_by_campaign[cid] = {
             'campaign_id': cid,
             'campaign_name': names_map.get(cid) or str(cid),
-            'received': 0,
-            'answered': 0,
-            'unanswered': 0,
-            'expired': 0,
-            'abandoned': 0,
-            'transferred': 0,
+            'received': received,
+            'effective_received': effective_received,
+            'answered': answered,
+            'unanswered': unanswered,
+            'expired': expired,
+            'abandoned': abandoned,
+            'transferred': transferred,
             'avg_wait_seconds': None,
             'avg_talk_seconds': None,
-            'pct_answered': 0.0,
-            'pct_unanswered': 0.0,
-            'pct_expired': 0.0,
-            'pct_abandoned': 0.0,
-            'pct_transferred': 0.0,
+            'pct_answered': round((100.0 * answered / effective_received), 2) if effective_received else 0.0,
+            'pct_unanswered': round((100.0 * unanswered / effective_received), 2) if effective_received else 0.0,
+            'pct_expired': round((100.0 * expired / effective_received), 2) if effective_received else 0.0,
+            'pct_abandoned': round((100.0 * abandoned / effective_received), 2) if effective_received else 0.0,
+            'pct_transferred': round(
+                (100.0 * transferred / effective_received), 2,
+            ) if effective_received else 0.0,
             'transfer_in_count': transfer_in_counts.get(cid, 0),
             'transfer_out_count': transfer_out_counts.get(cid, 0),
         }
@@ -4421,6 +4690,9 @@ class ReporteCentroContactoFormView(FormView):
         ingresos_voz_por_campana_totals = None
         if ingresos_voz_por_campana:
             total_received = sum(r['received'] for r in ingresos_voz_por_campana)
+            total_effective_received = sum(
+                r.get('effective_received', r['received']) for r in ingresos_voz_por_campana
+            )
             total_answered = sum(r['answered'] for r in ingresos_voz_por_campana)
             total_expired = sum(r['expired'] for r in ingresos_voz_por_campana)
             total_abandoned = sum(r['abandoned'] for r in ingresos_voz_por_campana)
@@ -4439,10 +4711,10 @@ class ReporteCentroContactoFormView(FormView):
                 'transferred': total_transferred,
                 'transfer_in_count': total_transfer_in_count,
                 'transfer_out_count': total_transfer_out_count,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_expired': round(100.0 * total_expired / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_effective_received, 2) if total_effective_received else 0.0,
+                'pct_expired': round(100.0 * total_expired / total_effective_received, 2) if total_effective_received else 0.0,
+                'pct_abandoned': round(100.0 * total_abandoned / total_effective_received, 2) if total_effective_received else 0.0,
+                'pct_transferred': round(100.0 * total_transferred / total_effective_received, 2) if total_effective_received else 0.0,
             }
         canalidades_por_campana, canalidades_por_campana_totals = obtener_canalidades_por_campana(
             start_date=desde,

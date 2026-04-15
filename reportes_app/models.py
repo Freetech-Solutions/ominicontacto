@@ -1498,6 +1498,20 @@ class InteractionTransfers(models.Model):
         managed = False  # La tabla la crea la migración 0012
 
 
+def q_interaction_transfers_campaign_blind_consult():
+    """
+    Q para InteractionTransfers: solo transferencias OK hacia otra campaña con
+    destination_type CAMPAIGN y mecánica BLIND o CONSULT (excluye AGENT, EXTERNAL, ATTENDED, etc.).
+    Compartido entre reporte centro de contacto y estadísticas de campaña V2.
+    """
+    return (
+        Q(destination_campaign_id__isnull=False)
+        & Q(status__iexact='OK')
+        & Q(destination_type__iexact='CAMPAIGN')
+        & (Q(transfer_type__iexact='BLIND') | Q(transfer_type__iexact='CONSULT'))
+    )
+
+
 class AgentActivityEventV2(models.Model):
     """Eventos de actividad de agente (login, logout, estados)."""
 

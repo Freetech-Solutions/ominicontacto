@@ -1020,70 +1020,10 @@
                                                     <td class="text-right f-mono">{{ row.pct_abandoned|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endfor %}
-                                                {% if ingresos_voz_por_campana_totals %}
-                                                <tr class="font-weight-bold bg-gray-50">
-                                                    <td>{% trans 'Total' %}</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.received }}</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.answered }}</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.expired }}</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.abandoned }}</td>
-                                                    <td class="text-center text-gray-500 text-xs">
-                                                        <span class="bg-gray-100 px-2 py-1 rounded f-mono">{{ ingresos_voz_por_campana_totals.transfer_in_count|default:0 }} <i class="fas fa-arrow-down text-gray-400 ml-1"></i></span>
-                                                        <span class="bg-gray-100 px-2 py-1 rounded ml-1 f-mono">{{ ingresos_voz_por_campana_totals.transfer_out_count|default:0 }} <i class="fas fa-arrow-up text-gray-400 ml-1"></i></span>
-                                                    </td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.pct_answered|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.pct_expired|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ ingresos_voz_por_campana_totals.pct_abandoned|floatformat:1 }}%</td>
-                                                </tr>
-                                                {% endif %}
                                             </tbody>
                                         </table>
                                     </div>
                                 </div>
-                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 mt-6">{% trans 'Gráfico: Recibidas, Respondidas, Expiradas, Abandonadas y Transferidas por campaña' %}</h3>
-                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-4" style="height: 320px;">
-                                    <canvas id="chartIngresosVozPorCampana"></canvas>
-                                </div>
-                                {{ ingresos_voz_por_campana|json_script:"reporteCcIngresosVozPorCampanaData" }}
-                                <script>
-                                (function() {
-                                    var dataEl = document.getElementById('reporteCcIngresosVozPorCampanaData');
-                                    if (!dataEl || typeof Chart === 'undefined') return;
-                                    var rows = dataEl.textContent ? JSON.parse(dataEl.textContent) : [];
-                                    var labels = rows.map(function(r) { return r.campaign_name || ''; });
-                                    var received = rows.map(function(r) { return r.received || 0; });
-                                    var answered = rows.map(function(r) { return r.answered || 0; });
-                                    var expired = rows.map(function(r) { return r.expired || 0; });
-                                    var abandoned = rows.map(function(r) { return r.abandoned || 0; });
-                                    var transferred = rows.map(function(r) { return r.transferred || 0; });
-                                    var ctx = document.getElementById('chartIngresosVozPorCampana');
-                                    if (!ctx) return;
-                                    new Chart(ctx.getContext('2d'), {
-                                        type: 'bar',
-                                        data: {
-                                            labels: labels,
-                                            datasets: [
-                                                { label: '{% trans "Recibidas" %}', data: received, backgroundColor: 'rgba(59, 130, 246, 0.8)', borderColor: 'rgb(59, 130, 246)', borderWidth: 1 },
-                                                { label: '{% trans "Respondidas" %}', data: answered, backgroundColor: 'rgba(34, 197, 94, 0.8)', borderColor: 'rgb(34, 197, 94)', borderWidth: 1 },
-                                                { label: '{% trans "Expiradas" %}', data: expired, backgroundColor: 'rgba(239, 68, 68, 0.8)', borderColor: 'rgb(239, 68, 68)', borderWidth: 1 },
-                                                { label: '{% trans "Abandonadas" %}', data: abandoned, backgroundColor: 'rgba(255, 159, 64, 0.8)', borderColor: 'rgb(255, 159, 64)', borderWidth: 1 },
-                                                { label: '{% trans "Transferidas" %}', data: transferred, backgroundColor: 'rgba(250, 204, 21, 0.8)', borderColor: 'rgb(250, 204, 21)', borderWidth: 1 }
-                                            ]
-                                        },
-                                        options: {
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            plugins: { legend: { position: 'top' } },
-                                            scales: {
-                                                x: { title: { display: true, text: '{% trans "Nombre de la campaña" %}' } },
-                                                y: { beginAtZero: true, title: { display: true, text: '{% trans "Cantidad" %}' } }
-                                            }
-                                        }
-                                    });
-                                })();
-                                </script>
                                 {% else %}
                                 <p class="reporte-cc-placeholder text-gray-500 text-sm text-center py-6">{% trans 'No hay datos para el rango y filtros seleccionados. Seleccione campaña y fecha y pulse Buscar.' %}</p>
                                 {% endif %}

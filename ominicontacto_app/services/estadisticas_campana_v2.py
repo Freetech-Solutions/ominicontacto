@@ -29,6 +29,10 @@ Diferencias semánticas respecto a V1 (estadisticas_campana.py):
   tiempo hablado por agente.
 - No atendidos y detalle se reconstruyen desde status y hangup_cause (mapeo documentado
   en HANGUP_STATUS_TO_NO_ATENDIDO_LABEL).
+- Entrantes: transferencia OK hacia otra campaña (interaction_transfers: destination_type
+  CAMPAIGN, transfer_type BLIND o CONSULT) en la fila nativa de la campaña origen se refleja
+  como effective_status EXIT_TRANSFERRED_OUT: cuenta como recibida pero no como
+  atendida/expirada/abandonada en el detalle de esa campaña.
 
 Calificaciones CRM:
 - Las secciones "Calificaciones de Clientes Contactados" y "Calificaciones por Agente"
@@ -76,7 +80,10 @@ from collections import OrderedDict
 from pygal.style import LightGreenStyle, DefaultStyle
 from django.conf import settings
 from django.db import connections
-from django.db.models import Q, Count, Avg, Sum, Subquery, OuterRef, F, Window
+from django.db.models import (
+    Q, Count, Avg, Sum, Subquery, OuterRef, F, Window,
+    Case, When, Value, CharField, Exists,
+)
 from django.db.models.functions import RowNumber, Trim
 from django.utils.translation import gettext as _, gettext_lazy
 
@@ -89,7 +96,11 @@ from ominicontacto_app.models import (
     OpcionCalificacion,
 )
 from ominicontacto_app.services.dialer import get_dialer_service
-from reportes_app.models import InteractionsSummary
+from reportes_app.models import (
+    InteractionsSummary,
+    InteractionTransfers,
+    q_interaction_transfers_campaign_blind_consult,
+)
 from utiles_globales import adicionar_render_unicode
 from whatsapp_app.models import ConversacionWhatsapp
 
@@ -176,6 +187,7 @@ class EstadisticasServiceV2:
         self.campana = campana
         self.fecha_desde = fecha_desde
         self.fecha_hasta = fecha_hasta
+        self._transferidas_in_ids = None
         self.opciones_calificacion_campana = {
             opcion.pk: opcion
             for opcion in campana.opciones_calificacion.all().select_related('formulario')
@@ -217,27 +229,83 @@ class EstadisticasServiceV2:
         # KPI Performance de agentes (VOICE + Chat)
         self.performance_agentes = []
 
+    def _get_transferidas_in_ids(self):
+        if self._transferidas_in_ids is None:
+            self._transferidas_in_ids = (
+                InteractionTransfers.objects.using('replica')
+                .filter(destination_campaign_id=self.campana.pk)
+                .filter(q_interaction_transfers_campaign_blind_consult())
+                .values_list('interaction_id', flat=True)
+                .distinct()
+            )
+        return self._transferidas_in_ids
+
+    def _get_campaign_filter(self):
+        campaign_filter = Q(campaign_id=self.campana.pk)
+        if not self.campana.es_entrante:
+            return campaign_filter
+        return campaign_filter | Q(
+            interaction_id__in=self._get_transferidas_in_ids()
+        )
+
+    def _annotate_has_transfer_and_effective_status(self, qs):
+        """
+        has_transfer: existe alguna fila en InteractionTransfers para la interacción
+        (p. ej. KPIs de transfer por agente).
+
+        effective_status: si la fila es nativa de esta campaña (campaign_id == self.campana)
+        y hubo transferencia OK hacia otra campaña (CAMPAIGN, BLIND/CONSULT;
+        destination_campaign_id distinto del campaign_id del resumen), se usa
+        EXIT_TRANSFERRED_OUT: no cuenta como atendida,
+        expirada ni abandonada en el detalle de la campaña de origen. Las filas incluidas
+        solo por transferencia entrante (campaign_id distinto de self.campana) conservan
+        status real para reflejar el desenlace en la campaña destino.
+        """
+        transfers_exists = InteractionTransfers.objects.using('replica').filter(
+            interaction_id=OuterRef('interaction_id')
+        )
+        xfer_out_other_campaign = Exists(
+            InteractionTransfers.objects.using('replica')
+            .filter(interaction_id=OuterRef('interaction_id'))
+            .filter(q_interaction_transfers_campaign_blind_consult())
+            .exclude(destination_campaign_id=OuterRef('campaign_id'))
+        )
+        return qs.annotate(has_transfer=Exists(transfers_exists)).annotate(
+            xfer_out_other_campaign=xfer_out_other_campaign
+        ).annotate(
+            effective_status=Case(
+                When(
+                    Q(campaign_id=self.campana.pk) & Q(xfer_out_other_campaign=True),
+                    then=Value('EXIT_TRANSFERRED_OUT'),
+                ),
+                default=F('status'),
+                output_field=CharField(),
+            )
+        )
+
     def _get_base_queryset(self):
-        return (
+        qs = (
             InteractionsSummary.objects.using('replica')
             .filter(
-                campaign_id=self.campana.pk,
+                self._get_campaign_filter(),
                 start_time__gte=self.fecha_desde,
                 start_time__lte=self.fecha_hasta,
             )
             .filter(channel_type__iexact='VOICE')
         )
+        return self._annotate_has_transfer_and_effective_status(qs)
 
     def _get_queryset_interacciones_por_agente(self):
         """Queryset de InteractionsSummary por campaña y fechas, sin filtrar por channel_type."""
-        return (
+        qs = (
             InteractionsSummary.objects.using('replica')
             .filter(
-                campaign_id=self.campana.pk,
+                self._get_campaign_filter(),
                 start_time__gte=self.fecha_desde,
                 start_time__lte=self.fecha_hasta,
             )
         )
+        return self._annotate_has_transfer_and_effective_status(qs)
 
     def _interacciones_por_agente(self, qs_all):
         """
@@ -368,18 +436,18 @@ class EstadisticasServiceV2:
 
         q_voice = (
             Q(channel_type__iexact='VOICE')
-            & Q(status__iexact='EXIT_ANSWERED')
+            & Q(effective_status__iexact='EXIT_ANSWERED')
             & Q(agent_duration__gt=0)
         )
         q_voice_gestion = q_voice & Q(qualification_id__in=ids_gestion)
-        q_voice_transfer = q_voice & Q(is_transferred=True)
+        q_voice_transfer = q_voice & Q(has_transfer=True)
 
         q_chat = (
             (Q(channel_type__iexact='WHATSAPP') | Q(channel_type__iexact='MESSENGER'))
-            & Q(status__iexact='EXIT_ANSWERED')
+            & Q(effective_status__iexact='EXIT_ANSWERED')
         )
         q_chat_gestion = q_chat & Q(qualification_id__in=ids_gestion)
-        q_chat_transfer = q_chat & Q(is_transferred=True)
+        q_chat_transfer = q_chat & Q(has_transfer=True)
 
         rows = list(
             qs.values('agent_id')
@@ -477,14 +545,14 @@ class EstadisticasServiceV2:
                 'wait_conn_duration',
                 filter=Q(
                     direction__iexact='INBOUND',
-                    status__iexact='EXIT_ANSWERED',
+                    effective_status__iexact='EXIT_ANSWERED',
                 ),
             ),
             count_answered=Count(
                 'id',
                 filter=Q(
                     direction__iexact='INBOUND',
-                    status__iexact='EXIT_ANSWERED',
+                    effective_status__iexact='EXIT_ANSWERED',
                 ),
             ),
             sum_wait_abandon=Sum(
@@ -493,10 +561,10 @@ class EstadisticasServiceV2:
                     direction__iexact='INBOUND',
                 )
                 & (
-                    Q(status__iexact='EXIT_ABANDON')
-                    | Q(status__iexact='EXIT_TIMEOUT')
-                    | Q(status__iexact='EXIT_HANDOFF_ABANDON')
-                    | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
+                    Q(effective_status__iexact='EXIT_ABANDON')
+                    | Q(effective_status__iexact='EXIT_TIMEOUT')
+                    | Q(effective_status__iexact='EXIT_HANDOFF_ABANDON')
+                    | Q(effective_status__iexact='EXIT_HANDOFF_TIMEOUT')
                 ),
             ),
             count_abandon=Count(
@@ -505,10 +573,10 @@ class EstadisticasServiceV2:
                     direction__iexact='INBOUND',
                 )
                 & (
-                    Q(status__iexact='EXIT_ABANDON')
-                    | Q(status__iexact='EXIT_TIMEOUT')
-                    | Q(status__iexact='EXIT_HANDOFF_ABANDON')
-                    | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
+                    Q(effective_status__iexact='EXIT_ABANDON')
+                    | Q(effective_status__iexact='EXIT_TIMEOUT')
+                    | Q(effective_status__iexact='EXIT_HANDOFF_ABANDON')
+                    | Q(effective_status__iexact='EXIT_HANDOFF_TIMEOUT')
                 ),
             ),
         )
@@ -542,7 +610,7 @@ class EstadisticasServiceV2:
 
     def _agent_vs_bot_counts(self, qs):
         """Conteos EXIT_ANSWERED por tipo de atención: solo humano, solo IA, colaboración."""
-        q_answered = Q(status__iexact='EXIT_ANSWERED')
+        q_answered = Q(effective_status__iexact='EXIT_ANSWERED')
         q_bot_zero = Q(bot_duration=0) | Q(bot_duration__isnull=True)
         q_agent_zero = Q(agent_duration=0) | Q(agent_duration__isnull=True)
         agg = qs.aggregate(
@@ -601,7 +669,7 @@ class EstadisticasServiceV2:
         # Para dialer se usa una sola aggregate(); para el resto, values+annotate por direction/status
         if self.campana.type != Campana.TYPE_DIALER:
             by_status = list(
-                qs.values('direction', 'status').annotate(cantidad=Count('id'))
+                qs.values('direction', 'effective_status').annotate(cantidad=Count('id'))
             )
         labels_entrante = (
             _('Recibidas'),
@@ -641,7 +709,7 @@ class EstadisticasServiceV2:
             reporte = OrderedDict((k, 0) for k in labels_entrante)
             for row in by_status:
                 d = (row['direction'] or '').upper()
-                s = (row['status'] or '').upper()
+                s = (row['effective_status'] or '').upper()
                 c = row['cantidad']
                 if d != 'INBOUND':
                     continue
@@ -658,7 +726,7 @@ class EstadisticasServiceV2:
         elif self.campana.type == Campana.TYPE_DIALER:
             # Una sola query agregada: Discadas, Atendidas, Conectadas al agente, Perdidas, Contestador
             q_out = Q(direction__iexact='OUTBOUND')
-            q_answered = q_out & Q(status__iexact='EXIT_ANSWERED')
+            q_answered = q_out & Q(effective_status__iexact='EXIT_ANSWERED')
             q_conectadas_agente = q_answered & (
                 (Q(agent_id__isnull=False) & ~Q(agent_id=-1)) | Q(agent_duration__gt=0)
             )
@@ -670,15 +738,18 @@ class EstadisticasServiceV2:
                     'id',
                     filter=q_out
                     & (
-                        Q(status__iexact='EXIT_TIMEOUT')
-                        | Q(status__iexact='EXIT_ABANDON')
-                        | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
-                        | Q(status__iexact='EXIT_HANDOFF_ABANDON')
+                        Q(effective_status__iexact='EXIT_TIMEOUT')
+                        | Q(effective_status__iexact='EXIT_ABANDON')
+                        | Q(effective_status__iexact='EXIT_HANDOFF_TIMEOUT')
+                        | Q(effective_status__iexact='EXIT_HANDOFF_ABANDON')
                     ),
                 ),
                 contestador=Count(
                     'id',
-                    filter=q_out & (Q(status__iexact='AMD') | Q(status__iexact='EXIT_AMD')),
+                    filter=q_out & (
+                        Q(effective_status__iexact='AMD')
+                        | Q(effective_status__iexact='EXIT_AMD')
+                    ),
                 ),
             )
             reporte = OrderedDict((k, 0) for k in labels_dialer)
@@ -692,7 +763,7 @@ class EstadisticasServiceV2:
             reporte = OrderedDict((k, 0) for k in labels_manual)
             for row in by_status:
                 d = (row['direction'] or '').upper()
-                s = (row['status'] or '').upper()
+                s = (row['effective_status'] or '').upper()
                 c = row['cantidad']
                 if d != 'OUTBOUND':
                     continue
@@ -706,7 +777,7 @@ class EstadisticasServiceV2:
             reporte = OrderedDict((k, 0) for k in labels_preview)
             for row in by_status:
                 d = (row['direction'] or '').upper()
-                s = (row['status'] or '').upper()
+                s = (row['effective_status'] or '').upper()
                 c = row['cantidad']
                 if d != 'OUTBOUND':
                     continue
@@ -722,20 +793,20 @@ class EstadisticasServiceV2:
         # Una sola query: OUTBOUND no atendidos (status != EXIT_ANSWERED) por (status, hangup_cause)
         # + INBOUND EXIT_ABANDON y EXIT_TIMEOUT (mismos buckets que outbound, índices 8 y 10).
         filtro_na = (
-            (Q(direction__iexact='OUTBOUND') & ~Q(status__iexact='EXIT_ANSWERED'))
+            (Q(direction__iexact='OUTBOUND') & ~Q(effective_status__iexact='EXIT_ANSWERED'))
             | (
                 Q(direction__iexact='INBOUND')
                 & (
-                    Q(status__iexact='EXIT_ABANDON')
-                    | Q(status__iexact='EXIT_TIMEOUT')
-                    | Q(status__iexact='EXIT_HANDOFF_ABANDON')
-                    | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
+                    Q(effective_status__iexact='EXIT_ABANDON')
+                    | Q(effective_status__iexact='EXIT_TIMEOUT')
+                    | Q(effective_status__iexact='EXIT_HANDOFF_ABANDON')
+                    | Q(effective_status__iexact='EXIT_HANDOFF_TIMEOUT')
                 )
             )
         )
         by_direction_status_hangup = list(
             qs.filter(filtro_na)
-            .values('direction', 'status', 'hangup_cause')
+            .values('direction', 'effective_status', 'hangup_cause')
             .annotate(cantidad=Count('id'))
         )
         reporte = OrderedDict((label, 0) for label in _NO_ATENDIDO_LABELS)
@@ -744,13 +815,13 @@ class EstadisticasServiceV2:
             d = (row['direction'] or '').upper()
             c = row['cantidad']
             if d == 'INBOUND':
-                s = (row['status'] or '').upper()
+                s = (row['effective_status'] or '').upper()
                 if s in ('EXIT_ABANDON', 'EXIT_HANDOFF_ABANDON'):
                     reporte[_NO_ATENDIDO_LABELS[8]] += c
                 elif s in ('EXIT_TIMEOUT', 'EXIT_HANDOFF_TIMEOUT'):
                     reporte[_NO_ATENDIDO_LABELS[10]] += c
             else:
-                idx = _no_atendido_index(row['status'], row['hangup_cause'])
+                idx = _no_atendido_index(row['effective_status'], row['hangup_cause'])
                 reporte[_NO_ATENDIDO_LABELS[idx]] += c
             total += c
         self.reporte_no_atendidos = reporte
@@ -861,7 +932,7 @@ class EstadisticasServiceV2:
         )
 
         # Atendidas por humano (VOICE, EXIT_ANSWERED, agent_duration>0 o agent_id válido)
-        atendida_por_humano = Q(status__iexact='EXIT_ANSWERED') & (
+        atendida_por_humano = Q(effective_status__iexact='EXIT_ANSWERED') & (
             Q(agent_duration__gt=0)
             | (Q(agent_id__isnull=False) & ~Q(agent_id=-1))
         )
@@ -909,36 +980,52 @@ class EstadisticasServiceV2:
         self.total_ventas = total_ventas
 
     def _estadisticas_por_agente(self, qs):
-        if not self.campana.es_dialer:
-            self.estadisticas_llamadas_por_agente = None
-            return
-        by_agent_status = list(
-            qs.filter(agent_id__isnull=False)
-            .exclude(agent_id=-1)
-            .values('agent_id', 'status')
-            .annotate(cantidad=Count('id'))
-        )
+        # Nota: Si el usuario descomentó la validación de es_dialer para usar Inbound, la mantenemos comentada.
+        # if not self.campana.es_dialer:
+        #     self.estadisticas_llamadas_por_agente = None
+        #     return
+
+        # Traemos los campos estrictamente necesarios a memoria
+        llamadas = qs.values('agent_id', 'effective_status', 'channel_data')
+
         result = {}
-        for row in by_agent_status:
-            aid = row['agent_id']
-            s = (row['status'] or '').upper()
-            c = row['cantidad']
-            if aid not in result:
-                agente = self.agentes_dict.get(aid)
-                if not agente:
-                    continue
-                result[aid] = {
-                    'agente_id': aid,
-                    'nombre': agente.user.get_full_name() or agente.user.username,
-                    'ofrecidas': 0,
-                    'atendidas': 0,
-                    'no_atendidas': 0,
-                }
-            result[aid]['ofrecidas'] += c
-            if s == 'EXIT_ANSWERED':
-                result[aid]['atendidas'] += c
-            else:
-                result[aid]['no_atendidas'] += c
+        for row in llamadas:
+            agentes_involucrados = set()
+
+            # 1. Sumamos al agente físico (el último que tuvo la llamada)
+            if row['agent_id'] and row['agent_id'] != -1:
+                agentes_involucrados.add(row['agent_id'])
+
+            # 2. Abrimos el JSON y sumamos a los agentes previos (los que transfirieron)
+            c_data = row['channel_data'] or {}
+            segmentos = c_data.get('agent_segments', [])
+            for seg in segmentos:
+                aid = seg.get('agent_id')
+                if aid and aid != -1:
+                    agentes_involucrados.add(aid)
+
+            s = (row['effective_status'] or '').upper()
+
+            # 3. Repartimos el crédito a TODOS los que participaron en esta llamada
+            for aid in agentes_involucrados:
+                if aid not in result:
+                    agente = self.agentes_dict.get(aid)
+                    if not agente:
+                        continue
+                    result[aid] = {
+                        'agente_id': aid,
+                        'nombre': agente.user.get_full_name() or agente.user.username,
+                        'ofrecidas': 0,
+                        'atendidas': 0,
+                        'no_atendidas': 0,
+                    }
+
+                result[aid]['ofrecidas'] += 1
+                if s == 'EXIT_ANSWERED':
+                    result[aid]['atendidas'] += 1
+                elif s != 'EXIT_TRANSFERRED_OUT':
+                    result[aid]['no_atendidas'] += 1
+
         self.estadisticas_llamadas_por_agente = result or None
 
     def calcular_estadisticas_totales(self):
@@ -991,6 +1078,24 @@ class EstadisticasServiceV2:
                 total_ofrecidas += st['ofrecidas']
                 total_atendidas += st['atendidas']
                 total_no_atendidas += st['no_atendidas']
+        else:
+            # Sin desglose por agente (Inbound, Manual, Preview): mismos criterios que el detalle,
+            # agregados sobre VOICE + effective_status (p. ej. EXIT_TRANSFERRED_OUT en origen).
+            qs_voice = self._get_base_queryset()
+            if campana.es_entrante:
+                q_dir = Q(direction__iexact='INBOUND')
+            else:
+                q_dir = Q(direction__iexact='OUTBOUND')
+            agg_tarjetas = qs_voice.aggregate(
+                ofrecidas=Count('id', filter=q_dir),
+                atendidas=Count(
+                    'id',
+                    filter=q_dir & Q(effective_status__iexact='EXIT_ANSWERED'),
+                ),
+            )
+            total_ofrecidas = agg_tarjetas['ofrecidas'] or 0
+            total_atendidas = agg_tarjetas['atendidas'] or 0
+            total_no_atendidas = self._total_no_atendidos
 
         return {
             'agentes_venta': agentes_venta,

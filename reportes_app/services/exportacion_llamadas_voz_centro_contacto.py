@@ -116,14 +116,24 @@ def generar_csv_llamadas_voz_centro_contacto(
     totals = None
     if rows:
         total_received = sum(r['received'] for r in rows)
+        total_effective_received = sum(r.get('effective_received', r['received']) for r in rows)
         total_answered = sum(r['answered'] for r in rows)
         total_expired = sum(r['expired'] for r in rows)
         total_abandoned = sum(r['abandoned'] for r in rows)
         total_transfer_in_count = sum(r.get('transfer_in_count', 0) for r in rows)
         total_transfer_out_count = sum(r.get('transfer_out_count', 0) for r in rows)
-        pct_answered = (100.0 * total_answered / total_received) if total_received else 0.0
-        pct_expired = (100.0 * total_expired / total_received) if total_received else 0.0
-        pct_abandoned = (100.0 * total_abandoned / total_received) if total_received else 0.0
+        pct_answered = (
+            (100.0 * total_answered / total_effective_received)
+            if total_effective_received else 0.0
+        )
+        pct_expired = (
+            (100.0 * total_expired / total_effective_received)
+            if total_effective_received else 0.0
+        )
+        pct_abandoned = (
+            (100.0 * total_abandoned / total_effective_received)
+            if total_effective_received else 0.0
+        )
         totals = {
             'received': total_received,
             'answered': total_answered,

@@ -2,14 +2,19 @@
 
 from __future__ import unicode_literals
 
+import unittest
+from datetime import timedelta
 from decimal import Decimal
 
 from mock import MagicMock, Mock, patch
+from django.db import connection
+from django.utils import timezone
 from django.db.models import Q
 from django.test import SimpleTestCase
 from django.urls import reverse
 
 from ominicontacto_app.models import Campana, User
+from reportes_app.models import InteractionsSummary, InteractionTransfers
 from ominicontacto_app.tests.factories import (
     AgenteProfileFactory,
     CampanaFactory,
@@ -755,7 +760,7 @@ class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
     @patch('api_app.views.reports_centro_contacto.Campana')
     @patch('api_app.views.reports_centro_contacto.InteractionTransfers')
     @patch('api_app.views.reports_centro_contacto.InteractionsSummary')
-    def test_desdobla_transferencias_in_out_y_agrega_campana_destino(
+    def test_desdobla_transferencias_in_out_y_agrega_metricas_a_campana_destino(
             self, mock_interactions_summary, mock_interaction_transfers, mock_campana):
         queryset = Mock()
         queryset.filter.return_value = queryset
@@ -776,9 +781,9 @@ class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
         ]
         values_qs.annotate.return_value = annotate_qs
         queryset.values.return_value = values_qs
-        queryset.values_list.return_value = [
-            ('call-1', 1),
-            ('call-2', 3),
+        queryset.values_list.side_effect = [
+            [('call-1', 1), ('call-2', 3)],
+            [('call-1', 1, 'EXIT_ANSWERED'), ('call-2', 3, 'EXIT_TIMEOUT')],
         ]
         mock_interactions_summary.objects.all.return_value = queryset
 
@@ -809,6 +814,12 @@ class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
         self.assertEqual(rows_by_campaign[1]['transfer_in_count'], 0)
         self.assertEqual(rows_by_campaign[1]['transfer_out_count'], 1)
         self.assertEqual(rows_by_campaign[2]['received'], 0)
+        self.assertEqual(rows_by_campaign[2]['effective_received'], 2)
+        self.assertEqual(rows_by_campaign[2]['answered'], 0)
+        self.assertEqual(rows_by_campaign[2]['expired'], 1)
+        self.assertEqual(rows_by_campaign[2]['unanswered'], 1)
+        self.assertEqual(rows_by_campaign[2]['pct_answered'], 0.0)
+        self.assertEqual(rows_by_campaign[2]['pct_expired'], 50.0)
         self.assertEqual(rows_by_campaign[2]['transfer_in_count'], 2)
         self.assertEqual(rows_by_campaign[2]['transfer_out_count'], 0)
 
@@ -1295,3 +1306,522 @@ class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
             with patch.object(User, 'get_is_administrador', return_value=False):
                 response = self.client.get(self.url, {'interaction_id': 'call-x'})
         self.assertEqual(response.status_code, 403)
+
+
+def _interactions_summary_table_exists():
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'interactions_summary'
+            """
+        )
+        return cursor.fetchone() is not None
+
+
+def _interaction_transfers_table_exists():
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'interaction_transfers'
+            """
+        )
+        return cursor.fetchone() is not None
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists() and _interaction_transfers_table_exists(),
+    'Requiere tablas interactions_summary e interaction_transfers',
+)
+class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
+    """Transferencia a otra campaña: expirada/abandonada en origen excluidas si hay xfer out;
+    EXIT_ANSWERED con xfer out cuenta como respondida en origen; en destino solo answered
+    si hay evidencia de atención post-transfer (p. ej. talk_time_after o segmentos)."""
+
+    def setUp(self):
+        super(ObtenerLlamadasPorCampanaTransferOutIntegrationTest, self).setUp()
+        self.crear_administrador()
+        self.hoy = timezone.now()
+        self.desde = self.hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.hasta = self.desde + timedelta(days=1) - timedelta(microseconds=1)
+        self.campana_origen = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_ENTRANTE,
+            nombre='CC xfer origen',
+        )
+        self.campana_destino = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_ENTRANTE,
+            nombre='CC xfer destino',
+        )
+
+    def test_transfer_out_timeout_origen_sin_expirada_destino_con_expirada(self):
+        """Timeout final con xfer a otra campaña e is_transferred: respondida en origen; expirada en destino."""
+        iid = 'cc-xfer-out-%s' % self.campana_origen.pk
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_TIMEOUT',
+            hangup_cause='OTHER',
+            start_time=self.desde + timedelta(hours=10),
+            end_time=self.desde + timedelta(hours=10, seconds=30),
+            wait_conn_duration=Decimal('7'),
+            agent_duration=Decimal('0'),
+            is_transferred=True,
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+        )
+
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        origen = by_id[self.campana_origen.pk]
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(origen['received'], 1)
+        self.assertEqual(origen['answered'], 1)
+        self.assertEqual(origen['expired'], 0)
+        self.assertEqual(origen['abandoned'], 0)
+        self.assertEqual(origen['unanswered'], 0)
+        self.assertEqual(origen['pct_answered'], 100.0)
+        self.assertGreaterEqual(origen.get('transfer_out_count', 0), 1)
+        self.assertEqual(origen['transferred'], 1)
+        self.assertEqual(origen['pct_transferred'], 100.0)
+
+        self.assertEqual(destino['received'], 0)
+        self.assertEqual(destino['effective_received'], 1)
+        self.assertEqual(destino['answered'], 0)
+        self.assertEqual(destino['expired'], 1)
+        self.assertEqual(destino.get('transfer_in_count', 0), 1)
+        self.assertEqual(destino['transferred'], 1)
+
+    def test_transfer_out_timeout_cero_agent_duration_cuenta_respondida_si_is_transferred(self):
+        """Caso real: EXIT_TIMEOUT, agent_duration 0, is_transferred y xfer a campaña -> respondida en origen."""
+        iid = 'cc-xfer-out-no-agent-%s' % self.campana_origen.pk
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_TIMEOUT',
+            hangup_cause='OTHER',
+            start_time=self.desde + timedelta(hours=10, minutes=30),
+            end_time=self.desde + timedelta(hours=10, minutes=31),
+            wait_conn_duration=Decimal('20'),
+            agent_duration=Decimal('0'),
+            is_transferred=True,
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+        )
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        origen = next(r for r in rows if r['campaign_id'] == self.campana_origen.pk)
+        self.assertEqual(origen['answered'], 1)
+
+    def test_transfer_out_timeout_is_transferred_false_no_cuenta_respondida(self):
+        """Xfer a otra campaña con is_transferred=False: no sumar answered en origen (sin EXIT_ANSWERED)."""
+        iid = 'cc-xfer-out-not-flagged-%s' % self.campana_origen.pk
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_TIMEOUT',
+            hangup_cause='OTHER',
+            start_time=self.desde + timedelta(hours=10, minutes=45),
+            end_time=self.desde + timedelta(hours=10, minutes=46),
+            wait_conn_duration=Decimal('20'),
+            agent_duration=Decimal('0'),
+            is_transferred=False,
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+        )
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        origen = next(r for r in rows if r['campaign_id'] == self.campana_origen.pk)
+        self.assertEqual(origen['answered'], 0)
+
+    def test_transfer_out_answered_origen_respondida_destino_no_duplica_answered(self):
+        """EXIT_ANSWERED con transfer a otra campaña: respondida en origen, no en destino."""
+        iid = 'cc-xfer-out-answered-%s' % self.campana_origen.pk
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            hangup_cause='AGENT',
+            start_time=self.desde + timedelta(hours=12),
+            end_time=self.desde + timedelta(hours=12, minutes=2),
+            wait_conn_duration=Decimal('4'),
+            agent_duration=Decimal('120'),
+            is_transferred=True,
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+        )
+
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        origen = by_id[self.campana_origen.pk]
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(origen['received'], 1)
+        self.assertEqual(origen['answered'], 1)
+        self.assertEqual(origen['pct_answered'], 100.0)
+
+        self.assertEqual(destino['received'], 0)
+        self.assertEqual(destino['effective_received'], 1)
+        self.assertEqual(destino['answered'], 0)
+        self.assertEqual(destino['expired'], 0)
+        self.assertEqual(destino['abandoned'], 0)
+
+    def test_transfer_out_abandon_wel_destino_cuenta_abandonada(self):
+        """EXIT_ABANDON_WEL con xfer a campaña: destino debe sumar abandoned."""
+        iid = 'cc-xfer-out-abandon-wel-%s' % self.campana_origen.pk
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ABANDON_WEL',
+            hangup_cause='EXIT_ABANDON_WEL',
+            start_time=self.desde + timedelta(hours=12, minutes=30),
+            end_time=self.desde + timedelta(hours=12, minutes=31),
+            wait_conn_duration=Decimal('5'),
+            agent_duration=Decimal('0'),
+            is_transferred=True,
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+        )
+
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        origen = by_id[self.campana_origen.pk]
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(origen['abandoned'], 0)
+        self.assertEqual(destino['effective_received'], 1)
+        self.assertEqual(destino['abandoned'], 1)
+
+    def test_transfer_out_exit_answered_con_corte_en_cola_destino_suma_abandonada(self):
+        """
+        EXIT_ANSWERED global con transferencia a campaña destino y talk_time_after=0
+        (sin segmento de agente posterior al transfer): destino debe sumar abandoned.
+        """
+        iid = 'cc-xfer-out-answered-abandon-dest-%s' % self.campana_origen.pk
+        transfer_ts = self.desde + timedelta(hours=11, minutes=1, seconds=42)
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            hangup_cause='AGENT',
+            start_time=self.desde + timedelta(hours=11, minutes=1, seconds=35),
+            end_time=self.desde + timedelta(hours=11, minutes=1, seconds=48),
+            wait_conn_duration=Decimal('3.343'),
+            agent_duration=Decimal('6.342'),
+            is_transferred=True,
+            channel_data={
+                'agent_segments': [
+                    {
+                        'agent_id': 1,
+                        'start_ts': (self.desde + timedelta(hours=11, minutes=1, seconds=38)).isoformat(),
+                        'end_ts': (self.desde + timedelta(hours=11, minutes=1, seconds=42)).isoformat(),
+                        'talk_duration': 3.967,
+                    },
+                ],
+            },
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            source_agent_id=1,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+            created_at=transfer_ts,
+            completed_at=transfer_ts,
+            talk_time_after=Decimal('0.000'),
+        )
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        origen = by_id[self.campana_origen.pk]
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(origen['answered'], 1)
+        self.assertEqual(origen['abandoned'], 0)
+        self.assertEqual(destino['effective_received'], 1)
+        self.assertEqual(destino['answered'], 0)
+        self.assertEqual(destino['expired'], 0)
+        self.assertEqual(destino['unanswered'], 1)
+        self.assertEqual(destino['abandoned'], 1)
+
+    def test_transfer_out_exit_answered_con_talk_post_transfer_no_suma_abandonada(self):
+        """
+        No-regresión: si hay conversación efectiva post-transfer (talk_time_after>0),
+        no debe inferirse abandono en campaña destino.
+        """
+        iid = 'cc-xfer-out-answered-talk-post-%s' % self.campana_origen.pk
+        transfer_ts = self.desde + timedelta(hours=12, minutes=15, seconds=10)
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            hangup_cause='AGENT',
+            start_time=self.desde + timedelta(hours=12, minutes=15),
+            end_time=self.desde + timedelta(hours=12, minutes=16),
+            wait_conn_duration=Decimal('2'),
+            agent_duration=Decimal('20'),
+            is_transferred=True,
+            channel_data={
+                'agent_segments': [
+                    {
+                        'agent_id': 1,
+                        'start_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=3)).isoformat(),
+                        'end_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=9)).isoformat(),
+                        'talk_duration': 6.0,
+                    },
+                    {
+                        'agent_id': 2,
+                        'start_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=12)).isoformat(),
+                        'end_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=30)).isoformat(),
+                        'talk_duration': 18.0,
+                    },
+                ],
+            },
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            source_agent_id=1,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+            created_at=transfer_ts,
+            completed_at=transfer_ts,
+            talk_time_after=Decimal('18.000'),
+        )
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(destino['effective_received'], 1)
+        self.assertEqual(destino['answered'], 1)
+        self.assertEqual(destino['unanswered'], 0)
+        self.assertEqual(destino['abandoned'], 0)
+
+    def test_transfer_out_exit_answered_segment_start_antes_transfer_cuenta_atendida_destino(self):
+        """
+        start_ts del agente destino puede ir unos ms antes que created_at de la transferencia;
+        debe contar como atendida en destino y no como abandonada (ACD no modificado).
+        """
+        iid = 'cc-xfer-out-skew-%s' % self.campana_origen.pk
+        transfer_ts = self.desde + timedelta(hours=13, minutes=5, seconds=10, microseconds=15637)
+        seg2_start = transfer_ts - timedelta(microseconds=2599)
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            hangup_cause='AGENT',
+            start_time=self.desde + timedelta(hours=13, minutes=5),
+            end_time=self.desde + timedelta(hours=13, minutes=6),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=Decimal('26'),
+            is_transferred=True,
+            channel_data={
+                'agent_segments': [
+                    {
+                        'agent_id': 1,
+                        'start_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=2)).isoformat(),
+                        'end_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=10)).isoformat(),
+                        'talk_duration': 8.0,
+                    },
+                    {
+                        'agent_id': 5,
+                        'start_ts': seg2_start.isoformat(),
+                        'end_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=40)).isoformat(),
+                        'talk_duration': 17.072,
+                    },
+                ],
+            },
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            source_agent_id=1,
+            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+            created_at=transfer_ts,
+            completed_at=transfer_ts,
+            talk_time_after=Decimal('0.000'),
+        )
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(destino['effective_received'], 1)
+        self.assertEqual(destino['answered'], 1)
+        self.assertEqual(destino['unanswered'], 0)
+        self.assertEqual(destino['abandoned'], 0)
+        self.assertEqual(destino['expired'], 0)
+
+    def test_transfer_agent_attended_no_suma_transferred_ni_transfer_columns(self):
+        """Transfer a agente (ATTENDED): is_transferred no debe inflar transferred ni Transfer In/Out."""
+        iid = 'cc-xfer-agent-%s' % self.campana_origen.pk
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            hangup_cause='AGENT',
+            start_time=self.desde + timedelta(hours=11),
+            end_time=self.desde + timedelta(hours=11, minutes=1),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=Decimal('10'),
+            is_transferred=True,
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_target='agent-1',
+            destination_type='AGENT',
+            destination_agent_id=1,
+            transfer_type='ATTENDED',
+            status='OK',
+        )
+        allowed = [self.campana_origen.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        row = next(r for r in rows if r['campaign_id'] == self.campana_origen.pk)
+        self.assertEqual(row['answered'], 1)
+        self.assertEqual(row['transferred'], 0)
+        self.assertEqual(row.get('transfer_in_count', 0), 0)
+        self.assertEqual(row.get('transfer_out_count', 0), 0)
+        self.assertEqual(row['pct_transferred'], 0.0)

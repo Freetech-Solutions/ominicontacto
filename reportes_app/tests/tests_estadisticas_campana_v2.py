@@ -24,6 +24,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 
 from django.db import connection, connections
+from django.utils.translation import gettext as _
 from django.utils import timezone
 
 from ominicontacto_app.models import CalificacionCliente, Campana, OpcionCalificacion
@@ -42,7 +43,7 @@ from ominicontacto_app.tests.factories import (
     QueueFactory,
     QueueMemberFactory,
 )
-from reportes_app.models import InteractionsSummary
+from reportes_app.models import InteractionsSummary, InteractionTransfers
 from whatsapp_app.tests.factories import ConversacionFactory
 
 
@@ -53,6 +54,18 @@ def _interactions_summary_table_exists():
             """
             SELECT 1 FROM information_schema.tables
             WHERE table_schema = 'public' AND table_name = 'interactions_summary'
+            """
+        )
+        return cursor.fetchone() is not None
+
+
+def _interaction_transfers_table_exists():
+    """Comprueba si la tabla interaction_transfers existe en la BD."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT 1 FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_name = 'interaction_transfers'
             """
         )
         return cursor.fetchone() is not None
@@ -237,6 +250,153 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         self.assertEqual(service._tiempo_promedio_espera, 10.0)
         self.assertIsNotNone(service._tiempo_promedio_abandono)
         self.assertEqual(service._tiempo_promedio_abandono, 20.0)
+
+    @unittest.skipUnless(
+        _interaction_transfers_table_exists(),
+        "Tabla interaction_transfers no existe",
+    )
+    def test_estadisticas_v2_origen_transferida_timeout_no_atendida_ni_expirada(self):
+        """En campaña origen, transfer OK a otra campaña: recibida pero no atendida/expirada/abandonada."""
+        campana_origen = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_ENTRANTE,
+        )
+        campana_destino = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_ENTRANTE,
+        )
+        OpcionCalificacionFactory.create(
+            campana=campana_origen, nombre='Origen', tipo=OpcionCalificacion.NO_ACCION
+        )
+        OpcionCalificacionFactory.create(
+            campana=campana_destino, nombre='Destino', tipo=OpcionCalificacion.NO_ACCION
+        )
+        InteractionsSummary.objects.using('replica').create(
+            interaction_id='transfer-origin-timeout',
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_TIMEOUT',
+            is_transferred=True,
+            start_time=self.fecha_desde,
+            end_time=self.fecha_desde + timedelta(seconds=30),
+            wait_conn_duration=Decimal('7'),
+            agent_duration=Decimal('15'),
+            agent_id=self.agente.pk,
+        )
+        InteractionTransfers.objects.using('replica').create(
+            interaction_id='transfer-origin-timeout',
+            destination_target='campana-destino',
+            destination_type='CAMPAIGN',
+            destination_campaign_id=campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+        )
+
+        service = EstadisticasServiceV2(
+            campana_origen, self.fecha_desde, self.fecha_hasta
+        )
+        service.calcular_estadisticas_totales()
+
+        self.assertEqual(service._llamadas_recibidas, 1)
+        self.assertIsNone(service._tiempo_promedio_espera)
+        self.assertIsNone(service._tiempo_promedio_abandono)
+        self.assertEqual(service.reporte_detalle_llamadas[_('Recibidas')], 1)
+        self.assertEqual(service.reporte_detalle_llamadas[_('Atendidas')], 0)
+        self.assertEqual(service.reporte_detalle_llamadas[_('Expiradas')], 0)
+        self.assertEqual(service.reporte_detalle_llamadas[_('Abandonadas')], 0)
+        self.assertEqual(service._total_no_atendidos, 0)
+
+    @unittest.skipUnless(
+        _interaction_transfers_table_exists(),
+        "Tabla interaction_transfers no existe",
+    )
+    def test_estadisticas_v2_entrante_incluye_llamadas_recibidas_por_transferencia(self):
+        """Una campaña entrante destino debe contar interacciones transferidas aunque campaign_id sea otro."""
+        campana_origen = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_ENTRANTE,
+        )
+        campana_destino = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_ENTRANTE,
+        )
+        OpcionCalificacionFactory.create(
+            campana=campana_origen,
+            nombre='Origen',
+            tipo=OpcionCalificacion.NO_ACCION,
+        )
+        OpcionCalificacionFactory.create(
+            campana=campana_destino,
+            nombre='Destino',
+            tipo=OpcionCalificacion.NO_ACCION,
+        )
+
+        answered = InteractionsSummary.objects.using('replica').create(
+            interaction_id='transfer-in-answered',
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            start_time=self.fecha_desde,
+            end_time=self.fecha_desde + timedelta(seconds=60),
+            wait_conn_duration=Decimal('12'),
+            agent_duration=Decimal('40'),
+            agent_id=self.agente.pk,
+        )
+        abandoned = InteractionsSummary.objects.using('replica').create(
+            interaction_id='transfer-in-abandon',
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ABANDON',
+            start_time=self.fecha_desde + timedelta(minutes=1),
+            end_time=self.fecha_desde + timedelta(minutes=1, seconds=20),
+            wait_conn_duration=Decimal('18'),
+            agent_duration=Decimal('0'),
+        )
+        InteractionTransfers.objects.using('replica').create(
+            interaction_id=answered.interaction_id,
+            destination_target='campana-destino',
+            destination_type='CAMPAIGN',
+            destination_campaign_id=campana_destino.pk,
+            transfer_type='BLIND',
+            status='OK',
+        )
+        InteractionTransfers.objects.using('replica').create(
+            interaction_id=abandoned.interaction_id,
+            destination_target='campana-destino',
+            destination_type='CAMPAIGN',
+            destination_campaign_id=campana_destino.pk,
+            transfer_type='CONSULT',
+            status='OK',
+        )
+        InteractionTransfers.objects.using('replica').create(
+            interaction_id='transfer-failed',
+            destination_target='campana-destino',
+            destination_type='CAMPAIGN',
+            destination_campaign_id=campana_destino.pk,
+            transfer_type='BLIND',
+            status='FAILED',
+        )
+
+        service = EstadisticasServiceV2(
+            campana_destino, self.fecha_desde, self.fecha_hasta
+        )
+        service.calcular_estadisticas_totales()
+
+        self.assertEqual(service._llamadas_recibidas, 2)
+        self.assertEqual(service._tiempo_promedio_espera, 12.0)
+        self.assertEqual(service._tiempo_promedio_abandono, 18.0)
+        self.assertEqual(service.reporte_detalle_llamadas[_('Recibidas')], 2)
+        self.assertEqual(service.reporte_detalle_llamadas[_('Atendidas')], 1)
+        self.assertEqual(service.reporte_detalle_llamadas[_('Abandonadas')], 1)
 
     def test_estadisticas_v2_no_atendidos_incluye_inbound_abandon_timeout(self):
         """INBOUND con EXIT_ABANDON y EXIT_TIMEOUT se cuentan en reporte_no_atendidos."""
@@ -840,6 +1000,55 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
             self.campana, self.fecha_desde, self.fecha_hasta
         )
         self.assertEqual(estadisticas['whatsapp_recibidos'], 2)
+
+    def test_estadisticas_por_agente_reparte_credito_desde_agent_segments(self):
+        """La llamada acredita al agente físico y a los agentes previos del JSON channel_data."""
+        QueueFactory(campana=self.campana)
+        self._hacer_miembro(self.agente, self.campana)
+        agente2 = self.crear_agente_profile()
+        self._hacer_miembro(agente2, self.campana)
+
+        InteractionsSummary.objects.using('replica').create(
+            interaction_id='dialer-segments-1',
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction='OUTBOUND',
+            status='EXIT_ANSWERED',
+            start_time=self.fecha_desde,
+            end_time=self.fecha_desde + timedelta(seconds=60),
+            total_duration=Decimal('60'),
+            bot_duration=Decimal('0'),
+            wait_conn_duration=Decimal('0'),
+            agent_duration=Decimal('20'),
+            agent_id=agente2.pk,
+            channel_data={
+                'agent_segments': [
+                    {'agent_id': self.agente.pk, 'talk_duration': 8.0},
+                    {'agent_id': agente2.pk, 'talk_duration': 12.0},
+                ],
+            },
+        )
+
+        service = EstadisticasServiceV2(self.campana, self.fecha_desde, self.fecha_hasta)
+        qs = service._get_base_queryset()
+        service._estadisticas_por_agente(qs)
+
+        self.assertIn(self.agente.pk, service.estadisticas_llamadas_por_agente)
+        self.assertIn(agente2.pk, service.estadisticas_llamadas_por_agente)
+        self.assertEqual(
+            service.estadisticas_llamadas_por_agente[self.agente.pk]['ofrecidas'], 1,
+        )
+        self.assertEqual(
+            service.estadisticas_llamadas_por_agente[self.agente.pk]['atendidas'], 1,
+        )
+        self.assertEqual(
+            service.estadisticas_llamadas_por_agente[agente2.pk]['ofrecidas'], 1,
+        )
+        self.assertEqual(
+            service.estadisticas_llamadas_por_agente[agente2.pk]['atendidas'], 1,
+        )
 
     def test_interacciones_por_agente_no_wa_se_mantiene_desde_interactions_summary(self):
         """Las columnas tel/fbmsn/email se siguen calculando desde InteractionsSummary."""

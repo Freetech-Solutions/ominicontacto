@@ -52,16 +52,17 @@ class ExportacionLlamadasVozCentroContactoServiceTest(SimpleTestCase):
             {
                 'campaign_name': 'Campaña Dos',
                 'received': 0,
-                'answered': 0,
-                'expired': 0,
+                'effective_received': 2,
+                'answered': 1,
+                'expired': 1,
                 'abandoned': 0,
                 'transferred': 0,
                 'transfer_in_count': 1,
                 'transfer_out_count': 0,
                 'avg_wait_seconds': None,
                 'avg_talk_seconds': None,
-                'pct_answered': 0.0,
-                'pct_expired': 0.0,
+                'pct_answered': 50.0,
+                'pct_expired': 50.0,
                 'pct_abandoned': 0.0,
             },
         ]
@@ -107,11 +108,17 @@ class ExportacionLlamadasVozCentroContactoServiceTest(SimpleTestCase):
             self.assertNotIn('Transferidas', rows[0])
             self.assertEqual(rows[1][5], '2')
             self.assertEqual(rows[1][6], '3')
+            self.assertEqual(rows[2][1], '0')
+            self.assertEqual(rows[2][2], '1')
+            self.assertEqual(rows[2][3], '1')
             self.assertEqual(rows[2][5], '1')
             self.assertEqual(rows[2][6], '0')
 
             totals = rows[-1]
             self.assertEqual(totals[0], 'Total')
+            self.assertEqual(totals[1], '10')
+            self.assertEqual(totals[2], '9')
+            self.assertEqual(totals[3], '2')
             self.assertEqual(totals[5], '3')
             self.assertEqual(totals[6], '3')
 

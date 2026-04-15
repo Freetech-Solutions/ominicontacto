@@ -244,6 +244,22 @@ class ReporteDeLlamadas(object):
                 logger.error(f'Log con tipo_campana erroneo: {log.id}')
                 tipo_campana = self.tipo_por_campana[log.campana_id]
                 log.tipo_campana = int(tipo_campana)
+            # --- NUEVO PARCHE: Estado Efectivo en Memoria ---
+            # Si la llamada fue transferida, garantizamos que cuente como atendida
+            # por la campaña origen, sobreescribiendo el evento de cierre adverso.
+            if getattr(log, 'is_transferred', False):
+                if log.event in [
+                    'EXITWITHTIMEOUT', 'ABANDON', 'ABANDONWEL',
+                    'EXIT_TIMEOUT', 'EXIT_ABANDON',
+                ]:
+                    if int(tipo_campana) == Campana.TYPE_ENTRANTE:
+                        log.event = 'CONNECT'
+                    elif int(tipo_campana) in [
+                            Campana.TYPE_DIALER,
+                            Campana.TYPE_MANUAL,
+                            Campana.TYPE_PREVIEW]:
+                        log.event = 'ANSWER'
+            # ------------------------------------------------
             # -->
             tipo_llamada = str(log.tipo_llamada)
             if tipo_llamada == str(LLAMADA_TRANSF_INTERNA):

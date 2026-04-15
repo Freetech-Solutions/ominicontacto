@@ -32,7 +32,7 @@ from ominicontacto_app.services.redis.connection import create_redis_connection
 from ominicontacto_app.services.asterisk.redis_database import CampaignAgentsFamily, AgenteFamily
 from ominicontacto_app.models import Campana
 from ominicontacto_app.utiles import datetime_hora_minima_dia, datetime_hora_maxima_dia
-from reportes_app.models import LlamadaLog, InteractionsSummary
+from reportes_app.models import LlamadaLog, InteractionsSummary, InteractionTransfers
 
 
 class AgentStatusView(APIView):
@@ -167,7 +167,14 @@ class CampaignStatsReportView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        qs = InteractionsSummary.objects.filter(campaign_id=campaign_id)
+        transferidas_in_ids = (
+            InteractionTransfers.objects.filter(
+                destination_campaign_id=campaign_id
+            ).values_list('interaction_id', flat=True)
+        )
+        qs = InteractionsSummary.objects.filter(
+            Q(campaign_id=campaign_id) | Q(interaction_id__in=transferidas_in_ids)
+        )
         if start_date:
             qs = qs.filter(start_time__gte=datetime_hora_minima_dia(start_date))
         if end_date:
@@ -177,6 +184,10 @@ class CampaignStatsReportView(APIView):
             total=Count('id'),
             total_outbound=Count('id', filter=Q(direction='OUTBOUND')),
             outbound_answered=Count('id', filter=Q(direction='OUTBOUND', status='EXIT_ANSWERED')),
+            answered_direct=Count('id', filter=Q(campaign_id=campaign_id, status='EXIT_ANSWERED')),
+            answered_transferred=Count(
+                'id', filter=Q(interaction_id__in=transferidas_in_ids, status='EXIT_ANSWERED')
+            ),
             sales=Count('id', filter=Q(is_sale=True)),
             answered_by_agent=Count(
                 'id',
@@ -210,6 +221,9 @@ class CampaignStatsReportView(APIView):
 
         total_outbound = stats['total_outbound'] or 0
         outbound_answered = stats['outbound_answered'] or 0
+        answered_direct = stats['answered_direct'] or 0
+        answered_transferred = stats['answered_transferred'] or 0
+        total_answered = answered_direct + answered_transferred
         sales = stats['sales'] or 0
         answered_by_agent = stats['answered_by_agent'] or 0
         answered_agent_gt_10s = stats['answered_agent_gt_10s'] or 0
@@ -259,6 +273,9 @@ class CampaignStatsReportView(APIView):
             'totals': {
                 'total_outbound': total_outbound,
                 'outbound_answered': outbound_answered,
+                'answered_direct': answered_direct,
+                'answered_transferred': answered_transferred,
+                'total_answered': total_answered,
                 'sales': sales,
                 'answered_by_agent': answered_by_agent,
                 'answered_agent_gt_10s': answered_agent_gt_10s,

@@ -65,6 +65,14 @@ class ReporteDeLLamadasEntrantesDeSupervision(object):
         for log in logs:
             if log.campana_id not in self.estadisticas:
                 self._inicializar_conteo_de_campana(self.campanas[log.campana_id])
+            # --- NUEVO PARCHE: Estado Efectivo en Memoria ---
+            if getattr(log, 'is_transferred', False):
+                if log.event in [
+                    'EXITWITHTIMEOUT', 'ABANDON', 'ABANDONWEL',
+                    'EXIT_TIMEOUT', 'EXIT_ABANDON',
+                ]:
+                    log.event = 'CONNECT'
+            # ------------------------------------------------
             estadisticas_campana = self.estadisticas[log.campana_id]
             self._contabilizar_tipos_de_llamada_por_campana(estadisticas_campana, log)
 
