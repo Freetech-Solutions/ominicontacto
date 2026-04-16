@@ -70,6 +70,7 @@ module.exports = {
         agent_whatsapp_image_uploader: getPageConfig('agent_whatsapp_image_uploader'),
         agent_whatsapp_file_uploader: getPageConfig('agent_whatsapp_file_uploader'),
         agent_whatsapp_contact_form: getPageConfig('agent_whatsapp_contact_form'),
+        agent_whatsapp_last_conversation: getPageConfig('agent_whatsapp_last_conversation'),
         // Supervisor Facebook Pages
         supervisor_facebook_pages: getPageConfig('supervisor_facebook_pages'),
         supervisor_facebook_message_templates: getPageConfig('supervisor_facebook_message_templates'),

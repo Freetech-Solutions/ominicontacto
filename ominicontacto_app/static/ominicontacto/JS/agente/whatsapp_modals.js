@@ -6,6 +6,7 @@ const modalMediaFileForm = $('#whatsapp-modal-media-file-form');
 const modalContactForm = $('#whatsapp-modal-contact-form');
 const modalConversationNew = $('#whatsapp-modal-conversation-new');
 const whatsappWrapper = $('#wrapperWhatsapp');
+const lastConversationMessagesModal = $('#last-conversation-messages-modal');
 
 const onWhatsappTransferChatEvent = ($event) => {
     const { transfer_chat } = $event.detail;
@@ -44,6 +45,63 @@ const onWhatsappContactFormEvent = ($event) => {
     modalContactForm.modal(contact_form === true ? 'show' : 'hide');
 };
 
+const onLastConversationMessagesEvent = ($event) => {
+    
+    const { last_conversation, conversationId } = $event.detail;
+
+    console.log('modal event', conversationId);
+    console.log('iframe reloaded');
+
+    if (conversationId) {
+        localStorage.setItem('agtWhatsLastConversationId', conversationId);
+    }
+
+    const iframe = document.querySelector('#last-conversation-messages-modal iframe');
+
+    if (iframe && last_conversation === true) {
+        const currentSrc = iframe.getAttribute('src');
+        iframe.setAttribute('src', currentSrc);
+    }
+
+    lastConversationMessagesModal.modal(last_conversation === true ? 'show' : 'hide');
+    lastConversationMessagesModal.on('shown.bs.modal', function () {
+        const dialog = this.querySelector('.modal-dialog');
+        const handle = this.querySelector('.drag-handle');
+
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let initialLeft = 0;
+        let initialTop = 0;
+
+        dialog.style.position = 'fixed';
+        dialog.style.margin = '0';
+        dialog.style.left = `${(window.innerWidth - dialog.offsetWidth) / 2}px`;
+        dialog.style.top = `${(window.innerHeight - dialog.offsetHeight) / 2}px`;
+
+        handle.onmousedown = (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialLeft = dialog.offsetLeft;
+            initialTop = dialog.offsetTop;
+
+            document.onmousemove = (ev) => {
+                if (!isDragging) return;
+
+                dialog.style.left = `${initialLeft + (ev.clientX - startX)}px`;
+                dialog.style.top = `${initialTop + (ev.clientY - startY)}px`;
+            };
+
+            document.onmouseup = () => {
+                isDragging = false;
+                document.onmousemove = null;
+                document.onmouseup = null;
+            };
+        };
+    });
+};
+
 const onWhatsappConversationNewEvent = ($event) => {
     const { conversation_new } = $event.detail;
     modalConversationNew.modal(conversation_new === true ? 'show' : 'hide');
@@ -61,6 +119,7 @@ const setEventListeners = () => {
     window.document.addEventListener('onWhatsappMediaFormEvent', onWhatsappMediaFormEvent, false);
     window.document.addEventListener('onWhatsappContactFormEvent', onWhatsappContactFormEvent, false);
     window.document.addEventListener('onWhatsappConversationNewEvent', onWhatsappConversationNewEvent, false);
+    window.document.addEventListener('onLastConversationMessagesEvent', onLastConversationMessagesEvent, false);
     $('#whatsappChat').on('click', function () {
         $('#wrapperWhatsapp').toggleClass('hidden');
         $('#wrapperFacebook').addClass('hidden');
