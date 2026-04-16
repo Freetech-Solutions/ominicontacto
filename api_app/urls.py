@@ -24,7 +24,8 @@ from django.contrib.auth.decorators import login_required
 
 from api_app.views.base import login
 from api_app.views.base_de_contactos import (
-    CampaingsOnDB, ContactoDeCampanaCreateView, CampaignDatabaseMetadataView, CamposDireccionView,
+    CampaingsOnDB, ContactoDeCampanaCreateView, ContactoCampanaDetalleView,
+    CampaignDatabaseMetadataView, CamposDireccionView,
     BaseDatosContactoCreateView, ContactoCreateView, )
 from api_app.views.administrador import (
     AgentesActivosGrupoViewSet, CrearRolView, EliminarRolView, ActualizarPermisosDeRolView,
@@ -559,6 +560,9 @@ urlpatterns = [
     path('api/v1/campaign/database_metadata_columns_fields/<int:pk>/',
          CamposDireccionView.as_view(), name='api_database_metadata_columns_fields'),
     # ###########     AGENTE      ############ #
+    re_path(r'^api/v1/campaign/(?P<campaign>[^/]+)/contacts/(?P<pk_contacto>\d+)/$',
+            ContactoCampanaDetalleView.as_view(),
+            name='api_campaign_contact_detail'),
     path('api/v1/campaign/<int:pk_campana>/contacts/',
          API_ObtenerContactosCampanaView.as_view(), name='api_contactos_campana'),
     path('api/v1/makeCall/',

@@ -153,6 +153,8 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'api_contactos_campana',
              'roles': ['Agente', ]},
+            {'nombre': 'api_campaign_contact_detail',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Agente', ]},
             {'nombre': 'api_click2call',
              'roles': ['Agente', ]},
             {'nombre': 'api_click2call_outside_campaign',
@@ -595,6 +597,9 @@ class ApiAppConfig(AppConfig):
              'version': '1.19.0'},
         'api_contactos_campana':
             {'descripcion': _('Contactos de una campaña'), 'version': '1.7.0'},
+        'api_campaign_contact_detail':
+            {'descripcion': _('Obtener datos completos de un contacto por campaña'),
+             'version': '1.25.0'},
         'api_click2call':
             {'descripcion': _('Ejecuta un click 2 call a una campaña'), 'version': '1.7.0'},
         'api_click2call_outside_campaign':

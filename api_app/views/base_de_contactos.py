@@ -202,6 +202,115 @@ class ContactoDeCampanaCreateView(APIView):
             return user in campana.supervisors.all()
 
 
+class ContactoCampanaDetalleView(APIView):
+    """GET: datos completos de un contacto validando pertenencia a la BD de la campaña."""
+
+    permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication)
+    http_method_names = ['get']
+    renderer_classes = (JSONRenderer, )
+
+    def _user_tiene_permiso_en_campana(self, campana):
+        user = self.request.user
+        if user.get_is_agente():
+            return user.get_agente_profile() in campana.obtener_agentes()
+        else:
+            return user in campana.supervisors.all()
+
+    def _resolver_campana(self, request, campaign_kw):
+        msg_base = _('Hubo errores en los datos recibidos')
+        ext = request.GET.get('idExternalSystem')
+        if ext not in (None, ''):
+            try:
+                pk_sistema = int(ext)
+            except (ValueError, TypeError):
+                return None, Response(
+                    data={
+                        'status': 'ERROR',
+                        'message': msg_base,
+                        'errors': {
+                            'idExternalSystem': [_('Debe indicar un idExternalSystem válido.')]
+                        },
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+            try:
+                sistema_externo = SistemaExterno.objects.get(pk=pk_sistema)
+            except SistemaExterno.DoesNotExist:
+                return None, Response(
+                    data={
+                        'status': 'ERROR',
+                        'message': msg_base,
+                        'errors': {'idExternalSystem': [_('Sistema externo inexistente.')]}
+                    },
+                    status=status.HTTP_400_BAD_REQUEST)
+            campana = sistema_externo.campanas.filter(
+                estado=Campana.ESTADO_ACTIVA, id_externo=campaign_kw).first()
+            if campana is None:
+                return None, Response(
+                    data={
+                        'status': 'ERROR',
+                        'message': _('Campaña inexistente.'),
+                    },
+                    status=status.HTTP_404_NOT_FOUND)
+            return campana, None
+        try:
+            campana_id = int(campaign_kw)
+        except (ValueError, TypeError):
+            return None, Response(
+                data={
+                    'status': 'ERROR',
+                    'message': _('Campaña inexistente.'),
+                },
+                status=status.HTTP_404_NOT_FOUND)
+        campana = Campana.objects.obtener_activas().filter(pk=campana_id).first()
+        if campana is None:
+            return None, Response(
+                data={
+                    'status': 'ERROR',
+                    'message': _('Campaña inexistente.'),
+                },
+                status=status.HTTP_404_NOT_FOUND)
+        return campana, None
+
+    def get(self, request, campaign, pk_contacto, *args, **kwargs):
+        campana, err = self._resolver_campana(request, campaign)
+        if err is not None:
+            return err
+        if not self._user_tiene_permiso_en_campana(campana):
+            return Response(
+                data={
+                    'status': 'ERROR',
+                    'message': _('Hubo errores en los datos recibidos'),
+                    'errors': {'campaign': [_('No tiene permiso para editar la campaña.')]}
+                },
+                status=status.HTTP_400_BAD_REQUEST)
+        if campana.bd_contacto_id is None:
+            return Response(
+                data={
+                    'status': 'ERROR',
+                    'message': _('La campaña no tiene base de contactos asociada.'),
+                },
+                status=status.HTTP_400_BAD_REQUEST)
+        try:
+            contacto = Contacto.objects.get(pk=pk_contacto)
+        except Contacto.DoesNotExist:
+            return Response(
+                data={'status': 'ERROR', 'message': _('Contacto inexistente.')},
+                status=status.HTTP_404_NOT_FOUND)
+        if contacto.bd_contacto_id != campana.bd_contacto_id:
+            return Response(
+                data={'status': 'ERROR', 'message': _('Contacto inexistente.')},
+                status=status.HTTP_404_NOT_FOUND)
+        return Response(data={
+            'status': 'OK',
+            'message': _('Se obtuvo el contacto de forma exitosa'),
+            'id': contacto.id,
+            'id_externo': contacto.id_externo,
+            'bd_contacto': contacto.bd_contacto_id,
+            'contacto': contacto.obtener_datos(),
+        }, status=status.HTTP_200_OK)
+
+
 class CampaignDatabaseMetadataView(APIView):
     permission_classes = (TienePermisoOML, )
     authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication)

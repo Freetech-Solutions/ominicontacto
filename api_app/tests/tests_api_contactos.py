@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import json
 from django.utils.translation import gettext as _
 from django.urls import reverse
+from django.utils.http import urlencode
 
 from ominicontacto_app.models import Contacto, AgenteEnContacto
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
@@ -390,3 +391,81 @@ class CrearContactoTest(APITest):
             campana_id=campana.id, contacto_id=response.json()['id'],
             agente_id=-1, es_originario=True)
         self.assertEqual(agente_en_contacto.count(), 1)
+
+
+class ContactoCampanaDetalleTest(APITest):
+    ejecutar_actualizar_permisos = True
+
+    def _url(self, campaign, contact_id, query=None):
+        url = reverse('api_campaign_contact_detail', kwargs={
+            'campaign': str(campaign),
+            'pk_contacto': contact_id,
+        })
+        if query:
+            return url + '?' + urlencode(query)
+        return url
+
+    def test_usuario_no_loggeado(self):
+        self.client.logout()
+        response = self.client.get(self._url(self.campana.id, self.contacto_1.id))
+        self.assertEqual(response.status_code, 403)
+
+    def test_agente_ok_id_oml(self):
+        response = self.client.get(self._url(self.campana.id, self.contacto_1.id))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(data['status'], 'OK')
+        self.assertEqual(data['id'], self.contacto_1.id)
+        self.assertEqual(data['bd_contacto'], self.campana.bd_contacto_id)
+        self.assertIn('TELEFONO', data['contacto'])
+
+    def test_agente_ok_id_externo_sistema(self):
+        response = self.client.get(self._url(
+            self.campana.id_externo,
+            self.contacto_1.id,
+            query={'idExternalSystem': str(self.sistema_externo.id)}))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['id'], self.contacto_1.id)
+
+    def test_contacto_inexistente_404(self):
+        response = self.client.get(self._url(self.campana.id, 999999999))
+        self.assertEqual(response.status_code, 404)
+
+    def test_campana_inexistente_404(self):
+        response = self.client.get(self._url(self.campana.id + 99999999, self.contacto_1.id))
+        self.assertEqual(response.status_code, 404)
+
+    def test_contacto_otra_base_404(self):
+        usr_sup = User.objects.get(username='sup1')
+        bd2 = self.crear_base_datos_contacto(cant_contactos=1)
+        otra = self.crear_campana_manual(cant_contactos=1, user=usr_sup, bd_contactos=bd2)
+        otra.estado = Campana.ESTADO_ACTIVA
+        otra.save()
+        otro_contacto = otra.bd_contacto.contactos.first()
+        response = self.client.get(self._url(self.campana.id, otro_contacto.id))
+        self.assertEqual(response.status_code, 404)
+
+    def test_agente_no_asignado_400(self):
+        self.client.logout()
+        self.client.login(username=self.agente_2.user.username, password=PASSWORD)
+        response = self.client.get(self._url(self.campana.id, self.contacto_1.id))
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['errors']['campaign'],
+                         [_('No tiene permiso para editar la campaña.')])
+
+    def test_id_external_system_invalido_400(self):
+        response = self.client.get(
+            self._url('c1', self.contacto_1.id, query={'idExternalSystem': 'xx'}))
+        self.assertEqual(response.status_code, 400)
+
+    def test_sistema_externo_inexistente_400(self):
+        response = self.client.get(
+            self._url('c1', self.contacto_1.id, query={'idExternalSystem': '999999999'}))
+        self.assertEqual(response.status_code, 400)
+
+    def test_campana_externa_inexistente_404(self):
+        response = self.client.get(self._url(
+            'no_existe_id',
+            self.contacto_1.id,
+            query={'idExternalSystem': str(self.sistema_externo.id)}))
+        self.assertEqual(response.status_code, 404)

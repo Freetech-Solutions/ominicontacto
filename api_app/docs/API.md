@@ -801,6 +801,57 @@ Returns contacts for a campaign (excluding already dispositioned).
 }
 ```
 
+### Get Campaign Contact Detail
+
+#### `GET /api/v1/campaign/{campaign}/contacts/{pk_contacto}/`
+
+Returns the full contact record for a **single** contact, scoped to an **active** campaign. The contact must belong to the same contact database (`bd_contacto`) as the campaign. Requires `TienePermisoOML` permission **`api_campaign_contact_detail`** (assigned by default to Administrator, Manager, Supervisor, and Agent roles after running `actualizar_permisos`).
+
+**Path parameters:**
+- `campaign` (string): OMniLeads campaign **primary key** (integer as string, e.g. `12`), **or** the campaign **external id** when using the query parameter below.
+- `pk_contacto` (integer): Contact **primary key** in OMniLeads.
+
+**Query parameters:**
+- `idExternalSystem` (integer, optional): External system **primary key**. When set, `campaign` in the path is interpreted as the campaign **`id_externo`** for that external system (same pattern as resolving campaigns by external id elsewhere in the API).
+
+**Authentication:** Session or `Authorization: Bearer <token>`.
+
+**Authorization:** The user must be either an **agent assigned to the campaign** or a **supervisor** listed on the campaign (same rule as creating contacts / campaign database metadata for that campaign).
+
+**Response (200 OK):**
+```json
+{
+  "status": "OK",
+  "message": "Se obtuvo el contacto de forma exitosa",
+  "id": 34567,
+  "id_externo": "CRM-001",
+  "bd_contacto": 3,
+  "contacto": {
+    "TELEFONO": "+5491112345678",
+    "NOMBRE": "Jane Doe",
+    "id_ext": "CRM-001"
+  }
+}
+```
+
+The `contacto` object is built from the contact database metadata (`Contacto.obtener_datos()`): keys are column names and values are the stored field values (including the main phone column as defined for that database).
+
+**Error responses:**
+- `400 Bad Request`: User is not allowed to access the campaign (`errors.campaign`), invalid `idExternalSystem`, external system not found, or the campaign has no contact database (`La campaña no tiene base de contactos asociada.`).
+- `404 Not Found`: Active campaign not found, contact not found, or contact does not belong to the campaign’s contact database (same generic message for the latter cases).
+- `403 Forbidden`: Not authenticated or missing OML permission for this URL name.
+
+**Examples:**
+```bash
+# Internal campaign id
+curl -sS -H "Authorization: Bearer <token>" \
+  "https://example.com/api/v1/campaign/12/contacts/34567/"
+
+# External campaign id + external system
+curl -sS -H "Authorization: Bearer <token>" \
+  "https://example.com/api/v1/campaign/MY-CRM-CAMPAIGN-ID/contacts/34567/?idExternalSystem=2"
+```
+
 ### Click to Call
 
 #### `POST /api/v1/makeCall/`
