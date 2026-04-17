@@ -266,7 +266,6 @@ export default {
             window.parent.document.dispatchEvent(modalEvent);
         },
         showLastConversation (conversationId) {
-            console.log('showLastConversation conversación, ID:', conversationId);
             localStorage.setItem('agtWhatsLastConversationId', conversationId);
             const event = new CustomEvent('onLastConversationMessagesEvent', {
                 detail: {

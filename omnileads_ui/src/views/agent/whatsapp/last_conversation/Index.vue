@@ -23,9 +23,7 @@ export default {
         ]),
         async loadConversation () {
             const rawId = localStorage.getItem('agtWhatsLastConversationId');
-            const parsedId = rawId ? parseInt(rawId) : null;
-
-            console.log('mounted loadConversation', rawId, parsedId);
+            const parsedId = rawId && rawId !== 'null' ? parseInt(rawId, 10) : null;
 
             if (!parsedId || Number.isNaN(parsedId)) return;
 
@@ -35,8 +33,6 @@ export default {
                 conversationId: parsedId,
                 $t: this.$t
             });
-
-            console.log('action called with', parsedId);
         }
     },
     async mounted () {

@@ -1412,8 +1412,8 @@ html.dark-mode textarea:focus {
 }
 
 .last-conversation-dialog {
-  max-width: 920px;
-  width: 92vw;
+  max-width: 1040px;
+  width: 94vw;
   margin: 1.75rem auto;
 }
 
@@ -1466,9 +1466,10 @@ html.dark-mode textarea:focus {
 
 .last-conversation-body {
   padding: 0;
-  height: min(700px, 75vh);
+  height: min(760px, 80vh);
   display: flex;
   overflow: hidden;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
 }
 
 .whatsapp_iframe_container {

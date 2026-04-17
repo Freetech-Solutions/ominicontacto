@@ -46,7 +46,9 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
             <div class="modal-body last-conversation-body">
                 <iframe
                     class="whatsapp_iframe_container"
-                    src="{% static 'omnileads-frontend/agent_whatsapp_last_conversation.html' %}"
+                    src="about:blank"
+                    data-src="{% static 'omnileads-frontend/agent_whatsapp_last_conversation.html' %}"
+                    loading="lazy"
                 ></iframe>
             </div>
 

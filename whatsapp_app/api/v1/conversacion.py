@@ -394,7 +394,7 @@ class ConversacionSerializer(serializers.Serializer):
     destination = serializers.CharField()
     client = serializers.SerializerMethodField()
     agent = serializers.PrimaryKeyRelatedField(queryset=AgenteProfile.objects.all())
-    agent_name = serializers.CharField(source='agent.user.username')
+    agent_name = serializers.SerializerMethodField()
     is_active = serializers.BooleanField(default=True)
     is_disposition = serializers.BooleanField()
     expire = serializers.DateTimeField()
@@ -475,6 +475,15 @@ class ConversacionSerializer(serializers.Serializer):
             return {}
         except Exception as e:
             print(e)
+
+    def get_agent_name(self, obj):
+        if not obj.agent:
+            return None
+
+        if not getattr(obj.agent, "user", None):
+            return None
+
+        return obj.agent.user.get_full_name() or obj.agent.user.username
 
 
 class ConversacionFilterSerializer(serializers.Serializer):

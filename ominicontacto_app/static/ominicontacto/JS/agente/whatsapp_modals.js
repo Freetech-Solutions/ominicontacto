@@ -7,6 +7,74 @@ const modalContactForm = $('#whatsapp-modal-contact-form');
 const modalConversationNew = $('#whatsapp-modal-conversation-new');
 const whatsappWrapper = $('#wrapperWhatsapp');
 const lastConversationMessagesModal = $('#last-conversation-messages-modal');
+const LAST_CONVERSATION_IFRAME_BLANK_SRC = 'about:blank';
+
+const getLastConversationIframe = () => document.querySelector('#last-conversation-messages-modal iframe');
+
+const reloadLastConversationIframe = () => {
+    const iframe = getLastConversationIframe();
+    const iframeSrc = iframe ? iframe.getAttribute('data-src') : null;
+
+    if (!iframe || !iframeSrc) return;
+
+    iframe.setAttribute('src', iframeSrc);
+};
+
+const resetLastConversationIframe = () => {
+    const iframe = getLastConversationIframe();
+
+    if (!iframe) return;
+
+    iframe.setAttribute('src', LAST_CONVERSATION_IFRAME_BLANK_SRC);
+};
+
+const bindLastConversationDrag = () => {
+    lastConversationMessagesModal.off('shown.bs.modal.lastConversation');
+    lastConversationMessagesModal.off('hidden.bs.modal.lastConversation');
+
+    lastConversationMessagesModal.on('shown.bs.modal.lastConversation', function () {
+        const dialog = this.querySelector('.modal-dialog');
+        const handle = this.querySelector('.drag-handle');
+
+        if (!dialog || !handle) return;
+
+        let isDragging = false;
+        let startX = 0;
+        let startY = 0;
+        let initialLeft = 0;
+        let initialTop = 0;
+
+        dialog.style.position = 'fixed';
+        dialog.style.margin = '0';
+        dialog.style.left = `${(window.innerWidth - dialog.offsetWidth) / 2}px`;
+        dialog.style.top = `${(window.innerHeight - dialog.offsetHeight) / 2}px`;
+
+        handle.onmousedown = (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialLeft = dialog.offsetLeft;
+            initialTop = dialog.offsetTop;
+
+            document.onmousemove = (ev) => {
+                if (!isDragging) return;
+
+                dialog.style.left = `${initialLeft + (ev.clientX - startX)}px`;
+                dialog.style.top = `${initialTop + (ev.clientY - startY)}px`;
+            };
+
+            document.onmouseup = () => {
+                isDragging = false;
+                document.onmousemove = null;
+                document.onmouseup = null;
+            };
+        };
+    });
+
+    lastConversationMessagesModal.on('hidden.bs.modal.lastConversation', () => {
+        resetLastConversationIframe();
+    });
+};
 
 const onWhatsappTransferChatEvent = ($event) => {
     const { transfer_chat } = $event.detail;
@@ -46,60 +114,17 @@ const onWhatsappContactFormEvent = ($event) => {
 };
 
 const onLastConversationMessagesEvent = ($event) => {
-    
     const { last_conversation, conversationId } = $event.detail;
-
-    console.log('modal event', conversationId);
-    console.log('iframe reloaded');
 
     if (conversationId) {
         localStorage.setItem('agtWhatsLastConversationId', conversationId);
     }
 
-    const iframe = document.querySelector('#last-conversation-messages-modal iframe');
-
-    if (iframe && last_conversation === true) {
-        const currentSrc = iframe.getAttribute('src');
-        iframe.setAttribute('src', currentSrc);
+    if (last_conversation === true) {
+        reloadLastConversationIframe();
     }
 
     lastConversationMessagesModal.modal(last_conversation === true ? 'show' : 'hide');
-    lastConversationMessagesModal.on('shown.bs.modal', function () {
-        const dialog = this.querySelector('.modal-dialog');
-        const handle = this.querySelector('.drag-handle');
-
-        let isDragging = false;
-        let startX = 0;
-        let startY = 0;
-        let initialLeft = 0;
-        let initialTop = 0;
-
-        dialog.style.position = 'fixed';
-        dialog.style.margin = '0';
-        dialog.style.left = `${(window.innerWidth - dialog.offsetWidth) / 2}px`;
-        dialog.style.top = `${(window.innerHeight - dialog.offsetHeight) / 2}px`;
-
-        handle.onmousedown = (e) => {
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            initialLeft = dialog.offsetLeft;
-            initialTop = dialog.offsetTop;
-
-            document.onmousemove = (ev) => {
-                if (!isDragging) return;
-
-                dialog.style.left = `${initialLeft + (ev.clientX - startX)}px`;
-                dialog.style.top = `${initialTop + (ev.clientY - startY)}px`;
-            };
-
-            document.onmouseup = () => {
-                isDragging = false;
-                document.onmousemove = null;
-                document.onmouseup = null;
-            };
-        };
-    });
 };
 
 const onWhatsappConversationNewEvent = ($event) => {
@@ -133,5 +158,6 @@ const setWhatsappStatusIcon = (tiene_whatsapp = false) => {
 };
 
 $(function () {
+    bindLastConversationDrag();
     setEventListeners();
 });
