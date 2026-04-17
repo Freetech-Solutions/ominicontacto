@@ -541,7 +541,16 @@ class OutboundDataManager(AbstractDataManager):
     ID = 'OUT'
     CAMP_TYPES = [Campana.TYPE_DIALER, Campana.TYPE_PREVIEW, Campana.TYPE_MANUAL]
     NOT_ATTENDED_EVENTS = LlamadaLog.EVENTOS_NO_CONEXION
-    CALL_EVENTS = ('DIAL', 'ANSWER', ) + NOT_ATTENDED_EVENTS
+    # Alineado con logger ACD (update_redis_call_stats): ya no se acumula ANSWER en Redis;
+    # atendidas van a EXIT_ANSWERED_*; dialer también publica CONNECT a CALLEVENTS.
+    ATTENDED_EVENTS = (
+        'ANSWER',
+        'CONNECT',
+        'EXIT_ANSWERED_HUMAN',
+        'EXIT_ANSWERED_BOT',
+        'EXIT_ANSWERED_MIX',
+    )
+    CALL_EVENTS = ('DIAL',) + ATTENDED_EVENTS + NOT_ATTENDED_EVENTS
 
     def subscribe(self, campaigns, user):
         manager_id = self._manager_id(user)
@@ -581,21 +590,45 @@ class OutboundDataManager(AbstractDataManager):
             key = get_event_subscription_key(event_code)
             self.redis_calldata_connection.srem(key, manager_id)
 
+    def _count_dialed_from_calldata(self, response):
+        """
+        Discadas salientes: suma de CALL_TYPE:<tipo>:DIAL (manual, dialer, preview, etc.).
+        Si no hay claves CALL_TYPE:*:DIAL, mismo fallback que _get_campaign_call_metrics: DIAL_OUT.
+        (La clave plana DIAL_OUT no termina en ':DIAL', por eso no basta con mirar el último segmento.)
+        """
+        total = 0
+        for key, value in response.items():
+            parts = key.split(':')
+            if len(parts) >= 3 and parts[0] == 'CALL_TYPE' and parts[-1] == 'DIAL':
+                try:
+                    total += int(float(value or 0))
+                except (TypeError, ValueError):
+                    continue
+        if total == 0:
+            raw = response.get('DIAL_OUT')
+            if raw is not None:
+                try:
+                    total = int(float(raw))
+                except (TypeError, ValueError):
+                    total = 0
+        return total
+
     def _get_initial_data(self, campaign):
         calldata_key = 'OML:CALLDATA:CAMP:{0}'.format(campaign.id)
         response = self.redis_calldata_connection.hgetall(calldata_key)
-        dialed = 0
         attended = 0
         not_attended = 0
         dispositions = 0
-        # Get CALLDATA sums
+        dialed = self._count_dialed_from_calldata(response)
+        # Get CALLDATA sums (varios CALL_TYPE:x:* por campaña)
         for key, value in response.items():
             event = key.split(':')[-1]
-            if event == 'DIAL':
-                dialed = value
-            if event == 'ANSWER':
-                attended = value
-            if event in self.NOT_ATTENDED_EVENTS:
+            if event in self.ATTENDED_EVENTS:
+                try:
+                    attended += int(float(value or 0))
+                except (TypeError, ValueError):
+                    continue
+            elif event in self.NOT_ATTENDED_EVENTS:
                 not_attended += int(value)
         # Get dispositions
         dispositiondata_key = 'OML:DISPOSITIONDATA:CAMP:{0}'.format(campaign.id)
@@ -614,7 +647,7 @@ class OutboundDataManager(AbstractDataManager):
         if event_data['type'] == 'CAMP':
             if event_data['event'] == 'DIAL':
                 return {'campaign_id': event_data['id'], 'field': 'dialed'}
-            if event_data['event'] == 'ANSWER':
+            if event_data['event'] in self.ATTENDED_EVENTS:
                 return {'campaign_id': event_data['id'], 'field': 'attended'}
             if event_data['event'] in self.NOT_ATTENDED_EVENTS:
                 return {'campaign_id': event_data['id'], 'field': 'not_attended'}
