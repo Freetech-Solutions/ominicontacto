@@ -15,21 +15,37 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+import os
 import uuid
 from django.db import models
-from .mixins import AuditableModelMixin
+from django.utils import timezone
+from django.utils.text import slugify
 from django.utils.translation import gettext_lazy as _
-from django.db.models import JSONField
 from ominicontacto_app.models import (
     AgenteProfile, Campana, Contacto, HistoricalCalificacionCliente)
-
-from django.utils import timezone
+from .mixins import AuditableModelMixin
 from .services.gupshup import linea_gupshup
+
+MAX_LENGTH = 100
+PREFIX = "archivos_whatsapp/"
 
 
 def upload_to(instance, filename):
-    return "archivos_whatsapp/{0}-{1}".format(
-        str(uuid.uuid4()), filename)[:95]
+    base, ext = os.path.splitext(filename)
+    base = slugify(base)
+
+    # identifier = str(int(timezone.now().timestamp() * 1000))
+    identifier = str(uuid.uuid4())
+
+    max_base_length = MAX_LENGTH - len(PREFIX) - len(identifier) - len(ext) - 1
+    base = base[:max(0, max_base_length)]
+
+    if base:
+        new_name = f"{identifier}_{base}{ext}"
+    else:
+        new_name = f"{identifier}{ext}"
+
+    return f"{PREFIX}{new_name}"
 
 
 class ConfiguracionProveedor(AuditableModelMixin, models.Model):
@@ -43,7 +59,7 @@ class ConfiguracionProveedor(AuditableModelMixin, models.Model):
     )
     nombre = models.CharField(max_length=100)
     tipo_proveedor = models.IntegerField(choices=PROVEEDOR_TIPOS)
-    configuracion = JSONField(default=dict)  # gupshup: Apikey
+    configuracion = models.JSONField(default=dict)  # gupshup: Apikey
 
 
 class LineaManager(models.Manager):
@@ -60,7 +76,7 @@ class Linea(AuditableModelMixin):
     proveedor = models.ForeignKey(
         ConfiguracionProveedor, on_delete=models.PROTECT, related_name="lineas")
     numero = models.CharField(max_length=100)  # sender
-    configuracion = JSONField(default=dict)  # appname, appid
+    configuracion = models.JSONField(default=dict)  # appname, appid
     # TODO: Modelar en destino entrante whatsapp?
     destino = models.ForeignKey(
         'configuracion_telefonia_app.DestinoEntrante', on_delete=models.PROTECT,
@@ -82,6 +98,13 @@ class Linea(AuditableModelMixin):
     def status(self):
         return linea_gupshup.get_line_status(self)
 
+    @property
+    def get_stream_name(self):
+        if self.proveedor.tipo_proveedor == ConfiguracionProveedor.TIPO_GUPSHUP:
+            return 'whatsapp_webhook_gupshup_{}'.format(self.configuracion["app_id"])
+        elif self.proveedor.tipo_proveedor == ConfiguracionProveedor.TIPO_META:
+            return 'whatsapp_webhook_meta_{}'.format(self.configuracion["app_id"])
+
     def __str__(self) -> str:
         return f"Linea: {self.nombre}"
 
@@ -95,7 +118,7 @@ class PlantillaMensaje(AuditableModelMixin):
     )
     nombre = models.CharField(max_length=100)
     tipo = models.IntegerField(choices=MENSAJE_TIPOS)
-    configuracion = JSONField(default=dict)
+    configuracion = models.JSONField(default=dict)
 
 
 class TemplateWhatsapp(models.Model):
@@ -107,7 +130,7 @@ class TemplateWhatsapp(models.Model):
     link_media = models.CharField(max_length=500, blank=True, null=True)
     texto_header = models.TextField(blank=True, null=True, default="")
     texto = models.TextField(blank=True, null=True)
-    botones = JSONField(default=list, blank=True)  # botones call to action
+    botones = models.JSONField(default=list, blank=True)  # botones call to action
     idioma = models.CharField(max_length=100)
     status = models.CharField(max_length=100)
     creado = models.CharField(max_length=100)
@@ -119,7 +142,7 @@ class TemplateWhatsapp(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['linea_id', 'identificador'], name='identificador_unico')
+                fields=['linea', 'identificador'], name='identificador_unico'),
         ]
 
     def __str__(self) -> str:
@@ -157,11 +180,11 @@ class MensajeWhatsapp(models.Model):
     message_id = models.CharField(max_length=100)
     timestamp = models.DateTimeField(default=timezone.now, db_index=True)
     origen = models.CharField(max_length=100)
-    sender = JSONField(default=dict)
+    sender = models.JSONField(default=dict)
     conversation = models.ForeignKey(
         'ConversacionWhatsapp', related_name="mensajes", on_delete=models.CASCADE, null=True)
     file = models.FileField(upload_to=upload_to, max_length=100, null=True, blank=True)
-    content = JSONField(default=dict)
+    content = models.JSONField(default=dict)
     type = models.CharField(max_length=100)
     status = models.CharField(max_length=100)
     fail_reason = models.CharField(max_length=100, null=True, blank=True)
@@ -261,10 +284,11 @@ class ConversacionWhatsapp(models.Model):
     client_alias = models.CharField(max_length=100, null=True)
     objects = ConversacionWhatsappQuerySet.as_manager()
 
-    def otorgar_conversacion(self, agent):
+    def otorgar_conversacion(self, agent, attended=True):
         try:
             self.agent = agent
-            self.save()
+            self.atendida = attended
+            self.save(update_fields=["agent", "atendida"])
             return True
         except Exception:
             return False

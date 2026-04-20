@@ -316,6 +316,8 @@ class Grupo(models.Model):
         'Acceso a cambiar la contraseña como agente'))
     whatsapp_habilitado = models.BooleanField(default=False, verbose_name=_(
         'Permiso de uso de la canalidad WhatsApp'))
+    meta_facebook_habilitado = models.BooleanField(default=False, verbose_name=_(
+        'Permiso de uso de la canalidad Meta Facebook'))
     restringir_tipo_llamadas_manuales = models.BooleanField(default=False, verbose_name=_(
         'Restringir tipo de llamadas manuales'))
     permitir_llamadas_manuales_a_manuales = models.BooleanField(default=False, verbose_name=_(
@@ -1358,6 +1360,7 @@ class Campana(models.Model):
         default=PERMITIR_DUPLICADOS,
     )
     whatsapp_habilitado = models.BooleanField(default=False)
+    meta_facebook_habilitado = models.BooleanField(default=False)
     permitir_calificar_telefonos = models.BooleanField(default=False, blank=True)
 
     def __str__(self):
@@ -2217,8 +2220,7 @@ class MetadataBaseDatosContactoDTO(object):
         if self.columna_id_externo is not None:
             return self._metadata['nombres_de_columnas'][self.columna_id_externo]
         return None
-
-    # ----
+    # -----
 
     @property
     def columnas_con_fecha(self):
@@ -2320,9 +2322,13 @@ class MetadataBaseDatosContactoDTO(object):
         if not hasattr(self, '_nombres_de_columnas_de_datos'):
             try:
                 nombres_de_columnas = self._metadata['nombres_de_columnas']
-                self._nombres_de_columnas_de_datos = [x for x in nombres_de_columnas
-                                                      if not x == self.nombre_campo_telefono and
-                                                      not x == self.nombre_campo_id_externo]
+                self._nombres_de_columnas_de_datos = [
+                    columna for columna in nombres_de_columnas
+                    if columna not in (
+                        self.nombre_campo_telefono,
+                        self.nombre_campo_id_externo,
+                    )
+                ]
             except KeyError:
                 return []
 
@@ -2769,6 +2775,7 @@ class Contacto(models.Model):
     objects = ContactoManager()
 
     telefono = models.CharField(max_length=128)
+    facebook = models.CharField(max_length=128, blank=True)
     datos = models.TextField()
     bd_contacto = models.ForeignKey(
         'BaseDatosContacto',
@@ -2979,13 +2986,42 @@ class CalificacionClienteManager(models.Manager):
             calificaciones.values('opcion_calificacion__nombre').\
             annotate(total=Count('opcion_calificacion')).order_by('-total')
 
+    def calificaciones_facebook_campanas(self, campana, fecha_desde, fecha_hasta):
+        """Obtiene las calificaciones campaña en un rango de fechas definido"""
+        calificaciones = self.filter(
+            opcion_calificacion__campana__pk=campana.id,
+            canalidad=CalificacionCliente.CANALIDAD_FACEBOOK,
+            modified__date__range=(fecha_desde, fecha_hasta))
+        return\
+            calificaciones.values('opcion_calificacion__nombre').\
+            annotate(total=Count('opcion_calificacion')).order_by('-total')
+
+
+class IndexedHistoricalRecords(HistoricalRecords):
+    def __init__(self, *args, extra_indexes=(), **kwargs):
+        self.extra_indexes = tuple(extra_indexes)
+        super().__init__(*args, **kwargs)
+
+    def get_meta_options(self, model):
+        meta = super().get_meta_options(model)
+        meta["indexes"] = list(meta.get("indexes", [])) + list(self.extra_indexes)
+        return meta
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        if self.extra_indexes:
+            kwargs["extra_indexes"] = self.extra_indexes
+        return name, path, args, kwargs
+
 
 class CalificacionCliente(TimeStampedModel, models.Model):
     CANALIDAD_TELEFONO = 0
     CANALIDAD_WHATSAPP = 1
+    CANALIDAD_FACEBOOK = 2
     TYPE_CANALIDAD_CHOICES = (
         (CANALIDAD_TELEFONO, _('Teléfono')),
-        (CANALIDAD_WHATSAPP, _('Whatsapp'))
+        (CANALIDAD_WHATSAPP, _('Whatsapp')),
+        (CANALIDAD_FACEBOOK, _('Facebook')),
     )
     objects = CalificacionClienteManager()
 
@@ -3005,7 +3041,14 @@ class CalificacionCliente(TimeStampedModel, models.Model):
         choices=TYPE_CANALIDAD_CHOICES, default=CANALIDAD_TELEFONO)
     # Campo agregado para diferenciar entre CalificacionCliente y CalificacionManual
     es_calificacion_manual = models.BooleanField(default=False)
-    history = HistoricalRecords()
+    history = IndexedHistoricalRecords(
+        extra_indexes=(
+            models.Index(
+                fields=["modified"],
+                name="histcalifcli_hist_modified_idx",
+            ),
+        )
+    )
 
     class Meta:
         indexes = [
@@ -3130,7 +3173,14 @@ class RespuestaFormularioGestion(models.Model):
                                      on_delete=models.CASCADE)
     metadata = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
-    history = HistoricalRecords()
+    history = IndexedHistoricalRecords(
+        extra_indexes=(
+            models.Index(
+                fields=["history_change_reason"],
+                name="histresp_hist_chg_reason_idx",
+            ),
+        )
+    )
 
     def __str__(self):
         return "Respuesta del Formulario para el contacto {0} de la campana{1} " \

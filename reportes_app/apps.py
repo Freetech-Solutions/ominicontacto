@@ -57,7 +57,7 @@ class ReportesAppConfig(AppConfig):
             return [{
                 'order': 700,
                 'label': _('Reportes'),
-                'icon': 'icon-graph',
+                'icon': 'fas fa-chart-line',
                 'id': 'menuReports',
                 'children': items
             }]

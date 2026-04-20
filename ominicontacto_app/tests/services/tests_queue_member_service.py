@@ -38,7 +38,8 @@ class QueueMemberServiceTests(OMLBaseTest):
         self._hacer_miembro(self.agente2, self.campana1)
         self.agente3 = self.crear_agente_profile()
 
-    @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
+    @patch('ominicontacto_app.services'
+           '.queue_member_service.obtener_status_agentes_sesiones_activas')
     @patch('redis.Redis.srem')
     @patch('redis.Redis.keys')
     @patch('redis.Redis.delete')
@@ -58,7 +59,8 @@ class QueueMemberServiceTests(OMLBaseTest):
 
     @patch('ominicontacto_app.services.queue_member_service.QueueMemberService'
            '._remover_agente_cola_asterisk')
-    @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
+    @patch('ominicontacto_app.services'
+           '.queue_member_service.obtener_status_agentes_sesiones_activas')
     @patch('redis.Redis.srem')
     @patch('redis.Redis.keys')
     @patch('redis.Redis.delete')
@@ -82,14 +84,15 @@ class QueueMemberServiceTests(OMLBaseTest):
 
     @patch('ominicontacto_app.services.queue_member_service.QueueMemberService'
            '._remover_agente_cola_asterisk')
-    @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
+    @patch('ominicontacto_app.services'
+           '.queue_member_service.obtener_status_agentes_sesiones_activas')
     @patch('redis.Redis.srem')
     def test_eliminar_agentes_de_cola(
             self, srem,
             obtener_sip_agentes_sesiones_activas, _remover_agente_cola_asterisk):
         self.assertEqual(self.agente1.queue_set.count(), 2)
         self.assertEqual(self.agente2.queue_set.count(), 1)
-        obtener_sip_agentes_sesiones_activas.return_value = [self.agente2.sip_extension, ]
+        obtener_sip_agentes_sesiones_activas.return_value = {self.agente2.id: 'READY'}
         service = QueueMemberService()
         service.eliminar_agentes_de_cola(self.campana1, (self.agente1, self.agente2))
         obtener_sip_agentes_sesiones_activas.assert_called()
@@ -106,13 +109,14 @@ class QueueMemberServiceTests(OMLBaseTest):
 
     @patch('ominicontacto_app.services.queue_member_service.QueueMemberService'
            '._adicionar_agente_cola_asterisk')
-    @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
+    @patch('ominicontacto_app.services'
+           '.queue_member_service.obtener_status_agentes_sesiones_activas')
     @patch('redis.Redis.sadd')
     def test_agregar_agentes_en_cola(
         self, sadd, obtener_sip_agentes_sesiones_activas, _adicionar_agente_cola_asterisk
     ):
         self.assertEqual(self.agente3.queue_set.count(), 0)
-        obtener_sip_agentes_sesiones_activas.return_value = [self.agente2.sip_extension, ]
+        obtener_sip_agentes_sesiones_activas.return_value = {self.agente2.id: 'READY'}
         service = QueueMemberService()
         penalties = {self.agente2.id: 3, self.agente3.id: 4}
         service.agregar_agentes_en_cola(self.campana2, [self.agente2, self.agente3], penalties)
@@ -128,15 +132,16 @@ class QueueMemberServiceTests(OMLBaseTest):
             any_order=True)
         # Se agrega a la cola de asterisk el agente conectado (flujo mantenido; AMI fuera de Django)
         _adicionar_agente_cola_asterisk.assert_called_with(
-            self.agente2, queue_member_2, self.campana2)
+            self.agente2, queue_member_2, self.campana2, False)
 
-    @patch('ominicontacto_app.services.queue_member_service.obtener_sip_agentes_sesiones_activas')
+    @patch('ominicontacto_app.services'
+           '.queue_member_service.obtener_status_agentes_sesiones_activas')
     @patch('redis.Redis.sadd')
     def test_agregar_agentes_en_cola_sin_penalties(
         self, sadd, obtener_sip_agentes_sesiones_activas
     ):
         self.assertEqual(self.agente3.queue_set.count(), 0)
-        obtener_sip_agentes_sesiones_activas.return_value = []
+        obtener_sip_agentes_sesiones_activas.return_value = {}
         service = QueueMemberService()
         service.agregar_agentes_en_cola(self.campana2, [self.agente2, self.agente3])
         obtener_sip_agentes_sesiones_activas.assert_called()

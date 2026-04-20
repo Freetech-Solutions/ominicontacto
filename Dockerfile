@@ -118,7 +118,7 @@ RUN set -eux; \
     useradd -u 1000 -r -g omnileads omnileads -d "${INSTALL_PREFIX}" -s /usr/sbin/nologin; \
     mkdir -p "${INSTALL_PREFIX}" \
     && curl -kL https://keys-server.freetech.com.ar:20852/cert -o "${INSTALL_PREFIX}/cert"
-    
+
 
 COPY --from=pybuilder ${VENV_PATH} ${VENV_PATH}
 
@@ -148,6 +148,7 @@ COPY supervision_app "${INSTALL_PREFIX}/ominicontacto/supervision_app"
 COPY notification_app "${INSTALL_PREFIX}/ominicontacto/notification_app"
 COPY orquestador_app "${INSTALL_PREFIX}/ominicontacto/orquestador_app"
 COPY whatsapp_app "${INSTALL_PREFIX}/ominicontacto/whatsapp_app"
+COPY facebook_meta_app "${INSTALL_PREFIX}/ominicontacto/facebook_meta_app"
 COPY utiles_globales.py "${INSTALL_PREFIX}/ominicontacto/"
 COPY manage.py "${INSTALL_PREFIX}/ominicontacto/"
 
