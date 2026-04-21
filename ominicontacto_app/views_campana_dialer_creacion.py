@@ -214,23 +214,19 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
 
     def done(self, form_list, **kwargs):
         success = False
+        campana = None
+        sincronizar_form = None
+        form_list = list(form_list)
         try:
             with transaction.atomic():
                 campana = self._save_forms(form_list, Campana.ESTADO_INACTIVA)
-                # Agrego este offset por si form_list no contiene el formulario de PARAMETROS_CRM
-                offset = 2
-                if campana.tiene_interaccion_con_sitio_externo:
-                    offset = offset - 1
-                if campana.whatsapp_habilitado:
-                    offset = offset - 1
 
                 # Validar que haya al menos un voicebot si tipo_destino_dialer es REMOTE_AGENT
-                queue_form = list(form_list)[int(self.COLA)]
+                queue_form = form_list[int(self.COLA)]
                 from configuracion_telefonia_app.models import DestinoEntrante
                 tipo_destino_dialer = queue_form.cleaned_data.get('tipo_destino_dialer')
                 if tipo_destino_dialer and str(tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT):
-                    # Obtener formset de agentes (el offset ya está calculado arriba)
-                    agentes_formset = list(form_list)[int(self.ADICION_AGENTES) - offset]
+                    agentes_formset = form_list[-2]
                     voicebots_count = 0
                     for form in agentes_formset.forms:
                         if form.cleaned_data.get('DELETE', False):
@@ -246,7 +242,7 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
                               'debe asignarse al menos un agente voicebot a la campaña.'))
                         return HttpResponseRedirect(reverse('campana_dialer_list'))
 
-                sincronizar_form = list(form_list)[int(self.SINCRONIZAR) - offset]
+                sincronizar_form = form_list[-1]
                 # Intento crear la campaña en wombat como parte de la transaccion
                 if wombat_habilitado():
                     self._sincronizar_campana(sincronizar_form, campana)
@@ -264,7 +260,8 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
             success = False
 
         # Creo la campaña en OMniDialer una vez que ya existe en base
-        if not wombat_habilitado():
+        if (not wombat_habilitado() and success and
+                sincronizar_form is not None and campana is not None):
             transaction.on_commit(partial(self._safe_sincronizar_campana,
                                           sincronizar_form, campana))
 

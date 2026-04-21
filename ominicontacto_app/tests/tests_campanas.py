@@ -24,7 +24,7 @@ from __future__ import unicode_literals
 import json
 import threading
 
-from mock import patch
+from mock import patch, Mock
 
 from django.urls import reverse
 from django.conf import settings
@@ -57,6 +57,7 @@ from ominicontacto_app.utiles import (
 from ominicontacto_app.services.creacion_queue import ActivacionQueueService
 from ominicontacto_app.services.dialer.campana_wombat import CampanaService
 from ominicontacto_app.services.exportar_base_datos import SincronizarBaseDatosContactosService
+from ominicontacto_app.views_campana_dialer_creacion import CampanaDialerCreateView
 from configuracion_telefonia_app.tests.factories import DestinoEntranteFactory, IVRFactory
 from whatsapp_app.tests.factories import LineaFactory, MenuInteractivoFactory
 from whatsapp_app.models import OpcionMenuInteractivoWhatsapp
@@ -1772,6 +1773,39 @@ class SupervisorCampanaTests(CampanasTests):
                          self.actuacion_vigente.hora_desde.strftime("%H:%M"))
         self.assertEqual(actuacion_vigente_clonada.hora_hasta.strftime("%H:%M"),
                          self.actuacion_vigente.hora_hasta.strftime("%H:%M"))
+
+    @patch('ominicontacto_app.views_campana_dialer_creacion.reverse',
+           return_value='/campana_dialer/list/')
+    @patch('ominicontacto_app.views_campana_dialer_creacion.messages.add_message')
+    @patch('ominicontacto_app.views_campana_dialer_creacion.transaction.on_commit')
+    @patch('ominicontacto_app.views_campana_dialer_creacion.wombat_habilitado', return_value=False)
+    def test_done_dialer_usa_sync_final_cuando_se_omiten_pasos_opcionales(
+            self, _wombat_habilitado, on_commit, _add_message, _reverse):
+        view = CampanaDialerCreateView()
+        view.request = Mock()
+        campana = Mock(tiene_interaccion_con_sitio_externo=False,
+                       whatsapp_habilitado=False,
+                       queue_campana=Mock())
+        view._save_forms = Mock(return_value=campana)
+        view.save_supervisores = Mock()
+        view.save_agentes = Mock()
+        view._insert_queue_asterisk = Mock()
+        view.alertas_por_sistema_externo = Mock()
+
+        queue_form = Mock(cleaned_data={'tipo_destino_dialer': None})
+        sincronizar_form = Mock(cleaned_data={'evitar_duplicados': False,
+                                              'evitar_sin_telefono': True,
+                                              'prefijo_discador': ''})
+        form_list = [Mock(), queue_form, Mock(), Mock(), Mock(), Mock(), Mock(), sincronizar_form]
+
+        response = view.done(form_list)
+
+        on_commit.assert_called_once()
+        callback = on_commit.call_args[0][0]
+        self.assertEqual(callback.args, (sincronizar_form, campana))
+        view.save_supervisores.assert_called_once_with(form_list, -3)
+        view.save_agentes.assert_called_once_with(form_list, -2)
+        self.assertEqual(response.status_code, 302)
 
     def _obtener_post_data_wizard_creacion_template_campana_manual(self, nombre_campana):
         (post_step0_data, post_step1_data,
