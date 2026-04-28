@@ -84,6 +84,35 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 
     <h2>{% trans 'Campañas Finalizadas' %}</h2>
       {% include "campanas/campana_dialer/campana_list_table.html" with campanas=finalizadas state=3 %}
+      {% if finalizadas.has_other_pages %}
+      <nav>
+        <ul class="pagination">
+
+            {% if finalizadas.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?finalizadas_page={{ finalizadas.previous_page_number }}">
+                {% trans 'Anterior' %}
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+            <span class="page-link">
+                {% trans 'Página' %} {{ finalizadas.number }} / {{ finalizadas.paginator.num_pages }}
+            </span>
+            </li>
+
+            {% if finalizadas.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?finalizadas_page={{ finalizadas.next_page_number }}">
+                {% trans 'Siguiente' %}
+                </a>
+            </li>
+            {% endif %}
+
+        </ul>
+      </nav>
+      {% endif %}
     <br>
 
     <h2>{% trans 'Campañas Eliminadas' %}</h2>
