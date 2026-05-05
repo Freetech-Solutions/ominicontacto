@@ -8,77 +8,48 @@
     background-color: #ECEEEA;
 }
 
-/* Estética unificada con columna Acciones (supervision/panel-general) */
-.agents-actions-cell {
-    white-space: nowrap;
-    min-width: 200px;
-}
-
-.agents-actions-btns {
-    display: flex;
-    flex-wrap: nowrap;
-    gap: 4px;
+.recordings-search-loading-status {
     align-items: center;
-}
-
-.btn-agent-action {
+    color: #495057;
     display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    padding: 0;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    background: #f5f5f5;
-    color: #4a4a4a;
-    cursor: pointer;
-    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-left: 16px;
 }
 
-.btn-agent-action:hover:not(:disabled) {
-    background: #0f3460;
-    color: #fff;
-    border-color: #0f3460;
+.recordings-search-loading-status.hidden {
+    display: none;
 }
 
-.btn-agent-action:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
+.recordings-search-loading-spinner {
+    animation: recordings-search-spin 0.8s linear infinite;
+    border: 2px solid #d9e2ec;
+    border-radius: 50%;
+    border-top-color: #0d6efd;
+    display: inline-block;
+    height: 18px;
+    width: 18px;
 }
 
-.btn-agent-action i {
-    font-size: 0.85rem;
+.recordings-search-loading-status--error {
+    color: #a61e4d;
 }
 
-/* Modal transcripción y resumen */
-.transcripcion-modal-loading {
-    padding: 1rem 0;
+.recordings-search-loading-status--error .recordings-search-loading-spinner {
+    display: none;
 }
 
-.transcripcion-modal-text,
-.transcripcion-modal-summary {
-    max-height: 200px;
-    overflow-y: auto;
-    white-space: pre-wrap;
-    word-break: break-word;
-    padding: 0.5rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: #f9f9f9;
+.recordings-search-loading-elapsed {
+    color: #6c757d;
+    font-size: 0.875rem;
 }
 
-.transcripcion-modal-json {
-    max-height: 300px;
-    overflow: auto;
-    font-size: 0.85rem;
-    padding: 0.75rem;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    background: #f5f5f5;
-}
+@keyframes recordings-search-spin {
+    from {
+        transform: rotate(0deg);
+    }
 
-.transcripcion-modal-error {
-    color: #a94442;
-    padding: 0.5rem 0;
+    to {
+        transform: rotate(360deg);
+    }
 }

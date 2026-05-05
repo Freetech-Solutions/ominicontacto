@@ -194,7 +194,8 @@ export default {
                 app_id: 'App ID',
                 business_id: 'Business Id',
                 verification_token: 'Verification Token',
-                waba_id: 'WABA ID'
+                waba_id: 'WABA ID',
+                app_secret: 'App Secret'
             },
             horario: 'Grupo horario',
             destino: 'Destino',
@@ -279,6 +280,9 @@ export default {
             destination: 'Destino',
             client: 'Cliente',
             agent: 'Agente',
+            initial_agent: 'Agente inicial',
+            transferred_agent: 'Agente transferido',
+            transferred_campaign: 'Campaña transferida',
             is_active: 'Activo',
             last_interaction: 'Última interacción',
             expire: 'Fecha de expiracion',
@@ -315,7 +319,7 @@ export default {
                 description: 'Descripción',
                 destination_type: 'Tipo de destino',
                 destination: 'Destino'
-            },
+            }
         },
         message_template: {
             nombre: 'Nombre',

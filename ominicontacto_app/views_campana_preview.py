@@ -606,6 +606,7 @@ class ActualizarContactosBDResourceImport(resources.ModelResource):
         model = Contacto
         fields = ('id', 'telefono', 'datos')
         export_order = ('id', 'telefono', 'datos')
+        use_bulk = True
 
 
 class ActualizarContactosResourceImport(resources.ModelResource):
@@ -647,6 +648,7 @@ class ActualizarContactosResourceImport(resources.ModelResource):
         fields = ('id', 'telefono_contacto', 'datos_contacto')
         export_order = (
             'id', 'telefono_contacto', 'datos_contacto')
+        use_bulk = True
 
 
 class ActualizarContactosView(FormView):
