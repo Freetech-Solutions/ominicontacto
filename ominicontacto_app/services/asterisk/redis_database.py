@@ -374,6 +374,7 @@ class AgenteFamily(AbstractRedisFamily):
 
 
 class RutaSalienteFamily(AbstractRedisFamily):
+    ROUTES_INDEX_KEY = "OML:OUTR:INDEX"
 
     def _create_dict(self, ruta):
 
@@ -381,7 +382,8 @@ class RutaSalienteFamily(AbstractRedisFamily):
             'NAME': ruta.nombre,
             'RINGTIME': ruta.ring_time,
             'OPTIONS': ruta.dial_options,
-            'TRUNKS': len(ruta.secuencia_troncales.all())
+            'TRUNKS': len(ruta.secuencia_troncales.all()),
+            'ORDEN': ruta.orden,
         }
 
         patrones = self._obtener_patrones_ordenados(ruta)
@@ -416,6 +418,47 @@ class RutaSalienteFamily(AbstractRedisFamily):
             dict_ruta.update({"TRUNK-{0}".format(orden): troncal.troncal.id})
 
         return dict_ruta
+
+    def _add_to_routes_index(self, redis_connection, ruta):
+        redis_connection.zadd(
+            self.ROUTES_INDEX_KEY,
+            {str(ruta.id): float(ruta.orden)}
+        )
+
+    def _remove_from_routes_index(self, redis_connection, ruta):
+        redis_connection.zrem(self.ROUTES_INDEX_KEY, str(ruta.id))
+
+    def _create_family(self, family_member):
+        redis_connection = self.get_redis_connection()
+        family = self._get_nombre_family(family_member)
+        variables = self._create_dict(family_member)
+        try:
+            redis_crea_family = redis_connection.hset(family, mapping=variables)
+            self._add_to_routes_index(redis_connection, family_member)
+            return redis_crea_family
+        except RedisError as e:
+            raise e
+        except ConnectionError as e:
+            logger.exception(e)
+            sys.exit(1)
+
+    def delete_family(self, family_member):
+        redis_connection = self.get_redis_connection()
+        try:
+            family = self._get_nombre_family(family_member)
+            redis_connection.delete(family)
+            self._remove_from_routes_index(redis_connection, family_member)
+        except RedisError as e:
+            raise e
+        except ConnectionError as e:
+            logger.exception(e)
+            sys.exit(1)
+
+    def regenerar_families(self):
+        self._delete_tree_family()
+        redis_connection = self.get_redis_connection()
+        redis_connection.delete(self.ROUTES_INDEX_KEY)
+        self._create_families()
 
     def _obtener_todos(self):
         """Obtengo todos las rutas salientes para generar family"""

@@ -22,7 +22,7 @@ Tests del modulo 'ominicontacto_app.services.asterisk.redis_database'
 
 from __future__ import unicode_literals
 
-from mock import patch
+from mock import patch, MagicMock
 
 from django.conf import settings
 from ominicontacto_app.tests.utiles import OMLBaseTest
@@ -224,6 +224,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_ruta['RINGTIME'], ruta.ring_time)
         self.assertEqual(dict_ruta['OPTIONS'], ruta.dial_options)
         self.assertEqual(dict_ruta['TRUNKS'], len(ruta.secuencia_troncales.all()))
+        self.assertEqual(dict_ruta['ORDEN'], ruta.orden)
 
         # verifico que genere correctamente el dict de los patrones de discado
         if patron_1_1.prefix:
@@ -249,6 +250,34 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_ruta['DP-2-PREFIX'], patron_1_2.prefix or '')
         self.assertEqual(dict_ruta['DP-2-PREPEND'], patron_1_2.prepend or '')
         self.assertEqual(dict_ruta['DP-2-MATCH'], patron_1_2.match_pattern or '')
+
+    @patch.object(RutaSalienteFamily, 'get_redis_connection')
+    def test_ruta_saliente_create_family_actualiza_indice_ordenado(self, get_redis_connection):
+        ruta = RutaSalienteFactory()
+        redis_mock = MagicMock()
+        get_redis_connection.return_value = redis_mock
+
+        servicio = RutaSalienteFamily()
+        servicio._create_family(ruta)
+
+        redis_mock.zadd.assert_called_once_with(
+            RutaSalienteFamily.ROUTES_INDEX_KEY,
+            {str(ruta.id): float(ruta.orden)}
+        )
+
+    @patch.object(RutaSalienteFamily, 'get_redis_connection')
+    def test_ruta_saliente_delete_family_actualiza_indice_ordenado(self, get_redis_connection):
+        ruta = RutaSalienteFactory()
+        redis_mock = MagicMock()
+        get_redis_connection.return_value = redis_mock
+
+        servicio = RutaSalienteFamily()
+        servicio.delete_family(ruta)
+
+        redis_mock.zrem.assert_called_once_with(
+            RutaSalienteFamily.ROUTES_INDEX_KEY,
+            str(ruta.id)
+        )
 
     def test_devuelve_correctamente_values_troncales(self):
         """
