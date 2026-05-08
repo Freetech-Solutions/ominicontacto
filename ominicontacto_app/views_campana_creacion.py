@@ -363,17 +363,17 @@ class CampanaWizardMixin(object):
             context['grupos_form'] = GrupoAgenteForm
         return context
 
-    def save_supervisores(self, form_list, index_form_supervisores):
-        campana_form = list(form_list)[int(self.INICIAL)]
-        supervisores_form = list(form_list)[index_form_supervisores]
+    def save_supervisores(self, form_dict):
+        campana_form = form_dict[self.INICIAL]
+        supervisores_form = form_dict[self.ADICION_SUPERVISORES]
         supervisores = supervisores_form.cleaned_data.get('supervisors', [])
         campana = campana_form.instance
         campana.supervisors.add(*supervisores)
 
-    def save_agentes(self, form_list, index_form_agentes):
-        campana_form = list(form_list)[int(self.INICIAL)]
+    def save_agentes(self, form_dict):
+        campana_form = form_dict[self.INICIAL]
         campana = campana_form.instance
-        queue_member_formset = list(form_list)[index_form_agentes]
+        queue_member_formset = form_dict[self.ADICION_AGENTES]
         queue_member_formset.instance = campana.queue_campana
         if queue_member_formset.is_valid():
             # Delego a queue_member_service
@@ -472,13 +472,13 @@ class CampanaEntranteCreateView(CampanaEntranteMixin, SessionWizardView):
         queue_form.instance.save()
         return queue_form.instance
 
-    def _save_forms(self, form_list, form_dict, estado):
-        campana_form = list(form_list)[int(self.INICIAL)]
+    def _save_forms(self, form_dict, estado):
+        campana_form = form_dict[self.INICIAL]
         campana = campana_form.instance
         interaccion_crm = campana_form.instance.tiene_interaccion_con_sitio_externo
         whatsapp_habilitado = campana_form.instance.whatsapp_habilitado
         meta_facebook_habilitado = campana_form.instance.meta_facebook_habilitado
-        queue_form = list(form_list)[int(self.COLA)]
+        queue_form = form_dict[self.COLA]
         campana_form.instance.type = Campana.TYPE_ENTRANTE
         campana_form.instance.reported_by = self.request.user
         campana_form.instance.fecha_inicio = cast_datetime_part_date(timezone.now())
@@ -489,49 +489,45 @@ class CampanaEntranteCreateView(CampanaEntranteMixin, SessionWizardView):
             bd_contacto.save()
             campana_form.instance.bd_contacto = bd_contacto
         campana_form.save()
-        offset = 0  # Por cada Form q no se usa decrementar el indice de los forms siguientes
+
         if whatsapp_habilitado:
-            configuracion_whatsapp_formset = list(form_list)[int(self.CONFIGURACION_WHATSAPP)]
-            if configuracion_whatsapp_formset.is_valid():
+            configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
+            if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
                 configuracion_whatsapp_formset.instance.campana = campana
                 configuracion_whatsapp_formset.instance.created_by_id = self.request.user.id
                 configuracion_whatsapp_formset.instance.updated_by_id = self.request.user.id
                 configuracion_whatsapp_formset.instance.save()
-        else:
-            offset += 1
+
         if meta_facebook_habilitado:
-            configuracion_meta_facebook_formset = list(form_list)[
-                int(self.CONFIGURACION_META_FACEBOOK) - offset]
-            if configuracion_meta_facebook_formset.is_valid():
-                print("Guardo configuración de Meta Facebook")
-                print(configuracion_meta_facebook_formset.cleaned_data)
-                print("Campaña: ", campana.id)
+            configuracion_meta_facebook_formset = form_dict.get(self.CONFIGURACION_META_FACEBOOK)
+            if configuracion_meta_facebook_formset and \
+               configuracion_meta_facebook_formset.is_valid():
                 configuracion_meta_facebook_formset.instance.campana = campana
                 try:
                     configuracion_meta_facebook_formset.instance.save()
                 except Exception as e:
                     print("Error al guardar configuración de Meta Facebook:", e)
-        else:
-            offset += 1
+
         print("Guardo opciones de calificación")
-        opciones_calificacion_formset = list(form_list)[int(self.OPCIONES_CALIFICACION) - offset]
+        opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         queue_form.instance.campana = campana
         queue = self._save_queue(queue_form)
         opciones_calificacion_formset.instance = campana
         opciones_calificacion_formset.save()
+
         if interaccion_crm:
-            parametros_crm_formset = list(form_list)[int(self.PARAMETROS_CRM) - offset]
+            parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
             parametros_crm_formset.instance = campana
             parametros_crm_formset.save()
         return queue
 
     def done(self, form_list, form_dict, **kwargs):
         print("Guardando campaña entrante...")
-        queue = self._save_forms(form_list, form_dict, Campana.ESTADO_ACTIVA)
+        queue = self._save_forms(form_dict, Campana.ESTADO_ACTIVA)
         self._insert_queue_asterisk(queue)
         # salvamos los supervisores y agentes asignados a la campaña
-        self.save_supervisores(form_list, -2)
-        self.save_agentes(form_list, -1)
+        self.save_supervisores(form_dict)
+        self.save_agentes(form_dict)
         # creamos un nodo destino de ruta entrante para ser que a la campaña se le pueda
         # configurar un acceso en alguna ruta entrante
         DestinoEntrante.crear_nodo_ruta_entrante(queue.campana)
@@ -591,12 +587,11 @@ class CampanaEntranteUpdateView(CampanaEntranteMixin, SessionWizardView):
 
     form_list = FORMS
 
-    def done(self, form_list, *args, **kwargs):
-        campana_form = list(form_list)[int(self.INICIAL)]
+    def done(self, form_list, form_dict, **kwargs):
+        campana_form = form_dict[self.INICIAL]
         campana_form.instance.save()
 
-        queue_form = list(form_list)[int(self.COLA)]
-        # TODO: OML-496
+        queue_form = form_dict[self.COLA]
         audio_anuncio_periodico = queue_form.cleaned_data['audios']
         if audio_anuncio_periodico:
             queue_form.instance.announce = audio_anuncio_periodico.audio_asterisk
@@ -605,11 +600,10 @@ class CampanaEntranteUpdateView(CampanaEntranteMixin, SessionWizardView):
         queue_form.instance.save()
 
         campana = campana_form.instance
-        offset = 2
+
         if campana.whatsapp_habilitado:
-            offset = offset - 1
-            configuracion_whatsapp_formset = list(form_list)[int(self.CONFIGURACION_WHATSAPP)]
-            if configuracion_whatsapp_formset.is_valid():
+            configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
+            if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
                 if not configuracion_whatsapp_formset.instance.pk:
                     configuracion_whatsapp_formset.instance.created_by_id = self.request.user.id
                     configuracion_whatsapp_formset.instance.campana = campana
@@ -617,19 +611,18 @@ class CampanaEntranteUpdateView(CampanaEntranteMixin, SessionWizardView):
                 configuracion_whatsapp_formset.instance.save()
 
         if campana.meta_facebook_habilitado:
-            offset = offset - 1
-            configuracion_meta_facebook_formset = list(form_list)[
-                int(self.CONFIGURACION_META_FACEBOOK) - offset]
-            if configuracion_meta_facebook_formset.is_valid():
+            configuracion_meta_facebook_formset = form_dict.get(self.CONFIGURACION_META_FACEBOOK)
+            if configuracion_meta_facebook_formset and \
+               configuracion_meta_facebook_formset.is_valid():
                 if not configuracion_meta_facebook_formset.instance.pk:
                     configuracion_meta_facebook_formset.instance.campana = campana
                 configuracion_meta_facebook_formset.instance.save()
 
-        opts_calif_init_formset = list(form_list)[int(self.OPCIONES_CALIFICACION) - offset]
+        opts_calif_init_formset = form_dict[self.OPCIONES_CALIFICACION]
         opts_calif_init_formset.instance = campana
         opts_calif_init_formset.save()
         if campana.tiene_interaccion_con_sitio_externo:
-            parametros_crm_formset = list(form_list)[int(self.PARAMETROS_CRM) - offset]
+            parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
             parametros_crm_formset.instance = campana
             parametros_crm_formset.save()
 
@@ -685,7 +678,7 @@ class CampanaEntranteTemplateCreateView(CampanaTemplateCreateMixin, CampanaEntra
     form_list = FORMS
 
     def done(self, form_list, form_dict, **kwargs):
-        self._save_forms(form_list, form_dict, Campana.ESTADO_TEMPLATE_ACTIVO)
+        self._save_forms(form_dict, Campana.ESTADO_TEMPLATE_ACTIVO)
         return HttpResponseRedirect(reverse('campana_entrante_template_list'))
 
 

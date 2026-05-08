@@ -131,8 +131,8 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
             })
         return initial_data
 
-    def _save_forms(self, form_list, form_dict, estado, tipo):
-        campana_form = list(form_list)[int(self.INICIAL)]
+    def _save_forms(self, form_dict, estado, tipo):
+        campana_form = form_dict[self.INICIAL]
         campana = campana_form.instance
         interaccion_crm = campana.tiene_interaccion_con_sitio_externo
         whatsapp_habilitado = campana.whatsapp_habilitado
@@ -147,29 +147,23 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
             bd_contacto.save()
             campana_form.instance.bd_contacto = bd_contacto
         campana_form.save()
-        # Agrego este offset por si form_list no contiene alguno de los formularios opcionales
-        offset = 0  # Por cada Form q no se usa decrementar el indice de los forms siguientes
 
         if whatsapp_habilitado:
-            configuracion_whatsapp_formset = list(form_list)[int(self.CONFIGURACION_WHATSAPP)]
-            if configuracion_whatsapp_formset.is_valid():
+            configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
+            if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
                 configuracion_whatsapp_formset.instance.campana = campana
                 configuracion_whatsapp_formset.instance.created_by_id = self.request.user.id
                 configuracion_whatsapp_formset.instance.updated_by_id = self.request.user.id
                 configuracion_whatsapp_formset.instance.save()
-        else:
-            offset += 1
 
         if meta_facebook_habilitado:
-            configuracion_meta_facebook_formset = list(form_list)[
-                int(self.CONFIGURACION_META_FACEBOOK) - offset]
-            if configuracion_meta_facebook_formset.is_valid():
+            configuracion_meta_facebook_formset = form_dict.get(self.CONFIGURACION_META_FACEBOOK)
+            if configuracion_meta_facebook_formset and \
+               configuracion_meta_facebook_formset.is_valid():
                 configuracion_meta_facebook_formset.instance.campana = campana
                 configuracion_meta_facebook_formset.instance.save()
-        else:
-            offset += 1
 
-        opciones_calificacion_formset = list(form_list)[int(self.OPCIONES_CALIFICACION) - offset]
+        opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         auto_grabacion = campana_form.cleaned_data['auto_grabacion']
         summarize_percentage = campana_form.cleaned_data['summarize_percentage']
         transcription_percentage = campana_form.cleaned_data['transcription_percentage']
@@ -193,17 +187,17 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
         opciones_calificacion_formset.instance = campana
         opciones_calificacion_formset.save()
         if interaccion_crm:
-            parametros_crm_formset = list(form_list)[int(self.PARAMETROS_CRM) - offset]
+            parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
             parametros_crm_formset.instance = campana
             parametros_crm_formset.save()
         return queue
 
     def done(self, form_list, form_dict, **kwargs):
-        queue = self._save_forms(form_list, form_dict, Campana.ESTADO_ACTIVA, Campana.TYPE_MANUAL)
+        queue = self._save_forms(form_dict, Campana.ESTADO_ACTIVA, Campana.TYPE_MANUAL)
         self._insert_queue_asterisk(queue)
         # salvamos los supervisores y  agentes asignados a la campaña
-        self.save_supervisores(form_list, -2)
-        self.save_agentes(form_list, -1)
+        self.save_supervisores(form_dict)
+        self.save_agentes(form_dict)
         campana = queue.campana
         self.alertas_por_sistema_externo(campana)
         return HttpResponseRedirect(reverse('campana_manual_list'))
@@ -245,8 +239,8 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
             initial['transcription_percentage'] = campana.queue_campana.transcription_percentage
         return initial
 
-    def _save_forms(self, form_list, **kwargs):
-        campana_form = list(form_list)[int(self.INICIAL)]
+    def _save_forms(self, form_dict, **kwargs):
+        campana_form = form_dict[self.INICIAL]
         campana_form.save()
         auto_grabacion = campana_form.cleaned_data['auto_grabacion']
         summarize_percentage = campana_form.cleaned_data['summarize_percentage']
@@ -257,43 +251,36 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
         queue.summarize_percentage = summarize_percentage
         queue.transcription_percentage = transcription_percentage
         queue.save()
-        # Agrego este offset por si form_list no contiene alguno de los formularios opcionales
-        offset = 0  # Por cada Form q no se usa decrementar el indice de los forms siguientes
 
         if campana.whatsapp_habilitado:
-            configuracion_whatsapp_formset = list(form_list)[int(self.CONFIGURACION_WHATSAPP)]
-            if configuracion_whatsapp_formset.is_valid():
+            configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
+            if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
                 if not configuracion_whatsapp_formset.instance.pk:
                     configuracion_whatsapp_formset.instance.created_by_id = self.request.user.id
                     configuracion_whatsapp_formset.instance.campana = campana
                 configuracion_whatsapp_formset.instance.updated_by_id = self.request.user.id
                 configuracion_whatsapp_formset.instance.save()
-        else:
-            offset += 1
 
         if campana.meta_facebook_habilitado:
-            offset = offset - 1
-            configuracion_meta_facebook_formset = list(form_list)[
-                int(self.CONFIGURACION_META_FACEBOOK) - offset]
-            if configuracion_meta_facebook_formset.is_valid():
+            configuracion_meta_facebook_formset = form_dict.get(self.CONFIGURACION_META_FACEBOOK)
+            if configuracion_meta_facebook_formset and \
+               configuracion_meta_facebook_formset.is_valid():
                 if not configuracion_meta_facebook_formset.instance.pk:
                     configuracion_meta_facebook_formset.instance.campana = campana
                 configuracion_meta_facebook_formset.instance.save()
-        else:
-            offset += 1
 
-        opciones_calificacion_formset = list(form_list)[int(self.OPCIONES_CALIFICACION) - offset]
+        opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         opciones_calificacion_formset.instance = campana
         opciones_calificacion_formset.save()
 
         if campana.tiene_interaccion_con_sitio_externo:
-            parametros_crm_formset = list(form_list)[int(self.PARAMETROS_CRM) - offset]
+            parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
             parametros_crm_formset.instance = campana
             parametros_crm_formset.save()
         return queue
 
-    def done(self, form_list, **kwargs):
-        queue = self._save_forms(form_list, **kwargs)
+    def done(self, form_list, form_dict, **kwargs):
+        queue = self._save_forms(form_dict, **kwargs)
         self._insert_queue_asterisk(queue)
         self.alertas_por_sistema_externo(queue.campana)
         return HttpResponseRedirect(reverse('campana_manual_list'))
@@ -343,7 +330,7 @@ class CampanaManualTemplateCreateView(CampanaTemplateCreateMixin, CampanaManualC
     form_list = FORMS
 
     def done(self, form_list, form_dict, **kwargs):
-        self._save_forms(form_list, form_dict, Campana.ESTADO_TEMPLATE_ACTIVO, Campana.TYPE_MANUAL)
+        self._save_forms(form_dict, Campana.ESTADO_TEMPLATE_ACTIVO, Campana.TYPE_MANUAL)
         return HttpResponseRedirect(reverse('campana_manual_template_list'))
 
 

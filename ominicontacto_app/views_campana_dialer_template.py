@@ -71,8 +71,8 @@ class CampanaDialerTemplateCreateView(CampanaTemplateCreateMixin, CampanaDialerC
 
     form_list = FORMS
 
-    def done(self, form_list, *args, **kwargs):
-        self._save_forms(form_list, Campana.ESTADO_TEMPLATE_ACTIVO)
+    def done(self, form_list, form_dict, **kwargs):
+        self._save_forms(form_dict, Campana.ESTADO_TEMPLATE_ACTIVO)
         return HttpResponseRedirect(reverse('lista_campana_dialer_template'))
 
 
@@ -112,7 +112,7 @@ class CampanaDialerTemplateCreateCampanaView(CampanaTemplateCreateCampanaMixin,
             context['wizard']['form'] = reglas_incidencia_formset
         return context
 
-    def done(self, form_list, *args, **kwargs):
+    def done(self, form_list, **kwargs):
         borrar_template = bool(int(kwargs.get('borrar_template')))
         if borrar_template:
             # para el caso de cuando se usa la vista en el reciclado y se hace necesario
@@ -120,7 +120,7 @@ class CampanaDialerTemplateCreateCampanaView(CampanaTemplateCreateCampanaMixin,
             pk = self.kwargs.get('pk_campana_template', None)
             campana_template = get_object_or_404(Campana, pk=pk)
             campana_template.delete()
-        return super(CampanaDialerTemplateCreateCampanaView, self).done(form_list, *args, **kwargs)
+        return super(CampanaDialerTemplateCreateCampanaView, self).done(form_list, **kwargs)
 
 
 class TemplateDetailView(DetailView):
