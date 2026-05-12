@@ -18,8 +18,6 @@
 
 from __future__ import unicode_literals
 
-import requests
-
 from django.utils.translation import gettext as _
 from django.contrib.auth.models import Group
 from django.forms import ValidationError
@@ -36,6 +34,7 @@ from api_app.authentication import ExpiringTokenAuthentication
 from api_app.serializers.base import AgenteProfileIDSerializer
 from api_app.views.permissions import TienePermisoOML
 from api_app.services.base_datos_contacto_service import BaseDatosContactoService
+from ominicontacto_app.services.key_server_request import KeyServerRequest
 from ominicontacto_app.models import AgenteProfile, User
 from ominicontacto_app.permisos import PermisoOML
 from ominicontacto_app.errors import OmlArchivoImportacionInvalidoError, OmlError, \
@@ -272,12 +271,12 @@ class EnviarKeyRegistro(APIView):
         key = config_constance.CLIENT_KEY
         email = config_constance.CLIENT_EMAIL
         post_data = {'client': client, 'password': password, 'email': email, 'key': key}
-        send_key_url = '{0}/resend_key_mail/'.format(config_constance.KEYS_SERVER_HOST)
+        key_server_request = KeyServerRequest()
         try:
-            result = requests.post(
-                send_key_url, json=post_data, verify=config_constance.SSL_CERT_FILE)
-        except requests.exceptions.RequestException as e:
-            msg = _('Error en el intento de conexion a: {0} debido {1}'.format(send_key_url, e))
+            result = key_server_request.post('/resend_key_mail/', json=post_data)
+        except Exception as e:
+            msg = _('Error en el intento de conexion con el servidor de llaves '
+                    'debido {0}'.format(e))
             logger.error(msg)
             return Response(data={'status': 'ERROR-CONN-SAAS', 'msg': msg})
         if result.status_code == 200:
