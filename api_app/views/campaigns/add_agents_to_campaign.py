@@ -129,6 +129,8 @@ class ActualizaAgentesCampana(APIView):
             return Response(data=data, status=status.HTTP_200_OK)
 
         except Exception:
+            logger.exception(
+                'Error en agents_update (campaign_id=%s)', campaign_id)
             data['status'] = 'ERROR'
             data['message'] = _(u'No se pudo confirmar la creación del dialplan')
             return Response(data=data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

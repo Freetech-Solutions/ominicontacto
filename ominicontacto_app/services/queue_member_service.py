@@ -137,7 +137,7 @@ class QueueMemberService(object):
         self.campaign_agents_family.registrar_agentes_en_campana(campana.id, penalties.keys())
         ActivacionQueueService().activar(campana)
 
-    def _adicionar_agente_cola_asterisk(self, agente, queue_member, campana):
+    def _adicionar_agente_cola_asterisk(self, agente, queue_member, campana, en_pausa=False):
         """Sincronización de miembros de cola con Asterisk se hace fuera de Django (p. ej.
         script asterisk_transition.py del ACD). Aquí solo se mantiene el flujo por compatibilidad.
         """
