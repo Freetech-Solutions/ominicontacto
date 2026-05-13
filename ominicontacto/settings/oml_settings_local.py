@@ -82,8 +82,12 @@ DATABASES = {
         'PORT': POSTGRES_PORT,
         'NAME': POSTGRES_DATABASE,
         'USER': POSTGRES_USER,
-        'CONN_MAX_AGE': 300,
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
         'ATOMIC_REQUESTS': True,
+        'OPTIONS': {
+            'application_name': 'omlapp-uwsgi',
+        },
     },
     'replica': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -91,8 +95,12 @@ DATABASES = {
         'PORT': POSTGRES_PORT,
         'NAME': POSTGRES_DATABASE,
         'USER': POSTGRES_USER,
-        'CONN_MAX_AGE': 300,
+        'CONN_MAX_AGE': 60,
+        'CONN_HEALTH_CHECKS': True,
         'ATOMIC_REQUESTS': True,
+        'OPTIONS': {
+            'application_name': 'omlapp-uwsgi-replica',
+        },
     }
 }
 

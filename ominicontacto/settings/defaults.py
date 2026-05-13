@@ -442,6 +442,21 @@ Ejemplo:
     VERLOOP_DISPOSITION_OPTION_ID = 32
 """
 
+VERLOOP_CALIFICACION_NOMBRE = 'GESTION_BOT'
+"""Nombre de la OpcionCalificacion que el webhook de Verloop interpreta como
+"fin de gestión del voicebot". Cuando la calificación aplicada al contacto
+coincide con este valor (y el request trae call_id), la vista publica el
+comando voicebot_transfer_proceed en Redis para que el ACD continúe la
+transferencia que quedó pendiente tras el REFER del bot."""
+
+VERLOOP_BOT_AGENT_USERNAME = None
+"""Username del AgenteProfile a asociar a las calificaciones creadas por el
+webhook de Verloop cuando el usuario autenticado no es un agente.
+
+Si no se define o el username no corresponde a un agente activo, se cae al
+comportamiento anterior: primer agente de la campaña → primer agente activo
+del sistema."""
+
 ALLOW_FEEDBACK = False
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
