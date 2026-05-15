@@ -109,27 +109,51 @@ class VerloopWebhookView(APIView):
         return call_summary
 
     @staticmethod
-    def _construir_observaciones(body_data, call_summary):
+    def _construir_observaciones(body_data):
+        """Construye observaciones aplanando body_data.
+
+        Reglas:
+          - Excluye cualquier clave con prefijo 'X-' en cualquier nivel.
+          - Excluye en raíz 'call_id' y 'callid' (duplicados de X-Verloop-callID).
+          - Excluye en cualquier nivel: callID, customerID, phone, CampID.
+          - Aplana dicts anidados usando '.' como separador de ruta.
+          - Listas se serializan como JSON compacto.
+          - Valores None o '' se omiten.
         """
-        Construye las observaciones concatenando:
-        name + Call_Summary + PlanId + PlanCost + PlanUsage + companyName
-        """
-        partes = []
+        EXCLUDED_TOP = {'call_id', 'callid'}
+        EXCLUDED_KEYS = {'callID', 'customerID', 'phone', 'CampID'}
+
+        def _flatten(node, prefix=''):
+            pares = []
+            if not isinstance(node, dict):
+                return pares
+            for key, value in node.items():
+                if not isinstance(key, str):
+                    continue
+                if key.startswith('X-'):
+                    continue
+                if key in EXCLUDED_KEYS:
+                    continue
+                if prefix == '' and key in EXCLUDED_TOP:
+                    continue
+                ruta = f"{prefix}{key}"
+                if isinstance(value, dict):
+                    pares.extend(_flatten(value, prefix=f"{ruta}."))
+                elif isinstance(value, list):
+                    if value:
+                        try:
+                            rendered = json.dumps(value, ensure_ascii=False, default=str)
+                        except (TypeError, ValueError):
+                            rendered = repr(value)
+                        pares.append((ruta, rendered))
+                else:
+                    if value not in (None, ''):
+                        pares.append((ruta, value))
+            return pares
+
         if not isinstance(body_data, dict):
             body_data = {}
-
-        campos = [
-            ('Nombre', body_data.get('name')),
-            ('Resumen', call_summary),
-            ('Plan', body_data.get('PlanId')),
-            ('Costo', body_data.get('PlanCost')),
-            ('Uso', body_data.get('PlanUsage')),
-            ('Empresa', body_data.get('companyName')),
-        ]
-        for etiqueta, valor in campos:
-            if valor:
-                partes.append(f"{etiqueta}: {valor}")
-        return " | ".join(partes)
+        return " | ".join(f"{k}: {v}" for k, v in _flatten(body_data))
 
     @staticmethod
     def _resolver_agente(request, campana):
@@ -203,16 +227,39 @@ class VerloopWebhookView(APIView):
                 call_id,
             )
 
+    @staticmethod
+    def _read_required_field(body_data, headers, field_name):
+        """Lee un campo obligatorio buscando con el nombre EXACTO en body y header.
+
+        Prioridad: body > header. No se aceptan variaciones de nombre
+        (case-insensitive, guion-bajo, etc.). Devuelve el valor en str o None.
+        """
+        value = None
+        if isinstance(body_data, dict):
+            value = body_data.get(field_name)
+        if value is None:
+            value = headers.get(field_name)
+        if value is None:
+            return None
+        if isinstance(value, str):
+            value = value.strip()
+        return value if value not in (None, '') else None
+
     def post(self, request):
         """
         Procesa el POST request de Verloop y crea/actualiza una calificación.
 
-        Acepta en body JSON o en headers (prioridad body > header):
-          - X-Verloop-customerID  (obligatorio)
-          - X-Verloop-Disposition (obligatorio, id de OpcionCalificacion)
-          - call_id / callid / X-Verloop-UniqueID / X-Verloop-callID (opcional)
+        Campos OBLIGATORIOS (en body JSON o header, con ese nombre EXACTO,
+        prioridad body > header). No se aceptan variaciones de nombre:
+          - X-Verloop-customerID   (id de Contacto)
+          - X-Verloop-CampID       (id de Campana, debe coincidir con la
+                                    campaña de la OpcionCalificacion indicada)
+          - X-Verloop-callID       (id de la llamada en el ACD)
+          - X-Verloop-Disposition  (id de OpcionCalificacion)
+
+        Campos opcionales en body (para observaciones / resumen):
           - call_summary / Call_Summary (raíz o en analysis.user_defined)
-          - name, PlanId, PlanCost, PlanUsage, companyName (para observaciones)
+          - name, PlanId, PlanCost, PlanUsage, companyName
         """
         logger.info(
             'Verloop webhook received - user=%s ip=%s',
@@ -288,9 +335,8 @@ class VerloopWebhookView(APIView):
                     status=HTTP_400_BAD_REQUEST,
                 )
 
-            customer_id = (
-                body_data.get('X-Verloop-customerID')
-                or request.headers.get('X-Verloop-customerID')
+            customer_id = self._read_required_field(
+                body_data, request.headers, 'X-Verloop-customerID'
             )
             if not customer_id:
                 logger.error('Verloop: X-Verloop-customerID is missing in body and header')
@@ -326,11 +372,65 @@ class VerloopWebhookView(APIView):
                     status=HTTP_400_BAD_REQUEST,
                 )
 
-            disposition_id = (
-                body_data.get('X-Verloop-Disposition')
-                or body_data.get('X_Verloop_Disposition')
-                or body_data.get('x-verloop-disposition')
-                or request.headers.get('X-Verloop-Disposition')
+            camp_id = self._read_required_field(
+                body_data, request.headers, 'X-Verloop-CampID'
+            )
+            if not camp_id:
+                logger.error('Verloop: X-Verloop-CampID is missing in body and header')
+                return Response(
+                    data={
+                        'status': 'ERROR',
+                        'message': _('X-Verloop-CampID is required'),
+                        'errors': {
+                            'X-Verloop-CampID': _(
+                                'The X-Verloop-CampID must be provided either in the '
+                                'request body or as a header'
+                            )
+                        },
+                    },
+                    status=HTTP_400_BAD_REQUEST,
+                )
+            try:
+                camp_id_int = int(camp_id)
+                if camp_id_int <= 0:
+                    raise ValueError('Camp ID must be positive')
+            except (ValueError, TypeError) as e:
+                logger.error('Verloop: invalid X-Verloop-CampID format: %s - %s', camp_id, e)
+                return Response(
+                    data={
+                        'status': 'ERROR',
+                        'message': _('X-Verloop-CampID must be a valid positive integer'),
+                        'errors': {
+                            'X-Verloop-CampID': _(
+                                'The campaign ID must be a valid positive integer'
+                            )
+                        },
+                    },
+                    status=HTTP_400_BAD_REQUEST,
+                )
+
+            call_id_verloop = self._read_required_field(
+                body_data, request.headers, 'X-Verloop-callID'
+            )
+            if not call_id_verloop:
+                logger.error('Verloop: X-Verloop-callID is missing in body and header')
+                return Response(
+                    data={
+                        'status': 'ERROR',
+                        'message': _('X-Verloop-callID is required'),
+                        'errors': {
+                            'X-Verloop-callID': _(
+                                'The X-Verloop-callID must be provided either in the '
+                                'request body or as a header'
+                            )
+                        },
+                    },
+                    status=HTTP_400_BAD_REQUEST,
+                )
+            call_id_verloop = str(call_id_verloop)
+
+            disposition_id = self._read_required_field(
+                body_data, request.headers, 'X-Verloop-Disposition'
             )
             if not disposition_id:
                 logger.error('Verloop: X-Verloop-Disposition is missing in body and header')
@@ -348,8 +448,6 @@ class VerloopWebhookView(APIView):
                     status=HTTP_400_BAD_REQUEST,
                 )
             try:
-                if isinstance(disposition_id, str):
-                    disposition_id = disposition_id.strip()
                 id_disposition_option = int(disposition_id)
                 if id_disposition_option <= 0:
                     raise ValueError('Disposition option ID must be positive')
@@ -408,6 +506,28 @@ class VerloopWebhookView(APIView):
                 )
 
             campana = opcion_calificacion.campana
+            if campana.id != camp_id_int:
+                logger.error(
+                    'Verloop: X-Verloop-CampID=%s no coincide con la campaña %s '
+                    'de la OpcionCalificacion %s',
+                    camp_id_int, campana.id, id_disposition_option,
+                )
+                return Response(
+                    data={
+                        'status': 'ERROR',
+                        'message': _(
+                            'X-Verloop-CampID does not match the disposition option campaign'
+                        ),
+                        'errors': {
+                            'X-Verloop-CampID': _(
+                                'The provided campaign ID does not match the campaign of '
+                                'the specified disposition option'
+                            )
+                        },
+                    },
+                    status=HTTP_400_BAD_REQUEST,
+                )
+
             if contacto.bd_contacto_id != campana.bd_contacto_id:
                 logger.error(
                     'Verloop: contact %s does not belong to campaign %s database',
@@ -427,19 +547,8 @@ class VerloopWebhookView(APIView):
                     status=HTTP_400_BAD_REQUEST,
                 )
 
-            call_id_verloop = (
-                body_data.get('callid')
-                or body_data.get('call_id')
-                or body_data.get('X-Verloop-UniqueID')
-                or body_data.get('X-Verloop-callID')
-                or request.headers.get('X-Verloop-UniqueID')
-                or request.headers.get('X-Verloop-callID')
-            )
-            if call_id_verloop:
-                call_id_verloop = str(call_id_verloop).strip()
-
             try:
-                observaciones = self._construir_observaciones(body_data, call_summary)
+                observaciones = self._construir_observaciones(body_data)
 
                 calificacion_existente = CalificacionCliente.objects.filter(
                     contacto=contacto,
@@ -453,8 +562,7 @@ class VerloopWebhookView(APIView):
                     )
                     calificacion_existente.opcion_calificacion = opcion_calificacion
                     calificacion_existente.observaciones = observaciones
-                    if call_id_verloop:
-                        calificacion_existente.callid = call_id_verloop
+                    calificacion_existente.callid = call_id_verloop
                     # No actualizamos agente ni fecha para preservar el histórico
                     calificacion_existente.save()
                     calificacion = calificacion_existente
@@ -482,18 +590,14 @@ class VerloopWebhookView(APIView):
                 }
 
                 calificacion_nombre_voicebot = _calificacion_nombre_voicebot()
-                if call_id_verloop and opcion_calificacion.nombre == calificacion_nombre_voicebot:
+                if opcion_calificacion.nombre == calificacion_nombre_voicebot:
                     self._publicar_voicebot_transfer_proceed(call_id_verloop)
-                elif call_id_verloop:
+                else:
                     logger.info(
                         'Verloop: disposition "%s" (id=%s) no es %s, no se envía '
                         'voicebot_transfer_proceed',
                         opcion_calificacion.nombre, opcion_calificacion.id,
                         calificacion_nombre_voicebot,
-                    )
-                else:
-                    logger.warning(
-                        'Verloop: sin call_id en request, no se envía voicebot_transfer_proceed'
                     )
 
                 return Response(
