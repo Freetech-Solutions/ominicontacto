@@ -230,3 +230,8 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", False) == "True"
 # Configuración para webhook de Verloop
 # Nota: La calificación "Gestion Bot" se crea automáticamente cuando es necesaria
 # No se requiere configuración adicional
+
+# Activación on-demand del debug de payload para el webhook de Verloop.
+# Cuando VERLOOP_DEBUG_PAYLOAD=True el view loggea (a nivel INFO) el body
+# JSON recibido y los headers (Authorization enmascarado).
+VERLOOP_DEBUG_PAYLOAD = os.getenv('VERLOOP_DEBUG_PAYLOAD', 'False') == 'True'

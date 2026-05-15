@@ -219,7 +219,13 @@ class VerloopWebhookView(APIView):
             getattr(request.user, 'username', 'anonymous'),
             request.META.get('REMOTE_ADDR', 'unknown'),
         )
-        if logger.isEnabledFor(logging.DEBUG):
+        debug_payload = bool(getattr(settings, 'VERLOOP_DEBUG_PAYLOAD', False))
+        if debug_payload:
+            logger.info(
+                'Verloop DEBUG headers=%s',
+                _sanitize_headers_for_log(request.headers),
+            )
+        elif logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 'Verloop webhook headers=%s',
                 _sanitize_headers_for_log(request.headers),
@@ -253,7 +259,15 @@ class VerloopWebhookView(APIView):
                 logger.warning('Verloop: request body is not a dict, got %s', type(body_data))
                 body_data = {}
 
-            if logger.isEnabledFor(logging.DEBUG):
+            if debug_payload:
+                try:
+                    body_dump = json.dumps(
+                        body_data, indent=2, ensure_ascii=False, default=str,
+                    )
+                except (TypeError, ValueError):
+                    body_dump = repr(body_data)
+                logger.info('Verloop DEBUG body completo:\n%s', body_dump)
+            elif logger.isEnabledFor(logging.DEBUG):
                 logger.debug('Verloop body keys: %s', list(body_data.keys()))
 
             call_summary = self._extract_call_summary(body_data)

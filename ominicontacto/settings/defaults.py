@@ -457,6 +457,14 @@ Si no se define o el username no corresponde a un agente activo, se cae al
 comportamiento anterior: primer agente de la campaña → primer agente activo
 del sistema."""
 
+VERLOOP_DEBUG_PAYLOAD = False
+"""Cuando es True, el webhook de Verloop emite logs INFO con el body JSON
+completo recibido y los headers (Authorization enmascarado). Útil para
+troubleshooting puntual; dejar en False en producción para evitar volcar
+información sensible y/o ruidosa en los logs.
+
+Se puede activar desde el entorno con la variable VERLOOP_DEBUG_PAYLOAD=True."""
+
 ALLOW_FEEDBACK = False
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'
