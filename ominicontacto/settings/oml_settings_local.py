@@ -176,6 +176,15 @@ LOGGING = {
             'level': LOG_LEVEL,
             'propagate': False,
         },
+        # Necesario para que se vean los logs INFO de los views/servicios de
+        # api_app (por ejemplo, el dump de payload del webhook de Verloop
+        # cuando VERLOOP_DEBUG_PAYLOAD=True). Sin este bloque caen al
+        # lastResort de Python, que solo deja pasar WARNING+ y descarta los INFO.
+        'api_app': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
     },
 }
 
