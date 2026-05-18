@@ -1,36 +1,55 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
 variables:
   IMAGE_VERSION: ""
 
 stages:
-  #- test
+  - test
   - build
 
-# test:
-#   stage: test
-#   image: freetechsolutions/python-flake8:250213.01
-#   services:
-#     - name: freetechsolutions/omlpgsql:develop
-#       alias: plpython
-#     - redis
-#   before_script:
-#     - mkdir -p /opt/omnileads/ominicontacto/
-#     - mkdir -p /opt/omnileads/static
-#     - mkdir -p /opt/omnileads/media_root
-#     - rm -f "${CI_PROJECT_DIR}"/omnileads_ui/.eslintrc.js || true
-#   variables:
-#     POSTGRES_DB: omnileads
-#     POSTGRES_USER: omnileads
-#     POSTGRES_PASSWORD: omnileadsrw
-#     DATABASE_URL: "postgresql://postgres:postgres@postgres:5432/$POSTGRES_DB"
-#     DJANGO_SETTINGS_MODULE: "ominicontacto.settings.gitlab"
-#   script:
-#     - bash check-js.sh
-#     - flake8
-#     - python manage.py test --failfast
-#     - python manage.py compilemessages
-#   rules:
-#     - if: '$CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
-#     - if: '$RUN_TEST == "true"'
+.test-rules: &test-rules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+
+test:django:
+  stage: test
+  image: docker:27.5.1-alpine3.21
+  services:
+    - docker:27.5.1-dind-alpine3.21
+  before_script:
+    - apk add --no-cache docker-cli-compose docker-cli-buildx git
+  script:
+    - >-
+      docker compose -f docker-compose.test.ci.yml
+      run --rm django-test
+  after_script:
+    - docker compose -f docker-compose.test.ci.yml down -v --remove-orphans || true
+  <<: *test-rules
+
+test:flake8:
+  stage: test
+  image: python:3.12-slim-trixie
+  before_script:
+    - pip install --no-cache-dir flake8
+  script:
+    - flake8
+  <<: *test-rules
+
+test:eslint:
+  stage: test
+  image: node:18-slim
+  variables:
+    GIT_DEPTH: "0"
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends git ca-certificates
+    - rm -rf /var/lib/apt/lists/*
+    - npm install -g eslint@8
+  script:
+    - git fetch --no-tags origin "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}:refs/remotes/origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" || true
+    - bash check-js.sh
+  <<: *test-rules
 
 container-image:
   services:
