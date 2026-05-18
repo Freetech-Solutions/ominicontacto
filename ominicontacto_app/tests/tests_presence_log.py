@@ -93,6 +93,24 @@ class PresenceLogTests(OMLBaseTest):
         self.manager.login(self.agente)
         self.assertEqual(AgentActivityEventV2.objects.count(), count_before)
 
+    @patch('ominicontacto_app.services.agent.presence.create_redis_connection')
+    def test_login_persisted_when_v2_closed_but_redis_ready(self, mock_redis):
+        """Tras SESS_EXPIRED en V2, Redis puede quedar READY; LOGIN debe reabrir V2."""
+        mock_redis.return_value = self._redis_mock(status='READY')
+        AgentActivityEventV2.objects.create(
+            agente_id=self.agente.id,
+            ts=timezone.now(),
+            event_type=AgentActivityEventV2.EventType.SESSION_LOGOUT,
+            source=SOURCE_SESSION_EXPIRED,
+            metadata={'reason': 'session_expired'},
+        )
+        count_before = AgentActivityEventV2.objects.count()
+        self.manager.login(self.agente)
+        self.assertEqual(AgentActivityEventV2.objects.count(), count_before + 1)
+        last_event = AgentActivityEventV2.objects.order_by('-id').first()
+        self.assertEqual(last_event.event_type, AgentActivityEventV2.EventType.SESSION_LOGIN)
+        self.assertFalse(self.manager.should_redirect_by_closed_presence(self.agente.id))
+
     def test_logout_duplicate_second_suppressed(self):
         # LOGOUT idempotency uses last event in V2; first logout persists, second is suppressed.
         count_before = AgentActivityEventV2.objects.count()

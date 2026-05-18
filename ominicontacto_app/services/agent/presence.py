@@ -48,7 +48,9 @@ class AgentPresenceManager(object):
     Clase que se encarga de manejar los eventos relativos a la presencia y el
     estado del agente.
     Idempotencia:
-    - SESSION_LOGIN: Redis (agente ya online/logged-in => no insertar) + cooldown
+    - SESSION_LOGIN: si V2 tiene presencia cerrada (último SESSION_LOGOUT), siempre
+      insertar aunque Redis indique online (evita desincronización tras SESS_EXPIRED).
+      Si V2 está abierta: Redis (agente ya online/logged-in => no insertar) + cooldown
       configurable (PRESENCE_LOG_RECONNECT_COOLDOWN_MS) para evitar login/logout/login
       en milisegundos. Redis puede actualizarse después del login en algunos flujos.
     - SESSION_LOGOUT: solo Postgres (no Redis). El flujo llama primero a logout_agent()
@@ -170,6 +172,10 @@ class AgentPresenceManager(object):
             return True
 
         if event == ActividadAgenteLog.SESSION_LOGIN:
+            # La consola usa V2 como fuente de verdad; no omitir LOGIN si V2 está cerrada
+            # aunque Redis conserve STATUS stale (p. ej. tras close_presence_session_v2).
+            if not self.is_presence_open_v2(agente.id):
+                return True
             try:
                 redis_conn = create_redis_connection()
                 status = redis_conn.hget(AGENT_STATUS_KEY_TEMPLATE.format(agente.id), 'STATUS')
