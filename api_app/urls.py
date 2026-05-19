@@ -161,6 +161,7 @@ from api_app.views.transfer import (
     TransferConsultStartView, TransferConsultCompleteView, TransferConsultCancelView
 )
 from api_app.views.verloop import VerloopWebhookView
+from api_app.views.voicebot import VoicebotWebhookView
 
 
 router = routers.DefaultRouter()
@@ -817,4 +818,8 @@ urlpatterns = [
     # ###########  VERLOOP WEBHOOK    ############ #
     path('api/v1/webhook/verloop/',
          VerloopWebhookView.as_view(), name='api_verloop_webhook'),
+
+    # ###########  VOICEBOT WEBHOOK (genérico SIP)    ############ #
+    path('api/v1/webhook/voicebot/',
+         VoicebotWebhookView.as_view(), name='api_voicebot_webhook'),
 ]

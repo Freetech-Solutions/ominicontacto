@@ -244,3 +244,6 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", False) == "True"
 # Cuando VERLOOP_DEBUG_PAYLOAD=True el view loggea (a nivel INFO) el body
 # JSON recibido y los headers (Authorization enmascarado).
 VERLOOP_DEBUG_PAYLOAD = os.getenv('VERLOOP_DEBUG_PAYLOAD', 'False') == 'True'
+
+# Activación on-demand del debug de payload para el webhook genérico de voicebot.
+VOICEBOT_DEBUG_PAYLOAD = os.getenv('VOICEBOT_DEBUG_PAYLOAD', 'False') == 'True'

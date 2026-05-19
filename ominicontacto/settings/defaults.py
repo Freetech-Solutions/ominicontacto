@@ -465,6 +465,29 @@ información sensible y/o ruidosa en los logs.
 
 Se puede activar desde el entorno con la variable VERLOOP_DEBUG_PAYLOAD=True."""
 
+VOICEBOT_CALIFICACION_NOMBRE = 'GESTION_BOT'
+"""Nombre de la OpcionCalificacion que el webhook genérico de voicebot interpreta como
+"fin de gestión del voicebot". Cuando la calificación aplicada al contacto
+coincide con este valor (y el request trae call_id), la vista publica el
+comando voicebot_transfer_proceed en Redis para que el ACD continúe la
+transferencia que quedó pendiente tras el REFER del bot."""
+
+VOICEBOT_BOT_AGENT_USERNAME = None
+"""Username del AgenteProfile a asociar a las calificaciones creadas por el
+webhook genérico de voicebot cuando el usuario autenticado no es un agente.
+
+Si no se define o el username no corresponde a un agente activo, se cae al
+comportamiento anterior: primer agente de la campaña → primer agente activo
+del sistema."""
+
+VOICEBOT_DEBUG_PAYLOAD = False
+"""Cuando es True, el webhook genérico de voicebot emite logs INFO con el body JSON
+completo recibido y los headers (Authorization enmascarado). Útil para
+troubleshooting puntual; dejar en False en producción para evitar volcar
+información sensible y/o ruidosa en los logs.
+
+Se puede activar desde el entorno con la variable VOICEBOT_DEBUG_PAYLOAD=True."""
+
 ALLOW_FEEDBACK = False
 
 CONSTANCE_BACKEND = 'constance.backends.database.DatabaseBackend'

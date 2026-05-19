@@ -1,0 +1,41 @@
+# Docker Compose para ejecutar tests de Django en GitLab CI (Docker-in-Docker).
+# Diferencias respecto a docker-compose.test.yml:
+#   - No usa bind mount del código fuente: en DinD el filesystem del runner no es
+#     visible para el daemon Docker, así que el código se toma de la imagen.
+#   - Corre como el usuario `omnileads` (default del Dockerfile), no como root.
+# Uso (desde el directorio del proyecto django):
+#   docker compose -f docker-compose.test.ci.yml run --rm django-test
+
+services:
+  postgres:
+    image: postgres:18-trixie
+    environment:
+      POSTGRES_USER: omnileads
+      POSTGRES_PASSWORD: omnileads
+      POSTGRES_DB: omnileads
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omnileads"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  redis:
+    image: redis:7-alpine
+
+  django-test:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: run
+    image: omnileads-django-test:ci
+    working_dir: /opt/omnileads/ominicontacto
+    environment:
+      PGHOST: postgres
+      PGPASSWORD: omnileads
+      DEFENDER_REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: ["python", "manage.py", "test", "--settings=ominicontacto.settings.tests_docker"]
