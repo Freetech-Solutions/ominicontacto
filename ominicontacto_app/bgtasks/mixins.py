@@ -15,7 +15,7 @@ from ominicontacto_app.models import AgenteProfile
 from ominicontacto_app.models import Campana
 from ominicontacto_app.models import OpcionCalificacion
 from ominicontacto_app.models import CalificacionCliente
-from reportes_app.models import InteractionsSummary, SpeechAnalysis
+from reportes_app.models import InteractionsSummary, LlamadaLog, SpeechAnalysis
 from ominicontacto_app.utiles import convert_fecha_datetime
 from channels.db import database_sync_to_async
 

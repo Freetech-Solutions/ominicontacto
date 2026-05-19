@@ -19,7 +19,6 @@ from orquestador_app.core.whatsapp.send_message import _apply_interactive_menu_t
 from whatsapp_app.models import ConversacionWhatsapp, MensajeWhatsapp, OpcionMenuInteractivoWhatsapp
 from whatsapp_app.tests.factories import (
     ConversacionFactory,
-    DestinoEntranteFactory,
     LineaFactory,
     MenuInteractivoFactory,
 )
@@ -45,7 +44,7 @@ class WhatsAppConversationStateTest(TestCase):
 
     def test_interactive_menu_timeout_updates_conversation_expire(self):
         menu = MenuInteractivoFactory(timeout=180)
-        destino_menu = DestinoEntranteFactory(content_object=menu)
+        destino_menu = DestinoEntrante.crear_nodo_ruta_entrante(menu)
         line = LineaFactory(destino=destino_menu)
         conversation = ConversacionFactory(
             line=line,
@@ -63,7 +62,7 @@ class WhatsAppConversationStateTest(TestCase):
 
     def test_interactive_menu_timeout_is_not_refreshed_once_menu_was_sent(self):
         menu = MenuInteractivoFactory(timeout=180)
-        destino_menu = DestinoEntranteFactory(content_object=menu)
+        destino_menu = DestinoEntrante.crear_nodo_ruta_entrante(menu)
         line = LineaFactory(destino=destino_menu)
         expire = make_aware(datetime.datetime(2026, 4, 14, 22, 3, 0))
         conversation = ConversacionFactory(
@@ -91,7 +90,7 @@ class WhatsAppConversationStateTest(TestCase):
     def test_unattended_menu_conversation_does_not_extend_expire_on_new_text(
             self, autoreponse_destino_interactivo):
         menu = MenuInteractivoFactory(timeout=180)
-        destino_menu = DestinoEntranteFactory(content_object=menu)
+        destino_menu = DestinoEntrante.crear_nodo_ruta_entrante(menu)
         line = LineaFactory(destino=destino_menu)
         expire = make_aware(datetime.datetime(2026, 4, 14, 22, 3, 0))
         conversation = ConversacionWhatsapp.objects.create(
@@ -288,8 +287,8 @@ class WhatsAppConversationStateTest(TestCase):
     def test_assigning_menu_reply_to_campaign_marks_conversation_attended(self):
         campana = CampanaFactory()
         menu = MenuInteractivoFactory(texto_derivacion='')
-        destino_menu = DestinoEntranteFactory(content_object=menu)
-        destino_campana = DestinoEntranteFactory(content_object=campana)
+        destino_menu = DestinoEntrante.crear_nodo_ruta_entrante(menu)
+        destino_campana = DestinoEntrante.crear_nodo_ruta_entrante(campana)
         opcion = OpcionDestino.crear_opcion_destino(destino_menu, destino_campana, 'Laboratorio')
         OpcionMenuInteractivoWhatsapp.objects.create(
             opcion=opcion,

@@ -71,6 +71,18 @@ class Command(BaseCommand):
         OpcionCalificacionFactory(
             nombre=settings.CALIFICACION_REAGENDA, campana=campana, tipo=OpcionCalificacion.AGENDA,
             formulario=None)
+        # calificaciones de bot/voicebot (usan NombreCalificacion del menú Calificación)
+        OpcionCalificacionFactory(
+            nombre=self.gestion_bot.nombre, campana=campana, tipo=OpcionCalificacion.GESTION)
+        OpcionCalificacionFactory(
+            nombre=self.contestador_bot.nombre, campana=campana,
+            tipo=OpcionCalificacion.NO_ACCION, formulario=None)
+        OpcionCalificacionFactory(
+            nombre=self.abandon_bot.nombre, campana=campana,
+            tipo=OpcionCalificacion.NO_ACCION, formulario=None)
+        OpcionCalificacionFactory(
+            nombre=self.schedule_call_bot.nombre, campana=campana,
+            tipo=OpcionCalificacion.AGENDA, formulario=None)
 
     def _crear_campana_manual(self, nombre_campana, es_template=False):
         estado = Campana.ESTADO_TEMPLATE_ACTIVO if es_template else Campana.ESTADO_ACTIVA
@@ -221,7 +233,7 @@ class Command(BaseCommand):
         cantidad = max(2, cantidad)
         agentes_creados = []
         for i in range(0, cantidad):
-            username = f'ag{i + 1}'
+            username = f'ag{i+1}'
             agente = self._crear_agente(grupo, username, PASSWORD)
             agentes_creados.append(agente)
 
@@ -285,7 +297,7 @@ class Command(BaseCommand):
 
     def _crear_supervisores(self, cantidad):
         for i in range(0, cantidad):
-            username = f'ftsup{i + 1}'
+            username = f'ftsup{i+1}'
             self._crear_supervisor(username)
 
     def _crear_supervisor(self, username):

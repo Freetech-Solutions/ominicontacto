@@ -10,6 +10,10 @@ DEFENDER_REDIS_URL = os.environ.get('DEFENDER_REDIS_URL', 'redis://redis:6379/0'
 
 from .tests import *  # noqa: F401, F403
 
+# Redis en Docker se expone con el nombre del servicio del compose.
+REDIS_HOSTNAME = os.environ.get('REDIS_HOSTNAME', 'redis')
+CONSTANCE_REDIS_CONNECTION['host'] = REDIS_HOSTNAME
+
 # Postgres en Docker exige contraseña
 _DB_PASSWORD = os.environ.get('PGPASSWORD', 'omnileads')
 DATABASES['default']['PASSWORD'] = _DB_PASSWORD
