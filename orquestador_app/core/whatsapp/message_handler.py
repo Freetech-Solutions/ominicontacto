@@ -92,8 +92,8 @@ async def handle_gupshup_message(line: Line, event: dict):
 async def handle_meta_messages(line: Line, event: dict):
     try:
         if event.get("object") != "whatsapp_business_account":
-            logger.error("Not whatsapp_business_account by line:", line.id)
-            logger.error("Event:", event)
+            logger.error("Not whatsapp_business_account by line: %s", line.id)
+            logger.error("Event: %s", event)
         value_object = event["entry"][0]["changes"][0]["value"]
         if "statuses" in value_object:
             status_object = value_object["statuses"][0]

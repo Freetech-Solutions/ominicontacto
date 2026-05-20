@@ -177,9 +177,6 @@ class AmiManagerClient(AMIManagerConnector):
         content[2] = val
         return self._ami_action('dbput', content)
 
-    def dbget(self, family, key):
-        return self.dbget(family, key)
-
     # TODO: Ver de donde sacar la key para enviar al manager
     def dbdeltree(self, family, key):
         return self.manager.dbdeltree(family, key)

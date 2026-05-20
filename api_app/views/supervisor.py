@@ -775,7 +775,7 @@ class ExportarCSVCalificacionesCampana(ExportarCSVMixin, APIView):
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post', ]
 
-    def generar_csv_calificaciones(sself, key_task, campana, desde, hasta):
+    def generar_csv_calificaciones(self, key_task, campana, desde, hasta):
         reporte_calificados_csv = ReporteCalificacionesCampanaCSV(
             campana, key_task, desde, hasta)
         datos_calificados = reporte_calificados_csv.datos
@@ -822,7 +822,7 @@ class ExportarCSVFormularioGestionCampana(ExportarCSVMixin, APIView):
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post', ]
 
-    def generar_csv_gestion(sself, key_task, campana, desde, hasta):
+    def generar_csv_gestion(self, key_task, campana, desde, hasta):
         reporte_gestion_csv = ReporteFormularioGestionCampanaCSV(
             campana, key_task, desde, hasta)
         datos_formulario_gestion = reporte_gestion_csv.datos

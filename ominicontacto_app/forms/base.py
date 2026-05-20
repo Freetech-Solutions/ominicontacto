@@ -824,7 +824,7 @@ class CampanaMixinForm(object):
         (Campana.FORMULARIO_Y_SITIO_EXTERNO, Campana.TIPO_FORMULARIO_Y_SITIO_EXTERNO)
     )
     INTERACCION_SITIO_EXTERNO = (
-        (Campana.SITIO_EXTERNO, Campana.TIPO_SITIO_EXTERNO_DISPLAY),
+        (Campana.TIPO_SITIO_EXTERNO, Campana.TIPO_SITIO_EXTERNO_DISPLAY),
     )
 
     ERROR_WHATSAPP_DESTINO = _("Debe mantener la canalidad Whatsapp habilitada ya que la "
@@ -837,7 +837,7 @@ class CampanaMixinForm(object):
             self.fields['bd_contacto'].queryset = BaseDatosContacto.objects.obtener_definidas()
         instance = getattr(self, 'instance', None)
         if instance.pk is not None:
-            if instance.tipo_interaccion == Campana.SITIO_EXTERNO:
+            if instance.tipo_interaccion == Campana.TIPO_SITIO_EXTERNO:
                 self.fields['tipo_interaccion'].disabled = True
                 self.fields['tipo_interaccion'].required = False
                 self.fields['tipo_interaccion'].choices = self.INTERACCION_SITIO_EXTERNO
@@ -863,7 +863,7 @@ class CampanaMixinForm(object):
             self.add_error('bd_contacto', message)
             raise forms.ValidationError(message, code='invalid')
         if self.cleaned_data.get('tipo_interaccion') in \
-            [Campana.SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO] and \
+            [Campana.TIPO_SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO] and \
                 not self.cleaned_data.get('sitio_externo'):
             message = _("Debe seleccionar un sitio externo")
             raise forms.ValidationError(message, code='invalid')
@@ -1300,42 +1300,6 @@ class ReporteForm(forms.Form):
     resultado_auditoria = forms.ChoiceField(
         label=_('Auditoria'), widget=forms.Select(attrs={'class': 'form-control'}),
         choices=((TODOS_RESULTADOS, _('Todas')), ) + AuditoriaCalificacion.RESULTADO_CHOICES)
-
-
-class FormularioCRMForm(forms.Form):
-
-    def __init__(self, campos, *args, **kwargs):
-        super(FormularioCRMForm, self).__init__(*args, **kwargs)
-
-        for campo in campos:
-            if campo.tipo is FieldFormulario.TIPO_TEXTO:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.TextInput(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_FECHA:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.TextInput(
-                        attrs={'class': 'class-fecha form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_LISTA:
-                choices = [(option, option)
-                           for option in json.loads(campo.values_select)]
-                self.fields[campo.nombre_campo] = forms.ChoiceField(
-                    choices=choices,
-                    label=campo.nombre_campo, widget=forms.Select(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_TEXTO_AREA:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.Textarea(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_NUMERO:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.TextInput(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
 
 
 class SincronizaDialerForm(forms.Form):

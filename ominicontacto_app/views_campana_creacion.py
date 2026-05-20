@@ -184,7 +184,7 @@ class CampanaTemplateDeleteMixin(object):
 def mostrar_form_parametros_crm_form(wizard):
     cleaned_data = wizard.get_cleaned_data_for_step(CampanaWizardMixin.INICIAL) or {}
     interaccion = cleaned_data.get('tipo_interaccion', '')
-    return interaccion in [Campana.SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO]
+    return interaccion in [Campana.TIPO_SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO]
 
 
 def mostrar_form_configuracion_whatsapp_form(wizard):
@@ -344,7 +344,7 @@ class CampanaWizardMixin(object):
             cleaned_data_step_initial = self.get_cleaned_data_for_step(self.INICIAL)
             tipo_interaccion = cleaned_data_step_initial['tipo_interaccion']
             context['interaccion_crm'] = tipo_interaccion in \
-                [Campana.SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO]
+                [Campana.TIPO_SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO]
             context['whatsapp_habilitado'] = cleaned_data_step_initial['whatsapp_habilitado']
             context['meta_facebook_habilitado'] =\
                 cleaned_data_step_initial['meta_facebook_habilitado']

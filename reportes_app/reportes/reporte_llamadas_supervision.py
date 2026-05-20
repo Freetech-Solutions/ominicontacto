@@ -268,7 +268,8 @@ class ReporteDeLLamadasDialerDeSupervision(ReporteDeLlamadasDeSupervision):
         self._contabilizar_llamadas_pendientes()
         self._contabilizar_llamadas_en_curso()
 
-    def _obtener_campanas(self):
+    def _obtener_campanas(self, user_supervisor=None):
+        """ No distingue campañas por usuario supervisor """
         return Campana.objects \
             .obtener_actuales() \
             .filter(type=Campana.TYPE_DIALER) \
@@ -340,7 +341,7 @@ class ReporteLlamadasDialersFamily(AbstractRedisFamily):
         }
         return dict_reporte
 
-    def _create_family(self, campana_id, datos_reporte):
+    def _create_campana_family(self, campana_id, datos_reporte):
         redis_connection = self.get_redis_connection()
         family = self._get_nombre_family(campana_id)
         variables = self._create_dict(datos_reporte)
@@ -360,7 +361,7 @@ class ReporteLlamadasDialersFamily(AbstractRedisFamily):
             modelos = self._obtener_todos()
         for familia_member in modelos:
             campana_id = familia_member[0]
-            self._create_family(campana_id, familia_member[1])
+            self._create_campana_family(campana_id, familia_member[1])
 
     def _obtener_todos(self):
         reporte = ReporteDeLLamadasDialerDeSupervision()
@@ -395,8 +396,6 @@ class ReporteLlamadasDialersFamily(AbstractRedisFamily):
         self._delete_tree_family()
         self._create_families()
 
-    # def regenerar_family(self, campana):
-    # Necesitaria correr el reporte para regenerarla
-    #     """regenera una family"""
-    #     self.delete_family(campana.id)
-    #     self._create_family(campana.id)
+    def regenerar_family(self, family_member):
+        """Se deshabilita pues necesitaria correr el reporte para regenerarla"""
+        raise NotImplementedError()

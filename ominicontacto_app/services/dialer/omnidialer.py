@@ -56,7 +56,9 @@ class OmnidialerService(AbstractPhoneDialerService):
     def _request(self, url, data=None):
         full_url = urljoin(f'http://{settings.DIALER_HOSTNAME}', url)
         try:
-            result = requests.post(full_url, json=data, verify=False)
+            # We disable SSL verification because dialer host is ours and in
+            # the same network, so it is not a security concern.
+            result = requests.post(full_url, json=data, verify=False)  # NOSONAR
             if result.status_code == 200:
                 return result.json()
             else:

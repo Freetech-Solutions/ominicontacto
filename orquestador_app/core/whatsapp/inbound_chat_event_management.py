@@ -135,7 +135,8 @@ async def inbound_chat_event(line, timestamp, message_id, origen, content, sende
 def s2a_inbound_chat_event(line, timestamp, message_id, origen, content, sender, context, type):
     notifications = []
     try:
-        logger.debug("entrante por la linea=%r content=%r", line.nombre, content, context, type)
+        logger.debug("entrante por la linea=%r content=%r context=%r type=%r",
+                     line.nombre, content, context, type)
         is_out_of_time_chat = is_out_of_time(line, timestamp)
         if context and type in ['reply_text', 'reply_image', 'reply_video',
                                 'reply_document', 'list_reply', 'button_reply', 'button']:

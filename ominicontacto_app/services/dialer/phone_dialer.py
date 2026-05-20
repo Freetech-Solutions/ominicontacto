@@ -42,7 +42,7 @@ class AbstractPhoneDialerService(object):
     def agendar_llamada(self, campana, agenda):
         raise NotImplementedError()
 
-    def notificar_incidencia_por_calificacion(self, dialer_call_id=None, contact_id=None):
+    def notificar_incidencia_por_calificacion(self, regla, dialer_call_id=None, contact_id=None):
         """
         Notifica que se califico una llamada con una opcion con regla de incidencia
         Setea el extStatus correspondiente a la opcion elegida en la llamada de Wombat

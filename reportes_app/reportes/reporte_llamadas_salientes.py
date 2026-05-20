@@ -131,7 +131,7 @@ class ReporteLlamadasSalienteFamily(AbstractRedisFamily):
         }
         return dict_saliente
 
-    def _create_family(self, campana_id, datos_saliente):
+    def _create_campana_family(self, campana_id, datos_saliente):
         redis_connection = self.get_redis_connection()
         family = self._get_nombre_family(campana_id)
         variables = self._create_dict(datos_saliente)
@@ -152,7 +152,7 @@ class ReporteLlamadasSalienteFamily(AbstractRedisFamily):
 
         for familia_member in modelos:
             campana_id = familia_member[0]
-            self._create_family(campana_id, familia_member[1])
+            self._create_campana_family(campana_id, familia_member[1])
 
     def _obtener_todos(self):
         reporte = ReporteDeLLamadasSalientesDeSupervision()
@@ -187,8 +187,6 @@ class ReporteLlamadasSalienteFamily(AbstractRedisFamily):
         self._delete_tree_family()
         self._create_families()
 
-    # def regenerar_family(self, campana):
-    # Necesitaria correr el reporte para regenerarla
-    #     """regenera una family"""
-    #     self.delete_family(campana.id)
-    #     self._create_family(campana.id)
+    def regenerar_family(self, family_member):
+        """Se deshabilita pues necesitaria correr el reporte para regenerarla"""
+        raise NotImplementedError()

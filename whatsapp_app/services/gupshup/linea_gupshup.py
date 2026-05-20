@@ -36,7 +36,7 @@ def get_partner_access_token(provider):
 
 
 def get_app_token(app_id, partner_token):
-    if app_id and 'partner_token':
+    if app_id and partner_token:
         headers = {"accept": "application/json", "Authorization": partner_token}
         response = requests.get(url=URL_APP_TOKEN.format(app_id), headers=headers)
         if response.status_code == 200:

@@ -260,7 +260,7 @@ class WombatReloader(object):
         """ Obtiene el estado de Wombat y actualiza el valor en Constance """
         state, uptime = self.service.get_dialer_state()
         if state is None:
-            logger.warning('Error al buscar estado de wombat: ', state)
+            logger.warning('Error al buscar estado de wombat: %s', state)
             return None, None, None
         if state == self.STATE_READY:
             config_constance.WOMBAT_DIALER_STATE = self.STATE_READY
@@ -271,7 +271,7 @@ class WombatReloader(object):
             self.save_update_datetime()
             return self.STATE_DOWN, state, uptime
         else:
-            logger.warning('Error al buscar estado de wombat: ', state)
+            logger.warning('Error al buscar estado de wombat: %s', state)
             return None, None, None
 
     def stop_dialer(self):

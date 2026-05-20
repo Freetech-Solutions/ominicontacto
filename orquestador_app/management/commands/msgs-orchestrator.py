@@ -178,7 +178,7 @@ class EventsProcessor(object):
                 await handle_meta_messages(line, payload)
         except Exception as exception:
             logger.error("handle_slave_streams_message %r %r", line.id, exception)
-            logger.error("Event:", event)
+            logger.error("Event: %r", event)
 
     async def handle_slave_streams_message_page(self, page: Page, event: dict):
         try:
@@ -192,7 +192,7 @@ class EventsProcessor(object):
             await facebook_messenger_handler_messages(page, payload)
         except Exception as exception:
             logger.error("handle_slave_streams_message_page %r %r", page.id, exception)
-            logger.error("Event:", event)
+            logger.error("Event: %r", event)
 
     @database_sync_to_async
     def _get_line(self, pk):
