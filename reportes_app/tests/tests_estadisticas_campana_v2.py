@@ -288,7 +288,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         )
         InteractionTransfers.objects.using('replica').create(
             interaction_id='transfer-origin-timeout',
-            destination_target='campana-destino',
+            destination_id=str(campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=campana_destino.pk,
             transfer_type='BLIND',
@@ -363,7 +363,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         )
         InteractionTransfers.objects.using('replica').create(
             interaction_id=answered.interaction_id,
-            destination_target='campana-destino',
+            destination_id=str(campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=campana_destino.pk,
             transfer_type='BLIND',
@@ -371,7 +371,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         )
         InteractionTransfers.objects.using('replica').create(
             interaction_id=abandoned.interaction_id,
-            destination_target='campana-destino',
+            destination_id=str(campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=campana_destino.pk,
             transfer_type='CONSULT',
@@ -379,7 +379,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         )
         InteractionTransfers.objects.using('replica').create(
             interaction_id='transfer-failed',
-            destination_target='campana-destino',
+            destination_id=str(campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=campana_destino.pk,
             transfer_type='BLIND',

@@ -6522,7 +6522,7 @@ def _interaction_transfer_to_dict(
 
     return {
         'id': transfer.id,
-        'destination_target': transfer.destination_target,
+        'destination_id': transfer.destination_id,
         'destination_type': transfer.destination_type,
         'transfer_type': transfer.transfer_type,
         'status': transfer.status,

@@ -125,7 +125,7 @@ function initTransferenciasModalBusquedaGrabacion() {
                         dur = '—';
                     }
                     var cells = [
-                        t.destination_target,
+                        t.destination_id,
                         t.destination_type,
                         t.transfer_type,
                         t.status,

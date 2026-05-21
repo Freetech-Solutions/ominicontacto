@@ -1479,7 +1479,7 @@ class InteractionTransfers(models.Model):
     )
     source_agent_id = models.IntegerField(null=True, blank=True)
     source_channel = models.CharField(max_length=128, null=True, blank=True)
-    destination_target = models.CharField(max_length=128)
+    destination_id = models.CharField(max_length=128)
     destination_type = models.CharField(max_length=32, null=True, blank=True)
     destination_agent_id = models.IntegerField(null=True, blank=True)
     destination_campaign_id = models.IntegerField(null=True, blank=True)

@@ -1025,7 +1025,7 @@ class CampaignAnsweringAgentFromSegmentsTest(SimpleTestCase):
     def test_interaction_transfer_to_dict_enriquece_etiqueta(self):
         t = MagicMock()
         t.id = 10
-        t.destination_target = 'campaign-3'
+        t.destination_id = '3'
         t.destination_type = 'CAMPAIGN'
         t.transfer_type = 'BLIND'
         t.status = 'OK'
@@ -1085,7 +1085,7 @@ class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
 
         t1 = MagicMock()
         t1.id = 10
-        t1.destination_target = 'cola-a'
+        t1.destination_id = 'cola-a'
         t1.destination_type = 'QUEUE'
         t1.transfer_type = 'BLIND'
         t1.status = 'COMPLETED'
@@ -1127,7 +1127,7 @@ class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
         data = response.json()
         self.assertEqual(len(data['transfers']), 1)
         row = data['transfers'][0]
-        self.assertEqual(row['destination_target'], 'cola-a')
+        self.assertEqual(row['destination_id'], 'cola-a')
         self.assertEqual(row['source_agent_label'], 'Agente Origen')
         self.assertEqual(row['destination_agent_label'], 'agente_dest')
         self.assertEqual(row['destination_campaign_label'], 'Campaña destino test')
@@ -1153,7 +1153,7 @@ class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
 
         t1 = MagicMock()
         t1.id = 10
-        t1.destination_target = 'campaign-3'
+        t1.destination_id = '3'
         t1.destination_type = 'CAMPAIGN'
         t1.transfer_type = 'BLIND'
         t1.status = 'OK'
@@ -1215,7 +1215,7 @@ class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
 
         t1 = MagicMock()
         t1.id = 11
-        t1.destination_target = 'agent-5'
+        t1.destination_id = '5'
         t1.destination_type = 'AGENT'
         t1.transfer_type = 'BLIND'
         t1.status = 'OK'
@@ -1267,7 +1267,7 @@ class InteractionTransfersPorLlamadaAPIViewTest(OMLBaseTest):
         self.assertEqual(response.status_code, 200)
         data = response.json()
         self.assertEqual(len(data['transfers']), 1)
-        self.assertEqual(data['transfers'][0]['destination_target'], 'agent-5')
+        self.assertEqual(data['transfers'][0]['destination_id'], '5')
 
     @patch('api_app.views.reports_centro_contacto.InteractionsSummary.objects')
     def test_get_interaccion_inexistente_devuelve_404(self, mock_summary_mgr):
@@ -1376,7 +1376,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         )
         InteractionTransfers.objects.create(
             interaction_id=iid,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1433,7 +1433,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         )
         InteractionTransfers.objects.create(
             interaction_id=iid,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1471,7 +1471,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         )
         InteractionTransfers.objects.create(
             interaction_id=iid,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1509,7 +1509,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         )
         InteractionTransfers.objects.create(
             interaction_id=iid,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1559,7 +1559,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         )
         InteractionTransfers.objects.create(
             interaction_id=iid,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1618,7 +1618,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         InteractionTransfers.objects.create(
             interaction_id=iid,
             source_agent_id=1,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1689,7 +1689,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         InteractionTransfers.objects.create(
             interaction_id=iid,
             source_agent_id=1,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1757,7 +1757,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         InteractionTransfers.objects.create(
             interaction_id=iid,
             source_agent_id=1,
-            destination_target='campaign-%s' % self.campana_destino.pk,
+            destination_id=str(self.campana_destino.pk),
             destination_type='CAMPAIGN',
             destination_campaign_id=self.campana_destino.pk,
             transfer_type='BLIND',
@@ -1804,7 +1804,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         )
         InteractionTransfers.objects.create(
             interaction_id=iid,
-            destination_target='agent-1',
+            destination_id='1',
             destination_type='AGENT',
             destination_agent_id=1,
             transfer_type='ATTENDED',
