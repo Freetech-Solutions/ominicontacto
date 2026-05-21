@@ -164,7 +164,7 @@ class VoicebotWebhookTest(OMLBaseTest):
         ))
         response_json = json.loads(response.content)
         self.assertEqual(response.status_code, 200)
-        self.assertIn('updated', response_json['message'].lower())
+        self.assertEqual(response_json['status'], 'SUCCESS')
 
         calificacion = CalificacionCliente.objects.get(
             contacto=self.contacto,
