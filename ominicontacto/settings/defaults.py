@@ -253,25 +253,26 @@ OML_DUMP_HTTP_AMI_RESPONSES = False
 
 OML_OMNILEADS_HOSTNAME = None
 OML_ASTERISK_REMOTEPATH = None
-OML_SIP_FILENAME = None
 
 # ==============================================================================
 # DEPRECATED: Los siguientes settings están deprecados y ya no se utilizan.
 # Se mantienen únicamente por compatibilidad hacia atrás con despliegues
 # antiguos. Estos archivos de configuración ya no se generan ni se envían
 # a través del stream Redis `asterisk_conf_updater`:
+# - `oml_pjsip_agents.conf` (endpoints SIP de agentes)
 # - `oml_queues.conf` (colas)
 # - `oml_extensions_outr.conf` (rutas salientes)
 #
-# La funcionalidad de colas y rutas salientes ahora se maneja mediante
-# otros mecanismos (por ejemplo, lógica del dialer/ACD).
+# La funcionalidad de agentes SIP, colas y rutas salientes ahora se maneja
+# mediante otros mecanismos (Kamailio, ARI/ACD, dialer).
 # ==============================================================================
+OML_SIP_FILENAME = None
 OML_QUEUES_FILENAME = None
 OML_RUTAS_SALIENTES_FILENAME = None
 """DEPRECATED: Path completo (absoluto) al archivo donde se generaba queues.
 
-Este setting está deprecado y ya no se utiliza. Los archivos `oml_queues.conf`
-y `oml_extensions_outr.conf` ya no se generan ni se distribuyen.
+Este setting está deprecado y ya no se utiliza. Los archivos `oml_pjsip_agents.conf`,
+`oml_queues.conf` y `oml_extensions_outr.conf` ya no se generan ni se distribuyen.
 
 Se mantiene únicamente por compatibilidad hacia atrás.
 

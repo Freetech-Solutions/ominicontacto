@@ -229,7 +229,13 @@ class SipConfigCreator(object):
                 config_chunk = generador_failed.generar_pedazo()
             sip.append(config_chunk)
 
-        self._sip_config_file.write(sip)
+        # A partir de OML-XXX dejamos de generar el archivo oml_pjsip_agents.conf.
+        # Se mantiene la generación en memoria para no romper lógica reutilizada,
+        # pero no se escribe archivo ni se publica vía Redis.
+        logger.info(
+            _("Se omite la escritura de oml_pjsip_agents.conf; "
+              "la configuración SIP de agentes ya no se genera como archivo.")
+        )
 
 
 class QueuesCreator(object):

@@ -84,15 +84,16 @@ class RegeneracionAsteriskService(object):
                   "se ignora porque oml_queues.conf ya no se genera como archivo.")
             )
 
+        # Nota: a partir de OML-XXX dejamos de generar el archivo oml_pjsip_agents.conf.
+        # Se mantiene la llamada para no romper la API, pero cualquier error en
+        # la generación del config SIP de agentes ya no debe considerarse crítico.
         try:
             self.sip_config_creator.create_config_sip()
         except Exception:
-            logger.exception(_("ActivacionAgenteService: error al "
-                               "intentar create_config_sip()"))
-
-            proceso_ok = False
-            mensaje_error += _('Hubo un inconveniente al crear el archivo de '
-                               'configuracion del config sip de {0}. '.format(config.ASTERISK_TM))
+            logger.exception(
+                _("ActivacionAgenteService: error al intentar create_config_sip(); "
+                  "se ignora porque oml_pjsip_agents.conf ya no se genera como archivo.")
+            )
 
         try:
             self.playlist_config_creator.create_config_asterisk()

@@ -125,20 +125,19 @@ MEDIA_ROOT = "{0}/media_root".format(INSTALL_PREFIX)
 # URL externas
 OML_WOMBAT_URL = "http://{0}:8080/wombat".format(DIALER_HOSTNAME)
 
-# Ubicaciones de archivos
-OML_SIP_FILENAME = "{0}/etc/asterisk/oml_pjsip_agents.conf".format(ASTERISK_LOCATION)
-
 # ==============================================================================
 # DEPRECATED: Los siguientes settings están deprecados y ya no se utilizan.
 # Se mantienen únicamente por compatibilidad hacia atrás con despliegues
 # antiguos. Estos archivos de configuración ya no se generan ni se envían
 # a través del stream Redis `asterisk_conf_updater`:
+# - `oml_pjsip_agents.conf` (endpoints SIP de agentes)
 # - `oml_queues.conf` (colas)
 # - `oml_extensions_outr.conf` (rutas salientes)
 #
-# La funcionalidad de colas y rutas salientes ahora se maneja mediante
-# otros mecanismos (por ejemplo, lógica del dialer/ACD).
+# La funcionalidad de agentes SIP, colas y rutas salientes ahora se maneja
+# mediante otros mecanismos (Kamailio, ARI/ACD, dialer).
 # ==============================================================================
+OML_SIP_FILENAME = "{0}/etc/asterisk/oml_pjsip_agents.conf".format(ASTERISK_LOCATION)
 OML_QUEUES_FILENAME = "{0}/etc/asterisk/oml_queues.conf".format(ASTERISK_LOCATION)
 OML_RUTAS_SALIENTES_FILENAME = "{0}/etc/asterisk/oml_extensions_outr.conf".format(ASTERISK_LOCATION)
 OML_ASTERISK_REMOTEPATH = "{0}/etc/asterisk/".format(ASTERISK_LOCATION)
