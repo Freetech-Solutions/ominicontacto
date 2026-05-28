@@ -216,8 +216,8 @@ OML_PLAYLIST_FOLDER = 'moh/'
 
 DURACION_ASIGNACION_CONTACTO_PREVIEW = 30
 
-CONSTANCE_CONFIG['KEYS_SERVER_HOST'] = ('https://keys-server.freetech.com.ar:20852',
-                                        'KEYS_SERVER_HOST', str)
+CONSTANCE_CONFIG['PRIMARY_KEYS_SERVER_HOST'] = ('trash',
+                                                'PRIMARY_KEYS_SERVER_HOST', str)
 
 MIDDLEWARE_PREPPEND = []
 MIDDLEWARE_APPEND = []
