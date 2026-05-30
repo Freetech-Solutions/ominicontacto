@@ -516,15 +516,25 @@ EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 
 X_FRAME_OPTIONS = 'SAMEORIGIN'
 
+def _env_int(name, default):
+    val = os.getenv(name)
+    if val is None or val == '':
+        return default
+    try:
+        return int(val)
+    except ValueError:
+        return default
+
+
 # Presence log: cooldown en ms para idempotencia de SESSION_LOGIN.
 # Si hay LOGOUT y dentro de esta ventana se intenta LOGIN, se considera reconexión
 # y no se persiste otro SESSION_LOGIN (evita flapping login/logout/login).
 # Ejemplo: 1000 = 1 segundo. Configurable por entorno.
-PRESENCE_LOG_RECONNECT_COOLDOWN_MS = 1500
+PRESENCE_LOG_RECONNECT_COOLDOWN_MS = _env_int('PRESENCE_LOG_RECONNECT_COOLDOWN_MS', 1500)
 
 # Presence heartbeat (console browser -> Redis/V2).
-PRESENCE_HEARTBEAT_INTERVAL_SEC = 15
-PRESENCE_HEARTBEAT_TIMEOUT_SEC = 60
-PRESENCE_HEARTBEAT_SWEEP_SEC = 15
-PRESENCE_HEARTBEAT_LOGOUT_RECENT_SEC = 90
-PRESENCE_HEARTBEAT_GUARD_TTL_SEC = 90
+PRESENCE_HEARTBEAT_INTERVAL_SEC = _env_int('PRESENCE_HEARTBEAT_INTERVAL_SEC', 15)
+PRESENCE_HEARTBEAT_TIMEOUT_SEC = _env_int('PRESENCE_HEARTBEAT_TIMEOUT_SEC', 60)
+PRESENCE_HEARTBEAT_SWEEP_SEC = _env_int('PRESENCE_HEARTBEAT_SWEEP_SEC', 15)
+PRESENCE_HEARTBEAT_LOGOUT_RECENT_SEC = _env_int('PRESENCE_HEARTBEAT_LOGOUT_RECENT_SEC', 90)
+PRESENCE_HEARTBEAT_GUARD_TTL_SEC = _env_int('PRESENCE_HEARTBEAT_GUARD_TTL_SEC', 90)
