@@ -63,8 +63,8 @@ ALLOWED_HOSTS = [
     "*",
 ]
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 's1+*bfrvb@=k@c&9=pm!0sijjewneu5p5rojil#q+!a2y&as-4'
+SECRET_KEY = os.getenv("SECRET_KEY", 's1+*bfrvb@=k@c&9=pm!0sijjewneu5p5rojil#q+!a2y&as-4')
+
 SIP_SECRET_KEY = 'SUp3rS3cr3tK3y'
 
 DATABASE_REPLICA_ENABLED = os.getenv("PGHOSTHA") == "True"
