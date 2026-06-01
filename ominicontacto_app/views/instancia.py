@@ -20,7 +20,6 @@
 """
 
 import logging
-import requests
 
 from constance import config as config_constance
 from django.contrib import messages
@@ -31,6 +30,7 @@ from django.views.generic import FormView, TemplateView
 
 from ominicontacto_app import version
 from ominicontacto_app.forms.base import RegistroForm
+from ominicontacto_app.services.key_server_request import KeyServerRequest
 
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ class RegistroFormView(FormView):
         return context
 
     def _create_credentials(self, form):
-        create_url = '{0}/retrieve_key/'.format(config_constance.KEYS_SERVER_HOST)
+        key_server_request = KeyServerRequest()
         try:
             client = form.cleaned_data['nombre']
             password = form.cleaned_data['password']
@@ -83,13 +83,16 @@ class RegistroFormView(FormView):
             return {'status': 'ERROR', 'msg': msg}
         post_data = {'client': client, 'password': password, 'email': email, 'phone': telefono}
         try:
-            result = requests.post(
-                create_url, json=post_data, verify=config_constance.SSL_CERT_FILE)
-        except requests.exceptions.RequestException as e:
-            msg = _('Error en el intento de conexion a: {0} debido {1}'.format(create_url, e))
+            result = key_server_request.post('/retrieve_key/', json=post_data)
+        except Exception as e:
+            msg = _('Error en el intento de conexion con el servidor de llaves '
+                    'debido {0}'.format(e))
             logger.error(msg)
             return {'status': 'ERROR', 'msg': msg}
-        return result.json()
+        try:
+            return result.json()
+        except ValueError:
+            return {'status': 'ERROR', 'msg': _('Error al parsear el resultado de la peticion')}
 
     def form_valid(self, form):
         result = self._create_credentials(form)
@@ -114,10 +117,10 @@ class AddonsInfoView(TemplateView):
     template_name = 'addons.html'
 
     def _obtener_datos_addons(self):
-        addons_info_url = '{0}/addons/info'.format(config_constance.KEYS_SERVER_HOST)
+        key_server_request = KeyServerRequest()
         try:
-            info_addons = requests.get(addons_info_url, verify=config_constance.SSL_CERT_FILE)
-        except requests.RequestException as e:
+            info_addons = key_server_request.get('/addons/info')
+        except Exception as e:
             logger.info(_("No se pudo acceder a la url debido a: {0}".format(e)))
             return []
         else:

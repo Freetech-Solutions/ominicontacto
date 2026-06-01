@@ -1436,7 +1436,11 @@ class Campana(models.Model):
         self.save()
 
     def _crear_agente_en_contacto(self, contacto, agente_id, campos_contacto, estado, orden):
-        datos_contacto = literal_eval(contacto.datos)
+        try:
+            # Intento con json.loads porque es mas rapido que literal_eval
+            datos_contacto = json.loads(contacto.datos)
+        except json.JSONDecodeError:
+            datos_contacto = literal_eval(contacto.datos)
         datos_contacto = dict(zip(campos_contacto, datos_contacto))
         datos_contacto_json = json.dumps(datos_contacto)
         agente_en_contacto = AgenteEnContacto(
@@ -1464,19 +1468,9 @@ class Campana(models.Model):
         agente_en_contacto_list = []
 
         orden = AgenteEnContacto.ultimo_id() + 1
-        if asignacion_proporcional and asignacion_aleatoria:
-            random.shuffle(campana_contactos)
-            agentes_campana = self.obtener_agentes()
-            n_agentes_campana = agentes_campana.count()
-            for agente, grupo_contactos in zip(agentes_campana,
-                                               dividir_lista(campana_contactos, n_agentes_campana)):
-                for contacto in grupo_contactos:
-                    agente_en_contacto = self._crear_agente_en_contacto(
-                        contacto, agente.pk, campos_contacto, AgenteEnContacto.ESTADO_INICIAL,
-                        orden=orden)
-                    orden += 1
-                    agente_en_contacto_list.append(agente_en_contacto)
-        elif asignacion_proporcional:
+        if asignacion_proporcional:
+            if asignacion_aleatoria:
+                random.shuffle(campana_contactos)
             agentes_campana = self.obtener_agentes()
             n_agentes_campana = agentes_campana.count()
             for agente, grupo_contactos in zip(agentes_campana,
@@ -2980,6 +2974,23 @@ class CalificacionClienteManager(models.Manager):
             annotate(total=Count('opcion_calificacion')).order_by('-total')
 
 
+class IndexedHistoricalRecords(HistoricalRecords):
+    def __init__(self, *args, extra_indexes=(), **kwargs):
+        self.extra_indexes = tuple(extra_indexes)
+        super().__init__(*args, **kwargs)
+
+    def get_meta_options(self, model):
+        meta = super().get_meta_options(model)
+        meta["indexes"] = list(meta.get("indexes", [])) + list(self.extra_indexes)
+        return meta
+
+    def deconstruct(self):
+        name, path, args, kwargs = super().deconstruct()
+        if self.extra_indexes:
+            kwargs["extra_indexes"] = self.extra_indexes
+        return name, path, args, kwargs
+
+
 class CalificacionCliente(TimeStampedModel, models.Model):
     CANALIDAD_TELEFONO = 0
     CANALIDAD_WHATSAPP = 1
@@ -3007,7 +3018,14 @@ class CalificacionCliente(TimeStampedModel, models.Model):
         choices=TYPE_CANALIDAD_CHOICES, default=CANALIDAD_TELEFONO)
     # Campo agregado para diferenciar entre CalificacionCliente y CalificacionManual
     es_calificacion_manual = models.BooleanField(default=False)
-    history = HistoricalRecords()
+    history = IndexedHistoricalRecords(
+        extra_indexes=(
+            models.Index(
+                fields=["modified"],
+                name="histcalifcli_hist_modified_idx",
+            ),
+        )
+    )
 
     class Meta:
         indexes = [
@@ -3132,7 +3150,14 @@ class RespuestaFormularioGestion(models.Model):
                                      on_delete=models.CASCADE)
     metadata = models.TextField()
     fecha = models.DateTimeField(auto_now_add=True)
-    history = HistoricalRecords()
+    history = IndexedHistoricalRecords(
+        extra_indexes=(
+            models.Index(
+                fields=["history_change_reason"],
+                name="histresp_hist_chg_reason_idx",
+            ),
+        )
+    )
 
     def __str__(self):
         return "Respuesta del Formulario para el contacto {0} de la campana{1} " \

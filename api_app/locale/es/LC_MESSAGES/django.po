@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-06 15:29-0300\n"
+"POT-Creation-Date: 2026-05-13 00:43-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -624,9 +624,9 @@ msgstr ""
 msgid "No tiene settings de conexion configurados"
 msgstr ""
 
-#: api_app/serializers/register_server.py:44 api_app/views/administrador.py:280
+#: api_app/serializers/register_server.py:44 api_app/views/administrador.py:278
 #, python-brace-format
-msgid "Error en el intento de conexion a: {0} debido {1}"
+msgid "Error en el intento de conexion con el servidor de llaves debido {0}"
 msgstr ""
 
 #: api_app/serializers/reportes.py:44
@@ -654,7 +654,7 @@ msgstr ""
 
 #: api_app/services/base_datos_contacto_service.py:53
 #: api_app/tests/tests_api_subir_base_contactos.py:208
-#: api_app/views/administrador.py:194
+#: api_app/views/administrador.py:193
 msgid "El archivo a procesar tiene nombres de columnas repetidos."
 msgstr ""
 
@@ -1079,35 +1079,35 @@ msgstr ""
 msgid "Se reactivo la pausa de forma exitosa"
 msgstr ""
 
-#: api_app/tests/tests_api_permisos.py:55 api_app/views/administrador.py:82
+#: api_app/tests/tests_api_permisos.py:55 api_app/views/administrador.py:81
 msgid "Ya existe un rol con ese nombre"
 msgstr ""
 
-#: api_app/tests/tests_api_permisos.py:65 api_app/views/administrador.py:77
+#: api_app/tests/tests_api_permisos.py:65 api_app/views/administrador.py:76
 msgid "Se esperaba el campo \"name\""
 msgstr ""
 
-#: api_app/tests/tests_api_permisos.py:97 api_app/views/administrador.py:107
+#: api_app/tests/tests_api_permisos.py:97 api_app/views/administrador.py:106
 msgid "Se esperaba el campo \"role_id\" (numérico)"
 msgstr ""
 
 #: api_app/tests/tests_api_permisos.py:104
 #: api_app/tests/tests_api_permisos.py:112
-#: api_app/tests/tests_api_permisos.py:172 api_app/views/administrador.py:114
-#: api_app/views/administrador.py:144
+#: api_app/tests/tests_api_permisos.py:172 api_app/views/administrador.py:113
+#: api_app/views/administrador.py:143
 msgid "Id de Rol incorrecto"
 msgstr ""
 
 #: api_app/tests/tests_api_permisos.py:121
-#: api_app/tests/tests_api_permisos.py:130 api_app/views/administrador.py:118
+#: api_app/tests/tests_api_permisos.py:130 api_app/views/administrador.py:117
 msgid "Se esperaba el campo \"permissions\" (lista)"
 msgstr ""
 
-#: api_app/tests/tests_api_permisos.py:140 api_app/views/administrador.py:123
+#: api_app/tests/tests_api_permisos.py:140 api_app/views/administrador.py:122
 msgid "Lista de permisos incorrecta"
 msgstr ""
 
-#: api_app/tests/tests_api_permisos.py:163 api_app/views/administrador.py:149
+#: api_app/tests/tests_api_permisos.py:163 api_app/views/administrador.py:148
 msgid "No se puede borrar un rol asignado a usuarios."
 msgstr ""
 
@@ -1122,46 +1122,46 @@ msgid "Se creo el registro al servidor de forma exitosa"
 msgstr ""
 
 #: api_app/tests/tests_api_subir_base_contactos.py:105
-#: api_app/views/administrador.py:191
+#: api_app/views/administrador.py:190
 msgid "falta parámetro filename en request"
 msgstr ""
 
 #: api_app/tests/tests_api_subir_base_contactos.py:117
 #: api_app/tests/tests_api_subir_base_contactos.py:129
-#: api_app/views/administrador.py:213
+#: api_app/views/administrador.py:212
 msgid "falta parámetro:"
 msgstr ""
 
 #: api_app/tests/tests_api_subir_base_contactos.py:142
-#: api_app/views/administrador.py:228
+#: api_app/views/administrador.py:227
 msgid "campo de teléfono no coincide con nombre de columna"
 msgstr ""
 
 #: api_app/tests/tests_api_subir_base_contactos.py:155
-#: api_app/views/administrador.py:236
+#: api_app/views/administrador.py:235
 msgid "campo de id externo no coincide con nombre de columna"
 msgstr ""
 
 #: api_app/tests/tests_api_subir_base_contactos.py:167
-#: api_app/views/administrador.py:188
+#: api_app/views/administrador.py:187
 msgid "la extensión del archivo no es .CSV"
 msgstr ""
 
 #: api_app/tests/tests_api_subir_base_contactos.py:181
-#: api_app/views/administrador.py:184
+#: api_app/views/administrador.py:183
 #, python-brace-format
 msgid "La longitud del nombre no debe exceder los {0} caracteres"
 msgstr ""
 
-#: api_app/views/administrador.py:201
+#: api_app/views/administrador.py:200
 msgid "no se pudo crear la base de datos de contacto"
 msgstr ""
 
-#: api_app/views/administrador.py:225
+#: api_app/views/administrador.py:224
 msgid "lista de campos teléfono vacia"
 msgstr ""
 
-#: api_app/views/administrador.py:285
+#: api_app/views/administrador.py:284
 msgid "Error en el servidor externo"
 msgstr ""
 
@@ -1298,11 +1298,11 @@ msgstr ""
 #: facebook_meta_app/api/v1/disposition.py:367
 #: facebook_meta_app/api/v1/disposition.py:445
 #: facebook_meta_app/api/v1/disposition.py:487
-#: facebook_meta_app/api/v1/page_configuration.py:400
-#: facebook_meta_app/api/v1/page_configuration.py:428
-#: facebook_meta_app/api/v1/page_configuration.py:452
-#: facebook_meta_app/api/v1/page_configuration.py:509
-#: facebook_meta_app/api/v1/page_configuration.py:515
+#: facebook_meta_app/api/v1/page_configuration.py:409
+#: facebook_meta_app/api/v1/page_configuration.py:437
+#: facebook_meta_app/api/v1/page_configuration.py:461
+#: facebook_meta_app/api/v1/page_configuration.py:518
+#: facebook_meta_app/api/v1/page_configuration.py:524
 #: facebook_meta_app/api/v1/templates_group.py:112
 #: facebook_meta_app/api/v1/templates_group.py:156
 #: facebook_meta_app/api/v1/templates_messenger.py:141
@@ -2316,47 +2316,47 @@ msgstr ""
 msgid "Valor incorrecto."
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:369
-#: facebook_meta_app/api/v1/page_configuration.py:388
+#: facebook_meta_app/api/v1/page_configuration.py:378
+#: facebook_meta_app/api/v1/page_configuration.py:397
 msgid "Se obtuvieron las páginas de forma exitosa"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:380
+#: facebook_meta_app/api/v1/page_configuration.py:389
 msgid "No se pudo obtener la página"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:381
-#: facebook_meta_app/api/v1/page_configuration.py:532
+#: facebook_meta_app/api/v1/page_configuration.py:390
+#: facebook_meta_app/api/v1/page_configuration.py:541
 msgid "No existe una página con este id"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:401
-#: facebook_meta_app/api/v1/page_configuration.py:453
+#: facebook_meta_app/api/v1/page_configuration.py:410
+#: facebook_meta_app/api/v1/page_configuration.py:462
 msgid "Este campo es requerido."
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:423
+#: facebook_meta_app/api/v1/page_configuration.py:432
 msgid "Se creó la página de forma exitosa"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:434
+#: facebook_meta_app/api/v1/page_configuration.py:443
 msgid "No se pudo crear la página"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:440
-#: facebook_meta_app/api/v1/page_configuration.py:521
+#: facebook_meta_app/api/v1/page_configuration.py:449
+#: facebook_meta_app/api/v1/page_configuration.py:530
 msgid "Error al crear la página >>>"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:503
+#: facebook_meta_app/api/v1/page_configuration.py:512
 msgid "Se creo la página de forma exitosa"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:531
+#: facebook_meta_app/api/v1/page_configuration.py:540
 msgid "No se pudo eliminar la página"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:540
+#: facebook_meta_app/api/v1/page_configuration.py:549
 msgid "Se elimino la página de forma exitosa"
 msgstr ""
 

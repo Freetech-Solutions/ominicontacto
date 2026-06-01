@@ -90,9 +90,12 @@ class LineaCreateSerializer(serializers.ModelSerializer):
         if proveedor.tipo_proveedor == ConfiguracionProveedor.TIPO_META:
             if 'app_id' not in configuracion\
                     or 'waba_id' not in configuracion\
-                    or 'verification_token' not in configuracion:
+                    or 'verification_token' not in configuracion\
+                    or 'app_secret' not in configuracion:
                 raise serializers.ValidationError({
-                    'configuration': _('Configuración incorrecta para el tipo de proveedor')})
+                    'configuration': _('Configuración incorrecta para el tipo de proveedor. '
+                                       'Se requiere app_id, waba_id, verification_token '
+                                       'y app_secret')})
             if Linea.objects.filter(configuracion__app_id=configuracion['app_id']).exists():
                 raise serializers.ValidationError({
                     'app_id': _('Ya existe una Linea con ese App ID')})
@@ -164,36 +167,68 @@ class DestinoDeLineaCreateSerializer(serializers.Serializer):
             self.create_menu_interactivo(validated_data)
         return validated_data
 
+    def _get_global_menu_timeout(self, list_menu_data, validated_data):
+        selected_id = validated_data.get('id_tmp')
+        main_timeout = None
+        for menu_data in list_menu_data:
+            is_selected_main = (
+                menu_data.get('is_main', False) or
+                (
+                    selected_id is not None and
+                    menu_data.get('id_tmp') == selected_id
+                )
+            )
+            if is_selected_main:
+                main_timeout = menu_data.get('timeout') or 0
+                if main_timeout:
+                    return main_timeout
+        for menu_data in list_menu_data:
+            timeout = menu_data.get('timeout') or 0
+            if timeout:
+                return timeout
+        return main_timeout or 0
+
     def create_menu_interactivo(self, validated_data):
         # Si es un menú interactivo debo crearlo:
         line = None
         if 'line' in self.context:
             line = self.context['line']
-        list_menu_data = validated_data['data']
+        list_menu_data = validated_data.get('data', [])
+        global_timeout = self._get_global_menu_timeout(list_menu_data, validated_data)
         destino_whith_options = []
+        first_destino = None
         for menu_data in list_menu_data:
-            menu = MenuInteractivoWhatsapp(menu_header=menu_data['menu_header'],
-                                           menu_body=menu_data['menu_body'],
-                                           menu_footer=menu_data['menu_footer']
-                                           if 'menu_footer' in menu_data else '',
-                                           menu_button=menu_data['menu_button'],
-                                           texto_opcion_incorrecta=menu_data['wrong_answer'],
-                                           texto_derivacion=menu_data['success'],
-                                           timeout=0,
+            menu = MenuInteractivoWhatsapp(menu_header=menu_data.get('menu_header', ''),
+                                           menu_body=menu_data.get('menu_body', ''),
+                                           menu_footer=menu_data.get('menu_footer', ''),
+                                           menu_button=menu_data.get('menu_button', ''),
+                                           texto_opcion_incorrecta=menu_data.get(
+                                               'wrong_answer', ''),
+                                           texto_derivacion=menu_data.get('success', ''),
+                                           timeout=global_timeout,
                                            line=line
                                            )
             menu.save()
             destino = DestinoEntrante.crear_nodo_ruta_entrante(menu)
+            if first_destino is None:
+                first_destino = destino
             opcions = {
-                "id_temp": menu_data['id_tmp'],
+                "id_temp": menu_data.get('id_tmp'),
                 'destino_anterior': destino,
-                "opcions": menu_data['options']
-
+                "opcions": menu_data.get('options', [])
             }
-            if menu_data['id_tmp'] == validated_data['id_tmp']:
+
+            is_main = menu_data.get('is_main', False)
+            if is_main or (
+                'id_tmp' in menu_data and 'id_tmp' in validated_data and
+                menu_data['id_tmp'] == validated_data['id_tmp']
+            ):
                 self.destino = destino
             destino_whith_options.append(opcions)
             menu_data['id'] = menu.id
+
+        if not hasattr(self, 'destino') and first_destino:
+            self.destino = first_destino
         self.crear_opcions(destino_whith_options)
 
     def crear_opcions(self, destino_whith_options):
@@ -226,7 +261,11 @@ class DestinoDeLineaCreateSerializer(serializers.Serializer):
                     OpcionMenuInteractivoWhatsapp.objects.create(
                         opcion=opcion,
                         descripcion=option_data['description'] if 'description'
-                                                                  in option_data else "")
+                                                                  in option_data else "",
+                        send_message_before_campaign=option_data.get(
+                            'send_message_before_campaign', False),
+                        message_before_campaign_id=option_data.get(
+                            'message_before_campaign'))
 
     def find_destination(self, destino_whith_options, value):
         for object_dict in destino_whith_options:
@@ -241,6 +280,8 @@ class OpcionMenuSerializer(serializers.BaseSerializer):
         destination = data.get('destination')
         description = data.get('description')
         type_option = data.get('type_option')
+        send_message_before_campaign = data.get('send_message_before_campaign', False)
+        message_before_campaign = data.get('message_before_campaign')
 
         if not destination:
             raise serializers.ValidationError({
@@ -250,11 +291,36 @@ class OpcionMenuSerializer(serializers.BaseSerializer):
             raise serializers.ValidationError({
                 'value': 'This field is required.'
             })
+        if type_option == DestinoEntrante.CAMPANA:
+            send_message_before_campaign = bool(send_message_before_campaign)
+            if send_message_before_campaign and not message_before_campaign:
+                raise serializers.ValidationError({
+                    'message_before_campaign': _('Debe seleccionar una plantilla.')
+                })
+            if message_before_campaign:
+                try:
+                    plantilla = PlantillaMensaje.objects.get(id=message_before_campaign)
+                except PlantillaMensaje.DoesNotExist:
+                    raise serializers.ValidationError({
+                        'message_before_campaign': _('No existe plantilla con ese id.')
+                    })
+                if plantilla.tipo != PlantillaMensaje.TIPO_TEXT:
+                    raise serializers.ValidationError({
+                        'message_before_campaign': _(
+                            'La plantilla previa a campaña debe ser de texto.')
+                    })
+            if not send_message_before_campaign:
+                message_before_campaign = None
+        else:
+            send_message_before_campaign = False
+            message_before_campaign = None
         return {
             'destination': destination,
             'value': value,
             'description': description,
-            'type_option': type_option
+            'type_option': type_option,
+            'send_message_before_campaign': send_message_before_campaign,
+            'message_before_campaign': message_before_campaign
         }
 
     def to_representation(self, instance):
@@ -262,7 +328,9 @@ class OpcionMenuSerializer(serializers.BaseSerializer):
             'value': instance["value"],
             'description': instance["description"],
             'type_option': instance["type_option"],
-            'destination': instance["destination"]
+            'destination': instance["destination"],
+            'send_message_before_campaign': instance.get("send_message_before_campaign", False),
+            'message_before_campaign': instance.get("message_before_campaign")
         }
         if instance["type_option"] == DestinoEntrante.CAMPANA:
             representation['destination_name'] = instance.nombre
@@ -279,13 +347,13 @@ class OpcionMenuSerializer(serializers.BaseSerializer):
 class MenuInteractivoSerializer(serializers.Serializer):
     id_tmp = serializers.IntegerField(required=False)
     is_main = serializers.BooleanField(required=False, default=True)
-    menu_header = serializers.CharField(max_length=60)
+    menu_header = serializers.CharField(required=False, allow_blank=True, max_length=60)
     menu_body = serializers.CharField(max_length=1024)
     menu_footer = serializers.CharField(required=False, allow_blank=True, max_length=60)
     menu_button = serializers.CharField(max_length=20)
-    wrong_answer = serializers.CharField()
-    success = serializers.CharField()
-    timeout = serializers.IntegerField(min_value=0, required=False)
+    wrong_answer = serializers.CharField(required=False, allow_blank=True)
+    success = serializers.CharField(required=False, allow_blank=True)
+    timeout = serializers.IntegerField(min_value=0, required=False, allow_null=True)
     options = OpcionMenuSerializer(many=True)
 
     def validate_options(self, options):
@@ -308,10 +376,33 @@ class DestinoEntranteRelatedField(serializers.RelatedField):
             'destination': option.destino_siguiente.content_object.id,
             'value': option.valor,
             'description': option.opcion_menu_whatsapp.descripcion,
-            'destination_name': option.destino_siguiente.content_object.nombre
+            'destination_name': option.destino_siguiente.content_object.nombre,
+            'send_message_before_campaign':
+                option.opcion_menu_whatsapp.send_message_before_campaign,
+            'message_before_campaign':
+                option.opcion_menu_whatsapp.message_before_campaign_id
         }
 
-    def _menu_representation(self, value, data_list):
+    def _get_represented_global_menu_timeout(self, value, visited=None):
+        if visited is None:
+            visited = set()
+        if value is None or value.id in visited:
+            return 0
+        visited.add(value.id)
+        timeout = value.content_object.timeout or 0
+        if timeout:
+            return timeout
+        for opcion in value.destinos_siguientes.all():
+            if opcion.destino_siguiente.tipo == DestinoEntrante.MENU_INTERACTIVO_WHATSAPP:
+                timeout = self._get_represented_global_menu_timeout(
+                    opcion.destino_siguiente, visited)
+                if timeout:
+                    return timeout
+        return 0
+
+    def _menu_representation(self, value, data_list, global_timeout=None):
+        if global_timeout is None:
+            global_timeout = self._get_represented_global_menu_timeout(value)
         menu = value.content_object
         menu_representation = {
             'id': menu.id,
@@ -323,7 +414,7 @@ class DestinoEntranteRelatedField(serializers.RelatedField):
             'menu_button': menu.menu_button,
             'wrong_answer': menu.texto_opcion_incorrecta,
             'success': menu.texto_derivacion,
-            'timeout': 0,
+            'timeout': global_timeout,
             'options': []
         }
         data_list.append(menu_representation)
@@ -332,7 +423,8 @@ class DestinoEntranteRelatedField(serializers.RelatedField):
             if opcion.destino_siguiente.tipo == DestinoEntrante.MENU_INTERACTIVO_WHATSAPP:
                 if not any(item['id'] ==
                            opcion.destino_siguiente.content_object.id for item in data_list):
-                    self._menu_representation(opcion.destino_siguiente, data_list)
+                    self._menu_representation(
+                        opcion.destino_siguiente, data_list, global_timeout)
         return data_list
 
     def to_representation(self, line):
@@ -446,9 +538,12 @@ class UpdateSerializer(serializers.ModelSerializer):
         if proveedor.tipo_proveedor == ConfiguracionProveedor.TIPO_META:
             if 'app_id' not in configuracion\
                     or 'waba_id' not in configuracion\
-                    or 'verification_token' not in configuracion:
+                    or 'verification_token' not in configuracion\
+                    or 'app_secret' not in configuracion:
                 raise serializers.ValidationError({
-                    'configuration': _('Configuración incorrecta para el tipo de proveedor')})
+                    'configuration': _('Configuración incorrecta para el tipo de proveedor. '
+                                       'Se requiere app_id, waba_id, verification_token '
+                                       'y app_secret')})
             otras_lineas = Linea.objects.exclude(id=self.instance.id)
             if otras_lineas.filter(configuracion__app_id=configuracion['app_id']).exists():
                 raise serializers.ValidationError({

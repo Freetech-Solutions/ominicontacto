@@ -40,7 +40,12 @@ OML_BRANCH = os.getenv('OML_BRANCH')
 OML_COMMIT = os.getenv('OML_COMMIT')
 OML_BUILD_DATE = os.getenv('OML_BUILD_DATE')
 OML_PUBLIC_MEDIA_BASE_URL = os.getenv('OML_PUBLIC_MEDIA_BASE_URL')
+if 'OML_SIGNED_MEDIA_URL_EXPIRE_SECONDS' in os.environ:
+    OML_SIGNED_MEDIA_URL_EXPIRE_SECONDS = int(os.getenv('OML_SIGNED_MEDIA_URL_EXPIRE_SECONDS'))
 LOG_LEVEL = os.getenv('DJANGO_LOG_LEVEL', 'INFO')
+if 'WHATSAPP_WEBHOOK_STREAM_MAXLEN' in os.environ:
+    WHATSAPP_WEBHOOK_STREAM_MAXLEN = int(os.getenv('WHATSAPP_WEBHOOK_STREAM_MAXLEN'))
+ORCHESTRATOR_SLAVE_STREAM_FROMID = os.getenv('ORCHESTRATOR_SLAVE_STREAM_FROMID', '$')
 
 # Credenciales para wombat API
 OML_DIALER_ENGINE = os.getenv('OML_DIALER_ENGINE')
@@ -143,6 +148,11 @@ LOGGING = {
         'django': {
             'handlers': ['console'],
             'level': LOG_LEVEL,
+        },
+        'background-tasks': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
         },
     },
 }

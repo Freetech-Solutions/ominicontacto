@@ -19,6 +19,7 @@ import logging
 import requests
 from rest_framework import serializers
 from constance import config
+from ominicontacto_app.services.key_server_request import KeyServerRequest
 from django.utils.translation import gettext_lazy as _
 logger = logging.getLogger(__name__)
 
@@ -31,17 +32,17 @@ class RegisterServerSerializer(serializers.Serializer):
     phone = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
     def _create_credentials(self, data):
-        create_url = '{0}/retrieve_key/'.format(config.KEYS_SERVER_HOST)
+        key_server_request = KeyServerRequest()
         try:
-            result = requests.post(
-                create_url, json=data, verify=config.SSL_CERT_FILE)
+            result = key_server_request.post('/retrieve_key/', json=data)
             return result.json()
         except AttributeError:
             msg = _('No tiene settings de conexion configurados')
             logger.error(msg)
             return {'status': 'ERROR', 'msg': msg}
         except requests.exceptions.RequestException as e:
-            msg = _('Error en el intento de conexion a: {0} debido {1}'.format(create_url, e))
+            msg = _('Error en el intento de conexion con el servidor de llaves '
+                    'debido {0}'.format(e))
             logger.error(msg)
             return {'status': 'ERROR', 'msg': msg}
 

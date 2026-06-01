@@ -39,8 +39,7 @@ CONSTANCE_ADDITIONAL_FIELDS = {
 
 CONSTANCE_CONFIG = {
     # Key Server data:
-    'KEYS_SERVER_HOST': ('https://keys-server.freetech.com.ar', 'KEYS_SERVER_HOST', str),
-    'SSL_CERT_FILE': ('/opt/omnileads/cert', 'SSL_CERT_FILE', str),
+    'PRIMARY_KEYS_SERVER_HOST': ('https://register.sephir.tech', 'PRIMARY_KEYS_SERVER_HOST', str),
     'CLIENT_NAME': ('', 'CLIENT_NAME', str),
     'CLIENT_KEY': ('', 'CLIENT_KEY', 'disabled_str'),
     'CLIENT_PASSWORD': ('', 'CLIENT_PASSWORD', str),
@@ -84,7 +83,7 @@ CONSTANCE_CONFIG = {
 
 CONSTANCE_CONFIG_FIELDSETS = {
     'Registration': {
-        'fields': ('KEYS_SERVER_HOST', 'SSL_CERT_FILE', 'CLIENT_NAME',
+        'fields': ('PRIMARY_KEYS_SERVER_HOST', 'CLIENT_NAME',
                    'CLIENT_KEY', 'CLIENT_PASSWORD', 'CLIENT_EMAIL',
                    'CLIENT_PHONE',
                    ),

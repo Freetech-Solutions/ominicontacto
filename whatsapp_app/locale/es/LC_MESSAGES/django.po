@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-04-06 15:29-0300\n"
+"POT-Creation-Date: 2026-05-13 00:43-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -205,144 +205,170 @@ msgstr ""
 msgid "Error al obtener contactos"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:419
+#: whatsapp_app/api/v1/conversacion.py:118
+#: whatsapp_app/api/v1/conversacion.py:133
+msgid "Ya existe una conversacion iniciada"
+msgstr ""
+
+#: whatsapp_app/api/v1/conversacion.py:120
+msgid "Ya existe una conversación activa en menú interactivo para este destino"
+msgstr ""
+
+#: whatsapp_app/api/v1/conversacion.py:123
+msgid "Ya existe una conversación activa iniciada por este agente"
+msgstr ""
+
+#: whatsapp_app/api/v1/conversacion.py:126
+#, python-brace-format
+msgid "Ya existe una conversación activa iniciada por el agente {0}"
+msgstr ""
+
+#: whatsapp_app/api/v1/conversacion.py:128
+msgid "Ya existe una conversación activa iniciada por otro agente"
+msgstr ""
+
+#: whatsapp_app/api/v1/conversacion.py:130
+msgid "Ya existe una conversación saliente activa para este destino"
+msgstr ""
+
+#: whatsapp_app/api/v1/conversacion.py:132
+msgid "Ya existe una conversación entrante activa en campaña"
+msgstr ""
+
+#: whatsapp_app/api/v1/conversacion.py:634
 msgid "Se obtuvieron las conversaciones de forma exitosa"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:437
+#: whatsapp_app/api/v1/conversacion.py:652
 msgid "Error al obtener las conversaciones"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:450
+#: whatsapp_app/api/v1/conversacion.py:665
 msgid "Se obtuvo la conversacion de forma exitosa"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:454
+#: whatsapp_app/api/v1/conversacion.py:669
 msgid "Conversacion no encontrada"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:460
+#: whatsapp_app/api/v1/conversacion.py:675
 msgid "Error al obtener la conversacion"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:503
+#: whatsapp_app/api/v1/conversacion.py:724
 msgid "Se asignó la conversación de forma exitosa"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:508
-#: whatsapp_app/api/v1/conversacion.py:593
-#: whatsapp_app/api/v1/conversacion.py:651
-#: whatsapp_app/api/v1/conversacion.py:725
-#: whatsapp_app/api/v1/conversacion.py:780
+#: whatsapp_app/api/v1/conversacion.py:729
+#: whatsapp_app/api/v1/conversacion.py:822
+#: whatsapp_app/api/v1/conversacion.py:882
+#: whatsapp_app/api/v1/conversacion.py:969
+#: whatsapp_app/api/v1/conversacion.py:1026
 msgid "Esta conversación ya está siendo atendida por otro agente"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:513
-#: whatsapp_app/api/v1/conversacion.py:548
+#: whatsapp_app/api/v1/conversacion.py:734
+#: whatsapp_app/api/v1/conversacion.py:769
 msgid "No se puede asignar una conversación que no existe"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:518
+#: whatsapp_app/api/v1/conversacion.py:739
 msgid "Error al asignar la conversación"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:530
+#: whatsapp_app/api/v1/conversacion.py:751
 msgid "El contacto no pertenece a la base de datos de la campaña"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:536
+#: whatsapp_app/api/v1/conversacion.py:757
 msgid "El contacto ya tiene una conversación activa"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:543
+#: whatsapp_app/api/v1/conversacion.py:764
 msgid "Se asigno el contacto a la conversacion de forma satisfactoria"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:553
+#: whatsapp_app/api/v1/conversacion.py:774
 msgid "No existe el contacto que se quiere asignar"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:560
+#: whatsapp_app/api/v1/conversacion.py:781
 msgid "Error al asignar el contacto a la conversación"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:618
-#: whatsapp_app/api/v1/conversacion.py:687
+#: whatsapp_app/api/v1/conversacion.py:849
+#: whatsapp_app/api/v1/conversacion.py:931
 msgid "Este mensaje no se pudo enviar"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:622
-#: whatsapp_app/api/v1/conversacion.py:696
-#: whatsapp_app/api/v1/conversacion.py:750
-#: whatsapp_app/api/v1/conversacion.py:829
+#: whatsapp_app/api/v1/conversacion.py:853
+#: whatsapp_app/api/v1/conversacion.py:940
+#: whatsapp_app/api/v1/conversacion.py:996
+#: whatsapp_app/api/v1/conversacion.py:1077
 msgid "La conversacion esta inactiva hasta que el cliente responda"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:625
-#: whatsapp_app/api/v1/conversacion.py:699
-#: whatsapp_app/api/v1/conversacion.py:755
-#: whatsapp_app/api/v1/conversacion.py:832
+#: whatsapp_app/api/v1/conversacion.py:856
+#: whatsapp_app/api/v1/conversacion.py:943
+#: whatsapp_app/api/v1/conversacion.py:1001
+#: whatsapp_app/api/v1/conversacion.py:1080
 msgid "La conversacion ha expirado. Inicie una nueva conversacion."
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:629
-#: whatsapp_app/api/v1/conversacion.py:703
+#: whatsapp_app/api/v1/conversacion.py:860
+#: whatsapp_app/api/v1/conversacion.py:947
 msgid "Conversacion es erronea"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:636
-#: whatsapp_app/api/v1/conversacion.py:710
-#: whatsapp_app/api/v1/conversacion.py:764
-#: whatsapp_app/api/v1/conversacion.py:841
-#: whatsapp_app/api/v1/conversacion.py:923
-#: whatsapp_app/api/v1/conversacion.py:1045
+#: whatsapp_app/api/v1/conversacion.py:867
+#: whatsapp_app/api/v1/conversacion.py:954
+#: whatsapp_app/api/v1/conversacion.py:1010
+#: whatsapp_app/api/v1/conversacion.py:1089
+#: whatsapp_app/api/v1/conversacion.py:1171
+#: whatsapp_app/api/v1/conversacion.py:1296
 msgid "Error al enviar el mensaje"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:745
-#: whatsapp_app/api/v1/conversacion.py:823
+#: whatsapp_app/api/v1/conversacion.py:991
+#: whatsapp_app/api/v1/conversacion.py:1071
 msgid "Se envió el mensaje de forma exitosa"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:759
-#: whatsapp_app/api/v1/conversacion.py:836
-#: whatsapp_app/api/v1/conversacion.py:860
+#: whatsapp_app/api/v1/conversacion.py:1005
+#: whatsapp_app/api/v1/conversacion.py:1084
+#: whatsapp_app/api/v1/conversacion.py:1108
 msgid "Conversacion erronea"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:865
+#: whatsapp_app/api/v1/conversacion.py:1113
 msgid "Ya existe una conversacion iniciada con el cliente"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:915
+#: whatsapp_app/api/v1/conversacion.py:1163
 msgid "Se envio el mensaje de forma exitosa"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:939
+#: whatsapp_app/api/v1/conversacion.py:1187
 #, python-brace-format
 msgid "Campos esperados: {0}"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:946
-#: whatsapp_app/api/v1/conversacion.py:951
-#: whatsapp_app/api/v1/conversacion.py:956 whatsapp_app/api/v1/transfer.py:180
+#: whatsapp_app/api/v1/conversacion.py:1194
+#: whatsapp_app/api/v1/conversacion.py:1199
+#: whatsapp_app/api/v1/conversacion.py:1204 whatsapp_app/api/v1/transfer.py:256
 msgid "Campaña inválida"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:962
+#: whatsapp_app/api/v1/conversacion.py:1210
 msgid "Template inválido"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:972
+#: whatsapp_app/api/v1/conversacion.py:1220
 msgid "Contacto inválido"
 msgstr ""
 
-#: whatsapp_app/api/v1/conversacion.py:1035
+#: whatsapp_app/api/v1/conversacion.py:1284
 msgid "Conversacion creada correctamente"
-msgstr ""
-
-#: whatsapp_app/api/v1/conversacion.py:1039
-msgid "Ya existe una conversacion iniciada"
 msgstr ""
 
 #: whatsapp_app/api/v1/destino.py:51
@@ -456,66 +482,83 @@ msgid "Error al eliminar la línea"
 msgstr ""
 
 #: whatsapp_app/api/v1/linea_serializers.py:86
-#: whatsapp_app/api/v1/linea_serializers.py:95
-#: whatsapp_app/api/v1/linea_serializers.py:441
-#: whatsapp_app/api/v1/linea_serializers.py:451
+#: whatsapp_app/api/v1/linea_serializers.py:533
 #: whatsapp_app/api/v1/proveedor.py:72 whatsapp_app/api/v1/proveedor.py:77
 #: whatsapp_app/api/v1/proveedor.py:115 whatsapp_app/api/v1/proveedor.py:120
 msgid "Configuración incorrecta para el tipo de proveedor"
 msgstr ""
 
 #: whatsapp_app/api/v1/linea_serializers.py:89
-#: whatsapp_app/api/v1/linea_serializers.py:98
-#: whatsapp_app/api/v1/linea_serializers.py:445
-#: whatsapp_app/api/v1/linea_serializers.py:455
+#: whatsapp_app/api/v1/linea_serializers.py:101
+#: whatsapp_app/api/v1/linea_serializers.py:537
+#: whatsapp_app/api/v1/linea_serializers.py:550
 msgid "Ya existe una Linea con ese App ID"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:120
+#: whatsapp_app/api/v1/linea_serializers.py:96
+#: whatsapp_app/api/v1/linea_serializers.py:544
+msgid ""
+"Configuración incorrecta para el tipo de proveedor. Se requiere app_id, "
+"waba_id, verification_token y app_secret"
+msgstr ""
+
+#: whatsapp_app/api/v1/linea_serializers.py:123
 msgid "Campana"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:121
+#: whatsapp_app/api/v1/linea_serializers.py:124
 msgid "Menu Interactivo"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:137
+#: whatsapp_app/api/v1/linea_serializers.py:140
 msgid "Valor incorrecto. Debe ser un id"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:146
+#: whatsapp_app/api/v1/linea_serializers.py:149
 msgid "Valor incorrecto. Esta campaña esta siendo usada por otra línea"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:151
+#: whatsapp_app/api/v1/linea_serializers.py:154
 msgid "No existe destino con ese id de Campaña"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:158
+#: whatsapp_app/api/v1/linea_serializers.py:161
 msgid "Valor incorrecto."
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:295
+#: whatsapp_app/api/v1/linea_serializers.py:298
+msgid "Debe seleccionar una plantilla."
+msgstr ""
+
+#: whatsapp_app/api/v1/linea_serializers.py:305
+msgid "No existe plantilla con ese id."
+msgstr ""
+
+#: whatsapp_app/api/v1/linea_serializers.py:310
+msgid "La plantilla previa a campaña debe ser de texto."
+msgstr ""
+
+#: whatsapp_app/api/v1/linea_serializers.py:363
 msgid "El valor de las opciones no puede repetirse"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:298
+#: whatsapp_app/api/v1/linea_serializers.py:366
 msgid "No pueden definirse más de 10 opciones"
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:426
+#: whatsapp_app/api/v1/linea_serializers.py:518
 msgid "Debe indicar una configuración de proveedor."
 msgstr ""
 
-#: whatsapp_app/api/v1/linea_serializers.py:432
+#: whatsapp_app/api/v1/linea_serializers.py:524
 msgid "Debe indicar un proveedor."
 msgstr ""
 
-#: whatsapp_app/api/v1/mensaje.py:135
+#: whatsapp_app/api/v1/mensaje.py:141
 msgid "Se obtuvieron los mensajes de forma exitosa"
 msgstr ""
 
-#: whatsapp_app/api/v1/mensaje.py:141
+#: whatsapp_app/api/v1/mensaje.py:147
 msgid "Error al obtener los mensajes"
 msgstr ""
 
@@ -679,20 +722,20 @@ msgstr ""
 msgid "No tiene permiso para esta accion"
 msgstr ""
 
-#: whatsapp_app/api/v1/transfer.py:83
+#: whatsapp_app/api/v1/transfer.py:139
 msgid "Error al obtener los agentes"
 msgstr ""
 
-#: whatsapp_app/api/v1/transfer.py:105 whatsapp_app/api/v1/transfer.py:175
+#: whatsapp_app/api/v1/transfer.py:161 whatsapp_app/api/v1/transfer.py:251
 msgid "Conversacion inválida"
 msgstr ""
 
-#: whatsapp_app/api/v1/transfer.py:110
+#: whatsapp_app/api/v1/transfer.py:166
 msgid "Error al obtener las campañas"
 msgstr ""
 
-#: whatsapp_app/api/v1/transfer.py:132 whatsapp_app/api/v1/transfer.py:138
-#: whatsapp_app/api/v1/transfer.py:186
+#: whatsapp_app/api/v1/transfer.py:190 whatsapp_app/api/v1/transfer.py:200
+#: whatsapp_app/api/v1/transfer.py:206 whatsapp_app/api/v1/transfer.py:262
 msgid "Error al tranferir conversacion"
 msgstr ""
 
