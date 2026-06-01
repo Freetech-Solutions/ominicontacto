@@ -150,41 +150,31 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
                 _('<strong>¡ATENCIÓN!</strong> Error al sincronizar con el servicio Discador. '
                   'Por favor contacte un administrador.'))
 
-    def _save_forms(self, form_list, estado):
-        campana_form = list(form_list)[int(self.INICIAL)]
-        queue_form = list(form_list)[int(self.COLA)]
+    def _save_forms(self, form_dict, estado):
+        campana_form = form_dict[self.INICIAL]
+        queue_form = form_dict[self.COLA]
         campana = self._save_campana(campana_form, estado)
-        # Agrego este offset por si form_list no contiene alguno de los formularios opcionales
-        offset = 0  # Por cada Form q no se usa decrementar el indice de los forms siguientes
         if campana.whatsapp_habilitado:
-            configuracion_whatsapp_formset = list(form_list)[int(self.CONFIGURACION_WHATSAPP)]
-            if configuracion_whatsapp_formset.is_valid():
+            configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
+            if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
                 configuracion_whatsapp_formset.instance.campana = campana
                 configuracion_whatsapp_formset.instance.created_by_id = self.request.user.id
                 configuracion_whatsapp_formset.instance.updated_by_id = self.request.user.id
                 configuracion_whatsapp_formset.instance.save()
-        else:
-            offset += 1
-        # Agrego este offset por si form_list no contiene el formulario de ConfiguracionMetaFacebook
         if campana.meta_facebook_habilitado:
-            configuracion_meta_facebook_formset = list(form_list)[
-                int(self.CONFIGURACION_META_FACEBOOK) - offset]
-            if configuracion_meta_facebook_formset.is_valid():
+            configuracion_meta_facebook_formset = form_dict.get(self.CONFIGURACION_META_FACEBOOK)
+            if configuracion_meta_facebook_formset and \
+               configuracion_meta_facebook_formset.is_valid():
                 configuracion_meta_facebook_formset.instance.campana = campana
                 configuracion_meta_facebook_formset.instance.save()
-        else:
-            offset += 1
-        opciones_calificacion_formset = list(form_list)[int(self.OPCIONES_CALIFICACION) - offset]
-        # Agrego este offset por si form_list no contiene el formulario de PARAMETROS_CRM
+        opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         if campana.tiene_interaccion_con_sitio_externo:
-            parametros_crm_formset = list(form_list)[int(self.PARAMETROS_CRM) - offset]
+            parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
             parametros_crm_formset.instance = campana
             parametros_crm_formset.save()
-        else:
-            offset += 1
 
-        actuacion_vigente_form = list(form_list)[int(self.ACTUACION_VIGENTE) - offset]
-        reglas_incidencia_form = list(form_list)[int(self.REGLAS_INCIDENCIA) - offset]
+        actuacion_vigente_form = form_dict[self.ACTUACION_VIGENTE]
+        reglas_incidencia_form = form_dict[self.REGLAS_INCIDENCIA]
         queue_form.instance.campana = campana
         self._save_queue(queue_form)
         opciones_calificacion_formset.instance = campana
@@ -198,26 +188,18 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
 
         return campana
 
-    def done(self, form_list, **kwargs):
+    def done(self, form_list, form_dict, **kwargs):
         success = False
         try:
             with transaction.atomic():
-                campana = self._save_forms(form_list, Campana.ESTADO_INACTIVA)
-                # Agrego este offset por si form_list no contiene los formularios opcionales
-                offset = 0  # Por cada Form q falta decrementar el indice de los forms siguientes
-                if not campana.tiene_interaccion_con_sitio_externo:
-                    offset += 1
-                if not campana.whatsapp_habilitado:
-                    offset += 1
-                if not campana.meta_facebook_habilitado:
-                    offset += 1
-                sincronizar_form = list(form_list)[int(self.SINCRONIZAR) - offset]
+                campana = self._save_forms(form_dict, Campana.ESTADO_INACTIVA)
+                sincronizar_form = form_dict[self.SINCRONIZAR]
                 # Intento crear la campaña en wombat como parte de la transaccion
                 if wombat_habilitado():
                     self._sincronizar_campana(sincronizar_form, campana)
                 self._insert_queue_asterisk(campana.queue_campana)
-                self.save_supervisores(form_list, -3)
-                self.save_agentes(form_list, -2)
+                self.save_supervisores(form_dict)
+                self.save_agentes(form_dict)
                 self.alertas_por_sistema_externo(campana)
                 success = True
 
@@ -304,21 +286,16 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                 _('<strong>¡ATENCIÓN!</strong> Error al sincronizar con el servicio Discador. '
                   'Por favor contacte un administrador.'))
 
-    def done(self, form_list, **kwargs):
+    def done(self, form_list, form_dict, **kwargs):
         success = False
         try:
             with transaction.atomic():
-                campana_form = list(form_list)[int(self.INICIAL)]
-                queue_form = list(form_list)[int(self.COLA)]
+                campana_form = form_dict[self.INICIAL]
+                queue_form = form_dict[self.COLA]
                 campana = campana_form.save()
-                offset_total = 3
-                offset_parcial = 2
                 if campana.whatsapp_habilitado:
-                    offset_total = offset_total - 1
-                    offset_parcial = offset_parcial - 1
-                    configuracion_whatsapp_formset =\
-                        list(form_list)[int(self.CONFIGURACION_WHATSAPP)]
-                    if configuracion_whatsapp_formset.is_valid():
+                    configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
+                    if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
                         if not configuracion_whatsapp_formset.instance.pk:
                             configuracion_whatsapp_formset.instance.created_by_id =\
                                 self.request.user.id
@@ -327,29 +304,24 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                             self.request.user.id
                         configuracion_whatsapp_formset.instance.save()
                 if campana.meta_facebook_habilitado:
-                    offset_total = offset_total - 1
-                    offset_parcial = offset_parcial - 1
-                    configuracion_meta_facebook_formset =\
-                        list(form_list)[int(self.CONFIGURACION_META_FACEBOOK) - offset_parcial]
-                    if configuracion_meta_facebook_formset.is_valid():
+                    configuracion_meta_facebook_formset = \
+                        form_dict.get(self.CONFIGURACION_META_FACEBOOK)
+                    if configuracion_meta_facebook_formset and \
+                       configuracion_meta_facebook_formset.is_valid():
                         if not configuracion_meta_facebook_formset.instance.pk:
                             configuracion_meta_facebook_formset.instance.campana = campana
                         configuracion_meta_facebook_formset.instance.save()
 
-                opciones_calificacion_formset =\
-                    list(form_list)[int(self.OPCIONES_CALIFICACION) - offset_parcial]
+                opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
 
                 queue = self._save_queue(queue_form)
                 opciones_calificacion_formset.save()
 
                 if campana.tiene_interaccion_con_sitio_externo:
-                    offset_total = offset_total - 1
-                    parametros_crm_formset =\
-                        list(form_list)[int(self.PARAMETROS_CRM) - offset_parcial]
+                    parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
                     parametros_crm_formset.save()
 
-                actuacion_vigente_form =\
-                    list(form_list)[int(self.ACTUACION_VIGENTE) - offset_total]
+                actuacion_vigente_form = form_dict[self.ACTUACION_VIGENTE]
                 actuacion_vigente_form.save()
 
                 self._insert_queue_asterisk(queue)
@@ -358,9 +330,8 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                     self._update_dialer(campana)
 
                 if campana.whatsapp_habilitado:
-                    configuracion_whatsapp_formset =\
-                        list(form_list)[int(self.CONFIGURACION_WHATSAPP)]
-                    if configuracion_whatsapp_formset.is_valid():
+                    configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
+                    if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
                         if not configuracion_whatsapp_formset.instance.pk:
                             configuracion_whatsapp_formset.instance.created_by_id =\
                                 self.request.user.id
@@ -369,9 +340,10 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                             self.request.user.id
                         configuracion_whatsapp_formset.instance.save()
                 if campana.meta_facebook_habilitado:
-                    configuracion_meta_facebook_formset =\
-                        list(form_list)[int(self.CONFIGURACION_META_FACEBOOK)]
-                    if configuracion_meta_facebook_formset.is_valid():
+                    configuracion_meta_facebook_formset = \
+                        form_dict.get(self.CONFIGURACION_META_FACEBOOK)
+                    if configuracion_meta_facebook_formset and \
+                       configuracion_meta_facebook_formset.is_valid():
                         if not configuracion_meta_facebook_formset.instance.pk:
                             configuracion_meta_facebook_formset.instance.campana = campana
                         configuracion_meta_facebook_formset.instance.save()

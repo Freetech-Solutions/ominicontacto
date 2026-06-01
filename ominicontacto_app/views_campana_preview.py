@@ -110,13 +110,13 @@ class CampanaPreviewCreateView(CampanaPreviewMixin, CampanaManualCreateView):
         return context
 
     def done(self, form_list, form_dict, **kwargs):
-        queue = self._save_forms(form_list, form_dict, Campana.ESTADO_ACTIVA, Campana.TYPE_PREVIEW)
+        queue = self._save_forms(form_dict, Campana.ESTADO_ACTIVA, Campana.TYPE_PREVIEW)
         self._insert_queue_asterisk(queue)
         # salvamos los supervisores y agentes asignados a la campaña
-        self.save_supervisores(form_list, -3)
-        self.save_agentes(form_list, -2)
+        self.save_supervisores(form_dict)
+        self.save_agentes(form_dict)
         # rellenar la tabla que relación agentes y contactos con los valores iniciales
-        asignar_contactos_form = list(form_list)[-1]
+        asignar_contactos_form = form_dict[self.ASIGNACION_CONTACTOS]
         asignacion_proporcional = asignar_contactos_form.cleaned_data.get(
             'proporcionalmente', False)
         asignacion_aleatoria = asignar_contactos_form.cleaned_data.get('aleatorio', False)
@@ -166,8 +166,8 @@ class CampanaPreviewUpdateView(CampanaPreviewMixin, CampanaManualUpdateView):
 
     form_list = FORMS
 
-    def done(self, form_list, **kwargs):
-        queue = self._save_forms(form_list, **kwargs)
+    def done(self, form_list, form_dict, **kwargs):
+        queue = self._save_forms(form_dict, **kwargs)
         self._insert_queue_asterisk(queue)
         self.alertas_por_sistema_externo(queue.campana)
         return HttpResponseRedirect(reverse('campana_preview_list'))
@@ -196,7 +196,7 @@ class CampanaPreviewTemplateCreateView(CampanaTemplateCreateMixin, CampanaPrevie
     form_list = FORMS
 
     def done(self, form_list, form_dict, **kwargs):
-        self._save_forms(form_list, form_dict, Campana.ESTADO_TEMPLATE_ACTIVO, Campana.TYPE_PREVIEW)
+        self._save_forms(form_dict, Campana.ESTADO_TEMPLATE_ACTIVO, Campana.TYPE_PREVIEW)
         return HttpResponseRedirect(reverse('campana_preview_template_list'))
 
 
@@ -217,7 +217,7 @@ class CampanaPreviewTemplateCreateCampanaView(
             initial['transcription_percentage'] = qc.transcription_percentage
         return initial
 
-    def done(self, form_list, *args, **kwargs):
+    def done(self, form_list, **kwargs):
         borrar_template = bool(int(kwargs.get('borrar_template')))
         if borrar_template:
             # para el caso de cuando se usa la vista en el reciclado y se hace necesario
@@ -225,7 +225,7 @@ class CampanaPreviewTemplateCreateCampanaView(
             pk = self.kwargs.get('pk_campana_template', None)
             campana_template = get_object_or_404(Campana, pk=pk)
             campana_template.delete()
-        return super(CampanaPreviewTemplateCreateCampanaView, self).done(form_list, *args, **kwargs)
+        return super(CampanaPreviewTemplateCreateCampanaView, self).done(form_list, **kwargs)
 
 
 class CampanaPreviewTemplateDetailView(DetailView):
