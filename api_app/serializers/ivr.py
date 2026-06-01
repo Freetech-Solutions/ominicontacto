@@ -137,11 +137,11 @@ class IVRSerializer(serializers.ModelSerializer):
 class IVRCreateSerializer(serializers.ModelSerializer):
     AUDIO_OML = 1
     AUDIO_EXTERNO = 2
-    MAIN_AUDIO = 1
-    TIME_OUT_AUDIO = 2
-    INVALID_AUDIO = 3
-    CREATE = 1
-    UPDATE = 2
+    MAIN_AUDIO_OPTION = 1
+    TIME_OUT_AUDIO_OPTION = 2
+    INVALID_AUDIO_OPTION = 3
+    CREATE_OPTION = 1
+    UPDATE_OPTION = 2
 
     id = serializers.IntegerField(required=False, allow_null=True)
     # Audios
@@ -164,17 +164,17 @@ class IVRCreateSerializer(serializers.ModelSerializer):
     destination_options_json = serializers.JSONField(write_only=True)
 
     def _validar_audio(self, opcion, data):
-        if opcion == self.MAIN_AUDIO:
+        if opcion == self.MAIN_AUDIO_OPTION:
             # Audio principal
             field = 'main_audio'
             fieldExt = 'main_audio_ext'
             fieldType = 'type_main_audio'
-        if opcion == self.TIME_OUT_AUDIO:
+        if opcion == self.TIME_OUT_AUDIO_OPTION:
             # Audio de time out
             field = 'time_out_audio'
             fieldExt = 'time_out_audio_ext'
             fieldType = 'type_time_out_audio'
-        elif opcion == self.INVALID_AUDIO:
+        elif opcion == self.INVALID_AUDIO_OPTION:
             # Audio para opcion invalida
             field = 'invalid_audio'
             fieldExt = 'invalid_audio_ext'
@@ -220,9 +220,9 @@ class IVRCreateSerializer(serializers.ModelSerializer):
         return data
 
     def validate(self, data):
-        self._validar_audio(self.MAIN_AUDIO, data)
-        self._validar_audio(self.TIME_OUT_AUDIO, data)
-        self._validar_audio(self.INVALID_AUDIO, data)
+        self._validar_audio(self.MAIN_AUDIO_OPTION, data)
+        self._validar_audio(self.TIME_OUT_AUDIO_OPTION, data)
+        self._validar_audio(self.INVALID_AUDIO_OPTION, data)
         return data
 
     # GETTERS
@@ -261,7 +261,7 @@ class IVRCreateSerializer(serializers.ModelSerializer):
 
         if main_audio_ext is not None and type_main_audio == self.AUDIO_EXTERNO:
             self._asignar_audio_externo(
-                main_audio_ext, self.MAIN_AUDIO, validated_data, instance=instance)
+                main_audio_ext, self.MAIN_AUDIO_OPTION, validated_data, instance=instance)
         elif main_audio_ext is None and type_main_audio == self.AUDIO_OML:
             if instance is not None:
                 instance.audio_principal = audio_principal
@@ -270,7 +270,7 @@ class IVRCreateSerializer(serializers.ModelSerializer):
 
         if time_out_audio_ext is not None and type_time_out_audio == self.AUDIO_EXTERNO:
             self._asignar_audio_externo(
-                time_out_audio_ext, self.TIME_OUT_AUDIO, validated_data, instance=instance)
+                time_out_audio_ext, self.TIME_OUT_AUDIO_OPTION, validated_data, instance=instance)
         elif time_out_audio_ext is None and type_time_out_audio == self.AUDIO_OML:
             if instance is not None:
                 instance.time_out_audio = time_out_audio
@@ -279,7 +279,7 @@ class IVRCreateSerializer(serializers.ModelSerializer):
 
         if invalid_audio_ext is not None and type_invalid_audio == self.AUDIO_EXTERNO:
             self._asignar_audio_externo(
-                invalid_audio_ext, self.INVALID_AUDIO, validated_data, instance=instance)
+                invalid_audio_ext, self.INVALID_AUDIO_OPTION, validated_data, instance=instance)
         elif invalid_audio_ext is None and type_invalid_audio == self.AUDIO_OML:
             if instance is not None:
                 instance.invalid_audio = invalid_audio
@@ -291,12 +291,12 @@ class IVRCreateSerializer(serializers.ModelSerializer):
         if data is not None:
             time_out_destination_new = DestinoEntrante.objects.get(pk=data['time_out_destination'])
             invalid_destination_new = DestinoEntrante.objects.get(pk=data['invalid_destination'])
-            if option is self.CREATE:
+            if option is self.CREATE_OPTION:
                 OpcionDestino.crear_opcion_destino(
                     nodo_ivr, time_out_destination_new, IVR.VALOR_TIME_OUT)
                 OpcionDestino.crear_opcion_destino(
                     nodo_ivr, invalid_destination_new, IVR.VALOR_DESTINO_INVALIDO)
-            elif option is self.UPDATE:
+            elif option is self.UPDATE_OPTION:
                 time_out = nodo_ivr.destinos_siguientes.get(valor=IVR.VALOR_TIME_OUT)
                 invalid_destination = nodo_ivr.destinos_siguientes.get(
                     valor=IVR.VALOR_DESTINO_INVALIDO)
@@ -342,18 +342,18 @@ class IVRCreateSerializer(serializers.ModelSerializer):
         archivo_de_audio = ArchivoDeAudio.crear_archivo(**kwargs)
         convertir_archivo_audio(archivo_de_audio)
         if instance is not None:
-            if typeAudio == self.MAIN_AUDIO:
+            if typeAudio == self.MAIN_AUDIO_OPTION:
                 instance.audio_principal = archivo_de_audio
-            elif typeAudio == self.TIME_OUT_AUDIO:
+            elif typeAudio == self.TIME_OUT_AUDIO_OPTION:
                 instance.time_out_audio = archivo_de_audio
-            elif typeAudio == self.INVALID_AUDIO:
+            elif typeAudio == self.INVALID_AUDIO_OPTION:
                 instance.invalid_audio = archivo_de_audio
         else:
-            if typeAudio == self.MAIN_AUDIO:
+            if typeAudio == self.MAIN_AUDIO_OPTION:
                 validated_data['audio_principal'] = archivo_de_audio
-            elif typeAudio == self.TIME_OUT_AUDIO:
+            elif typeAudio == self.TIME_OUT_AUDIO_OPTION:
                 validated_data['time_out_audio'] = archivo_de_audio
-            elif typeAudio == self.INVALID_AUDIO:
+            elif typeAudio == self.INVALID_AUDIO_OPTION:
                 validated_data['invalid_audio'] = archivo_de_audio
 
     def update(self, instance, validated_data):
@@ -373,7 +373,7 @@ class IVRCreateSerializer(serializers.ModelSerializer):
         ivr.time_out_audio = validated_data.get('time_out_audio', ivr.time_out_audio)
         ivr.invalid_audio = validated_data.get('invalid_audio', ivr.invalid_audio)
         self._set_destination_options(nodo_ivr, destination_options)
-        self._set_fixed_destinations(nodo_ivr, data=fixed_destinations, option=self.UPDATE)
+        self._set_fixed_destinations(nodo_ivr, data=fixed_destinations, option=self.UPDATE_OPTION)
         ivr.save()
         return ivr
 
@@ -386,7 +386,7 @@ class IVRCreateSerializer(serializers.ModelSerializer):
         nodo_ivr.content_object = ivr
         nodo_ivr.save()
         self._set_destination_options(nodo_ivr, destination_options)
-        self._set_fixed_destinations(nodo_ivr, data=fixed_destinations, option=self.CREATE)
+        self._set_fixed_destinations(nodo_ivr, data=fixed_destinations, option=self.CREATE_OPTION)
         return ivr
 
     class Meta:

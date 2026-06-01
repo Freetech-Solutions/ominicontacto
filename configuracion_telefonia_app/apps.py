@@ -93,7 +93,7 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 'children': whatsapp
             })
         messenger = []
-        if 'messager_pages_configuration' in permissions or True:  # TEMPORAL
+        if 'messenger_meta_configuration' in permissions:
             messenger.append({
                 'label': _('Páginas'),
                 'url': reverse('messenger_meta_configuration')
@@ -158,12 +158,12 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 'url': reverse('whatsapp_message_template_groups')
             })
 
-        if 'facebook_message_templates_configuration' in permissions or True:  # TEMPORAL
+        if 'facebook_message_templates_configuration' in permissions:
             recursos.append({
                 'label': _('Plantillas de mensajes Facebook'),
                 'url': reverse('facebook_message_templates_configuration')
             })
-        if 'facebook_message_template_groups' in permissions or True:  # TEMPORAL
+        if 'facebook_message_template_groups' in permissions:
             recursos.append({
                 'label': _('Grupos de plantillas de mensaje Facebook'),
                 'url': reverse('facebook_message_template_groups')

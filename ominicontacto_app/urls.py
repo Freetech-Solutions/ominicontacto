@@ -489,16 +489,6 @@ urlpatterns = [
             login_required(views_formulario.FormularioListView.as_view()),
             name='formulario_list',
             ),
-    re_path(r'^formulario/(?P<pk_formulario>\d+)/vista_previa/$',
-            login_required(views_formulario.FormularioPreviewFormView.as_view()),
-            name='formulario_vista_previa',
-            ),
-    # TODO: Verificar si se usa esta vista.
-    # re_path(r'^formulario/(?P<pk_formulario>\d+)/create/(?P<pk_campana>\d+)/(?P<pk_contacto>\d+)'
-    #     r'/(?P<id_agente>\d+)/$',
-    #     login_required(views_formulario.FormularioCreateFormView.as_view()),
-    #     name='formulario_create',
-    #     ),
     # ==========================================================================
     # Proceso de Calificación
     # CalificacionCliente / Formulario de Calif. de Gestión

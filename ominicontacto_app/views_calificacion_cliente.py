@@ -546,7 +546,7 @@ class CalificacionClienteFormView(FormView):
                                                                      self.contacto.id)
 
         if self.object_calificacion.es_gestion() and \
-                not self.campana.tipo_interaccion == Campana.SITIO_EXTERNO:
+                not self.campana.tipo_interaccion == Campana.TIPO_SITIO_EXTERNO:
             if self.agente.grupo.obligar_calificacion:
                 calificacion_llamada = CalificacionLLamada()
                 call_data_json = self.kwargs['call_data_json'] \

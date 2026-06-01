@@ -17,6 +17,9 @@
       const name = "{{ name | escapejs }}"
       const prefix = "{{ prefix | escapejs }}"
       window.addEventListener("message", function(event) {
+        if (event.origin !== window.location.origin) return;
+        const iframe = document.querySelector('iframe[name="webui"]');
+        if (!iframe || event.source !== iframe.contentWindow) return;
         if (event.data.id === "webui:inner-route-changed") {
           history.pushState({}, "", `/${prefix}/${name}${event.data.path}`)
         }

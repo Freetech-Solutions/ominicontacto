@@ -182,7 +182,8 @@ class ReporteDeLLamadasEntrantesDeSupervision(object):
             logger.exception("Error {0}".format(e))
         finally:
             manager.close()
-            return queue_status_raw
+
+        return queue_status_raw
 
     def _obtener_llamadas_en_espera(self):
         queue_status_raw = self._obtener_llamadas_en_espera_raw()

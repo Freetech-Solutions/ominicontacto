@@ -120,7 +120,7 @@
           optionLabel="name"
           optionValue="value"
           placeholder="-------"
-          @change="formatEvent"
+          @change="handleObjetiveStatus"
           :emptyFilterMessage="$t('globals.without_data')"
           :filter="true"
           :disabled="status_format"
@@ -345,24 +345,6 @@ export default {
             } else {
                 this.status_format = false;
                 this.externalSiteForm.formato = 1;
-            }
-        },
-        formatEvent () {
-            if (
-                this.externalSiteForm.formato !== 4 &&
-        [3, 0].includes(this.externalSiteForm.disparador)
-            ) {
-                this.status_objective = true;
-                this.externalSiteForm.objetivo = null;
-            } else if (
-                this.externalSiteForm.formato === 4 &&
-        ![3, 0].includes(this.externalSiteForm.disparador)
-            ) {
-                this.status_objective = true;
-                this.externalSiteForm.objetivo = null;
-            } else {
-                this.status_objective = false;
-                this.externalSiteForm.objetivo = 1;
             }
         },
         async saveExternalSite (isFormValid) {

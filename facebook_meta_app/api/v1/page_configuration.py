@@ -19,16 +19,16 @@ from facebook_meta_app.services.redis.page import StreamDePaginas
 
 class JSONSerializerField(serializers.Field):
     def to_internal_value(self, data):
+        json_data = {}
         try:
             if isinstance(data, int):
                 json_data = data
             else:
-                json_data = {}
                 json_data = json.loads(json.dumps(data))
         except Exception:
             pass
-        finally:
-            return json_data
+
+        return json_data
 
     def to_representation(self, value):
         return value

@@ -710,18 +710,18 @@ class FieldFormulario(models.Model):
     TIPO_TEXTO_AREA = 4
     """Tipo de campo text area"""
 
-    TIPO_NUMERO = 5
+    TIPO_NUMERO_ID = 5
     """Tipo de campo numero"""
 
     TIPO_LISTA_DINAMICA = 6
-    """Tipo de campo numero"""
+    """Tipo de campo lista dinámica"""
 
     TIPO_CHOICES = (
         (TIPO_TEXTO, _('Texto')),
         (TIPO_FECHA, _('Fecha')),
         (TIPO_LISTA, _('Lista')),
         (TIPO_TEXTO_AREA, _('Caja de Texto de Area')),
-        (TIPO_NUMERO, _('Número')),
+        (TIPO_NUMERO_ID, _('Número')),
         (TIPO_LISTA_DINAMICA, _('Lista Dinámica')),
     )
 
@@ -1262,7 +1262,7 @@ class Campana(models.Model):
     FORMULARIO = 1
     "El tipo de interaccion es por formulario"
 
-    SITIO_EXTERNO = 2
+    TIPO_SITIO_EXTERNO = 2
     "El tipo de interaccion es por sitio externo"
 
     FORMULARIO_Y_SITIO_EXTERNO = 3
@@ -1272,9 +1272,9 @@ class Campana(models.Model):
     TIPO_SITIO_EXTERNO_DISPLAY = _('Url externa')
     TIPO_FORMULARIO_Y_SITIO_EXTERNO = _('Formulario y Url externa')
 
-    TIPO_INTERACCION = (
+    TIPO_INTERACCION_CHOICES = (
         (FORMULARIO, TIPO_FORMULARIO_DISPLAY),
-        (SITIO_EXTERNO, TIPO_SITIO_EXTERNO_DISPLAY),
+        (TIPO_SITIO_EXTERNO, TIPO_SITIO_EXTERNO_DISPLAY),
         (FORMULARIO_Y_SITIO_EXTERNO, TIPO_FORMULARIO_Y_SITIO_EXTERNO)
     )
 
@@ -1283,7 +1283,7 @@ class Campana(models.Model):
     EVITAR_DUPLICADOS = 1
     PERMITIR_DUPLICADOS = 2
 
-    CONTROL_DE_DUPLICADOS = (
+    CONTROL_DE_DUPLICADOS_CHOICES = (
         (EVITAR_DUPLICADOS, _('Evitar duplicados')),
         (PERMITIR_DUPLICADOS, _('Permitir duplicados')),
     )
@@ -1316,7 +1316,7 @@ class Campana(models.Model):
     sitio_externo = models.ForeignKey("SitioExterno", null=True, blank=True,
                                       on_delete=models.CASCADE)
     tipo_interaccion = models.PositiveIntegerField(
-        choices=TIPO_INTERACCION,
+        choices=TIPO_INTERACCION_CHOICES,
         default=FORMULARIO,
     )
     reported_by = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -1346,7 +1346,7 @@ class Campana(models.Model):
     mostrar_nombre_ruta_entrante = models.BooleanField(default=False)
     mostrar_callid = models.BooleanField(default=False)
     control_de_duplicados = models.PositiveIntegerField(
-        choices=CONTROL_DE_DUPLICADOS,
+        choices=CONTROL_DE_DUPLICADOS_CHOICES,
         default=PERMITIR_DUPLICADOS,
     )
     whatsapp_habilitado = models.BooleanField(default=False)
@@ -1642,7 +1642,7 @@ class Campana(models.Model):
 
     @property
     def tiene_interaccion_con_sitio_externo(self):
-        return self.tipo_interaccion in [self.SITIO_EXTERNO, self.FORMULARIO_Y_SITIO_EXTERNO]
+        return self.tipo_interaccion in [self.TIPO_SITIO_EXTERNO, self.FORMULARIO_Y_SITIO_EXTERNO]
 
     @property
     def tiene_formulario(self):

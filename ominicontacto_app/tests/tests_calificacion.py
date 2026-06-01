@@ -335,7 +335,6 @@ class CalificacionTests(OMLBaseTest):
             f'contacto_form-{nombre_campo_dato}': 'Nuevo Contacto'
         }
 
-        get_call_contact_id
         call_data = self.get_call_data()
         call_data['id_contacto'] = '-1'
         call_data['telefono'] = telefono
@@ -451,7 +450,7 @@ class CalificacionTests(OMLBaseTest):
 
     def test_muestra_link_sitio_externo(self):
         self.campana.type = Campana.TYPE_PREVIEW
-        self.campana.tipo_interaccion = Campana.SITIO_EXTERNO
+        self.campana.tipo_interaccion = Campana.TIPO_SITIO_EXTERNO
         sitio_externo = SitioExternoFactory()
         self.campana.sitio_externo = sitio_externo
         self.campana.save()
@@ -465,7 +464,7 @@ class CalificacionTests(OMLBaseTest):
 
     def test_redirecciona_a_sitio_externo(self):
         self.campana.type = Campana.TYPE_PREVIEW
-        self.campana.tipo_interaccion = Campana.SITIO_EXTERNO
+        self.campana.tipo_interaccion = Campana.TIPO_SITIO_EXTERNO
         sitio_externo = SitioExternoFactory(disparador=SitioExterno.AUTOMATICO,
                                             metodo=SitioExterno.GET,
                                             objetivo=SitioExterno.EMBEBIDO)
@@ -485,7 +484,7 @@ class CalificacionTests(OMLBaseTest):
     @patch('requests.get')
     def test_hace_peticion_sitio_externo_en_servidor(self, request_get):
         self.campana.type = Campana.TYPE_PREVIEW
-        self.campana.tipo_interaccion = Campana.SITIO_EXTERNO
+        self.campana.tipo_interaccion = Campana.TIPO_SITIO_EXTERNO
         sitio_externo = SitioExternoFactory(disparador=SitioExterno.SERVER,
                                             metodo=SitioExterno.GET,
                                             objetivo=None, formato=None)
