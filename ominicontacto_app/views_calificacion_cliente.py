@@ -194,6 +194,7 @@ class CalificacionClienteFormView(FormView):
             elif len_contacto_info == 1:
                 notificar_contacto_existente = True
                 self.contacto = contacto_info[0]
+                id_contacto = self.contacto.id
             else:
                 return HttpResponseRedirect(
                     reverse('campana_contactos_telefono_repetido',
