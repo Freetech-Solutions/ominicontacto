@@ -238,8 +238,9 @@ class ViewSet(viewsets.ViewSet):
                     telefono=conversation.destination,
                 ).last()
                 conversation.save()
-            for agent in AgenteProfile.objects.all():
-                async_to_sync(AgentNotifier().notify_whatsapp_new_chat)(
+            notifier = AgentNotifier()
+            for agent in conversation.campana.obtener_agentes().select_related('user').distinct():
+                async_to_sync(notifier.notify_whatsapp_new_chat)(
                     agent.user_id,
                     conversation=conversation,
                 )

@@ -736,6 +736,13 @@ class ViewSet(viewsets.ViewSet):
         try:
             conversacion = ConversacionWhatsapp.objects.get(pk=pk)
             agente = request.user.get_agente_profile()
+            if not conversacion.agent and not agente.get_campanas_activas_miembro().filter(
+                    queue_name__campana_id=conversacion.campana_id).exists():
+                return response.Response(
+                    data=get_response_data(
+                        message=_('No puede asignarse una conversación de una campaña no asignada')
+                    ),
+                    status=status.HTTP_401_UNAUTHORIZED)
             if not conversacion.agent or conversacion.agent == agente:
                 conversation_granted = conversacion.otorgar_conversacion(agente),
                 mensajes = conversacion.mensajes.all()
