@@ -111,14 +111,128 @@ class ReporteSupervisoresFamily(AbstractRedisFamily):
     def get_nombre_families(self):
         return "OML:SUPERVISOR"
 
+    def _supervisor_redis_key(self, supervisor_id):
+        return "{0}:{1}".format(self.get_nombre_families(), supervisor_id)
+
+    def _build_dict_nuevo(self):
+        result = {}
+        for supervisor_id, datos_json in self.reporte_resultado:
+            result[supervisor_id] = {
+                str(agent_id): metadata for agent_id, metadata in datos_json.items()
+            }
+        return result
+
+    def _normalize_redis_hash(self, raw):
+        if not raw:
+            return {}
+        return {str(field): value for field, value in raw.items()}
+
+    def _parse_metadata(self, metadata_json):
+        data = json.loads(metadata_json)
+        return data.get('grupo'), sorted(data.get('campana', []))
+
+    def _metadata_semantically_equal(self, metadata_a, metadata_b):
+        try:
+            return self._parse_metadata(metadata_a) == self._parse_metadata(metadata_b)
+        except (ValueError, TypeError):
+            return metadata_a == metadata_b
+
+    def _compute_supervisor_diff(self, dict_actual, dict_nuevo):
+        hset_mapping = {}
+        hdel_fields = []
+
+        for agent_id, metadata in dict_nuevo.items():
+            agent_id_str = str(agent_id)
+            actual_value = dict_actual.get(agent_id_str)
+            if actual_value is None or not self._metadata_semantically_equal(actual_value, metadata):
+                hset_mapping[agent_id_str] = metadata
+
+        dict_nuevo_keys = {str(agent_id) for agent_id in dict_nuevo}
+        for agent_id in dict_actual:
+            if agent_id not in dict_nuevo_keys:
+                hdel_fields.append(agent_id)
+
+        return hset_mapping, hdel_fields
+
+    def _scan_supervisor_keys(self):
+        redis_connection = self.get_redis_connection()
+        pattern = self._get_families_pattern()
+        prefix = "{0}:".format(self.get_nombre_families())
+        existing = {}
+        index = 0
+        while True:
+            index, keys = redis_connection.scan(index, pattern)
+            for key in keys:
+                supervisor_id = int(key[len(prefix):])
+                existing[supervisor_id] = key
+            if index == 0:
+                break
+        return existing
+
+    def _apply_supervisor_diff(self, write_pipe, supervisor_id, dict_actual, dict_nuevo):
+        key = self._supervisor_redis_key(supervisor_id)
+        if not dict_nuevo:
+            if dict_actual:
+                write_pipe.delete(key)
+                return True
+            return False
+
+        hset_mapping, hdel_fields = self._compute_supervisor_diff(dict_actual, dict_nuevo)
+        has_writes = False
+        if hset_mapping:
+            write_pipe.hset(key, mapping=hset_mapping)
+            has_writes = True
+        if hdel_fields:
+            write_pipe.hdel(key, *hdel_fields)
+            has_writes = True
+        return has_writes
+
+    def _sync_families_to_redis(self):
+        redis_connection = self.get_redis_connection()
+        dict_nuevo_by_supervisor = self._build_dict_nuevo()
+        supervisor_ids_nuevo = sorted(dict_nuevo_by_supervisor.keys())
+
+        read_pipe = redis_connection.pipeline()
+        for supervisor_id in supervisor_ids_nuevo:
+            read_pipe.hgetall(self._supervisor_redis_key(supervisor_id))
+        read_results = read_pipe.execute() if supervisor_ids_nuevo else []
+
+        existing_keys = self._scan_supervisor_keys()
+        write_pipe = redis_connection.pipeline()
+        has_writes = False
+
+        for idx, supervisor_id in enumerate(supervisor_ids_nuevo):
+            dict_nuevo = dict_nuevo_by_supervisor[supervisor_id]
+            dict_actual = self._normalize_redis_hash(read_results[idx])
+            if self._apply_supervisor_diff(write_pipe, supervisor_id, dict_actual, dict_nuevo):
+                has_writes = True
+
+        for supervisor_id, redis_key in existing_keys.items():
+            if supervisor_id not in dict_nuevo_by_supervisor:
+                write_pipe.delete(redis_key)
+                has_writes = True
+
+        if has_writes:
+            write_pipe.execute()
+
+    def _sync_single_family_to_redis(self, family_member):
+        supervisor_id = family_member[0]
+        datos_json = family_member[1]
+        dict_nuevo = {str(agent_id): metadata for agent_id, metadata in datos_json.items()}
+
+        redis_connection = self.get_redis_connection()
+        key = self._supervisor_redis_key(supervisor_id)
+        dict_actual = self._normalize_redis_hash(redis_connection.hgetall(key))
+
+        write_pipe = redis_connection.pipeline()
+        if self._apply_supervisor_diff(write_pipe, supervisor_id, dict_actual, dict_nuevo):
+            write_pipe.execute()
+
     def regenerar_families(self):
-        """regenera la family"""
-        # Precalculo el resultado para que no quede vacio redis mientras calcula
+        """Sincroniza families en Redis aplicando solo cambios diferenciales."""
         self.reporte_resultado = self._obtener_resultado()
-        self._delete_tree_family()
-        self._create_families()
+        self._sync_families_to_redis()
 
     def regenerar_family(self, family_member):
-        """regenera una family"""
-        self.delete_family(family_member)
-        self._create_family(family_member)
+        """Sincroniza una family en Redis aplicando solo cambios diferenciales."""
+        self._sync_single_family_to_redis(family_member)
