@@ -15,6 +15,7 @@ import IVRRoutes from './ivr_routes';
 import RegisterServerRoutes from './register_server_routes';
 import WhatsAppRoutes from './whatsapp';
 import FacebookRoutes from './facebook';
+import InstagramRoutes from './instagram';
 
 export const supervisorRoutes = [
     ...SupervisionDashboardRoutes,
@@ -33,5 +34,6 @@ export const supervisorRoutes = [
     ...IVRRoutes,
     ...RegisterServerRoutes,
     ...WhatsAppRoutes,
-    ...FacebookRoutes
+    ...FacebookRoutes,
+    ...InstagramRoutes
 ];

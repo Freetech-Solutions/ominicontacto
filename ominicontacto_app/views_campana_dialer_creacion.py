@@ -27,7 +27,8 @@ from django.contrib import messages
 from django.urls import reverse
 from django.http import HttpResponseRedirect
 from django.shortcuts import get_object_or_404
-from ominicontacto_app.forms.base import (CampanaConfiguracionMetaFacebookForm, QueueDialerForm,
+from ominicontacto_app.forms.base import (CampanaConfiguracionMetaFacebookForm,
+                                          CampanaConfiguracionInstagramForm, QueueDialerForm,
                                           SincronizaDialerForm, ActuacionVigenteForm,
                                           ReglasIncidenciaFormSet, CampanaDialerForm,
                                           OpcionCalificacionFormSet,
@@ -51,6 +52,7 @@ class CampanaDialerMixin(CampanaWizardMixin):
     COLA = '1'
     CONFIGURACION_WHATSAPP = '2'
     CONFIGURACION_META_FACEBOOK = '3'
+    CONFIGURACION_INSTAGRAM = 'instagram'
     OPCIONES_CALIFICACION = '4'
     PARAMETROS_CRM = '5'
     ACTUACION_VIGENTE = '6'
@@ -63,6 +65,7 @@ class CampanaDialerMixin(CampanaWizardMixin):
              (COLA, QueueDialerForm),
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
+             (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
              (ACTUACION_VIGENTE, ActuacionVigenteForm),
@@ -76,6 +79,8 @@ class CampanaDialerMixin(CampanaWizardMixin):
                  CONFIGURACION_WHATSAPP: "campanas/campana_dialer/configuracion_whatsapp.html",
                  CONFIGURACION_META_FACEBOOK:
                  "campanas/campana_dialer/configuracion_meta_facebook.html",
+                 CONFIGURACION_INSTAGRAM:
+                 "campanas/campana_dialer/configuracion_instagram.html",
                  OPCIONES_CALIFICACION: 'campanas/campana_dialer/opcion_calificacion.html',
                  PARAMETROS_CRM: 'campanas/campana_dialer/parametros_crm_sitio_externo.html',
                  ACTUACION_VIGENTE: 'campanas/campana_dialer/actuacion_vigente_campana.html',
@@ -155,18 +160,14 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
         queue_form = form_dict[self.COLA]
         campana = self._save_campana(campana_form, estado)
         if campana.whatsapp_habilitado:
-            configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
-            if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
-                configuracion_whatsapp_formset.instance.campana = campana
-                configuracion_whatsapp_formset.instance.created_by_id = self.request.user.id
-                configuracion_whatsapp_formset.instance.updated_by_id = self.request.user.id
-                configuracion_whatsapp_formset.instance.save()
+            self._save_configuracion_whatsapp(
+                form_dict.get(self.CONFIGURACION_WHATSAPP), campana)
         if campana.meta_facebook_habilitado:
-            configuracion_meta_facebook_formset = form_dict.get(self.CONFIGURACION_META_FACEBOOK)
-            if configuracion_meta_facebook_formset and \
-               configuracion_meta_facebook_formset.is_valid():
-                configuracion_meta_facebook_formset.instance.campana = campana
-                configuracion_meta_facebook_formset.instance.save()
+            self._save_configuracion_meta_facebook(
+                form_dict.get(self.CONFIGURACION_META_FACEBOOK), campana)
+        if campana.instagram_habilitado:
+            self._save_configuracion_instagram(
+                form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
         opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         if campana.tiene_interaccion_con_sitio_externo:
             parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
@@ -236,6 +237,7 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
     COLA = '1'
     CONFIGURACION_WHATSAPP = '2'
     CONFIGURACION_META_FACEBOOK = '3'
+    CONFIGURACION_INSTAGRAM = 'instagram'
     OPCIONES_CALIFICACION = '4'
     PARAMETROS_CRM = '5'
     ACTUACION_VIGENTE = '6'
@@ -244,6 +246,7 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
              (COLA, QueueDialerForm),
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
+             (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
              (ACTUACION_VIGENTE, ActuacionVigenteForm), ]
@@ -253,6 +256,8 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                  CONFIGURACION_WHATSAPP: "campanas/campana_dialer/configuracion_whatsapp.html",
                  CONFIGURACION_META_FACEBOOK:
                  "campanas/campana_dialer/configuracion_meta_facebook.html",
+                 CONFIGURACION_INSTAGRAM:
+                 "campanas/campana_dialer/configuracion_instagram.html",
                  OPCIONES_CALIFICACION: 'campanas/campana_dialer/opcion_calificacion.html',
                  PARAMETROS_CRM: 'campanas/campana_dialer/parametros_crm_sitio_externo.html',
                  ACTUACION_VIGENTE: 'campanas/campana_dialer/actuacion_vigente_campana.html', }
@@ -294,23 +299,14 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                 queue_form = form_dict[self.COLA]
                 campana = campana_form.save()
                 if campana.whatsapp_habilitado:
-                    configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
-                    if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
-                        if not configuracion_whatsapp_formset.instance.pk:
-                            configuracion_whatsapp_formset.instance.created_by_id =\
-                                self.request.user.id
-                            configuracion_whatsapp_formset.instance.campana = campana
-                        configuracion_whatsapp_formset.instance.updated_by_id =\
-                            self.request.user.id
-                        configuracion_whatsapp_formset.instance.save()
+                    self._save_configuracion_whatsapp(
+                        form_dict.get(self.CONFIGURACION_WHATSAPP), campana)
                 if campana.meta_facebook_habilitado:
-                    configuracion_meta_facebook_formset = \
-                        form_dict.get(self.CONFIGURACION_META_FACEBOOK)
-                    if configuracion_meta_facebook_formset and \
-                       configuracion_meta_facebook_formset.is_valid():
-                        if not configuracion_meta_facebook_formset.instance.pk:
-                            configuracion_meta_facebook_formset.instance.campana = campana
-                        configuracion_meta_facebook_formset.instance.save()
+                    self._save_configuracion_meta_facebook(
+                        form_dict.get(self.CONFIGURACION_META_FACEBOOK), campana)
+                if campana.instagram_habilitado:
+                    self._save_configuracion_instagram(
+                        form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
 
                 opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
 
@@ -328,25 +324,6 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                 # Intento editar la campaña en wombat como parte de la transaccion
                 if wombat_habilitado():
                     self._update_dialer(campana)
-
-                if campana.whatsapp_habilitado:
-                    configuracion_whatsapp_formset = form_dict.get(self.CONFIGURACION_WHATSAPP)
-                    if configuracion_whatsapp_formset and configuracion_whatsapp_formset.is_valid():
-                        if not configuracion_whatsapp_formset.instance.pk:
-                            configuracion_whatsapp_formset.instance.created_by_id =\
-                                self.request.user.id
-                            configuracion_whatsapp_formset.instance.campana = campana
-                        configuracion_whatsapp_formset.instance.updated_by_id =\
-                            self.request.user.id
-                        configuracion_whatsapp_formset.instance.save()
-                if campana.meta_facebook_habilitado:
-                    configuracion_meta_facebook_formset = \
-                        form_dict.get(self.CONFIGURACION_META_FACEBOOK)
-                    if configuracion_meta_facebook_formset and \
-                       configuracion_meta_facebook_formset.is_valid():
-                        if not configuracion_meta_facebook_formset.instance.pk:
-                            configuracion_meta_facebook_formset.instance.campana = campana
-                        configuracion_meta_facebook_formset.instance.save()
 
                 # Actualizo en OMniDialer una vez que ya se modifico en la base de datos
                 if not wombat_habilitado():

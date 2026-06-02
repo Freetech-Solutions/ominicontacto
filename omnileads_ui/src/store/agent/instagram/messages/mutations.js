@@ -1,0 +1,12 @@
+export default {
+    agtInstagramSendMessageStatus (state, info = null) {
+        if (info) {
+            state.agtInstagramConversationMessages.forEach((message) => {
+                if (message.id === info.message_id) {
+                    message.status = info.status;
+                    message.fail_reason = info.fail_reason;
+                }
+            });
+        }
+    }
+};

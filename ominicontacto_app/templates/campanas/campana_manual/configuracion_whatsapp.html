@@ -23,7 +23,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 {% load widget_tweaks %}
 
 {% block nav %}
-    <h1>{% trans 'Campaña Entrante: Configuración de Whatsapp' %}</h1>
+    <h1>{% trans 'Campaña Manual: Configuración de Whatsapp' %}</h1>
 
     <ul class="nav nav-indicators">
         <li class="disabled"><a>{% trans 'Campaña' %}</a></li>
@@ -32,6 +32,9 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
         {% endif %}
         {% if meta_facebook_habilitado %}
             <li class="disabled"><a>{% trans 'Configuración de Meta/Facebook' %}</a></li>
+        {% endif %}
+        {% if instagram_habilitado %}
+            <li class="disabled"><a>{% trans 'Configuración de Instagram' %}</a></li>
         {% endif %}
         <li class="disabled"><a>{% trans 'Opciones de calificación' %}</a></li>
         {% if custom_basedatoscontacto %}

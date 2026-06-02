@@ -136,6 +136,11 @@ const onWhatsappCloseContainerEvent = ($event) => {
     whatsappWrapper.addClass('hidden');
 };
 
+const closeAgentChannelWrappersFromWhatsapp = () => {
+    $('#wrapperWebphone').removeClass('active');
+    $('#wrapperMetaChannels').addClass('hidden');
+};
+
 const setEventListeners = () => {
     window.document.addEventListener('onWhatsappCloseContainerEvent', onWhatsappCloseContainerEvent, false);
     window.document.addEventListener('onWhatsappTransferChatEvent', onWhatsappTransferChatEvent, false);
@@ -146,9 +151,9 @@ const setEventListeners = () => {
     window.document.addEventListener('onWhatsappConversationNewEvent', onWhatsappConversationNewEvent, false);
     window.document.addEventListener('onLastConversationMessagesEvent', onLastConversationMessagesEvent, false);
     $('#whatsappChat').on('click', function () {
-        $('#wrapperWhatsapp').toggleClass('hidden');
-        $('#wrapperFacebook').addClass('hidden');
-        $('#wrapperWebphone').removeClass('active');
+        const shouldOpen = $('#wrapperWhatsapp').hasClass('hidden');
+        closeAgentChannelWrappersFromWhatsapp();
+        $('#wrapperWhatsapp').toggleClass('hidden', !shouldOpen);
         $('#newChat').addClass('invisible');
     });
 };

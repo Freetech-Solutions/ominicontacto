@@ -82,6 +82,9 @@ function startPhoneJs() {
     notification_agent_whatsapp.eventsCallbacks.onNotificationNewFacebookChat.add(function(args){
         $('#newFacebookChat').removeClass('invisible');
     });
+    notification_agent_whatsapp.eventsCallbacks.onNotificationNewInstagramChat.add(function(args){
+        $('#newInstagramChat').removeClass('invisible');
+    });
 
     click2call = new Click2CallDispatcher(oml_api, agent_id);
     keep_alive_sender = new KeepAliveSender(max_session_age);

@@ -320,6 +320,8 @@ class Grupo(models.Model):
         'Permiso de uso de la canalidad WhatsApp'))
     meta_facebook_habilitado = models.BooleanField(default=False, verbose_name=_(
         'Permiso de uso de la canalidad Meta Facebook'))
+    instagram_habilitado = models.BooleanField(default=False, verbose_name=_(
+        'Permiso de uso de la canalidad Instagram'))
     restringir_tipo_llamadas_manuales = models.BooleanField(default=False, verbose_name=_(
         'Restringir tipo de llamadas manuales'))
     permitir_llamadas_manuales_a_manuales = models.BooleanField(default=False, verbose_name=_(
@@ -1353,6 +1355,7 @@ class Campana(models.Model):
     )
     whatsapp_habilitado = models.BooleanField(default=False)
     meta_facebook_habilitado = models.BooleanField(default=False)
+    instagram_habilitado = models.BooleanField(default=False)
     permitir_calificar_telefonos = models.BooleanField(default=False, blank=True)
 
     def __str__(self):
@@ -2755,6 +2758,7 @@ class Contacto(models.Model):
 
     telefono = models.CharField(max_length=128)
     facebook = models.CharField(max_length=128, blank=True)
+    instagram = models.CharField(max_length=128, blank=True)
     datos = models.TextField()
     bd_contacto = models.ForeignKey(
         'BaseDatosContacto',
@@ -2975,6 +2979,16 @@ class CalificacionClienteManager(models.Manager):
             calificaciones.values('opcion_calificacion__nombre').\
             annotate(total=Count('opcion_calificacion')).order_by('-total')
 
+    def calificaciones_instagram_campanas(self, campana, fecha_desde, fecha_hasta):
+        """Obtiene las calificaciones campaña en un rango de fechas definido"""
+        calificaciones = self.filter(
+            opcion_calificacion__campana__pk=campana.id,
+            canalidad=CalificacionCliente.CANALIDAD_INSTAGRAM,
+            modified__date__range=(fecha_desde, fecha_hasta))
+        return\
+            calificaciones.values('opcion_calificacion__nombre').\
+            annotate(total=Count('opcion_calificacion')).order_by('-total')
+
 
 class IndexedHistoricalRecords(HistoricalRecords):
     def __init__(self, *args, extra_indexes=(), **kwargs):
@@ -2997,10 +3011,12 @@ class CalificacionCliente(TimeStampedModel, models.Model):
     CANALIDAD_TELEFONO = 0
     CANALIDAD_WHATSAPP = 1
     CANALIDAD_FACEBOOK = 2
+    CANALIDAD_INSTAGRAM = 3
     TYPE_CANALIDAD_CHOICES = (
         (CANALIDAD_TELEFONO, _('Teléfono')),
         (CANALIDAD_WHATSAPP, _('Whatsapp')),
         (CANALIDAD_FACEBOOK, _('Facebook')),
+        (CANALIDAD_INSTAGRAM, _('Instagram')),
     )
     objects = CalificacionClienteManager()
 

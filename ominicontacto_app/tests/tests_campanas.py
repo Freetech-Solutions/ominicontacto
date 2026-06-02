@@ -1020,7 +1020,8 @@ class SupervisorCampanaTests(CampanasTests):
             '0-transcription_percentage': 50,
             'campana_manual_create_view-current_step': 0,
             '0-whatsapp_habilitado': False,
-            '0-meta_facebook_habilitado': False
+            '0-meta_facebook_habilitado': False,
+            '0-instagram_habilitado': False,
         }
         post_step1_data = {
             'campana_manual_create_view-current_step': 1,

@@ -55,6 +55,10 @@ class AgentNotifier:
     TYPE_FACEBOOK_CHAT_ATTENDED = 'facebook_chat_attended'
     TYPE_FACEBOOK_CHAT_TRANSFERED = 'facebook_chat_transfered'
     TYPE_FACEBOOK_NEW_MESSAGE = 'facebook_new_message'
+    TYPE_INSTAGRAM_NEW_CHAT = 'instagram_new_chat'
+    TYPE_INSTAGRAM_CHAT_ATTENDED = 'instagram_chat_attended'
+    TYPE_INSTAGRAM_CHAT_TRANSFERED = 'instagram_chat_transfered'
+    TYPE_INSTAGRAM_NEW_MESSAGE = 'instagram_new_message'
 
     def get_group_name(self, user_id=None, whatsapp_event=False):
         if user_id is not None:
@@ -302,6 +306,66 @@ class AgentNotifier:
             }
             await self.send_message_async(
                 self.TYPE_WHATSAPP_CHAT_EXPIRED, message, user_id=user_id)
+
+    async def notify_instagram_new_chat(self, user_id, **kwargs):
+        conversation = kwargs.get('conversation', None)
+        if conversation:
+            message = {
+                'chat_id': conversation.id,
+                'campaing_id': conversation.campana.id,
+                'campaing_name': conversation.campana.nombre,
+                'number_messages': conversation.messages.count(),
+                'from': conversation.client_alias
+                if conversation.client_alias else conversation.ig_scoped_id,
+                'contact_data': conversation.client.obtener_datos()
+                if conversation.client else "",
+                'expire': conversation.expire.isoformat(),
+                'timestamp': conversation.timestamp.isoformat(),
+            }
+            await self.send_message_async(
+                self.TYPE_INSTAGRAM_NEW_CHAT, message, user_id=user_id)
+
+    def notify_instagram_chat_attended(self, user_id, message):
+        self.send_message(
+            self.TYPE_INSTAGRAM_CHAT_ATTENDED, message, user_id=user_id, whatsapp_event=True)
+
+    def notify_instagram_chat_transfered(self, transfer_agent, user_id, conversation):
+        if conversation:
+            message = {
+                'chat_id': conversation.id,
+                'campaing_id': conversation.campana.id,
+                'campaing_name': conversation.campana.nombre,
+                'number_messages': conversation.messages.count(),
+                'from': conversation.ig_scoped_id,
+                'contact_data': conversation.client.obtener_datos()
+                if conversation.client else "",
+                'expire': conversation.expire.isoformat(),
+                'timestamp': conversation.timestamp.isoformat(),
+                'transfer_agent': transfer_agent
+            }
+        self.send_message(
+            self.TYPE_INSTAGRAM_CHAT_TRANSFERED, message, user_id=user_id, whatsapp_event=True)
+
+    async def notify_instagram_new_message(self, user_id, **kwargs):
+        message = kwargs.get('message', None)
+        account = kwargs.get('account', None)
+        if message:
+            message_json = {
+                'chat_id': message.conversation.id,
+                'campaing_id': message.conversation.campana.id
+                if message.conversation.campana else "",
+                'contact_data': message.conversation.client.obtener_datos()
+                if message.conversation.client else "",
+                'message_id': message.id,
+                'content': message.content,
+                'origin': message.origen,
+                'timestamp': message.timestamp.isoformat(),
+                'sender': message.sender,
+                'type': message.type,
+                'page_id': account.ig_user_id if account else ''
+            }
+            await self.send_message_async(
+                self.TYPE_INSTAGRAM_NEW_MESSAGE, message_json, user_id=user_id)
 
     def send_message(self, type, message, user_id=None, whatsapp_event=False):
         # si user_id=None se envia mensaje a todos los agentes conectados

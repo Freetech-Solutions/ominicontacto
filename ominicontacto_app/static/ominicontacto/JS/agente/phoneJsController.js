@@ -818,6 +818,11 @@ class PhoneJSController {
             $('#newChat').removeClass('invisible');
         });
 
+        this.notification_agent_whatsapp.eventsCallbacks.onNotificationNewInstagramChat.add(function(args){
+            console.log('===================================> NEW INSTAGRAM CHAT');
+            $('#newInstagramChat').removeClass('invisible');
+        });
+
         this.notification_agent.eventsCallbacks.onNotificationEndTransferredCall.add(function(args){
             console.log('===================================> End Transferred Call');
             if(self.transfer.is_consultative){

@@ -1,0 +1,323 @@
+/* eslint-disable */
+import Service from '@/services/agent/instagram/conversation_service';
+import { HTTP_STATUS } from '@/globals';
+import { resetStoreDataByAction } from '@/utils';
+const service = new Service();
+
+const getMessageInfo = ({ $t, data = null, itsMine = true }) => {
+    const senderName = data && data.sender && data.sender.name ? data.sender.name : null;
+    const senderPhone = data && data.sender && data.sender.phone ? data.sender.phone : $t('globals.whatsapp.automatic_agent');
+    var clientName = "-"
+    if (data && data.contact_data) {
+        if (data.contact_data.nombre)
+            clientName = data.contact_data.nombre;
+        else if (data.contact_data.name)
+            clientName = data.contact_data.name;
+    }
+    return {
+        id: data.id,
+        from: itsMine ? `${$t('globals.agent')} (${senderName || senderPhone})` : clientName || senderName || senderPhone,
+        conversationId: data && data.conversation ? data.conversation : null,
+        itsMine,
+        message: data && data.content && data.content ? data.content : '',
+        status: data && data.status ? data.status : null,
+        fail_reason: data && data.fail_reason ? data.fail_reason : null,
+        date: data && data.timestamp ? new Date(data.timestamp) : null,
+        type: data && data.type ? data.type : null,
+        file: data && data.file ? data.file : null
+    };
+};
+
+export default {
+    async agtInstagramConversationSendAttachmentMessage(
+        { commit },
+        { conversationId = null, formData, pageId = null, messages, $t}
+    ) {
+        try {
+            console.log('Sending attachment message with formData:', formData);
+            if (!conversationId || !formData.get('file')) {
+                return {
+                    status: HTTP_STATUS.ERROR,
+                    message: 'Error al enviar mensaje multimedia'
+                };
+            }
+            const response = await service.sendAttachmentMessage(
+                conversationId,
+                formData
+            );
+            const { status, data } = response;
+            if (status === HTTP_STATUS.SUCCESS) {
+                const itsMine = data.origin === pageId;
+                const message = getMessageInfo({ $t, data, itsMine });
+                messages.push(message);
+                await commit('agtInstagramConversationSendMessage', message);
+            }
+            await resetStoreDataByAction({
+                action: 'agtInstagramSetConversationMessages',
+                data: messages
+            });
+            return response;
+        } catch (error) {
+            console.error('===> ERROR al enviar mensaje multimedia');
+            console.error(error);
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'Error al enviar mensaje multimedia'
+            };
+        }
+    },
+    async agtInstagramConversationSendTextMessage (
+        { commit },
+        { conversationId = null, message = null, pageId = null, $t }
+    ) {
+        try {
+            if (!conversationId || !message || !pageId) {
+                return {
+                    status: HTTP_STATUS.ERROR,
+                    message: 'Error al enviar mensaje de Texto'
+                };
+            }
+            const response = await service.sendTextMessage(conversationId, {
+                message: message ? message.message : '',
+                destination: message.destination ? message.destination : '',
+                type: 'text'
+            });
+            console.log('>>> Text message send response:', response);
+            const { status, data } = response;
+            if (status === HTTP_STATUS.SUCCESS) {
+                const itsMine = data.origin === pageId;
+                const message = getMessageInfo({ $t, data, itsMine });
+                console.log('Committing sent message:', message);
+                await commit('agtInstagramConversationSendMessage', message);
+            }
+            return response;
+        } catch (error) {
+            console.error('===> ERROR al enviar mensaje de texto');
+            console.error(error);
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'Error al enviar mensaje de Texto'
+            };
+        }
+    },
+    async agtInstagramConversationSendTemplateMessage(
+        { commit, state },
+        { conversationId = null, templateId = null, pageId = null, $t }
+    ) {
+        try {
+            if (!conversationId || !templateId || !pageId) {
+                return { status: HTTP_STATUS.ERROR, message: 'Error al enviar template de Texto' };
+            }
+            const result = await service.sendTemplateMessage(conversationId, { template_id: templateId });
+            console.log('>>> Template message send response:', result);
+
+            const { status, data } = result;
+            if (status === HTTP_STATUS.SUCCESS) {
+                const itsMine = data.origin === pageId;
+                const message = getMessageInfo({ $t, data, itsMine });
+
+                // // Creamos un nuevo array para reemplazar la referencia
+                // const updatedMessages = [...this.agtInstagramConversationMessages, message];
+                // // Guardamos en store
+                // await resetStoreDataByAction({
+                //     action: 'agtInstagramSetConversationMessages',
+                //     data: updatedMessages
+                // });
+
+                await commit('agtInstagramConversationSendMessage', message);
+            }
+
+            return result;
+        } catch (error) {
+            console.error('===> ERROR al enviar template de texto', error);
+            return { status: HTTP_STATUS.ERROR, message: 'Error al enviar template de Texto' };
+        }
+    },
+    async agtInstagramConversationReactiveExpiredConversation(
+        { commit },
+        { conversationId = null, templateId = null, params_header, params, pageId, messages, $t }
+    ) {
+        try {
+            if (!conversationId || !templateId) {
+                return {
+                    status: HTTP_STATUS.ERROR,
+                    message: 'Error al reactivar conversacion expirada'
+                };
+            }
+            const result = await service.reactiveExpiredConversation(
+                conversationId,
+                { template_id: templateId, params_header, params }
+            );
+            const { status, data } = result;
+            if (status === HTTP_STATUS.SUCCESS) {
+                const itsMine = data.origin === pageId;
+                const message = getMessageInfo({ $t, data, itsMine });
+                messages.push(message);
+            }
+            await resetStoreDataByAction({
+                action: 'agtInstagramSetConversationMessages',
+                data: messages
+            });
+            await resetStoreDataByAction({
+                action: 'agtInstagramConversationDetailInit',
+                data: null
+            });
+            return result;
+        } catch (error) {
+            console.error('===> ERROR al reactivar conversacion expirada');
+            console.error(error);
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'Error al reactivar conversacion expirada'
+            };
+        }
+    },
+    agtInstagramConversationReciveMessage ({ commit }, message) {
+        try {
+            commit('agtInstagramConversationReciveMessage', message);
+        } catch (error) {
+            console.error('===> ERROR al recibir mensaje de texto');
+            console.error(error);
+        }
+    },
+    async agtInstagramConversationDetail ({ commit }, { conversationId = null, $t }) {
+        try {
+            if (!conversationId) {
+                commit('agtInstagramConversationInitMessages', []);
+                commit('agtInstagramConversationInfoInit', {});
+                return {
+                    status: HTTP_STATUS.ERROR,
+                    message: 'Error al obtener detalle de la conversacion'
+                };
+            }
+            console.log('Fetching conversation detail for ID:', conversationId);
+            const { status, data } = await service.getConversationDetail(
+                conversationId
+            );
+            console.log('Received data:', data);
+            if (status === HTTP_STATUS.SUCCESS) {
+                commit(
+                    'agtInstagramConversationInitMessages',
+                    data.messages.map((msg) => {
+                        const itsMine = msg.origin === data.page.page_id;
+                        return getMessageInfo({ $t, data: msg, itsMine });
+                    })
+                );
+                console.log('Committed messages:', data.messages);
+                commit('agtInstagramConversationInfoInit', data);
+            }
+        } catch (error) {
+            console.error('===> ERROR al obtener detalle de la conversacion');
+            console.error(error);
+            commit('agtInstagramConversationInitMessages', []);
+            commit('agtInstagramConversationInfoInit', {});
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'Error al obtener detalle de la conversacion'
+            };
+        }
+    },
+    async agtInstagramChatsListInit ({ commit }) {
+        try {
+            const { status, data } = await service.getAgentChatsList();
+            commit('agtInstagramChatsListInit', {
+                isNew:
+                    status === HTTP_STATUS.SUCCESS
+                        ? data.new_conversations
+                        : [],
+                inProgress:
+                    status === HTTP_STATUS.SUCCESS
+                        ? data.inprogress_conversations
+                        : []
+            });
+        } catch (error) {
+            console.error(
+                '===> ERROR al obtener la lista de chats de un agente'
+            );
+            console.error(error);
+            commit('agtInstagramChatsListInit', { isNew: [], inProgress: [] });
+        }
+    },
+    agtInstagramReceiveNewChat ({ commit }, chat = null) {
+        try {
+            commit('agtInstagramReceiveNewChat', chat);
+        } catch (error) {
+            console.error('===> ERROR al recibir nuevo chat');
+            console.error(error);
+            commit('agtInstagramReceiveNewChat', null);
+        }
+    },
+    async agtInstagramCoversationRequest ({ commit }, conversationId = null) {
+        try {
+            if (!conversationId) {
+                return {
+                    status: HTTP_STATUS.ERROR,
+                    message: 'Error al pedir una conversacion'
+                };
+            }
+            return await service.requestConversation({
+                id: conversationId
+            });
+        } catch (error) {
+            console.error('===> ERROR al pedir una conversacion');
+            console.error(error);
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'Error al pedir una conversacion'
+            };
+        }
+    },
+    agtInstagramSetConversationMessages ({ commit }, messages = []) {
+        try {
+            commit('agtInstagramConversationInitMessages', messages);
+        } catch (error) {
+            console.error('===> ERROR al settear Mensajes de la conversacion');
+            console.error(error);
+            commit('agtInstagramConversationInitMessages', []);
+        }
+    },
+    agtInstagramSetConversationInfo ({ commit }, info = null) {
+        try {
+            commit('agtInstagramSetConversationInfo', info);
+        } catch (error) {
+            console.error('===> ERROR al settear info de la conversacion');
+            console.error(error);
+            commit('agtInstagramSetConversationInfo', null);
+        }
+    },
+    agtInstagramRestartExpiredCoversation ({ commit }, info = null) {
+        try {
+            commit('agtInstagramRestartExpiredCoversation', info);
+        } catch (error) {
+            console.error(
+                '===> ERROR al actualizar la fecha de expiracion de la conversacion'
+            );
+            console.error(error);
+            commit('agtInstagramRestartExpiredCoversation', null);
+        }
+    },
+    async agtInstagramInitNewConversation ({ commit }, data) {
+        try {
+            return await service.initNewConversation(data);
+        } catch (error) {
+            console.error('===> ERROR al iniciar nueva conversacion');
+            console.error(error);
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'Error al iniciar nueva conversacion'
+            };
+        }
+    },
+    async agtInstagramMarkMessageAsRead ({ commit }, data) {
+        try {
+            return await service.markMessageAsRead(data);
+        } catch (error) {
+            console.error('===> ERROR al marcar msg como leido');
+            console.error(error);
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'ERROR al marcar msg como leido'
+            };
+        }
+    }
+};

@@ -635,6 +635,20 @@ body>h1 {
   background-color: transparent;
 }
 
+.meta-channel-tabs {
+  width: 600px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #d5dce1;
+  padding: 8px;
+  text-align: center;
+}
+
+.meta-channel-tabs .btn.active {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+  color: #FFFFFF;
+}
+
 .facebook_iframe_container {
   margin: 0;
   padding: 0;

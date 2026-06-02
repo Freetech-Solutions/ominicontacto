@@ -45,6 +45,7 @@ from ominicontacto_app.forms.base import (CampanaConfiguracionMetaFacebookForm, 
                                           OrdenarAsignacionContactosForm,
                                           CampanaPreviewCampoDesactivacion,
                                           CampanaConfiguracionWhatsappForm,
+                                          CampanaConfiguracionInstagramForm,
                                           ActualizarContactosPreviewForm)
 from ominicontacto_app.models import AgenteEnContacto, Campana, AgenteProfile, Contacto
 from ominicontacto_app.views_campana_creacion import (CampanaWizardMixin,
@@ -65,6 +66,7 @@ class CampanaPreviewMixin(CampanaWizardMixin):
     COLA = None
     CONFIGURACION_WHATSAPP = '1'
     CONFIGURACION_META_FACEBOOK = '2'
+    CONFIGURACION_INSTAGRAM = 'instagram'
     OPCIONES_CALIFICACION = '3'
     PARAMETROS_CRM = '4'
     ADICION_SUPERVISORES = '5'
@@ -74,6 +76,7 @@ class CampanaPreviewMixin(CampanaWizardMixin):
     FORMS = [(INICIAL, CampanaPreviewForm),
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
+             (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
              (ADICION_SUPERVISORES, CampanaSupervisorUpdateForm),
@@ -84,6 +87,8 @@ class CampanaPreviewMixin(CampanaWizardMixin):
                  CONFIGURACION_WHATSAPP: "campanas/campana_preview/configuracion_whatsapp.html",
                  CONFIGURACION_META_FACEBOOK:
                  "campanas/campana_preview/configuracion_meta_facebook.html",
+                 CONFIGURACION_INSTAGRAM:
+                 "campanas/campana_preview/configuracion_instagram.html",
                  OPCIONES_CALIFICACION: "campanas/campana_preview/opcion_calificacion.html",
                  PARAMETROS_CRM: "campanas/campana_preview/parametros_crm_sitio_externo.html",
                  ADICION_SUPERVISORES: "campanas/campana_preview/adicionar_supervisores.html",
@@ -148,12 +153,14 @@ class CampanaPreviewUpdateView(CampanaPreviewMixin, CampanaManualUpdateView):
     COLA = None
     CONFIGURACION_WHATSAPP = '1'
     CONFIGURACION_META_FACEBOOK = '2'
+    CONFIGURACION_INSTAGRAM = 'instagram'
     OPCIONES_CALIFICACION = '3'
     PARAMETROS_CRM = '4'
 
     FORMS = [(INICIAL, CampanaPreviewForm),
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
+             (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet)]
 
@@ -161,6 +168,8 @@ class CampanaPreviewUpdateView(CampanaPreviewMixin, CampanaManualUpdateView):
                  CONFIGURACION_WHATSAPP: "campanas/campana_manual/configuracion_whatsapp.html",
                  CONFIGURACION_META_FACEBOOK:
                  "campanas/campana_manual/configuracion_meta_facebook.html",
+                 CONFIGURACION_INSTAGRAM:
+                 "campanas/campana_manual/configuracion_instagram.html",
                  OPCIONES_CALIFICACION: "campanas/campana_preview/opcion_calificacion.html",
                  PARAMETROS_CRM: "campanas/campana_preview/parametros_crm_sitio_externo.html"}
 

@@ -626,6 +626,11 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 {% include "agente/modals/facebook/index.html" %}
 {% endif %}
 
+{% if tiene_instagram %}
+<!-- INSTAGRAM MODALS -->
+{% include "agente/modals/instagram/index.html" %}
+{% endif %}
+
 <!-- modal informacion -->
 <div class="modal fade" id="modalMensaje" role="dialog">
   <div class="modal-dialog modal-sm">
@@ -1017,9 +1022,28 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
             <div class="hidden" id="wrapperWhatsapp">
                 <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_whatsapp_index.html' %}"></iframe>
             </div>
-            {% if tiene_facebook %}
-            <div class="hidden" id="wrapperFacebook">
-                <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_facebook_index.html' %}"></iframe>
+            {% if tiene_facebook or tiene_instagram %}
+            <div class="hidden" id="wrapperMetaChannels">
+                {% if tiene_facebook and tiene_instagram %}
+                <div class="meta-channel-tabs">
+                    <button type="button" id="metaFacebookTab" class="btn btn-sm btn-light active">
+                        {% trans 'Facebook' %}
+                    </button>
+                    <button type="button" id="metaInstagramTab" class="btn btn-sm btn-light">
+                        {% trans 'Instagram' %}
+                    </button>
+                </div>
+                {% endif %}
+                {% if tiene_facebook %}
+                <div id="wrapperFacebook">
+                    <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_facebook_index.html' %}"></iframe>
+                </div>
+                {% endif %}
+                {% if tiene_instagram %}
+                <div class="{% if tiene_facebook %}hidden{% endif %}" id="wrapperInstagram">
+                    <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_instagram_index.html' %}"></iframe>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
         </div> <!-- wrapper Inner Content -->
@@ -1057,13 +1081,18 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
           </div>
           <div class="hidden">{% trans 'Webchat' %}</div>
         </div> -->
-        {% if tiene_facebook %}
+        {% if tiene_facebook or tiene_instagram %}
         <div>
+          {% if tiene_facebook %}
           <i id="newFacebookChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
+          {% endif %}
+          {% if tiene_instagram %}
+          <i id="newInstagramChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
+          {% endif %}
           <div class="iconApp" id="facebookChat">
             <span class="icon icon-solid-fb-chat"></span>
           </div>
-          <div class="hidden">{% trans 'Messenger' %}</div>
+          <div class="hidden">{% trans 'Meta' %}</div>
         </div>
         {% endif %}
         <div>
@@ -1118,6 +1147,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <script type="text/javascript" src="{% static 'JS/ext/sweetalert2.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/agente/whatsapp_modals.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/agente/facebook_modals.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/agente/instagram_modals.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/whatsapp_notifications.js' %}"></script>
 <script type="text/javascript">
 $(document).ready(function () {
@@ -1137,14 +1167,14 @@ $(document).ready(function () {
    $('#btnCloseWebphone').on('click',function(){
      $('#wrapperWebphone').removeClass('active');
      $('#wrapperWhatsapp').addClass('hidden');
-     $('#wrapperFacebook').addClass('hidden');
+     $('#wrapperMetaChannels').addClass('hidden');
    });
 
    /* Toggle webphone from bottom bar and close button */
    $('#webCall').on('click',function(){
      $('#wrapperWebphone').toggleClass('active');
      $('#wrapperWhatsapp').addClass('hidden');
-     $('#wrapperFacebook').addClass('hidden');
+     $('#wrapperMetaChannels').addClass('hidden');
    });
 
    // Get current window path
@@ -1162,8 +1192,9 @@ $(document).ready(function () {
    // Whatsapp Icon Status
    var tiene_whatsapp = '{{ tiene_whatsapp|safe }}';
    var tiene_facebook = '{{ tiene_facebook|safe }}';
+   var tiene_instagram = '{{ tiene_instagram|safe }}';
    setWhatsappStatusIcon(tiene_whatsapp === 'True');
-   setFacebookStatusIcon(tiene_facebook === 'True');
+   setFacebookStatusIcon(tiene_facebook === 'True' || tiene_instagram === 'True');
  });
 
 </script>
