@@ -359,7 +359,6 @@ class Click2CallOutsideCampaign(APIView):
 
 logger = logging.getLogger(__name__)
 HEARTBEAT_ID_PATTERN = re.compile(r'^[A-Za-z0-9._:-]{1,128}$')
-HEARTBEAT_LEADER_LOCK_TTL_SEC = 45
 
 
 class HangUpCallView(APIView):
@@ -408,15 +407,6 @@ class AgentPresenceHeartbeatView(APIView):
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
-    def _parse_bool(self, value):
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, int):
-            return value == 1
-        if isinstance(value, str):
-            return value.strip().lower() in ('1', 'true', 'yes', 'on')
-        return False
-
     def _validate_id(self, value, field_name):
         value = str(value or '').strip()
         if not HEARTBEAT_ID_PATTERN.match(value):
@@ -439,7 +429,6 @@ class AgentPresenceHeartbeatView(APIView):
             return Response(data={'status': 'ERROR', 'message': str(e)}, status=HTTP_400_BAD_REQUEST)
 
         ui_state = str(data.get('ui_state') or '')[:64]
-        leader = self._parse_bool(data.get('leader'))
         sent_at_ms = data.get('sent_at_ms')
         try:
             sent_at_ms = int(sent_at_ms) if sent_at_ms is not None and sent_at_ms != '' else None
@@ -450,14 +439,12 @@ class AgentPresenceHeartbeatView(APIView):
         timeout_sec = int(getattr(settings, 'PRESENCE_HEARTBEAT_TIMEOUT_SEC', 60))
         server_ts_ms = int(time.time() * 1000)
         hb_key = AgentPresenceManager.get_heartbeat_key(agente_profile.id, browser_id)
-        leader_key = AgentPresenceManager.get_heartbeat_leader_key(agente_profile.id, browser_id)
 
         mapping = {
             'agent_id': str(agente_profile.id),
             'browser_id': browser_id,
             'tab_id': tab_id,
             'ui_state': ui_state,
-            'leader': '1' if leader else '0',
             'sent_at_ms': str(sent_at_ms) if sent_at_ms is not None else '',
             'server_ts_ms': str(server_ts_ms),
         }
@@ -466,8 +453,6 @@ class AgentPresenceHeartbeatView(APIView):
             redis_conn = create_redis_connection()
             redis_conn.hset(hb_key, mapping=mapping)
             redis_conn.expire(hb_key, timeout_sec)
-            if leader:
-                redis_conn.setex(leader_key, HEARTBEAT_LEADER_LOCK_TTL_SEC, tab_id)
         except Exception as e:
             logger.warning(
                 "presence_heartbeat: error writing redis for agent_id=%s: %s",

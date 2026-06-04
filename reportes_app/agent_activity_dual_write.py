@@ -37,6 +37,7 @@ Mapping event -> event_type:
 from reportes_app.models import ActividadAgenteLog, AgentActivityEventV2
 
 SOURCE_HEARTBEAT_TIMEOUT = 'HB_TIMEOUT'
+SOURCE_HEARTBEAT_RECOVER = 'HB_RECOVER'
 SOURCE_SESSION_EXPIRED = 'SESS_EXPIRED'
 
 

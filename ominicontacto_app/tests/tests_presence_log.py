@@ -155,9 +155,9 @@ class PresenceLogTests(OMLBaseTest):
         self.assertIsNone(last_event.pause_id)
         self.assertEqual(last_event.aux_code, '42')
 
-    def test_enforce_login_is_non_mutating(self):
+    def test_should_redirect_is_non_mutating(self):
         count_before = AgentActivityEventV2.objects.count()
-        should_redirect = self.manager.enforce_login(self.agente)
+        should_redirect = self.manager.should_redirect_by_closed_presence(self.agente.id)
         self.assertFalse(should_redirect)
         self.assertEqual(AgentActivityEventV2.objects.count(), count_before)
 

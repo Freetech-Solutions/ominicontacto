@@ -57,7 +57,7 @@ Componentes principales:
 
 Al cargar la consola:
 
-1. Se crea `PresenceHeartbeatSender` con `PRESENCE_HEARTBEAT_INTERVAL_SEC` y el TTL de líder (45 s, hardcodeado en la vista).
+1. Se crea `PresenceHeartbeatSender` con `PRESENCE_HEARTBEAT_INTERVAL_SEC` y el TTL de líder (45 s, hardcodeado en la vista de consola).
 2. La FSM del agente activa el sender al arrancar.
 3. **Solo la pestaña líder** envía heartbeats (elección vía `localStorage` + `BroadcastChannel` entre pestañas del mismo browser).
 4. Cada `INTERVAL_SEC` segundos la pestaña líder hace POST con:
@@ -81,7 +81,8 @@ Al cargar la consola:
 1. Valida `browser_id` y `tab_id`.
 2. Escribe un hash en Redis `OML:PRESENCE:HB:{agent_id}:{browser_id}`.
 3. Renueva el TTL de esa clave a `PRESENCE_HEARTBEAT_TIMEOUT_SEC`.
-4. Si `leader=true`, actualiza `OML:PRESENCE:HB:LEADER:{agent_id}:{browser_id}` (TTL fijo de 45 s).
+
+La elección de pestaña líder ocurre solo en el browser (`localStorage` + `BroadcastChannel`); el backend no persiste claves de líder en Redis.
 
 Respuesta:
 
@@ -93,23 +94,28 @@ Respuesta:
 }
 ```
 
-### 3.3 Scheduler (detección de timeout)
+### 3.3 Scheduler (detección de timeout y recuperación)
 
-El comando `presence_heartbeat_scheduler` corre como worker de fondo y ejecuta un barrido cada `PRESENCE_HEARTBEAT_SWEEP_SEC` segundos.
+El comando `presence_heartbeat_scheduler` corre como worker de fondo y ejecuta un **barrido unificado** cada `PRESENCE_HEARTBEAT_SWEEP_SEC` segundos (`sweep_presence_heartbeats`).
 
-**Algoritmo del barrido** (`sweep_presence_heartbeat_timeouts`):
+Por cada agente en la unión de agentes con clave `OML:AGENT:*` y agentes con heartbeat vivo:
 
-1. Recolecta agentes con al menos una clave HB viva (`OML:PRESENCE:HB:{agent_id}:*`).
-2. Escanea todos los `OML:AGENT:*`.
-3. Para cada agente con `STATUS` activo (distinto de `OFFLINE`, `UNAVAILABLE`, `DISABLED`, vacío):
-   - Si tiene heartbeat vivo → **no hace nada**.
-   - Si existe la guardia `OML:PRESENCE:HB:TIMEOUT_GUARD:{agent_id}` → **salta** (ya procesado).
-   - Si ya hubo un logout sintético reciente (`HB_TIMEOUT` dentro de `LOGOUT_RECENT_SEC`) → reconcilia Redis a `UNAVAILABLE` si hace falta.
-   - Si la presencia V2 está cerrada → **no hace nada**.
-   - Si no hay heartbeat y V2 está abierta:
-     1. Inserta `SESSION_LOGOUT` sintético en V2 (`source='HB_TIMEOUT'`, `metadata.reason='timeout'`).
-     2. Setea guardia con TTL `GUARD_TTL_SEC`.
-     3. Setea `OML:AGENT:{id}` → `STATUS=UNAVAILABLE`.
+#### Recuperación (tiene HB + `STATUS=UNAVAILABLE`)
+
+1. Si el último evento V2 es `SESSION_LOGOUT` con `source='HB_TIMEOUT'`:
+   1. Inserta `SESSION_LOGIN` sintético en V2 (`source='HB_RECOVER'`, `metadata.status_restored` con el `status_before` del logout).
+   2. Restaura `OML:AGENT:{id}` al `status_before` guardado (`READY`, `PAUSE-*`, `RINGING`; fallback `READY`). Para pausas, usa `metadata.pause_id` si está disponible.
+
+#### Cierre por timeout (sin HB + `STATUS` activo)
+
+1. Si la presencia V2 está **cerrada** y el último evento es `HB_TIMEOUT` reciente (dentro de `LOGOUT_RECENT_SEC`) → reconcilia Redis a `UNAVAILABLE` si hace falta (sin reinsertar en V2).
+2. Si la presencia V2 está **abierta**:
+   1. Inserta `SESSION_LOGOUT` sintético en V2 (`source='HB_TIMEOUT'`, `metadata.reason='timeout'`, `metadata.status_before` y opcionalmente `metadata.pause_id`).
+   2. Setea `OML:AGENT:{id}` → `STATUS=UNAVAILABLE`.
+
+La idempotencia de V2 se basa en el último evento (`get_presence_session_tail`); no hay clave guardia Redis adicional.
+
+No hay ventana temporal adicional para recuperación: mientras el último evento siga siendo `HB_TIMEOUT` y el HB esté vivo, el scheduler recupera la sesión (el propio HB implica sesión Django válida).
 
 ```mermaid
 flowchart TD
@@ -117,17 +123,21 @@ flowchart TD
     api["POST /api/v1/agent/presence/heartbeat/"]
     redisHB["Redis OML:PRESENCE:HB:{agent_id}:{browser_id}"]
     scheduler[presence_heartbeat_scheduler]
-    sweep[sweep_presence_heartbeat_timeouts]
+    sweep[sweep_presence_heartbeats]
     agentKey["Redis OML:AGENT:{id}"]
     v2["PostgreSQL AgentActivityEventV2"]
     unavailable[STATUS=UNAVAILABLE]
+    recover[SESSION_LOGIN HB_RECOVER]
 
     browser -->|"cada INTERVAL_SEC"| api
     api -->|"hset + expire TIMEOUT_SEC"| redisHB
     scheduler -->|"cada SWEEP_SEC"| sweep
-    sweep -->|"escanea agentes activos sin HB"| agentKey
+    sweep -->|"agente activo sin HB"| agentKey
     sweep -->|"close_presence_session_v2 HB_TIMEOUT"| v2
     sweep --> unavailable
+    sweep -->|"UNAVAILABLE + HB vivo + ultimo HB_TIMEOUT"| recover
+    recover --> v2
+    recover --> agentKey
 ```
 
 ### 3.4 ¿Cuándo se cumple el timeout?
@@ -150,9 +160,7 @@ Con los defaults (`INTERVAL=15`, `TIMEOUT=60`): mientras la pestaña líder env�
 |-------|------|-----|-------------|-------------|
 | `OML:AGENT:{agent_id}` | Hash | — | `AgentActivityAmiManager` | Estado operativo del agente. Campos: `STATUS`, `TIMESTAMP`, `PAUSE_ID`, `CALLID`, `NODE_ID`, etc. |
 | `OML:PRESENCE_LOG_DEBOUNCE:{agent_id}` | Hash | — | `AgentPresenceManager` | Debounce login/logout. Campos: `last_event_type`, `last_event_ts` (ms). Evita flapping `LOGIN→LOGOUT→LOGIN` dentro de `PRESENCE_LOG_RECONNECT_COOLDOWN_MS`. |
-| `OML:PRESENCE:HB:{agent_id}:{browser_id}` | Hash | `PRESENCE_HEARTBEAT_TIMEOUT_SEC` | `AgentPresenceHeartbeatView` | Heartbeat de presencia. Campos: `agent_id`, `browser_id`, `tab_id`, `ui_state`, `leader`, `sent_at_ms`, `server_ts_ms`. |
-| `OML:PRESENCE:HB:LEADER:{agent_id}:{browser_id}` | String | 45 s (hardcodeado) | `AgentPresenceHeartbeatView` | ID de la pestaña líder que envía heartbeats para ese browser. |
-| `OML:PRESENCE:HB:TIMEOUT_GUARD:{agent_id}` | String | `PRESENCE_HEARTBEAT_GUARD_TTL_SEC` | `presence_heartbeat_scheduler` | Guardia post-timeout. Evita reprocesar al mismo agente en barridos consecutivos. Valor: `'1'`. |
+| `OML:PRESENCE:HB:{agent_id}:{browser_id}` | Hash | `PRESENCE_HEARTBEAT_TIMEOUT_SEC` | `AgentPresenceHeartbeatView` | Heartbeat de presencia. Campos: `agent_id`, `browser_id`, `tab_id`, `ui_state`, `sent_at_ms`, `server_ts_ms`. |
 
 **Estados considerados "inactivos" por el scheduler** (no se evalúan para timeout): `''`, `OFFLINE`, `UNAVAILABLE`, `DISABLED`.
 
@@ -204,7 +212,6 @@ Todas se leen en `ominicontacto/settings/defaults.py` mediante `_env_int(name, d
 | `PRESENCE_HEARTBEAT_TIMEOUT_SEC` | `60` | API: TTL de la clave Redis `OML:PRESENCE:HB:*`. Scheduler: metadata del logout sintético. |
 | `PRESENCE_HEARTBEAT_SWEEP_SEC` | `15` | Scheduler: intervalo del barrido APScheduler. |
 | `PRESENCE_HEARTBEAT_LOGOUT_RECENT_SEC` | `90` | Scheduler: ventana para detectar logout sintético reciente y reconciliar Redis sin reinsertar en V2. |
-| `PRESENCE_HEARTBEAT_GUARD_TTL_SEC` | `90` | Scheduler: TTL de la clave guard `OML:PRESENCE:HB:TIMEOUT_GUARD:{agent_id}`. |
 
 ### Cadena de configuración
 
@@ -236,11 +243,10 @@ flowchart LR
 
 ```
 PRESENCE_HEARTBEAT_TIMEOUT_SEC  ≥  3–4 × PRESENCE_HEARTBEAT_INTERVAL_SEC
-PRESENCE_HEARTBEAT_GUARD_TTL_SEC  ≥  PRESENCE_HEARTBEAT_TIMEOUT_SEC
 PRESENCE_HEARTBEAT_LOGOUT_RECENT_SEC  ≥  PRESENCE_HEARTBEAT_TIMEOUT_SEC
 ```
 
-Con los defaults (15 / 60 / 90 / 90): el agente puede fallar ~4 heartbeats consecutivos antes de que expire la clave; el scheduler detecta la ausencia en el siguiente barrido (≤ 15 s después).
+Con los defaults (15 / 60 / 90): el agente puede fallar ~4 heartbeats consecutivos antes de que expire la clave; el scheduler detecta la ausencia en el siguiente barrido (≤ 15 s después).
 
 ---
 
@@ -248,10 +254,11 @@ Con los defaults (15 / 60 / 90 / 90): el agente puede fallar ~4 heartbeats conse
 
 | `source` | Disparador | `metadata.reason` típico |
 |----------|------------|--------------------------|
-| `HB_TIMEOUT` | `presence_heartbeat_scheduler` | `timeout` |
+| `HB_TIMEOUT` | `presence_heartbeat_scheduler` (fase cierre) | `timeout` |
+| `HB_RECOVER` | `presence_heartbeat_scheduler` (fase recuperación) | `heartbeat_recovered` |
 | `SESS_EXPIRED` | `fix_previous_open_session_logs` al login | `session_expired` |
 
-Tras un `HB_TIMEOUT`, la consola redirige al login en la próxima carga porque V2 tiene presencia cerrada, aunque Redis pueda quedar momentáneamente desincronizado hasta la reconciliación.
+Tras un `HB_TIMEOUT`, si el heartbeat vuelve antes de que el agente recargue la consola, el scheduler inserta `HB_RECOVER` y reabre V2 automáticamente. Si no hay recuperación, la consola redirige al login en la próxima carga porque V2 tiene presencia cerrada.
 
 ---
 

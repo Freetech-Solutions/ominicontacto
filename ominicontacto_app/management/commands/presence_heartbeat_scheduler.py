@@ -29,17 +29,17 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from ominicontacto_app.models import AgenteProfile
-from ominicontacto_app.services.agent.presence import AgentPresenceManager
+from ominicontacto_app.services.agent.presence import (
+    AgentPresenceManager,
+    NON_ACTIVE_STATUSES,
+)
 from ominicontacto_app.services.asterisk.agent_activity import AgentActivityAmiManager
 from ominicontacto_app.services.redis.connection import create_redis_connection
-from reportes_app.agent_activity_dual_write import SOURCE_HEARTBEAT_TIMEOUT
 
 logger = logging.getLogger(__name__)
 
 AGENT_KEY_PATTERN = 'OML:AGENT:*'
 HEARTBEAT_SCAN_PATTERN = 'OML:PRESENCE:HB:*'
-NON_ACTIVE_STATUSES = frozenset(['', 'OFFLINE', 'UNAVAILABLE', 'DISABLED'])
 
 
 def _iter_scan(redis_conn, pattern, count=200):
@@ -75,24 +75,108 @@ def _collect_agents_with_heartbeat(redis_conn):
     return agent_ids
 
 
-def _set_agent_unavailable(agent_activity, agent_id):
-    try:
-        agente_profile = AgenteProfile.objects.get(id=agent_id)
-    except AgenteProfile.DoesNotExist:
-        logger.warning(
-            "presence_heartbeat: agente %s no existe; no se puede setear UNAVAILABLE",
-            agent_id,
-        )
-        return
-    agent_activity.set_agent_as_unavailable(agente_profile)
+def _collect_agent_redis_state(redis_conn):
+    """Devuelve (statuses, pause_ids) indexados por agent_id."""
+    statuses = {}
+    pause_ids = {}
+    for key in _iter_scan(redis_conn, AGENT_KEY_PATTERN):
+        agent_id = _extract_agent_id_from_agent_key(key)
+        if agent_id is None:
+            continue
+        statuses[agent_id] = redis_conn.hget(key, 'STATUS') or ''
+        pause_ids[agent_id] = redis_conn.hget(key, 'PAUSE_ID')
+    return statuses, pause_ids
 
 
-def sweep_presence_heartbeat_timeouts():
+def _sweep_presence_heartbeats(
+    redis_conn,
+    presence_manager,
+    agent_activity,
+    heartbeat_agents,
+    agent_statuses,
+    pause_ids,
+    timeout_sec,
+    recent_window_sec,
+    current_ts,
+):
+    checked_agents = 0
+    timeout_events = 0
+    reconciled_agents = 0
+    recovered_agents = 0
+
+    all_agent_ids = set(agent_statuses.keys()) | heartbeat_agents
+
+    for agent_id in all_agent_ids:
+        checked_agents += 1
+        has_heartbeat = agent_id in heartbeat_agents
+        status = agent_statuses.get(agent_id, '')
+        pause_id = pause_ids.get(agent_id)
+
+        try:
+            if has_heartbeat and status == 'UNAVAILABLE':
+                try:
+                    if presence_manager.apply_heartbeat_recovery(
+                        agente_id=agent_id,
+                        ts=current_ts,
+                        agent_activity=agent_activity,
+                        redis_conn=redis_conn,
+                    ):
+                        recovered_agents += 1
+                except Exception as recover_error:
+                    logger.warning(
+                        "presence_heartbeat: error recuperando agente=%s: %s",
+                        agent_id, recover_error
+                    )
+                continue
+
+            if has_heartbeat or status in NON_ACTIVE_STATUSES:
+                continue
+
+            if not presence_manager.is_presence_open_v2(agent_id):
+                if presence_manager.reconcile_heartbeat_timeout_redis(
+                    agente_id=agent_id,
+                    status=status,
+                    recent_window_sec=recent_window_sec,
+                    agent_activity=agent_activity,
+                ):
+                    reconciled_agents += 1
+                continue
+
+            try:
+                presence_manager.apply_heartbeat_timeout(
+                    agente_id=agent_id,
+                    status=status,
+                    pause_id=pause_id,
+                    ts=current_ts,
+                    timeout_sec=timeout_sec,
+                    agent_activity=agent_activity,
+                )
+                timeout_events += 1
+            except Exception as timeout_error:
+                logger.warning(
+                    "presence_heartbeat: no se pudo aplicar timeout para agente=%s: %s",
+                    agent_id, timeout_error
+                )
+        except Exception as e:
+            logger.warning(
+                "presence_heartbeat: error procesando agente=%s: %s",
+                agent_id, e
+            )
+
+    return checked_agents, timeout_events, reconciled_agents, recovered_agents
+
+
+def sweep_presence_heartbeats():
     """
-    Detecta agentes sin heartbeat vigente y cierra su presencia en V2.
-    Orden de escritura:
+    Barrido unificado de heartbeat: cierre por timeout, reconciliación Redis y recuperación.
+
+    Orden de escritura (cierre):
     1) Insertar SESSION_LOGOUT sintético en V2.
     2) Setear UNAVAILABLE en Redis.
+
+    Orden de escritura (recuperación):
+    1) Insertar SESSION_LOGIN sintético en V2.
+    2) Restaurar status_before en Redis.
     """
     try:
         redis_conn = create_redis_connection()
@@ -106,87 +190,34 @@ def sweep_presence_heartbeat_timeouts():
 
     timeout_sec = int(getattr(settings, 'PRESENCE_HEARTBEAT_TIMEOUT_SEC', 60))
     recent_window_sec = int(getattr(settings, 'PRESENCE_HEARTBEAT_LOGOUT_RECENT_SEC', 90))
-    guard_ttl_sec = int(getattr(settings, 'PRESENCE_HEARTBEAT_GUARD_TTL_SEC', 90))
     heartbeat_agents = _collect_agents_with_heartbeat(redis_conn)
+    agent_statuses, pause_ids = _collect_agent_redis_state(redis_conn)
     current_ts = now()
 
-    checked_agents = 0
-    timeout_events = 0
-    reconciled_agents = 0
-
-    for key in _iter_scan(redis_conn, AGENT_KEY_PATTERN):
-        agent_id = None
-        try:
-            agent_id = _extract_agent_id_from_agent_key(key)
-            if agent_id is None:
-                continue
-
-            checked_agents += 1
-            status = redis_conn.hget(key, 'STATUS') or ''
-            if status in NON_ACTIVE_STATUSES:
-                continue
-            if agent_id in heartbeat_agents:
-                continue
-
-            guard_key = presence_manager.get_heartbeat_timeout_guard_key(agent_id)
-            if redis_conn.exists(guard_key):
-                continue
-
-            recent_timeout_logout = presence_manager.has_recent_synthetic_logout(
-                agente_id=agent_id,
-                source=SOURCE_HEARTBEAT_TIMEOUT,
-                within_seconds=recent_window_sec,
-            )
-            if recent_timeout_logout:
-                if status != 'UNAVAILABLE':
-                    _set_agent_unavailable(agent_activity, agent_id)
-                    reconciled_agents += 1
-                redis_conn.setex(guard_key, guard_ttl_sec, '1')
-                continue
-
-            if not presence_manager.is_presence_open_v2(agent_id):
-                continue
-
-            metadata = {
-                'reason': 'timeout',
-                'status_before': status,
-                'heartbeat_timeout_sec': timeout_sec,
-            }
-            try:
-                presence_manager.close_presence_session_v2(
-                    agente_id=agent_id,
-                    ts=current_ts,
-                    source=SOURCE_HEARTBEAT_TIMEOUT,
-                    metadata=metadata,
-                )
-            except Exception as write_error:
-                logger.warning(
-                    "presence_heartbeat: no se pudo insertar logout sintético para agente=%s: %s",
-                    agent_id, write_error
-                )
-                # Si V2 falla, no tocar Redis; se reintentará en el próximo sweep.
-                continue
-
-            timeout_events += 1
-            redis_conn.setex(guard_key, guard_ttl_sec, '1')
-
-            try:
-                _set_agent_unavailable(agent_activity, agent_id)
-            except Exception as unavailable_error:
-                logger.warning(
-                    "presence_heartbeat: logout sintético ok pero fallo UNAVAILABLE para agente=%s: %s",
-                    agent_id, unavailable_error
-                )
-        except Exception as e:
-            logger.warning(
-                "presence_heartbeat: error procesando agente=%s: %s",
-                agent_id, e
-            )
+    checked_agents, timeout_events, reconciled_agents, recovered_agents = (
+        _sweep_presence_heartbeats(
+            redis_conn=redis_conn,
+            presence_manager=presence_manager,
+            agent_activity=agent_activity,
+            heartbeat_agents=heartbeat_agents,
+            agent_statuses=agent_statuses,
+            pause_ids=pause_ids,
+            timeout_sec=timeout_sec,
+            recent_window_sec=recent_window_sec,
+            current_ts=current_ts,
+        )
+    )
 
     logger.info(
-        "presence_heartbeat sweep: checked=%s heartbeat_agents=%s timeouts=%s reconciled=%s",
-        checked_agents, len(heartbeat_agents), timeout_events, reconciled_agents
+        "presence_heartbeat sweep: checked=%s heartbeat_agents=%s timeouts=%s "
+        "reconciled=%s recovered=%s",
+        checked_agents, len(heartbeat_agents), timeout_events,
+        reconciled_agents, recovered_agents
     )
+
+
+# Alias de compatibilidad con referencias existentes.
+sweep_presence_heartbeat_timeouts = sweep_presence_heartbeats
 
 
 class Command(BaseCommand):
@@ -213,7 +244,7 @@ class Command(BaseCommand):
             timezone=None,
         )
         self.scheduler.add_job(
-            sweep_presence_heartbeat_timeouts,
+            sweep_presence_heartbeats,
             trigger=IntervalTrigger(seconds=interval_sec),
             id='presence_heartbeat_scheduler',
             name='Presence heartbeat timeout sweep',

@@ -31,7 +31,7 @@ En el flujo intervienen:
 - **Template**: `ominicontacto_app/templates/agente/base_agente.html`
 - **URL name**: `consola_de_agente` (ruta típica `/consola/`).
 
-En `dispatch` se valida que el usuario sea agente, que no esté inactivo y que la presencia no esté cerrada en V2 (`should_redirect_by_closed_presence`). Si la presencia está cerrada (por ejemplo por timeout de heartbeat), se redirige al login. Se usa `AgentPresenceManager` para estas comprobaciones y para `enforce_login`.
+En `dispatch` se valida que el usuario sea agente, que no esté inactivo y que la presencia no esté cerrada en V2 (`should_redirect_by_closed_presence`). Si la presencia está cerrada (por ejemplo por timeout de heartbeat), se redirige al login. Se usa `AgentPresenceManager` para estas comprobaciones.
 
 En `get_context_data` se inyectan, entre otros:
 
@@ -287,8 +287,8 @@ flowchart LR
 | `OML:AGENT:{id}` | Estado operativo del agente (STATUS, TIMESTAMP, PAUSE_ID, CALLID, NODE_ID, etc.). |
 | `OML:PRESENCE_LOG_DEBOUNCE:{id}` | Debounce login/logout (last_event_type, last_event_ts en ms) para evitar flapping. |
 | `OML:PRESENCE:HB:{agente_id}:{browser_id}` | Heartbeat de presencia; TTL = timeout configurado. |
-| `OML:PRESENCE:HB:LEADER:{agente_id}:{browser_id}` | Pestaña líder que envía el heartbeat; TTL = leader lock. |
-| `OML:PRESENCE:HB:TIMEOUT_GUARD:{agente_id}` | Guardia tras cerrar presencia por timeout; evita repetir cierre en siguientes barridos. |
+
+La elección de pestaña líder es solo en el browser (`localStorage`); no hay claves Redis de líder ni guardia de timeout.
 
 ---
 

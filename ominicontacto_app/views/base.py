@@ -241,7 +241,6 @@ class ConsolaAgenteView(AddSettingsContextMixin, TemplateView):
             logout(request)
             return redirect('login')
 
-        presence_manager.enforce_login(agente_profile)
         return super(ConsolaAgenteView, self).dispatch(request, *args, **kwargs)
 
     def get_pausas(self, agent):
