@@ -9,8 +9,14 @@ def prepara_agentes_para_stream_redis(x):
     for v in x['value'].keys():
         agent_key = f'OML:AGENT:{v}'
         if execute('exists', agent_key) == 1:
+            voicebot_flag = execute('HGET', agent_key, 'VOICEBOT')
             agent_streams = execute('HGET', agent_key, 'STREAMS')
             agent_streams_list = agent_streams.split(',') if agent_streams else []
+            if voicebot_flag == '1':
+                if stream in agent_streams_list:
+                    agent_streams_list.remove(stream)
+                    execute('HSET', agent_key, 'STREAMS', ','.join(agent_streams_list))
+                continue
             if stream not in agent_streams_list:
                 agent_streams_list.append(stream)
                 execute('HSET', agent_key, 'STREAMS', ','.join(agent_streams_list))

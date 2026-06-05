@@ -34,6 +34,7 @@ class Command(BaseCommand):
     def _delete_registrations(self):
         subscriptions = [
             ('OML:AGENT:*', 'sup_agent'),
+            ('OML:VOICEBOT-ACTIVE-CALLS:*', 'sup_voicebot'),
             ('OML:SUPERVISION_CAMPAIGN:*', 'sup_entrantes'),
             ('OML:SUPERVISION_SALIENTE:*', 'sup_salientes'),
             ('OML:SUPERVISION_DIALER:*', 'sup_dialers'),

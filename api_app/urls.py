@@ -157,7 +157,7 @@ from api_app.views.audios_asterisk import AudiosAsteriskListView
 from api_app.views.transfer import (
     TransferBlindAgentView, TransferBlindEndpointView,
     TransferBlindCampaignView, TransferBlindCampaignAgentView,
-    Transfer3WayView, HangupLegView, SpyChannelView, HoldCallView, ThreeWayConfView,
+    Transfer3WayView, HangupLegView, SpyChannelView, VoicebotHangupView, HoldCallView, ThreeWayConfView,
     TransferConsultStartView, TransferConsultCompleteView, TransferConsultCancelView
 )
 from api_app.views.verloop import VerloopWebhookView
@@ -802,6 +802,8 @@ urlpatterns = [
          HangupLegView.as_view(), name='api_call_hangup_leg'),
     path('api/v1/call/spy/',
          SpyChannelView.as_view(), name='api_call_spy'),
+    path('api/v1/call/voicebot-hangup/',
+         VoicebotHangupView.as_view(), name='api_call_voicebot_hangup'),
     path('api/v1/call/hold/',
          HoldCallView.as_view(), name='api_call_hold'),
     path('api/v1/call/three-way-conf/',

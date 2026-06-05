@@ -33,10 +33,28 @@ from ominicontacto_app.forms.base import GrupoAgenteForm
 
 from ominicontacto_app.models import Campana, Grupo, AgenteProfile
 from supervision_app.services.redisgears_service import RedisGearsService
+from supervision_app.services.voicebot_calls import get_voicebot_active_call_rows
 from ominicontacto_app.services.dialer import wombat_habilitado
 from ominicontacto_app.services.redis.connection import create_redis_connection
 
 logger = logging.getLogger(__name__)
+
+
+def _supervisor_voicebot_agents(supervisor, request_user):
+    """Agentes voicebot visibles para el supervisor según campañas asignadas."""
+    if request_user.get_is_administrador():
+        campanas = Campana.objects.obtener_all_dialplan_asterisk()
+    else:
+        campanas = supervisor.campanas_asignadas_actuales_no_finalizadas()
+
+    agent_ids = set()
+    agentes = []
+    for campana in campanas:
+        for agente in campana.obtener_agentes().filter(voicebot=True).select_related('user'):
+            if agente.id not in agent_ids:
+                agent_ids.add(agente.id)
+                agentes.append(agente)
+    return agentes
 
 
 class SupervisionAgentesView(AddSettingsContextMixin, TemplateView):
@@ -69,7 +87,45 @@ class SupervisionAgentesView(AddSettingsContextMixin, TemplateView):
         context['supervisor_id'] = supervisor.id
 
         RedisGearsService().registra_stream_supervisor(supervisor.id)
+        RedisGearsService().registra_stream_supervisor_voicebots(supervisor.id)
         return context
+
+
+def supervision_voicebot_llamadas(request):
+    """
+    Snapshot REST de llamadas voicebot activas (1 fila por call_id en Redis).
+
+    GET /supervision/agentes/data/voicebot-llamadas/?campaign_id=
+    """
+    try:
+        supervisor = request.user.get_supervisor_profile()
+        if supervisor is None:
+            return JsonResponse({'error': 'Supervisor no encontrado'}, status=403)
+
+        campaign_id = request.GET.get('campaign_id')
+        if campaign_id is not None and str(campaign_id).strip() == '':
+            campaign_id = None
+
+        agentes_voicebot = _supervisor_voicebot_agents(supervisor, request.user)
+        redis_connection = None
+        try:
+            redis_connection = create_redis_connection(db=0)
+            redis_connection.ping()
+        except Exception as e:
+            logger.warning('Error conectando a Redis db=0 para voicebot llamadas: %s', e)
+
+        llamadas = get_voicebot_active_call_rows(
+            redis_connection,
+            agentes_voicebot,
+            campaign_id=campaign_id,
+        )
+        return JsonResponse({'llamadas': llamadas})
+    except Exception as e:
+        logger.error('Error en supervision_voicebot_llamadas: %s', e, exc_info=True)
+        return JsonResponse({
+            'error': 'Error obteniendo llamadas voicebot',
+            'detail': str(e),
+        }, status=500)
 
 
 class SupervisionCampanasEntrantesView(TemplateView):

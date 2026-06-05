@@ -28,6 +28,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.interval import IntervalTrigger
 
 from reportes_app.reportes.reporte_supervisores import ReporteSupervisoresFamily
+from supervision_app.services.redisgears_service import RedisGearsService
 
 logger = logging.getLogger(__name__)
 
@@ -44,6 +45,11 @@ def actualizar_reporte_supervisores():
         family = ReporteSupervisoresFamily()
         family.regenerar_families()
         logger.info("Actualización del reporte de supervisores completada exitosamente")
+
+        redis_gears = RedisGearsService()
+        redis_gears.registra_gears_supervision_global()
+        redis_gears.sincroniza_voicebot_streams_todos_supervisores()
+        logger.info("RedisGears supervisión y VOICEBOT_STREAMS sincronizados")
     except Exception as e:
         logger.error(f'Fallo al actualizar reporte de supervisores: {e}', exc_info=True)
 

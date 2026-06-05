@@ -42,6 +42,12 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <script type="text/javascript" src="{% static 'supervision_app/JS/phoneJsView.js' %}"></script>
 <script type="text/javascript" src="{% static 'supervision_app/JS/phoneJsController.js' %}"></script>
 <script type="text/javascript" src="{% static 'supervision_app/JS/supervision_agentes.js' %}"></script>
+<script type="text/javascript" src="{% static 'supervision_app/JS/supervision_voicebots.js' %}"></script>
+<script type="text/javascript">
+    window.SUPERVISION_VOICEBOT_LLAMADAS_URL = "{% url 'supervision_voicebot_llamadas' %}";
+    window.SUPERVISION_API_CALL_SPY = "{% url 'api_call_spy' %}";
+    window.SUPERVISION_API_CALL_VOICEBOT_HANGUP = "{% url 'api_call_voicebot_hangup' %}";
+</script>
 {% endblock %}
 
 {% block content %}
@@ -89,7 +95,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
             <div class="col-md-7"><select class="form-control" id="filter_campana">
                     <option value="" selected="selected" label="------------"></option>
                     {%for campana in campanas%}
-                    <option value="{{campana}}">{{campana}}</option>
+                    <option value="{{campana}}" data-campaign-id="{{ campana.id }}">{{campana}}</option>
                     {% endfor %}
                 </select></div>
         </div>
@@ -110,6 +116,20 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
             <th>{% trans 'Nombre' %}</th>
             <th type="hidden"></th>
             <th type="hidden"></th>
+            <th>{% trans 'Campaña' %}</th>
+            <th>{% trans 'Contacto' %}</th>
+            <th>{% trans 'Status' %}</th>
+            <th>{% trans 'Tiempo' %}</th>
+            <th>{% trans 'Acciones' %}</th>
+        </tr>
+    </thead>
+</table>
+
+<h2 class="mt-4">{% trans 'Voicebots' %}</h2>
+<table id="tableVoicebots" class="table" title="{% trans 'Llamadas activas de agentes voicebot.' %}">
+    <thead>
+        <tr>
+            <th>{% trans 'Nombre' %}</th>
             <th>{% trans 'Campaña' %}</th>
             <th>{% trans 'Contacto' %}</th>
             <th>{% trans 'Status' %}</th>

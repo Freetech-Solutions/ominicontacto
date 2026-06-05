@@ -3,6 +3,11 @@ def process_event(x):
     STREAM_LENGHT = %d
     value = x['value']
     try:
+        if value.get('VOICEBOT') == '1':
+            return
+    except Exception:
+        pass
+    try:
         streams = value['STREAMS'].split(',')
     except:
         streams = []

@@ -30,12 +30,17 @@ from supervision_app.views import (
     dashboard_contact_center_agentes_lista,
     dashboard_contact_center_bots_campana,
     dashboard_contact_center_llamadas,
+    supervision_voicebot_llamadas,
 )
 
 urlpatterns = [
     path('supervision/agentes/',
          login_required(SupervisionAgentesView.as_view()),
          name='supervision_agentes',
+         ),
+    path('supervision/agentes/data/voicebot-llamadas/',
+         login_required(supervision_voicebot_llamadas),
+         name='supervision_voicebot_llamadas',
          ),
     path('supervision/campanas/entrantes/',
          login_required(SupervisionCampanasEntrantesView.as_view()),

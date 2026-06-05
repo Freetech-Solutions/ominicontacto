@@ -45,6 +45,21 @@ $(function() {
     });
 });
 
+function isVoicebotAgent(agent) {
+    const flag = agent.VOICEBOT;
+    return flag === '1' || flag === 1 || String(flag).toLowerCase() === 'true';
+}
+
+function removeVoicebotFromAgentesTable(agentId) {
+    if (agentId == null || !table_agentes) {
+        return;
+    }
+    const row = table_agentes.row('#' + agentId);
+    if (row.length) {
+        row.remove(false);
+    }
+}
+
 function processData(rawData) {
     const data = JSON.parse(rawData);
     let arrData = {};
@@ -55,6 +70,10 @@ function processData(rawData) {
                 .replaceAll('’', '\'')
                 .replaceAll('"[', '[')
                 .replaceAll(']"', ']'));
+            if (isVoicebotAgent(agent)) {
+                removeVoicebotFromAgentesTable(agent.id);
+                return;
+            }
             const rowData = normalizaRow(agent);
             const previousData = arrData[rowData.id];
             if (rowData.id != null && ((previousData != null && previousData.tiempo <= rowData.tiempo) || !previousData)) {

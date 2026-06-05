@@ -36,6 +36,7 @@ from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from ominicontacto_app.models import SupervisorProfile
 from ominicontacto_app.services.redis.connection import create_redis_connection
+from supervision_app.services.voicebot_calls import get_voicebot_call_from_hash
 from reportes_app.agent_activity_dual_write import write_hold_activity_event_v2
 from reportes_app.models import AgentActivityEventV2
 
@@ -714,6 +715,7 @@ class SpyChannelView(APIView):
             data = request.data
             supervisor_id = data.get("supervisor_id")
             agent_id = data.get("agent_id")
+            call_id_param = data.get("call_id")
             whisper = data.get("whisper", "none")
 
             # Inferir supervisor_id del usuario autenticado si no viene en el body
@@ -771,25 +773,42 @@ class SpyChannelView(APIView):
                 )
             supervisor_sip = str(supervisor.sip_extension)
 
-            # Leer OML:AGENT:{agent_id} para obtener CALLID, NODE_ID y validar ONCALL
-            agent_key = f"OML:AGENT:{agent_id_normalized}"
-            agent_data = r_client.hgetall(agent_key)
-            if not agent_data:
-                return Response(
-                    {"error": "El agente no está en llamada"},
-                    status=status.HTTP_400_BAD_REQUEST
+            call_id = None
+            node_id = None
+            status_val = None
+
+            if call_id_param:
+                voicebot_call = get_voicebot_call_from_hash(
+                    r_client, agent_id_normalized, call_id_param,
                 )
+                if not voicebot_call:
+                    return Response(
+                        {"error": "La llamada voicebot no está activa"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                call_id = voicebot_call.get('call_id')
+                node_id = voicebot_call.get('node_id')
+                status_val = voicebot_call.get('status')
+            else:
+                # Leer OML:AGENT:{agent_id} para obtener CALLID, NODE_ID y validar ONCALL
+                agent_key = f"OML:AGENT:{agent_id_normalized}"
+                agent_data = r_client.hgetall(agent_key)
+                if not agent_data:
+                    return Response(
+                        {"error": "El agente no está en llamada"},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
 
-            # Soporte para claves/valores en bytes (Redis sin decode_responses)
-            def _get_agent_field(name):
-                raw = agent_data.get(name)
-                if raw is None and isinstance(name, str):
-                    raw = agent_data.get(name.encode("utf-8"))
-                return _decode_redis_value(raw)
+                # Soporte para claves/valores en bytes (Redis sin decode_responses)
+                def _get_agent_field(name):
+                    raw = agent_data.get(name)
+                    if raw is None and isinstance(name, str):
+                        raw = agent_data.get(name.encode("utf-8"))
+                    return _decode_redis_value(raw)
 
-            status_val = _get_agent_field("STATUS")
-            call_id = _get_agent_field("CALLID")
-            node_id = _get_agent_field("NODE_ID")
+                status_val = _get_agent_field("STATUS")
+                call_id = _get_agent_field("CALLID")
+                node_id = _get_agent_field("NODE_ID")
 
             if call_id is not None:
                 call_id = call_id.strip()
@@ -844,6 +863,93 @@ class SpyChannelView(APIView):
 
         except Exception as e:
             logger.error(f"API Error en spy-channel: {e}")
+            return Response(
+                {"error": str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+class VoicebotHangupView(APIView):
+    """
+    Cuelga una llamada voicebot específica resolviendo node_id desde
+    OML:VOICEBOT-ACTIVE-CALLS:{agent_id}.
+    """
+    permission_classes = (TienePermisoOML,)
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    renderer_classes = (JSONRenderer,)
+    http_method_names = ['post']
+
+    def post(self, request):
+        r_client = _get_redis_client()
+        if not r_client:
+            return Response(
+                {"error": "Redis no inicializado"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+        try:
+            data = request.data
+            agent_id = data.get("agent_id")
+            call_id = data.get("call_id")
+
+            if not agent_id or not call_id:
+                return Response(
+                    {"error": "Faltan parámetros obligatorios: agent_id, call_id"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            agent_id_normalized = _normalize_id(agent_id)
+            voicebot_call = get_voicebot_call_from_hash(
+                r_client, agent_id_normalized, call_id,
+            )
+            if not voicebot_call:
+                return Response(
+                    {"error": "La llamada voicebot no está activa"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            resolved_call_id = voicebot_call.get('call_id')
+            node_id = voicebot_call.get('node_id')
+            status_val = voicebot_call.get('status')
+
+            if not resolved_call_id or not node_id:
+                return Response(
+                    {"error": "No hay llamada activa gestionada por el ACD"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            if status_val and status_val.upper() != "ONCALL":
+                return Response(
+                    {"error": "La llamada voicebot no está activa"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            channel = f"{BASE_CHANNEL_KEY}:{node_id}"
+            payload = {
+                "action": "HANGUP",
+                "callid": resolved_call_id,
+            }
+            subscribers = r_client.publish(channel, json.dumps(payload))
+
+            logger.info(
+                "Voicebot hangup enviado: agent_id=%s callid=%s canal=%s subscribers=%s",
+                agent_id_normalized,
+                resolved_call_id,
+                channel,
+                subscribers,
+            )
+
+            return Response({
+                "status": "queued",
+                "message": "Comando recibido",
+                "subscribers": subscribers,
+                "channel": channel,
+                "node_id": node_id,
+                "callid": resolved_call_id,
+                "agent_id": agent_id_normalized,
+            }, status=status.HTTP_202_ACCEPTED)
+
+        except Exception as e:
+            logger.error(f"API Error en voicebot-hangup: {e}")
             return Response(
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
