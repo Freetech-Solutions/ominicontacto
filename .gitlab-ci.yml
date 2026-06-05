@@ -3,6 +3,8 @@ include:
 
 variables:
   IMAGE_VERSION: ""
+  # Valores válidos: omnileads | freetechsolutions. Vacío = según rama (master → omnileads).
+  DOCKER_ORG: ""
 
 stages:
   - test
@@ -81,15 +83,25 @@ container-image:
         IMAGE_VERSION="$(date +%Y%m%d)-${CI_COMMIT_SHORT_SHA}"
       fi
 
-      if [[ "${CI_COMMIT_BRANCH}" == "master" ]]; then
+      if [ -n "${DOCKER_ORG}" ]; then
+        if [[ "${DOCKER_ORG}" != "omnileads" && "${DOCKER_ORG}" != "freetechsolutions" ]]; then
+          echo "Error: DOCKER_ORG debe ser 'omnileads' o 'freetechsolutions'."
+          exit 1
+        fi
+        PUSH_ORG="${DOCKER_ORG}"
+      elif [[ "${CI_COMMIT_BRANCH}" == "master" ]]; then
+        PUSH_ORG="omnileads"
+      else
+        PUSH_ORG="freetechsolutions"
+      fi
+
+      if [[ "${PUSH_ORG}" == "omnileads" ]]; then
         echo "${DOCKER_SECRET}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
-        # Ahora esto funcionará porque usamos --load arriba
-        docker tag run omnileads/omlapp:$IMAGE_VERSION
-        docker push docker.io/omnileads/omlapp:$IMAGE_VERSION
       else
         echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USER}" --password-stdin
-        docker tag run freetechsolutions/omlapp:$IMAGE_VERSION
-        docker push docker.io/freetechsolutions/omlapp:$IMAGE_VERSION
       fi
+
+      docker tag run ${PUSH_ORG}/omlapp:$IMAGE_VERSION
+      docker push docker.io/${PUSH_ORG}/omlapp:$IMAGE_VERSION
   only:
     - web
