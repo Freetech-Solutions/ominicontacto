@@ -17,6 +17,7 @@
 #
 import hashlib
 import hmac
+import json
 import logging
 
 from django.http import HttpResponse
@@ -26,6 +27,8 @@ from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from ominicontacto_app.services.redis.redis_streams import RedisStreams
 
+from facebook_meta_app.models import PaginaMetaFacebook
+from instagram_app.models import CuentaInstagram
 from whatsapp_app.models import Linea, ConfiguracionProveedor
 
 logger = logging.getLogger(__name__)
@@ -43,6 +46,91 @@ class WebhookMetaView(APIView):
             proveedor__tipo_proveedor=ConfiguracionProveedor.TIPO_META,
             configuracion__contains={'app_id': app_id}
         ).first()
+
+    def _get_payload(self, request, app_id):
+        try:
+            return json.loads(request.body.decode('utf-8'))
+        except ValueError:
+            logger.warning("Webhook Meta (app_id=%s): payload JSON invalido.", app_id)
+            return None
+
+    def _get_instagram_account(self, payload, app_id):
+        entries = payload.get("entry", [])
+        ig_user_id = entries[0].get("id") if entries else None
+        if ig_user_id:
+            account = CuentaInstagram.objects_default.filter(
+                ig_user_id=ig_user_id,
+                is_active=True,
+            ).first()
+            if account:
+                return account
+        return CuentaInstagram.objects_default.filter(app_id=app_id, is_active=True).first()
+
+    def _get_facebook_page(self, payload, app_id):
+        entries = payload.get("entry", [])
+        page_id = entries[0].get("id") if entries else None
+        if page_id:
+            page = PaginaMetaFacebook.objects_default.filter(
+                page_id=page_id,
+                is_active=True,
+            ).first()
+            if page:
+                return page
+        return PaginaMetaFacebook.objects_default.filter(app_id=app_id, is_active=True).first()
+
+    def _dispatch_instagram_payload(self, request, payload, app_id):
+        account = self._get_instagram_account(payload, app_id)
+        if account is None:
+            logger.warning(
+                "Webhook Meta (app_id=%s): payload Instagram recibido, "
+                "pero no se encontro cuenta activa.",
+                app_id,
+            )
+            return True
+        self.redis_stream.write_stream(
+            account.get_stream_name,
+            request.body.decode('utf-8'),
+            max_stream_length=100000,
+        )
+        logger.info(
+            "Webhook Meta (app_id=%s): payload Instagram derivado al stream %s.",
+            app_id,
+            account.get_stream_name,
+        )
+        return True
+
+    def _dispatch_facebook_payload(self, request, payload, app_id):
+        page = self._get_facebook_page(payload, app_id)
+        if page is None:
+            logger.warning(
+                "Webhook Meta (app_id=%s): payload Facebook Page recibido, "
+                "pero no se encontro pagina activa.",
+                app_id,
+            )
+            return True
+        self.redis_stream.write_stream(
+            page.get_stream_name,
+            request.body,
+            max_stream_length=100000,
+        )
+        logger.info(
+            "Webhook Meta (app_id=%s): payload Facebook Page derivado al stream %s.",
+            app_id,
+            page.get_stream_name,
+        )
+        return True
+
+    def _dispatch_non_whatsapp_payload(self, request, app_id):
+        payload = self._get_payload(request, app_id)
+        if payload is None:
+            return False
+
+        payload_object = payload.get("object")
+        if payload_object == "instagram":
+            return self._dispatch_instagram_payload(request, payload, app_id)
+        if payload_object == "page":
+            return self._dispatch_facebook_payload(request, payload, app_id)
+        return False
 
     def _verify_signature(self, request, linea):
         """
@@ -97,6 +185,9 @@ class WebhookMetaView(APIView):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
 
     def post(self, request, app_id):
+        if self._dispatch_non_whatsapp_payload(request, app_id):
+            return HttpResponse(status=status.HTTP_200_OK)
+
         linea = self._get_linea(app_id)
         if linea is None:
             logger.warning("Webhook Meta: no se encontro Linea para app_id=%s", app_id)
