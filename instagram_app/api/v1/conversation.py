@@ -8,6 +8,7 @@ from rest_framework.authentication import SessionAuthentication
 
 from api_app.authentication import ExpiringTokenAuthentication
 from api_app.services.media_url import build_public_media_url
+from facebook_meta_app.models import PlantillaMessenger
 from instagram_app.api.permissions import TienePermisoCanalInstagramAgente
 from instagram_app.api.utils import HttpResponseStatus, get_response_data
 from instagram_app.api.v1.message import (
@@ -333,7 +334,10 @@ class ViewSet(viewsets.ModelViewSet):
                             _('Esta conversación ya está siendo atendida por otro agente'))
                     data = request.data.copy()
                     account = conversation.account
-                    template_data = PlantillaInstagram.objects.get(pk=data['template_id'])
+                    try:
+                        template_data = PlantillaMessenger.objects.get(pk=data['template_id'])
+                    except PlantillaMessenger.DoesNotExist:
+                        template_data = PlantillaInstagram.objects.get(pk=data['template_id'])
                     message = template_data.configuracion
                     message_id = send_text_message(account, destination, message)
                     if message_id:
@@ -382,9 +386,23 @@ class ViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=False, methods=['post'])
     def mark_as_read(self, request):
-        message_id = request.data.get('message_id')
-        if message_id:
-            MessageInstagramApp.objects.filter(pk=message_id).update(status='read')
-        return response.Response(
-            data=get_response_data(status=HttpResponseStatus.SUCCESS),
-            status=status.HTTP_200_OK)
+        try:
+            message_ids = request.data
+            if isinstance(message_ids, dict):
+                if 'message_ids' in message_ids:
+                    message_ids = message_ids['message_ids']
+                elif 'message_id' in message_ids:
+                    message_ids = [message_ids['message_id']]
+                else:
+                    message_ids = []
+            if not isinstance(message_ids, list):
+                message_ids = []
+            MessageInstagramApp.objects.filter(id__in=message_ids).update(status='read')
+            return response.Response(
+                data=get_response_data(status=HttpResponseStatus.SUCCESS, data=[]),
+                status=status.HTTP_200_OK)
+        except Exception as e:
+            return response.Response(
+                data=get_response_data(
+                    status=HttpResponseStatus.ERROR, data={}, message=_(str(e))),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)

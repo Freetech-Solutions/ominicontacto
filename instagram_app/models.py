@@ -103,6 +103,9 @@ class ConfiguracionInstagramCampana(models.Model):
     grupo_plantilla_instagram = models.ForeignKey(
         GrupoPlantillaInstagram, related_name="configuracion_instagram",
         blank=True, null=True, on_delete=models.PROTECT)
+    grupo_plantilla_facebook = models.ForeignKey(
+        'facebook_meta_app.GrupoPlantillaMessenger', related_name="configuracion_instagram",
+        blank=True, null=True, on_delete=models.PROTECT)
     nivel_servicio = models.IntegerField(default=1)
     is_active = models.BooleanField(default=True)
 

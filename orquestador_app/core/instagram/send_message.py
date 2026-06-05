@@ -7,6 +7,13 @@ META_URL_SEND_MESSAGE = 'https://graph.facebook.com/v22.0/{}/messages'
 META_URL_UPLOAD_ATTACHMENT = 'https://graph.facebook.com/v22.0/{}/message_attachments'
 
 
+def _get_meta_response_error(response):
+    try:
+        return response.json()
+    except ValueError:
+        return response.text
+
+
 def send_text_message(account, recipient_id, message_text):
     url = META_URL_SEND_MESSAGE.format(account.ig_user_id)
     payload = {
@@ -20,8 +27,12 @@ def send_text_message(account, recipient_id, message_text):
         params={"access_token": account.access_token},
         json=payload)
     if response.ok:
-        return response.json().get('message_id')
-    return None
+        message_id = response.json().get('message_id')
+        if message_id:
+            return message_id
+        raise Exception("Meta no devolvio message_id: {}".format(response.json()))
+    raise Exception("Error enviando mensaje a Instagram: {} {}".format(
+        response.status_code, _get_meta_response_error(response)))
 
 
 def upload_media_to_meta(account, type_file, file_path):

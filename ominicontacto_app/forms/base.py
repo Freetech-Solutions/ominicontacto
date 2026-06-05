@@ -2660,11 +2660,11 @@ class CampanaConfiguracionMetaFacebookForm(forms.ModelForm):
 class CampanaConfiguracionInstagramForm(forms.ModelForm):
     class Meta:
         model = ConfiguracionInstagramCampana
-        fields = ('cuenta', 'nivel_servicio', 'grupo_plantilla_instagram')
+        fields = ('cuenta', 'nivel_servicio', 'grupo_plantilla_facebook')
         widgets = {
             'cuenta': forms.Select(attrs={'class': 'form-control'}),
             'nivel_servicio': forms.NumberInput(attrs={'class': 'form-control'}),
-            'grupo_plantilla_instagram': forms.Select(attrs={'class': 'form-control'})
+            'grupo_plantilla_facebook': forms.Select(attrs={'class': 'form-control'})
         }
 
 
