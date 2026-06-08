@@ -38,9 +38,9 @@ GEARMAN_QUEUE_CALL = os.getenv('GEARMAN_QUEUE_CALL', 'acd-call-processor')
 if 'TOKEN_EXPIRED_AFTER_SECONDS' in os.environ:
     TOKEN_EXPIRED_AFTER_SECONDS = int(os.getenv('TOKEN_EXPIRED_AFTER_SECONDS'))
 # Settings para version de OML
-OML_BRANCH = os.getenv('OML_BRANCH')
-OML_COMMIT = os.getenv('OML_COMMIT')
-OML_BUILD_DATE = os.getenv('OML_BUILD_DATE')
+OML_BRANCH = os.getenv('OML_BRANCH', '')
+OML_COMMIT = os.getenv('OML_COMMIT', '')
+OML_BUILD_DATE = os.getenv('OML_BUILD_DATE', '')
 OML_PUBLIC_MEDIA_BASE_URL = os.getenv('OML_PUBLIC_MEDIA_BASE_URL')
 if 'OML_SIGNED_MEDIA_URL_EXPIRE_SECONDS' in os.environ:
     OML_SIGNED_MEDIA_URL_EXPIRE_SECONDS = int(os.getenv('OML_SIGNED_MEDIA_URL_EXPIRE_SECONDS'))
@@ -206,7 +206,7 @@ OML_PLAYLIST_FOLDER = 'moh/'
 # Formato de grabaciones
 MONITORFORMAT = os.getenv('MONITORFORMAT', 'mp3')
 # Calificacion de agenda
-CALIFICACION_REAGENDA = os.getenv('CALIFICACION_REAGENDA')
+CALIFICACION_REAGENDA = os.getenv('CALIFICACION_REAGENDA', 'Agenda')
 
 CONSTANCE_REDIS_CONNECTION = {
     'host': REDIS_HOSTNAME,

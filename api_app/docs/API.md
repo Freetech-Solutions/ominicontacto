@@ -475,6 +475,54 @@ Reassigns a contact schedule to a different agent.
 }
 ```
 
+### Create Contact Schedule
+
+#### `POST /api/v1/agenda_contacto/`
+
+Creates or updates (upsert) a contact schedule for the authenticated agent. If a schedule already exists for the same contact and campaign, it is updated.
+
+Requires `TienePermisoOML` permission **`api_agenda_contacto_create`** (assigned by default to the Agent role after running `actualizar_permisos`).
+
+**Authentication:** Session or `Authorization: Bearer <token>`.
+
+**Request Body:**
+```json
+{
+  "campaign_id": 12,
+  "contact_id": 34567,
+  "date": "2025-06-10",
+  "time": "14:30:00",
+  "phone": "+5491112345678",
+  "schedule_type": 1,
+  "observations": "Call tomorrow"
+}
+```
+
+**Fields:**
+- `campaign_id` (integer, required): Active campaign ID. The agent must be a member of the campaign queue.
+- `contact_id` (integer, required): Contact ID belonging to the campaign contact database.
+- `date` (string, required): Schedule date in `YYYY-MM-DD` format.
+- `time` (string, required): Schedule time in `HH:MM:SS` or `HH:MM` format.
+- `phone` (string, required): Phone number from the contact's available phone list.
+- `schedule_type` (integer, optional): `1` = PERSONAL (default), `2` = GLOBAL (only allowed for dialer campaigns).
+- `observations` (string, optional): Notes for the schedule.
+
+**Response (200 OK):**
+```json
+{
+  "status": "OK",
+  "agenda_id": 99,
+  "created": true
+}
+```
+
+`created` is `false` when an existing schedule was updated (upsert).
+
+**Error responses:**
+- `400 Bad Request`: Validation errors (invalid `phone`, invalid `date`/`time`, `schedule_type=2` (GLOBAL) on non-dialer campaign, model validation such as personal agenda limits).
+- `403 Forbidden`: User has no agent profile or is not assigned to the campaign.
+- `404 Not Found`: Campaign or contact not found / contact does not belong to the campaign.
+
 ### Contact Schedule Data
 
 #### `GET /api/v1/supervision/data_agenda_contacto/{agenda_id}/`

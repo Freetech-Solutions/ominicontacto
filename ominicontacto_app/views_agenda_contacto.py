@@ -37,11 +37,11 @@ from django.http import StreamingHttpResponse
 from import_export import fields
 from import_export.resources import ModelResource
 
-from ominicontacto_app.models import AgendaContacto, Contacto, Campana, CalificacionCliente, User
+from ominicontacto_app.models import AgendaContacto, Contacto, Campana, User
 from ominicontacto_app.forms.base import (
     AgendaContactoForm, AgendaBusquedaForm, FiltroUsuarioFechaForm, FiltroAgendasForm)
 from ominicontacto_app.utiles import convert_fecha_datetime
-from ominicontacto_app.services.dialer import get_dialer_service
+from ominicontacto_app.services.agenda_contacto import guardar_agenda_contacto
 from notification_app.notification import AgentNotifier
 
 
@@ -55,19 +55,17 @@ class AgendaContactoUpdateView(UpdateView):
     def form_valid(self, form):
         try:
             self.object = form.save(commit=False)
-            self.object.agente = self.request.user.get_agente_profile()
-            self.object.save()
-            calificaciones = CalificacionCliente.objects.filter(
-                opcion_calificacion__campana=self.object.campana,
-                contacto__pk=self.object.contacto.pk)
-            if calificaciones.first().tipo_agenda != self.object.tipo_agenda:
-                # para no crear una nueva historia calificación(solo se actuliaza tipo de agenda)
-                calificaciones.update(tipo_agenda=self.object.tipo_agenda)
-                # se actuliza la última historia creada
-                ultima_calificacion_history = CalificacionCliente.history \
-                    .filter(id=calificaciones.first().id).first()
-                ultima_calificacion_history.tipo_agenda = self.object.tipo_agenda
-                ultima_calificacion_history.save()
+            agente = self.request.user.get_agente_profile()
+            self.object, _, _ = guardar_agenda_contacto(
+                agente,
+                self.object.campana,
+                self.object.contacto,
+                self.object.fecha,
+                self.object.hora,
+                self.object.telefono,
+                self.object.tipo_agenda,
+                observaciones=self.object.observaciones,
+            )
             return redirect(self.get_success_url())
         except ValidationError as e:
             messages.error(self.request, e.message)
@@ -112,34 +110,26 @@ class AgendaContactoCreateView(CreateView):
     def form_valid(self, form):
         try:
             self.object = form.save(commit=False)
-            self.object.agente = self.request.user.get_agente_profile()
+            agente = self.request.user.get_agente_profile()
             campana = form.instance.campana
-            if self.object.tipo_agenda == AgendaContacto.TYPE_GLOBAL and \
-                    campana.type == Campana.TYPE_DIALER:
-                # Notificar al dialer que hay q volver a llamar al contacto
-                get_dialer_service().agendar_llamada(campana, self.object)
-                self.object.save()
-
-            # Después de agendado el contacto se marca como agendado en la calificación
-            calificacion = CalificacionCliente.objects.filter(
-                opcion_calificacion__campana=campana, contacto__pk=self.kwargs['pk_contacto'])
-            if calificacion:
-                calificacion.update(agendado=True, tipo_agenda=self.object.tipo_agenda)
-                # se actuliza la última historia creada
-                ultima_calificacion_history = CalificacionCliente.history\
-                    .filter(id=calificacion[0].id).first()
-                ultima_calificacion_history.agendado = True
-                ultima_calificacion_history.tipo_agenda = self.object.tipo_agenda
-                ultima_calificacion_history.save()
-
-            return super(AgendaContactoCreateView, self).form_valid(form)
+            self.object, _, despausado = guardar_agenda_contacto(
+                agente,
+                campana,
+                self.object.contacto,
+                self.object.fecha,
+                self.object.hora,
+                self.object.telefono,
+                self.object.tipo_agenda,
+                observaciones=self.object.observaciones,
+            )
+            if despausado:
+                AgentNotifier().notify_dispositioned(agente.user_id, None, True)
+            return redirect(self.get_success_url())
         except ValidationError as e:
             messages.error(self.request, e.message)
             return self.render_to_response(self.get_context_data(form=form))
 
     def get_success_url(self):
-        if self.object.agente.forzar_despausa():
-            AgentNotifier().notify_dispositioned(self.object.agente.user_id, None, True)
         return reverse(
             'agenda_contacto_detalle', kwargs={'pk': self.object.pk})
 

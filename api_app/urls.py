@@ -30,6 +30,7 @@ from api_app.views.base_de_contactos import (
 from api_app.views.administrador import (
     AgentesActivosGrupoViewSet, CrearRolView, EliminarRolView, ActualizarPermisosDeRolView,
     SubirBaseContactosView, EnviarKeyRegistro)
+from api_app.views.agenda_contacto import AgendaContactoCreateAPIView
 from api_app.views.supervisor import (
     SupervisorCampanasActivasViewSet, AgentesStatusAPIView, UsuariosAgentesAPIView,
     InteraccionDeSupervisorSobreAgenteView,
@@ -566,6 +567,9 @@ urlpatterns = [
             name='api_campaign_contact_detail'),
     path('api/v1/campaign/<int:pk_campana>/contacts/',
          API_ObtenerContactosCampanaView.as_view(), name='api_contactos_campana'),
+    path('api/v1/agenda_contacto/',
+         AgendaContactoCreateAPIView.as_view(),
+         name='api_agenda_contacto_create'),
     path('api/v1/makeCall/',
          Click2CallView.as_view(),
          name='api_click2call'),
