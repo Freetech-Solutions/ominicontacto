@@ -18,6 +18,7 @@ from instagram_app.models import (
     ConversationInstagramApp, MessageInstagramApp, PlantillaInstagram,
 )
 from notification_app.notification import AgentNotifier
+from ominicontacto_app.models import Contacto
 from orquestador_app.core.instagram.send_message import (
     send_media_message, send_text_message, upload_media_to_meta,
 )
@@ -190,6 +191,54 @@ class ViewSet(viewsets.ModelViewSet):
                 data=get_response_data(
                     message=_('No se puede asignar una conversación que no existe')),
                 status=status.HTTP_404_NOT_FOUND)
+
+    @decorators.action(detail=True, methods=["post"])
+    def assign_contact(self, request, pk):
+        try:
+            contact_pk = request.data.get('contact_pk')
+            conversacion = ConversationInstagramApp.objects.get(pk=pk)
+            contact = Contacto.objects.get(pk=contact_pk)
+            if contact.bd_contacto != conversacion.campana.bd_contacto:
+                return response.Response(
+                    data=get_response_data(
+                        message=_('El contacto no pertenece a la base de datos de la campaña')),
+                    status=status.HTTP_400_BAD_REQUEST)
+            if contact.instagram and contact.instagram != conversacion.ig_scoped_id:
+                return response.Response(
+                    data=get_response_data(
+                        message=_(
+                            'El contacto ya está asociado a otro identificador de Instagram'
+                        )),
+                    status=status.HTTP_400_BAD_REQUEST)
+            if ConversationInstagramApp.objects.filter(is_disposition=False)\
+                    .filter(client_id=contact.pk, account_id=conversacion.account_id)\
+                    .exclude(pk=conversacion.pk).exists():
+                return response.Response(
+                    data=get_response_data(
+                        message=_('El contacto ya tiene una conversación activa')),
+                    status=status.HTTP_400_BAD_REQUEST)
+            if not contact.instagram:
+                contact.instagram = conversacion.ig_scoped_id
+                contact.save(update_fields=['instagram'])
+            conversacion.client = contact
+            conversacion.save(update_fields=['client'])
+            return response.Response(
+                data=get_response_data(
+                    status=HttpResponseStatus.SUCCESS,
+                    message=_('Se asigno el contacto a la conversacion de forma satisfactoria')),
+                status=status.HTTP_200_OK)
+        except ConversationInstagramApp.DoesNotExist:
+            return response.Response(
+                data=get_response_data(message=_('Conversación no encontrada')),
+                status=status.HTTP_404_NOT_FOUND)
+        except Contacto.DoesNotExist:
+            return response.Response(
+                data=get_response_data(message=_('Contacto no encontrado')),
+                status=status.HTTP_404_NOT_FOUND)
+        except Exception:
+            return response.Response(
+                data=get_response_data(message=_('Error al asignar el contacto')),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @decorators.action(detail=True, methods=['get'])
     def messages(self, request, pk):
