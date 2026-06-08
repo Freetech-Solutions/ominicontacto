@@ -75,17 +75,11 @@ RUN apk add --no-cache bash \
         espeak-ng \
         ffmpeg \
         picotts \
-    # && wget https://sourceware.org/pub/libffi/libffi-3.3.tar.gz \
-    && wget https://github.com/libffi/libffi/releases/download/v3.3/libffi-3.3.tar.gz \
-    &&  tar xzvf libffi-3.3.tar.gz \
-    && cd libffi-3.3/ \
-    && ./configure \
-    && make \
-    && make install \
+        libffi \
+        libffi-dev \
     && addgroup -g 1000 -S omnileads &&  adduser -u 1000 -S omnileads -G omnileads -h $INSTALL_PREFIX -s /bin/bash \
     && cd $INSTALL_PREFIX \
-    && mkdir -p wombat-json bin backup media_root/reporte_campana static log run addons ominicontacto asterisk/var/spool/monitor \
-    && wget https://keys-server.freetech.com.ar:20852/cert --no-check-certificate
+    && mkdir -p wombat-json bin backup media_root/reporte_campana static log run addons ominicontacto asterisk/var/spool/monitor
 
 #Copia el codigo de rama actual
 COPY ominicontacto/ $INSTALL_PREFIX/ominicontacto/ominicontacto

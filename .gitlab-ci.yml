@@ -73,10 +73,12 @@ container-image:
         echo "${DOCKER_SECRET}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
         docker tag run omnileads/omlapp:$IMAGE_VERSION
         docker push docker.io/omnileads/omlapp:$IMAGE_VERSION
+        echo "omnileads/omlapp:$IMAGE_VERSION"
       else
         echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USER}" --password-stdin
         docker tag run freetechsolutions/omlapp:$IMAGE_VERSION
         docker push docker.io/freetechsolutions/omlapp:$IMAGE_VERSION
+        echo "freetechsolutions/omlapp:$IMAGE_VERSION"
       fi
   only:
     - web
