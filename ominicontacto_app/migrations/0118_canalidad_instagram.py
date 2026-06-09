@@ -17,7 +17,7 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='contacto',
-            name='instagram',
+            name='ig_scoped_id',
             field=models.CharField(blank=True, max_length=128),
         ),
         migrations.AddField(

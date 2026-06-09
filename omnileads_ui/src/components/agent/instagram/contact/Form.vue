@@ -15,14 +15,14 @@
                   (isEmptyField(field.value) || !isPhoneValid(field.value)) &&
                   submitted,
               }"
-              >{{ field.name }}*</label
+              >{{ getFieldLabel(field) }}*</label
             >
             <label
               v-else
               :class="{
                 'p-error': isEmptyField(field.value) && submitted,
               }"
-              >{{ field.name }}*</label
+              >{{ getFieldLabel(field) }}*</label
             >
             <div class="p-inputgroup mt-2">
               <span class="p-inputgroup-addon">
@@ -53,7 +53,7 @@
             <div v-if="isEmptyField(field.value) && submitted">
               <small class="p-error">{{
                 $t("forms.whatsapp.contact.validations.field_is_required", {
-                  field: field.name,
+                  field: getFieldLabel(field),
                 })
               }}</small>
               <br />
@@ -65,7 +65,7 @@
               class="p-error"
               >{{
                 $t("forms.whatsapp.contact.validations.invalid_field", {
-                  field: field.name,
+                  field: getFieldLabel(field),
                 })
               }}</small
             >
@@ -77,9 +77,9 @@
                 'p-error':
                   field.mandatory && !isPhoneValid(field.value) && submitted,
               }"
-              >{{ field.name }}</label
+              >{{ getFieldLabel(field) }}</label
             >
-            <label v-else>{{ field.name }}</label>
+            <label v-else>{{ getFieldLabel(field) }}</label>
             <div class="p-inputgroup mt-2">
               <span class="p-inputgroup-addon">
                 <i v-if="field.is_phone_field" class="pi pi-phone"></i>
@@ -112,7 +112,7 @@
               class="p-error"
               >{{
                 $t("forms.whatsapp.contact.validations.invalid_field", {
-                  field: field.name,
+                  field: getFieldLabel(field),
                 })
               }}</small
             >
@@ -159,7 +159,7 @@ export default {
                 return {
                     id: null,
                     phone: '',
-                    page_client_id: '',
+                    ig_scoped_id: '',
                     data: []
                 };
             }
@@ -174,7 +174,7 @@ export default {
             contact: {
                 id: null,
                 phone: '',
-                page_client_id: '',
+                ig_scoped_id: '',
                 data: []
             }
         };
@@ -242,15 +242,15 @@ export default {
                     empty: false,
                     value: this.contact?.id
                 };
-                this.form.page_client_id = {
-                    name: 'page_client_id',
+                this.form.ig_scoped_id = {
+                    name: 'ig_scoped_id',
                     mandatory: true,
                     block: true,
                     hide: false,
                     is_phone_field: false,
                     invalid: false,
                     empty: false,
-                    value: this.contact?.page_client_id
+                    value: this.contact?.ig_scoped_id
                 };
             }
         },
@@ -275,7 +275,10 @@ export default {
             return field.mandatory === true;
         },
         isFieldReadonly (field = {}) {
-            return field.block === true || field.name === 'page_client_id';
+            return field.block === true || field.name === 'ig_scoped_id';
+        },
+        getFieldLabel (field = {}) {
+            return field.name === 'ig_scoped_id' ? 'IG ID' : field.name;
         },
         getFormData () {
             const formData = {};
@@ -392,13 +395,13 @@ export default {
                     this.contact.id = this.agtInstagramConversationInfo.client.id;
                     this.contact.phone =
                         this.agtInstagramConversationInfo.client.phone || '';
-                    this.contact.page_client_id = this.agtInstagramConversationInfo.client.page_client_id || this.agtInstagramConversationInfo.page_client_id;
+                    this.contact.ig_scoped_id = this.agtInstagramConversationInfo.client.ig_scoped_id || this.agtInstagramConversationInfo.ig_scoped_id;
                     this.contact.data = this.agtInstagramConversationInfo.client.data || [];
                 } else {
-                    if (this.agtInstagramConversationInfo.page_client_id !== null) {
+                    if (this.agtInstagramConversationInfo.ig_scoped_id !== null) {
                         this.contact.id = null;
                         this.contact.phone = '';
-                        this.contact.page_client_id = this.agtInstagramConversationInfo.page_client_id;
+                        this.contact.ig_scoped_id = this.agtInstagramConversationInfo.ig_scoped_id;
                         this.contact.data = [];
                     }
                 }
@@ -410,7 +413,7 @@ export default {
         previewContact: {
             handler () {
                 this.contact.id = this.previewContact?.id || null;
-                this.contact.page_client_id = this.previewContact?.page_client_id || '';
+                this.contact.ig_scoped_id = this.previewContact?.ig_scoped_id || '';
                 this.contact.phone = this.previewContact?.phone || '';
                 this.contact.data = this.previewContact?.data || [];
                 this.initFormData();

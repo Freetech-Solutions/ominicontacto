@@ -11,7 +11,7 @@
             class="p-button-rounded p-button-secondary p-button-text"
           />
           <Chip
-            :label="clientInfo?.name  + ' (' + clientInfo?.page_client_id + ')'"
+            :label="clientInfo?.name  + ' (' + clientInfo?.ig_scoped_id + ')'"
             icon="pi pi-user"
           />
         </div>
@@ -130,7 +130,7 @@ export default {
             conversationId: null,
             clientInfo: {
                 name: '',
-                page_client_id: '',
+                ig_scoped_id: '',
                 avatar:
           'https://www.primefaces.org/wp-content/uploads/2020/05/placeholder.png'
             }
@@ -262,10 +262,10 @@ export default {
                 if (this.agtInstagramConversationInfo) {
                     if (this.agtInstagramConversationInfo.client.id) {
                         this.clientInfo.name = this.agtInstagramConversationInfo.client.data.nombre || this.agtInstagramConversationInfo.client.data.name || '';
-                        this.clientInfo.page_client_id = this.agtInstagramConversationInfo.client.page_client_id;
+                        this.clientInfo.ig_scoped_id = this.agtInstagramConversationInfo.client.ig_scoped_id;
                     } else {
                         this.clientInfo.name = this.agtInstagramConversationInfo.client_alias || '';
-                        this.clientInfo.page_client_id = this.agtInstagramConversationInfo.page_client_id;
+                        this.clientInfo.ig_scoped_id = this.agtInstagramConversationInfo.ig_scoped_id;
                     }
                 }
             },

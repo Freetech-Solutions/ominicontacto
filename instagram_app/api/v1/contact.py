@@ -20,7 +20,7 @@ MAX_SEARCH_RESULTS = 20
 class ListSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     phone = serializers.CharField(source='telefono')
-    page_client_id = serializers.CharField(source='instagram', required=False)
+    ig_scoped_id = serializers.CharField(required=False, allow_blank=True)
     data = serializers.SerializerMethodField()
     disposition = serializers.SerializerMethodField()
 
@@ -48,7 +48,7 @@ class ContactDataMixin:
             raise serializers.ValidationError({field: error.message})
         return value
 
-    def validar_page_client_id(self, field, value):
+    def validar_ig_scoped_id(self, field, value):
         if not value:
             raise serializers.ValidationError({field: _('campo requerido')})
         return value
@@ -63,7 +63,7 @@ class ContactDataMixin:
             datos.append(value if value else "")
         return json.dumps(datos)
 
-    def _extract_standard_fields(self, data, require_page_client_id=False):
+    def _extract_standard_fields(self, data, require_ig_scoped_id=False):
         metadata = self.campana.bd_contacto.get_metadata()
         telefono = metadata.nombre_campo_telefono
         datos = data['datos']
@@ -72,15 +72,16 @@ class ContactDataMixin:
         else:
             data['telefono'] = getattr(self.instance, 'telefono', '')
 
-        if 'page_client_id' in datos:
-            data['page_client_id'] = self.validar_page_client_id(
-                'page_client_id', datos.pop('page_client_id'))
-        elif require_page_client_id:
-            raise serializers.ValidationError({'page_client_id': _('campo requerido')})
+        ig_scoped_id = datos.pop('ig_scoped_id', datos.pop('page_client_id', None))
+        if ig_scoped_id:
+            data['ig_scoped_id'] = self.validar_ig_scoped_id(
+                'ig_scoped_id', ig_scoped_id)
+        elif require_ig_scoped_id:
+            raise serializers.ValidationError({'ig_scoped_id': _('campo requerido')})
 
 
 class CreateSerializer(ContactDataMixin, serializers.ModelSerializer):
-    page_client_id = serializers.CharField(source='instagram', required=False)
+    ig_scoped_id = serializers.CharField(required=False)
 
     class Meta:
         model = Contacto
@@ -89,7 +90,7 @@ class CreateSerializer(ContactDataMixin, serializers.ModelSerializer):
             'telefono',
             'datos',
             'bd_contacto',
-            'page_client_id',
+            'ig_scoped_id',
         ]
 
     def to_internal_value(self, data):
@@ -113,7 +114,7 @@ class CreateSerializer(ContactDataMixin, serializers.ModelSerializer):
 
 
 class UpdateSerializer(ContactDataMixin, serializers.ModelSerializer):
-    page_client_id = serializers.CharField(source='instagram', required=True)
+    ig_scoped_id = serializers.CharField(required=True)
 
     class Meta:
         model = Contacto
@@ -122,7 +123,7 @@ class UpdateSerializer(ContactDataMixin, serializers.ModelSerializer):
             'telefono',
             'datos',
             'bd_contacto',
-            'page_client_id',
+            'ig_scoped_id',
         ]
 
     def to_internal_value(self, data):
@@ -133,7 +134,7 @@ class UpdateSerializer(ContactDataMixin, serializers.ModelSerializer):
         metadata = self.campana.bd_contacto.get_metadata()
         campos_bd = metadata.nombres_de_columnas
 
-        self._extract_standard_fields(data, require_page_client_id=True)
+        self._extract_standard_fields(data, require_ig_scoped_id=True)
         if not set(data['datos'].keys()).issubset(set(campos_bd)):
             raise serializers.ValidationError({'Error': _('Error en los campos de contacto')})
         if set(data['datos'].keys()).intersection(set(campos_no_editables)) or \
@@ -189,8 +190,8 @@ class ViewSet(viewsets.ViewSet):
             campana = Campana.objects.get(id=campana_pk)
             request_data = request.data.copy()
             conversation = ConversationInstagramApp.objects.get(id=conversacion_pk)
-            if 'page_client_id' not in request_data and conversation.ig_scoped_id:
-                request_data['page_client_id'] = conversation.ig_scoped_id
+            if 'ig_scoped_id' not in request_data and conversation.ig_scoped_id:
+                request_data['ig_scoped_id'] = conversation.ig_scoped_id
             data = {
                 "bd_contacto": campana.bd_contacto.id,
                 "datos": request_data,
@@ -320,10 +321,10 @@ class ViewSet(viewsets.ViewSet):
             active_contact_ids = self._active_contact_ids(
                 campana, exclude_conversation_id=conversation.pk)
             queryset = self._contact_queryset(campana).filter(
-                instagram=conversation.ig_scoped_id
+                ig_scoped_id=conversation.ig_scoped_id
             ).exclude(id__in=list(active_contact_ids))
             contact = queryset.only(
-                'id', 'telefono', 'instagram', 'datos', 'bd_contacto_id',
+                'id', 'telefono', 'ig_scoped_id', 'datos', 'bd_contacto_id',
                 'bd_contacto__metadata'
             ).first()
             serializer = ListSerializer(contact) if contact else None
@@ -374,12 +375,12 @@ class ViewSet(viewsets.ViewSet):
             for term in candidate_terms:
                 filters |= (
                     Q(telefono__icontains=term) |
-                    Q(instagram__icontains=term) |
+                    Q(ig_scoped_id__icontains=term) |
                     Q(id_externo__icontains=term) |
                     Q(datos__icontains=term)
                 )
             contactos = base_queryset.filter(filters).only(
-                'id', 'telefono', 'instagram', 'datos', 'bd_contacto_id',
+                'id', 'telefono', 'ig_scoped_id', 'datos', 'bd_contacto_id',
                 'bd_contacto__metadata'
             ).distinct()[:limit]
             serializer = ListSerializer(contactos, many=True)

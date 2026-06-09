@@ -7,7 +7,7 @@ const setClientInfo = (info = null) => {
     return {
         id: info && info.id ? info.id : null,
         phone: info && info.phone ? info.phone : null,
-        page_client_id: info && info.page_client_id ? info.page_client_id : null,
+        ig_scoped_id: info && info.ig_scoped_id ? info.ig_scoped_id : null,
         data: info && info.data ? info.data : null,
         dispositionId: info && info.disposition ? info.disposition : null
     };
@@ -19,6 +19,16 @@ const setPageInfo = (info = null) => {
         name: info && info.name ? info.name : null,
         page_id: info && info.page_id ? info.page_id : null
     };
+};
+
+const getCampaignId = (info = null) => {
+    if (!info) return null;
+    return info.campaign_id || info.campaing_id || info.campaignId || null;
+};
+
+const getCampaignName = (info = null) => {
+    if (!info) return null;
+    return info.campaign_name || info.campaing_name || info.campaignName || null;
 };
 
 const setFromInfo = (info = null) => {
@@ -94,15 +104,9 @@ export default {
         console.log('agtInstagramConversationInfoInit >>', conversation);
         state.agtInstagramConversationInfo = {
             id: conversation && conversation.id ? conversation.id : null,
-            campaignId:
-                conversation && conversation.campaing_id
-                    ? conversation.campaing_id
-                    : null,
-            campaignName:
-                conversation && conversation.campaing_name
-                    ? conversation.campaing_name
-                    : null,
-            page_client_id:
+            campaignId: getCampaignId(conversation),
+            campaignName: getCampaignName(conversation),
+            ig_scoped_id:
                 conversation && conversation.destination
                     ? conversation.destination
                     : null,
@@ -162,8 +166,8 @@ export default {
                 chats.push({
                     id: e.id ? e.id : null,
                     from: setFromInfo(e),
-                    campaignId: e.campaing_id ? e.campaing_id : null,
-                    campaignName: e.campaing_name ? e.campaing_name : '-------',
+                    campaignId: getCampaignId(e),
+                    campaignName: getCampaignName(e) || '-------',
                     numMessages: e.message_number ? e.message_number : 0,
                     numMessagesUnread: e.message_unread ? e.message_unread : 0,
                     photo: e.photo ? e.photo : '',
@@ -184,8 +188,8 @@ export default {
                 chats.push({
                     id: e.id ? e.id : null,
                     from: setFromInfo(e),
-                    campaignId: e.campaing_id ? e.campaing_id : null,
-                    campaignName: e.campaing_name ? e.campaing_name : '-------',
+                    campaignId: getCampaignId(e),
+                    campaignName: getCampaignName(e) || '-------',
                     numMessages: e.message_number ? e.message_number : 0,
                     numMessagesUnread: e.message_unread ? e.message_unread : 0,
                     photo: e.photo,
@@ -212,8 +216,8 @@ export default {
         const chatData = {
             id: chat && chat.chat_id ? chat.chat_id : null,
             from: contactData || from,
-            campaignId: chat && chat.campaing_id ? chat.campaing_id : null,
-            campaignName: chat && chat.campaing_name ? chat.campaing_name : '-------',
+            campaignId: getCampaignId(chat),
+            campaignName: getCampaignName(chat) || '-------',
             numMessages:
                 chat && chat.number_messages ? chat.number_messages : 1,
             numMessagesUnread:
@@ -244,17 +248,11 @@ export default {
     agtInstagramSetConversationInfo (state, conversation = null) {
         state.agtInstagramConversationInfo = {
             id: conversation && conversation.id ? conversation.id : null,
-            campaignId:
-                conversation && conversation.campaignId
-                    ? conversation.campaignId
-                    : null,
-            campaignName:
-                conversation && conversation.campaignName
-                    ? conversation.campaignName
-                    : null,
-            page_client_id:
-                conversation && conversation.page_client_id
-                    ? conversation.page_client_id
+            campaignId: getCampaignId(conversation),
+            campaignName: getCampaignName(conversation),
+            ig_scoped_id:
+                conversation && conversation.ig_scoped_id
+                    ? conversation.ig_scoped_id
                     : null,
             client: setClientInfo(
                 conversation && conversation.client ? conversation.client : null

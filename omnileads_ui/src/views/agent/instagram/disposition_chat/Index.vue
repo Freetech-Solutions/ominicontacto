@@ -29,6 +29,10 @@ export default {
         async updatedLocalStorage (event) {
             const conversationInfo =
         JSON.parse(localStorage.getItem('agtInstagramConversationInfo')) || null;
+            const campaignId = conversationInfo?.campaignId ||
+        conversationInfo?.campaign_id ||
+        conversationInfo?.campaing_id ||
+        null;
             const dispositionId = conversationInfo?.isDisposition
                 ? conversationInfo?.client?.dispositionId || null
                 : null;
@@ -37,7 +41,7 @@ export default {
                 id: dispositionId
             });
             await this.agtInstagramDispositionChatOptionsInit({
-                campaignId: conversationInfo?.campaignId || null
+                campaignId
             });
             await this.agtInstagramDispositionChatHistoryInit({
                 id: dispositionId

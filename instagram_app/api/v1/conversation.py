@@ -44,8 +44,12 @@ class ConversacionInstagramSerializer(serializers.Serializer):
     campaing_id = serializers.PrimaryKeyRelatedField(
         source='campana', read_only=True)
     campaing_name = serializers.CharField(source='campana.nombre', default=None)
+    campaign_id = serializers.PrimaryKeyRelatedField(
+        source='campana', read_only=True)
+    campaign_name = serializers.CharField(source='campana.nombre', default=None)
     saliente = serializers.BooleanField(default=False)
     destination = serializers.CharField(source='ig_scoped_id', allow_null=True)
+    ig_scoped_id = serializers.CharField(allow_null=True)
     page_client_id = serializers.CharField(source='ig_scoped_id', allow_null=True)
     client = serializers.SerializerMethodField()
     agent = serializers.PrimaryKeyRelatedField(read_only=True)
@@ -88,7 +92,7 @@ class ConversacionInstagramSerializer(serializers.Serializer):
             return {
                 'id': obj.client.id,
                 'phone': obj.client.telefono,
-                'page_client_id': obj.ig_scoped_id,
+                'ig_scoped_id': obj.client.ig_scoped_id or obj.ig_scoped_id,
                 'data': obj.client.obtener_datos(),
                 'disposition': getattr(obj.client, 'last_disposition_id', None),
             }
@@ -203,7 +207,7 @@ class ViewSet(viewsets.ModelViewSet):
                     data=get_response_data(
                         message=_('El contacto no pertenece a la base de datos de la campaña')),
                     status=status.HTTP_400_BAD_REQUEST)
-            if contact.instagram and contact.instagram != conversacion.ig_scoped_id:
+            if contact.ig_scoped_id and contact.ig_scoped_id != conversacion.ig_scoped_id:
                 return response.Response(
                     data=get_response_data(
                         message=_(
@@ -217,9 +221,9 @@ class ViewSet(viewsets.ModelViewSet):
                     data=get_response_data(
                         message=_('El contacto ya tiene una conversación activa')),
                     status=status.HTTP_400_BAD_REQUEST)
-            if not contact.instagram:
-                contact.instagram = conversacion.ig_scoped_id
-                contact.save(update_fields=['instagram'])
+            if not contact.ig_scoped_id:
+                contact.ig_scoped_id = conversacion.ig_scoped_id
+                contact.save(update_fields=['ig_scoped_id'])
             conversacion.client = contact
             conversacion.save(update_fields=['client'])
             return response.Response(

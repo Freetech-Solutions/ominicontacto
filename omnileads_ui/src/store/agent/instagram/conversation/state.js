@@ -6,7 +6,7 @@ export default {
         conversationType: null,
         campaignId: null,
         campaignName: null,
-        page_client_id: null,
+        ig_scoped_id: null,
         client: {
             id: null,
             phone: null,

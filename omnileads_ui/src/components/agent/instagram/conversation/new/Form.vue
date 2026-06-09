@@ -374,7 +374,7 @@ export default {
             const firstname = data[1] || '-----';
             const lastname = data[2] || '-----';
             const phone = contact?.phone || '-----';
-            const pageId = contact?.page_client_id || '-----';
+            const pageId = contact?.ig_scoped_id || '-----';
             return `${firstname} ${lastname} (${phone})`;
         },
         closeModal () {
@@ -412,7 +412,7 @@ export default {
                 campaignId: this.form?.campaign || null,
                 contactId: contact?.id || null,
                 contactPhone: contact?.phone || '',
-                contactPageId: contact?.page_client_id || ''
+                contactPageId: contact?.ig_scoped_id || ''
 
             });
         },
@@ -447,7 +447,7 @@ export default {
                             id: contact?.id || null,
                             data: contact?.data ? contact.data : {},
                             phone: contact?.phone || '',
-                            page_client_id: contact?.page_client_id || ''
+                            ig_scoped_id: contact?.ig_scoped_id || ''
                         };
                     }
                 );
@@ -535,7 +535,7 @@ export default {
                                 id: contact?.id || null,
                                 data: contact?.data ? contact.data : {},
                                 phone: contact?.phone || '',
-                                page_client_id: contact?.page_client_id || ''
+                                ig_scoped_id: contact?.ig_scoped_id || ''
                             };
                         }
                     );

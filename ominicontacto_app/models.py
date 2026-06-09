@@ -2758,7 +2758,7 @@ class Contacto(models.Model):
 
     telefono = models.CharField(max_length=128)
     facebook = models.CharField(max_length=128, blank=True)
-    instagram = models.CharField(max_length=128, blank=True)
+    ig_scoped_id = models.CharField(max_length=128, blank=True)
     datos = models.TextField()
     bd_contacto = models.ForeignKey(
         'BaseDatosContacto',

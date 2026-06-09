@@ -261,27 +261,7 @@ export default {
             invalidForm: false,
             filters: null,
             formResponseMetadata: null,
-            dispositionOptions: [
-                {
-                    type: FORM_TYPES.OPT1,
-                    label: this.$t(
-                        'forms.whatsapp.disposition_chat.form_types.no_action'
-                    ),
-                    items: []
-                },
-                {
-                    type: FORM_TYPES.OPT2,
-                    label: this.$t(
-                        'forms.whatsapp.disposition_chat.form_types.management'
-                    ),
-                    items: []
-                },
-                {
-                    type: FORM_TYPES.OPT3,
-                    label: this.$t('forms.whatsapp.disposition_chat.form_types.schedule'),
-                    items: []
-                }
-            ],
+            dispositionOptions: this.getDefaultDispositionOptions(),
             formFields: [],
             dropdownOptions: [{ name: '-------', value: null }],
             subdispositionOptions: null
@@ -374,6 +354,29 @@ export default {
         isEmptyField (field = null) {
             return field === null || field === undefined || field === '';
         },
+        getDefaultDispositionOptions () {
+            return [
+                {
+                    type: FORM_TYPES.OPT1,
+                    label: this.$t(
+                        'forms.whatsapp.disposition_chat.form_types.no_action'
+                    ),
+                    items: []
+                },
+                {
+                    type: FORM_TYPES.OPT2,
+                    label: this.$t(
+                        'forms.whatsapp.disposition_chat.form_types.management'
+                    ),
+                    items: []
+                },
+                {
+                    type: FORM_TYPES.OPT3,
+                    label: this.$t('forms.whatsapp.disposition_chat.form_types.schedule'),
+                    items: []
+                }
+            ];
+        },
         getDropdownOptions (data = null) {
             if (!data) {
                 return null;
@@ -393,7 +396,6 @@ export default {
             );
             if (option) {
                 this.formFields = option?.form_fields || [];
-                console.log(option.subcalificaciones);
                 if (option.subcalificaciones !== '[]') { this.subdispositionOptions = this.getDropdownOptions(option.subcalificaciones.replace(/'/g, '"')); }
             }
             this.initFormByTypeData();
@@ -540,6 +542,10 @@ export default {
         },
         agtInstagramDispositionChatOptions: {
             handler () {
+                this.dispositionOptions = this.getDefaultDispositionOptions();
+                if (!this.agtInstagramDispositionChatOptions.length) {
+                    return;
+                }
                 if (this.agtInstagramDispositionChatOptions.length > 0) {
                     const noAction =
             this.agtInstagramDispositionChatOptions.filter(

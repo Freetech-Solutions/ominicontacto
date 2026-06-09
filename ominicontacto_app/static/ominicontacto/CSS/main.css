@@ -665,6 +665,14 @@ body>h1 {
   border: none;
 }
 
+.instagram_iframe_container {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: block;
+  border: none;
+}
+
 .channel-action-modal {
   max-width: calc(100vw - 2rem);
   max-height: 85vh;

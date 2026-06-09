@@ -150,10 +150,14 @@ export default {
             return {
                 id: info && info.id ? info.id : this.conversationInfo.id,
                 campaignId:
-                    info && info.campaing_id ? info.campaing_id : this.conversationInfo.campaignId,
+                    info && (info.campaign_id || info.campaing_id)
+                        ? info.campaign_id || info.campaing_id
+                        : this.conversationInfo.campaignId,
                 campaignName:
-                    info && info.campaing_name ? info.campaing_name : this.conversationInfo.campaignName,
-                page_client_id:
+                    info && (info.campaign_name || info.campaing_name)
+                        ? info.campaign_name || info.campaing_name
+                        : this.conversationInfo.campaignName,
+                ig_scoped_id:
                     info && info.destination ? info.destination : null,
                 client: info && info.client ? info.client : null,
                 agent: info && info.agent ? info.agent : null,

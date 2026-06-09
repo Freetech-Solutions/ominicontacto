@@ -1,11 +1,11 @@
 <template>
   <div class="card">
     <div
-      v-if="suggestedPageClientId"
+      v-if="suggestedIgScopedId"
       class="mb-3 p-2 border-round surface-100 text-sm"
     >
-      Podés buscar por nombre, teléfono o page_client_id. Se sugiere una coincidencia por
-      <b>page_client_id</b>: <b>{{ suggestedPageClientId }}</b>.
+      Podés buscar por nombre, teléfono o IG ID. Se sugiere una coincidencia por
+      <b>IG ID</b>: <b>{{ suggestedIgScopedId }}</b>.
     </div>
     <div
       v-if="suggestedContact"
@@ -17,7 +17,7 @@
           <div>{{ getContactData(suggestedContact.data) }}</div>
           <small class="block mt-1">
             Tel: {{ suggestedContact.phone || 'N/A' }} |
-            page_client_id: {{ suggestedContact.page_client_id || 'N/A' }}
+            IG ID: {{ suggestedContact.ig_scoped_id || 'N/A' }}
           </small>
         </div>
         <Button
@@ -34,7 +34,7 @@
       class="p-datatable-sm"
       showGridlines
       :scrollable="true"
-      scrollHeight="600px"
+      scrollHeight="220px"
       responsiveLayout="scroll"
       dataKey="id"
       :rows="5"
@@ -69,7 +69,7 @@
                 icon="pi pi-check"
                 autocomplete="off"
                 :placeholder="
-                  $t('globals.find_by', { field: `${$tc('globals.phone')}/${$tc('globals.name')}/page_client_id` })
+                  $t('globals.find_by', { field: `${$tc('globals.phone')}/${$tc('globals.name')}/IG ID` })
                 "
               />
             </span>
@@ -96,13 +96,13 @@
         </template>
       </Column>
       <Column
-        field="page_client_id"
-        :header="'page_client_id'"
+        field="ig_scoped_id"
+        header="IG ID"
         :sortable="true"
       >
         <template #body="slotProps">
           <div class="flex align-items-center gap-2">
-            <span>{{ slotProps?.data?.page_client_id || "N/A" }}</span>
+            <span>{{ slotProps?.data?.ig_scoped_id || "N/A" }}</span>
             <span
               v-if="slotProps?.data?.is_suggested_match"
               class="p-tag p-tag-info"
@@ -147,7 +147,7 @@ export default {
             searchFilter: null,
             loading: false,
             contacts: [],
-            suggestedPageClientId: null,
+            suggestedIgScopedId: null,
             suggestedContact: null,
             debounceTimer: null
         };
@@ -187,7 +187,7 @@ export default {
                     id: data?.id || null,
                     data: data?.data || {},
                     phone: data?.phone || '',
-                    page_client_id: data?.page_client_id || '',
+                    ig_scoped_id: data?.ig_scoped_id || '',
                     is_suggested_match: true
                 }
                 : null;
@@ -238,10 +238,10 @@ export default {
                         id: contact?.id || null,
                         data: contact?.data || {},
                         phone: contact?.phone || '',
-                        page_client_id: contact?.page_client_id || '',
+                        ig_scoped_id: contact?.ig_scoped_id || '',
                         is_suggested_match:
-                            !!this.suggestedPageClientId &&
-                            contact?.page_client_id === this.suggestedPageClientId
+                            !!this.suggestedIgScopedId &&
+                            contact?.ig_scoped_id === this.suggestedIgScopedId
                     };
                 }).sort((left, right) => {
                     return Number(right.is_suggested_match) - Number(left.is_suggested_match);
@@ -252,9 +252,9 @@ export default {
         },
         conversationInfo: {
             async handler () {
-                this.suggestedPageClientId = this.conversationInfo?.page_client_id || null;
+                this.suggestedIgScopedId = this.conversationInfo?.ig_scoped_id || null;
                 this.suggestedContact = null;
-                if (this.suggestedPageClientId && this.conversationInfo?.id && this.conversationInfo?.campaignId) {
+                if (this.suggestedIgScopedId && this.conversationInfo?.id && this.conversationInfo?.campaignId) {
                     await this.loadSuggestedMatch();
                 }
             },
