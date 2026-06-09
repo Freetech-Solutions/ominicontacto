@@ -57,18 +57,27 @@
               <p>{{ message?.message.name }}</p>
             </div>
           </a>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='file'">
           <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
             <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
             {{ message?.message.name }}
           </a>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='document' || message.type==='application'">
           <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
             <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
             {{ message?.message.name }}
           </a>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='audio'">
           <audio controls>
@@ -79,6 +88,9 @@
           <video width="320" height="240" controls>
             <source :src="message?.message.url" type="video/mp4">
           </video>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='contact'">
           <pre>{{message?.message.contacts}}</pre>
@@ -246,6 +258,9 @@
                 <p>{{ message?.message.name }}</p>
               </div>
             </a>
+            <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+              {{ getAttachmentCaption(message) }}
+            </p>
           </div>
         </div>
         <div v-if="message.type === 'reply_document'" class="wa-message">
@@ -313,6 +328,9 @@
               <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
               {{ message?.message.name }}
             </a>
+            <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+              {{ getAttachmentCaption(message) }}
+            </p>
           </div>
         </div>
         <div v-if="message.type === 'reply_video'" class="wa-message">
@@ -381,6 +399,9 @@
                 <source :src="message?.message.url" type="video/mp4">
               </video>
             </a>
+            <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+              {{ getAttachmentCaption(message) }}
+            </p>
           </div>
         </div>
         <div v-if="message?.fail_reason" class="flex justify-content-end flex-wrap">
@@ -484,7 +505,13 @@ export default {
         showAgentSender (message) {
             return Boolean(message?.itsMine && message?.senderName);
         },
-        getTransferEventLabel(content) {
+        getAttachmentCaption (message) {
+            return message?.message?.caption || message?.message?.text || '';
+        },
+        hasAttachmentCaption (message) {
+            return Boolean(this.getAttachmentCaption(message));
+        },
+        getTransferEventLabel (content) {
           if (content?.event_type === 'agent_transfer') {
             const agent = content?.to_agent?.username || content?.to_agent?.name;
             if (agent) {
@@ -569,6 +596,9 @@ export default {
   display: inline-block;
   margin-bottom: 0.5rem;
   font-weight: 700;
+}
+.attachment-caption {
+  color: #1f2937;
 }
 .transfer-event {
   display: flex;
