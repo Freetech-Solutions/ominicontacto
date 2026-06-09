@@ -79,7 +79,7 @@ def _apply_interactions_summary_filters(
         allowed_agent_ids=None,
         customer_id=None,
         address_query=None,
-        direction_filter=None,
+        callid=None, direction_filter=None,
         channel_filter=None,
         hora_desde=None,
         hora_hasta=None,
@@ -112,6 +112,8 @@ def _apply_interactions_summary_filters(
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -131,7 +133,7 @@ def _obtener_transferencias_entre_campanas_por_campana(
         allowed_agent_ids=None,
         customer_id=None,
         address_query=None,
-        direction_filter=None,
+        callid=None, direction_filter=None,
         channel_filter=None,
         hora_desde=None,
         hora_hasta=None,
@@ -154,6 +156,7 @@ def _obtener_transferencias_entre_campanas_por_campana(
         allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id,
         address_query=address_query,
+        callid=callid,
         direction_filter=direction_filter,
         channel_filter=channel_filter,
         hora_desde=hora_desde,
@@ -201,7 +204,7 @@ def _obtener_metricas_inbound_transferidas_por_campana(
         allowed_agent_ids=None,
         customer_id=None,
         address_query=None,
-        direction_filter=None,
+        callid=None, direction_filter=None,
         channel_filter=None,
         hora_desde=None,
         hora_hasta=None,
@@ -230,6 +233,7 @@ def _obtener_metricas_inbound_transferidas_por_campana(
         allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id,
         address_query=address_query,
+        callid=callid,
         direction_filter=direction_filter,
         channel_filter=channel_filter,
         hora_desde=hora_desde,
@@ -490,8 +494,7 @@ def get_omnichannel_share_data(start_date=None, end_date=None, duracion_agente_m
 
 def obtener_kpis_centro_contacto(campaign_id=None, start_date=None, end_date=None,
                                 allowed_campaigns=None, allowed_agent_ids=None,
-                                customer_id=None, address_query=None,
-                                hora_desde=None, hora_hasta=None, duracion_agente_min=None,
+                                customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None, duracion_agente_min=None,
                                 duracion_bot_min=None):
     """
     Calcula los KPIs de centro de contacto para una campaña (o conjunto) y rango de fechas.
@@ -503,6 +506,7 @@ def obtener_kpis_centro_contacto(campaign_id=None, start_date=None, end_date=Non
       interacciones sin agente (agent_id NULL o -1).
     - customer_id: si se indica, filtra por customer_id exacto.
     - address_query: si se indica, filtra por source_address/destination_address (icontains).
+    - callid: si se indica, filtra por interaction_id exacto.
     start_date y end_date pueden ser datetime o None.
     """
     queryset = InteractionsSummary.objects.all()
@@ -525,6 +529,8 @@ def obtener_kpis_centro_contacto(campaign_id=None, start_date=None, end_date=Non
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -658,8 +664,7 @@ def obtener_kpis_centro_contacto(campaign_id=None, start_date=None, end_date=Non
 
 def obtener_llamadas_por_campana(start_date=None, end_date=None,
                                  allowed_campaigns=None, allowed_agent_ids=None,
-                                 customer_id=None, address_query=None,
-                                 direction_filter=None,
+                                 customer_id=None, address_query=None, callid=None, direction_filter=None,
                                  channel_filter=None,
                                  visible_campaigns=None,
                                  hora_desde=None, hora_hasta=None,
@@ -692,6 +697,7 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id,
         address_query=address_query,
+        callid=callid,
         direction_filter=direction_filter,
         channel_filter=channel_filter,
         hora_desde=hora_desde,
@@ -738,6 +744,7 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id,
         address_query=address_query,
+        callid=callid,
         direction_filter=direction_filter,
         channel_filter=channel_filter,
         hora_desde=hora_desde,
@@ -752,6 +759,7 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id,
         address_query=address_query,
+        callid=callid,
         direction_filter=direction_filter,
         channel_filter=channel_filter,
         hora_desde=hora_desde,
@@ -868,8 +876,7 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
                                            allowed_campaigns=None, allowed_agent_ids=None,
-                                           customer_id=None, address_query=None,
-                                           hora_desde=None, hora_hasta=None,
+                                           customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
                                            duracion_agente_min=None, duracion_bot_min=None):
     """
     KPIs de llamadas salientes (OUTBOUND, VOICE) por campaña para el reporte Egresos/Voz/Campañas.
@@ -902,6 +909,8 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -988,8 +997,7 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
 
 def _queryset_llamadas_salientes_voice(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None,
-                                       hora_desde=None, hora_hasta=None,
+                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
                                        duracion_agente_min=None, duracion_bot_min=None):
     """Base queryset OUTBOUND + VOICE con filtros opcionales (reutilizado por salientes por hora/día/mes)."""
     queryset = InteractionsSummary.objects.filter(
@@ -1015,6 +1023,8 @@ def _queryset_llamadas_salientes_voice(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -1028,8 +1038,7 @@ def _queryset_llamadas_salientes_voice(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
                                         allowed_campaigns=None, allowed_agent_ids=None,
-                                        customer_id=None, address_query=None,
-                                        hora_desde=None, hora_hasta=None,
+                                        customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
                                         duracion_agente_min=None, duracion_bot_min=None):
     """
     Llamadas salientes (OUTBOUND, VOICE) agregadas por hora del día.
@@ -1041,6 +1050,7 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
         start_date=start_date, end_date=end_date,
         allowed_campaigns=allowed_campaigns, allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id, address_query=address_query,
+            callid=callid,
         hora_desde=hora_desde, hora_hasta=hora_hasta,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
@@ -1136,8 +1146,7 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None,
-                                       hora_desde=None, hora_hasta=None,
+                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
                                        duracion_agente_min=None, duracion_bot_min=None):
     """
     Llamadas salientes (OUTBOUND, VOICE) agregadas por día.
@@ -1150,6 +1159,7 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
         start_date=start_date, end_date=end_date,
         allowed_campaigns=allowed_campaigns, allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id, address_query=address_query,
+            callid=callid,
         hora_desde=hora_desde, hora_hasta=hora_hasta,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
@@ -1250,8 +1260,7 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None,
-                                       hora_desde=None, hora_hasta=None,
+                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
                                        duracion_agente_min=None, duracion_bot_min=None):
     """
     Llamadas salientes (OUTBOUND, VOICE) agregadas por mes.
@@ -1264,6 +1273,7 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
         start_date=start_date, end_date=end_date,
         allowed_campaigns=allowed_campaigns, allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id, address_query=address_query,
+            callid=callid,
         hora_desde=hora_desde, hora_hasta=hora_hasta,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
@@ -1370,13 +1380,15 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_campana(start_date=None, end_date=None,
                                           allowed_campaigns=None, allowed_agent_ids=None,
-                                          address_query=None, hora_desde=None, hora_hasta=None):
+                                          address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp entrantes por campaña para el reporte centro de contacto.
     Retorna lista de dicts con: nombre_campana, recibidos, respondidos, no_respondidos,
     avg_frt_segundos, avg_duracion_segundos, pct_respondidos, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
+        return []
+    if callid:
         return []
     qs = ConversacionWhatsapp.objects.filter(saliente=False)
     qs = qs.filter(timestamp__gte=start_date, timestamp__lte=end_date)
@@ -1500,14 +1512,15 @@ def obtener_whatsapp_mensajes_por_campana(start_date=None, end_date=None,
 
 def obtener_whatsapp_egresos_mensajes_por_campana(start_date=None, end_date=None,
                                                     allowed_campaigns=None, allowed_agent_ids=None,
-                                                    address_query=None, hora_desde=None, hora_hasta=None):
+                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp salientes (egresos) por campaña para el reporte centro de contacto.
     Retorna lista de dicts con: nombre_campana, enviados, respondidos, no_respondidos,
-    avg_frt_segundos (tiempo espera hasta primera respuesta del cliente), avg_duracion_segundos,
-    pct_respondidos, pct_no_respondidos.
+    avg_frt_segundos, avg_duracion_segundos, pct_respondidos, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
+        return []
+    if callid:
         return []
     qs = ConversacionWhatsapp.objects.filter(saliente=True)
     qs = qs.filter(timestamp__gte=start_date, timestamp__lte=end_date)
@@ -1643,7 +1656,7 @@ def obtener_whatsapp_egresos_mensajes_por_campana(start_date=None, end_date=None
 
 def obtener_whatsapp_egresos_mensajes_por_hora(start_date=None, end_date=None,
                                                 allowed_campaigns=None, allowed_agent_ids=None,
-                                                address_query=None, hora_desde=None, hora_hasta=None):
+                                                address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp salientes (egresos) por hora del día (0-23) para el reporte
     centro de contacto. Sin discriminar por campaña. Retorna (lista de 24 dicts, dict_totals) con:
@@ -1651,6 +1664,8 @@ def obtener_whatsapp_egresos_mensajes_por_hora(start_date=None, end_date=None,
     pct_respondidos, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
+        return [], None
+    if callid:
         return [], None
     qs = ConversacionWhatsapp.objects.filter(saliente=True)
     qs = qs.filter(timestamp__gte=start_date, timestamp__lte=end_date)
@@ -1832,7 +1847,7 @@ def obtener_whatsapp_egresos_mensajes_por_hora(start_date=None, end_date=None,
 
 def obtener_whatsapp_egresos_mensajes_por_dia(start_date=None, end_date=None,
                                                allowed_campaigns=None, allowed_agent_ids=None,
-                                               address_query=None, hora_desde=None, hora_hasta=None):
+                                               address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp salientes (egresos) por día (fecha) para el reporte centro de
     contacto. Sin discriminar por campaña. Retorna (lista de dicts por día, dict_totals) con:
@@ -1840,6 +1855,8 @@ def obtener_whatsapp_egresos_mensajes_por_dia(start_date=None, end_date=None,
     pct_respondidos, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
+        return [], None
+    if callid:
         return [], None
     start = start_date.date() if hasattr(start_date, 'date') else start_date
     end = end_date.date() if hasattr(end_date, 'date') else end_date
@@ -2030,7 +2047,7 @@ def obtener_whatsapp_egresos_mensajes_por_dia(start_date=None, end_date=None,
 
 def obtener_whatsapp_egresos_mensajes_por_mes(start_date=None, end_date=None,
                                                allowed_campaigns=None, allowed_agent_ids=None,
-                                               address_query=None, hora_desde=None, hora_hasta=None):
+                                               address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp salientes (egresos) por mes para el reporte centro de
     contacto. Sin discriminar por campaña. Retorna (lista de dicts por mes, dict_totals) con:
@@ -2038,6 +2055,8 @@ def obtener_whatsapp_egresos_mensajes_por_mes(start_date=None, end_date=None,
     pct_respondidos, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
+        return [], None
+    if callid:
         return [], None
     start = start_date.date() if hasattr(start_date, 'date') else start_date
     end = end_date.date() if hasattr(end_date, 'date') else end_date
@@ -2240,13 +2259,15 @@ def obtener_whatsapp_egresos_mensajes_por_mes(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_hora(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       address_query=None, hora_desde=None, hora_hasta=None):
+                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp entrantes por hora del día (0-23) para el reporte centro de contacto.
     Retorna (lista de 24 dicts, dict_totals) con: hour_label, recibidos, respondidos, no_respondidos,
     avg_frt_segundos, avg_duracion_segundos, pct_respondidas, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
+        return [], None
+    if callid:
         return [], None
     qs = ConversacionWhatsapp.objects.filter(saliente=False)
     qs = qs.filter(timestamp__gte=start_date, timestamp__lte=end_date)
@@ -2416,7 +2437,7 @@ def obtener_whatsapp_mensajes_por_hora(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_dia(start_date=None, end_date=None,
                                       allowed_campaigns=None, allowed_agent_ids=None,
-                                      address_query=None, hora_desde=None, hora_hasta=None):
+                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp entrantes por día (fecha) para el reporte centro de contacto.
     Sin discriminar por campaña. Retorna (lista de dicts por día, dict_totals) con: fecha,
@@ -2424,6 +2445,8 @@ def obtener_whatsapp_mensajes_por_dia(start_date=None, end_date=None,
     pct_respondidas, pct_no_respondidos. Similar a obtener_whatsapp_mensajes_por_hora pero por fecha.
     """
     if start_date is None or end_date is None:
+        return [], None
+    if callid:
         return [], None
     start = start_date.date() if hasattr(start_date, 'date') else start_date
     end = end_date.date() if hasattr(end_date, 'date') else end_date
@@ -2600,7 +2623,7 @@ def obtener_whatsapp_mensajes_por_dia(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_mes(start_date=None, end_date=None,
                                       allowed_campaigns=None, allowed_agent_ids=None,
-                                      address_query=None, hora_desde=None, hora_hasta=None):
+                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
     """
     Agrupa conversaciones WhatsApp entrantes por mes para el reporte centro de contacto.
     Sin discriminar por campaña. Retorna (lista de dicts por mes, dict_totals) con: mes,
@@ -2608,6 +2631,8 @@ def obtener_whatsapp_mensajes_por_mes(start_date=None, end_date=None,
     pct_respondidas, pct_no_respondidos. Similar a obtener_whatsapp_mensajes_por_dia pero por mes.
     """
     if start_date is None or end_date is None:
+        return [], None
+    if callid:
         return [], None
     start = start_date.date() if hasattr(start_date, 'date') else start_date
     end = end_date.date() if hasattr(end_date, 'date') else end_date
@@ -2796,8 +2821,7 @@ def obtener_whatsapp_mensajes_por_mes(start_date=None, end_date=None,
 
 def obtener_canalidades_por_campana(start_date=None, end_date=None,
                                     allowed_campaigns=None, allowed_agent_ids=None,
-                                    customer_id=None, address_query=None,
-                                    direction_filter='INBOUND',
+                                    customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
                                     hora_desde=None, hora_hasta=None,
                                     duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -2826,6 +2850,8 @@ def obtener_canalidades_por_campana(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -2871,6 +2897,8 @@ def obtener_canalidades_por_campana(start_date=None, end_date=None,
         )
     if address_query:
         qs_wa = qs_wa.filter(destination__icontains=address_query)
+    if callid:
+        qs_wa = qs_wa.none()
     if hora_desde is not None:
         qs_wa = qs_wa.filter(timestamp__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -2988,8 +3016,7 @@ def obtener_canalidades_por_campana(start_date=None, end_date=None,
 
 def obtener_canalidades_por_hora(start_date=None, end_date=None,
                                  allowed_campaigns=None, allowed_agent_ids=None,
-                                 customer_id=None, address_query=None,
-                                 direction_filter='INBOUND',
+                                 customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
                                  hora_desde=None, hora_hasta=None,
                                  duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3025,6 +3052,8 @@ def obtener_canalidades_por_hora(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        qs_voice = qs_voice.filter(interaction_id=callid)
     if hora_desde is not None:
         qs_voice = qs_voice.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3070,6 +3099,8 @@ def obtener_canalidades_por_hora(start_date=None, end_date=None,
         )
     if address_query:
         qs_wa = qs_wa.filter(destination__icontains=address_query)
+    if callid:
+        qs_wa = qs_wa.none()
     if hora_desde is not None:
         qs_wa = qs_wa.filter(timestamp__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3121,6 +3152,8 @@ def obtener_canalidades_por_hora(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        qs_fb = qs_fb.filter(interaction_id=callid)
     if hora_desde is not None:
         qs_fb = qs_fb.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3248,8 +3281,7 @@ def obtener_canalidades_por_hora(start_date=None, end_date=None,
 
 def obtener_canalidades_por_dia(start_date=None, end_date=None,
                                 allowed_campaigns=None, allowed_agent_ids=None,
-                                customer_id=None, address_query=None,
-                                direction_filter='INBOUND',
+                                customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
                                 hora_desde=None, hora_hasta=None,
                                 duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3285,6 +3317,8 @@ def obtener_canalidades_por_dia(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        qs_voice = qs_voice.filter(interaction_id=callid)
     if hora_desde is not None:
         qs_voice = qs_voice.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3331,6 +3365,8 @@ def obtener_canalidades_por_dia(start_date=None, end_date=None,
         )
     if address_query:
         qs_wa = qs_wa.filter(destination__icontains=address_query)
+    if callid:
+        qs_wa = qs_wa.none()
     if hora_desde is not None:
         qs_wa = qs_wa.filter(timestamp__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3383,6 +3419,8 @@ def obtener_canalidades_por_dia(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        qs_fb = qs_fb.filter(interaction_id=callid)
     if hora_desde is not None:
         qs_fb = qs_fb.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3537,8 +3575,7 @@ def _next_month(year, month):
 
 def obtener_canalidades_por_mes(start_date=None, end_date=None,
                                allowed_campaigns=None, allowed_agent_ids=None,
-                               customer_id=None, address_query=None,
-                               direction_filter='INBOUND',
+                               customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
                                hora_desde=None, hora_hasta=None,
                                duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3574,6 +3611,8 @@ def obtener_canalidades_por_mes(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        qs_voice = qs_voice.filter(interaction_id=callid)
     if hora_desde is not None:
         qs_voice = qs_voice.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3619,6 +3658,8 @@ def obtener_canalidades_por_mes(start_date=None, end_date=None,
         )
     if address_query:
         qs_wa = qs_wa.filter(destination__icontains=address_query)
+    if callid:
+        qs_wa = qs_wa.none()
     if hora_desde is not None:
         qs_wa = qs_wa.filter(timestamp__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3669,6 +3710,8 @@ def obtener_canalidades_por_mes(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        qs_fb = qs_fb.filter(interaction_id=callid)
     if hora_desde is not None:
         qs_fb = qs_fb.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3786,8 +3829,7 @@ def obtener_canalidades_por_mes(start_date=None, end_date=None,
 
 def obtener_llamadas_por_hora(start_date=None, end_date=None,
                               allowed_campaigns=None, allowed_agent_ids=None,
-                              customer_id=None, address_query=None,
-                              direction_filter=None,
+                              customer_id=None, address_query=None, callid=None, direction_filter=None,
                               hora_desde=None, hora_hasta=None,
                               duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3819,6 +3861,8 @@ def obtener_llamadas_por_hora(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -3914,8 +3958,7 @@ def obtener_llamadas_por_hora(start_date=None, end_date=None,
 
 def obtener_llamadas_por_dia(start_date=None, end_date=None,
                              allowed_campaigns=None, allowed_agent_ids=None,
-                             customer_id=None, address_query=None,
-                             direction_filter=None,
+                             customer_id=None, address_query=None, callid=None, direction_filter=None,
                              hora_desde=None, hora_hasta=None,
                              duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3946,6 +3989,8 @@ def obtener_llamadas_por_dia(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -4048,8 +4093,7 @@ def obtener_llamadas_por_dia(start_date=None, end_date=None,
 
 def obtener_llamadas_por_mes(start_date=None, end_date=None,
                               allowed_campaigns=None, allowed_agent_ids=None,
-                              customer_id=None, address_query=None,
-                              direction_filter=None,
+                              customer_id=None, address_query=None, callid=None, direction_filter=None,
                               hora_desde=None, hora_hasta=None,
                               duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -4080,6 +4124,8 @@ def obtener_llamadas_por_mes(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -4195,8 +4241,7 @@ Q_LISTADO_LLAMADAS_ATENDIDAS_CC = (
 
 def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None,
-                                       direction_filter='INBOUND',
+                                       customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
                                        hora_desde=None, hora_hasta=None,
                                        duracion_agente_min=None, duracion_bot_min=None,
                                        page=1, page_size=100):
@@ -4234,6 +4279,8 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -4348,8 +4395,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
 
 def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
                                           allowed_campaigns=None, allowed_agent_ids=None,
-                                          customer_id=None, address_query=None,
-                                          direction_filter='INBOUND',
+                                          customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
                                           hora_desde=None, hora_hasta=None,
                                           duracion_agente_min=None, duracion_bot_min=None,
                                           page=1, page_size=100):
@@ -4384,6 +4430,8 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
             Q(source_address__icontains=address_query) |
             Q(destination_address__icontains=address_query)
         )
+    if callid:
+        queryset = queryset.filter(interaction_id=callid)
     if hora_desde is not None:
         queryset = queryset.filter(start_time__time__gte=hora_desde)
     if hora_hasta is not None:
@@ -4488,6 +4536,7 @@ class ReporteCentroContactoFormView(FormView):
         agentes_seleccionados = form.cleaned_data.get('agente') or []
         contacto_id = form.cleaned_data.get('contacto_id')
         address_query = form.cleaned_data.get('address')
+        callid = (form.cleaned_data.get('callid') or '').strip() or None
         campanas_visibles = self._get_campanas_visibles(
             incluir_finalizadas=incluir_finalizadas
         )
@@ -4633,6 +4682,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -4645,6 +4695,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',  # Tab Ingresos: solo llamadas entrantes
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -4680,6 +4731,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',
             channel_filter='VOICE',
             hora_desde=hora_desde,
@@ -4723,6 +4775,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -4735,6 +4788,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -4779,6 +4833,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -4792,6 +4847,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -4805,6 +4861,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -4818,6 +4875,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -4849,6 +4907,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='INBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -4888,6 +4947,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -4919,6 +4979,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -4941,6 +5002,8 @@ class ReporteCentroContactoFormView(FormView):
         listado_pages_whatsapp_frt = []
         if desde is not None and hasta is not None:
             qs_frt = reporte_tiempos_respuesta_whatsapp(desde, hasta, sla_segundos=120)
+            if callid:
+                qs_frt = qs_frt.none()
             if allowed_campaigns is not None:
                 qs_frt = qs_frt.filter(campana_id__in=allowed_campaigns)
             if allowed_agent_ids is not None:
@@ -5004,6 +5067,8 @@ class ReporteCentroContactoFormView(FormView):
                 qs_wa_base = qs_wa_base.filter(client_id=contacto_id)
             if address_query:
                 qs_wa_base = qs_wa_base.filter(destination__icontains=address_query)
+            if callid:
+                qs_wa_base = qs_wa_base.none()
             if hora_desde is not None:
                 qs_wa_base = qs_wa_base.filter(timestamp__time__gte=hora_desde)
             if hora_hasta is not None:
@@ -5063,6 +5128,8 @@ class ReporteCentroContactoFormView(FormView):
                 qs_inbound_no_atendidas = qs_inbound_no_atendidas.filter(
                     destination__icontains=address_query
                 )
+            if callid:
+                qs_inbound_no_atendidas = qs_inbound_no_atendidas.none()
             if hora_desde is not None:
                 qs_inbound_no_atendidas = qs_inbound_no_atendidas.filter(
                     timestamp__time__gte=hora_desde
@@ -5118,6 +5185,8 @@ class ReporteCentroContactoFormView(FormView):
                 qs_conv_wa = qs_conv_wa.filter(client_id=contacto_id)
             if address_query:
                 qs_conv_wa = qs_conv_wa.filter(destination__icontains=address_query)
+            if callid:
+                qs_conv_wa = qs_conv_wa.none()
             if hora_desde is not None:
                 qs_conv_wa = qs_conv_wa.filter(timestamp__time__gte=hora_desde)
             if hora_hasta is not None:
@@ -5174,6 +5243,8 @@ class ReporteCentroContactoFormView(FormView):
                 qs_conv_no_wa = qs_conv_no_wa.filter(client_id=contacto_id)
             if address_query:
                 qs_conv_no_wa = qs_conv_no_wa.filter(destination__icontains=address_query)
+            if callid:
+                qs_conv_no_wa = qs_conv_no_wa.none()
             if hora_desde is not None:
                 qs_conv_no_wa = qs_conv_no_wa.filter(timestamp__time__gte=hora_desde)
             if hora_hasta is not None:
@@ -5232,6 +5303,8 @@ class ReporteCentroContactoFormView(FormView):
                 qs_conv_wa_egresos = qs_conv_wa_egresos.filter(
                     destination__icontains=address_query
                 )
+            if callid:
+                qs_conv_wa_egresos = qs_conv_wa_egresos.none()
             if hora_desde is not None:
                 qs_conv_wa_egresos = qs_conv_wa_egresos.filter(
                     timestamp__time__gte=hora_desde
@@ -5307,6 +5380,8 @@ class ReporteCentroContactoFormView(FormView):
                 qs_conv_no_wa_egresos = qs_conv_no_wa_egresos.filter(
                     destination__icontains=address_query
                 )
+            if callid:
+                qs_conv_no_wa_egresos = qs_conv_no_wa_egresos.none()
             if hora_desde is not None:
                 qs_conv_no_wa_egresos = qs_conv_no_wa_egresos.filter(
                     timestamp__time__gte=hora_desde
@@ -5369,6 +5444,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_campaigns=allowed_campaigns,
             allowed_agent_ids=allowed_agent_ids,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
         )
@@ -5380,6 +5456,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_campaigns=allowed_campaigns,
             allowed_agent_ids=allowed_agent_ids,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
         )
@@ -5392,6 +5469,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
+            callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5405,6 +5483,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
+            callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5418,6 +5497,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
+            callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5431,6 +5511,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
+            callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5444,6 +5525,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
+            callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5457,6 +5539,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
+            callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5471,6 +5554,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_agent_ids=allowed_agent_ids,
                 customer_id=contacto_id,
                 address_query=address_query,
+            callid=callid,
                 direction_filter='OUTBOUND',
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
@@ -5484,6 +5568,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -5522,6 +5607,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -5575,6 +5661,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -5613,6 +5700,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
             duracion_agente_min=duracion_agente_min,
@@ -5652,6 +5740,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='OUTBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -5683,6 +5772,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='OUTBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -5696,6 +5786,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='OUTBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -5709,6 +5800,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='OUTBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -5741,6 +5833,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_agent_ids=allowed_agent_ids,
                 customer_id=contacto_id,
                 address_query=address_query,
+            callid=callid,
                 direction_filter='OUTBOUND',
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
@@ -5754,6 +5847,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='OUTBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -5793,6 +5887,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='OUTBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -5824,6 +5919,7 @@ class ReporteCentroContactoFormView(FormView):
             allowed_agent_ids=allowed_agent_ids,
             customer_id=contacto_id,
             address_query=address_query,
+            callid=callid,
             direction_filter='OUTBOUND',
             hora_desde=hora_desde,
             hora_hasta=hora_hasta,
@@ -6667,7 +6763,7 @@ def _parse_export_filters(request):
     """
     Parsea request.data (POST) del formulario de reporte centro de contacto
     y retorna (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-    customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+    customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
     duracion_bot_min) para el servicio CSV.
     Lanza Response(400) si faltan datos o son inválidos.
     """
@@ -6790,6 +6886,7 @@ def _parse_export_filters(request):
         customer_id = None
 
     address_query = (data.get('address') or '').strip() or None
+    callid = (data.get('callid') or '').strip() or None
     hora_desde = _parse_time(data.get('hora_desde'))
     hora_hasta = _parse_time(data.get('hora_hasta'))
     duracion_agente_min_raw = data.get('duracion_agente_min')
@@ -6811,7 +6908,7 @@ def _parse_export_filters(request):
             duracion_bot_min = None
 
     return (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-            customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+            customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
             duracion_bot_min), None
 
 
@@ -6850,7 +6947,7 @@ class ExportarCSVCanalidadesCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE.format(task_id=task_id)
@@ -6865,6 +6962,7 @@ class ExportarCSVCanalidadesCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -6894,7 +6992,7 @@ class ExportarCSVCanalidadesEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CANALIDADES_EGRESOS.format(task_id=task_id)
@@ -6909,6 +7007,7 @@ class ExportarCSVCanalidadesEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -6938,7 +7037,7 @@ class ExportarCSVCanalidadesPorHoraCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CANALIDADES_POR_HORA.format(task_id=task_id)
@@ -6953,6 +7052,7 @@ class ExportarCSVCanalidadesPorHoraCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -6982,7 +7082,7 @@ class ExportarCSVCanalidadesPorHoraEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CANALIDADES_POR_HORA_EGRESOS.format(task_id=task_id)
@@ -6997,6 +7097,7 @@ class ExportarCSVCanalidadesPorHoraEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7026,7 +7127,7 @@ class ExportarCSVCanalidadesPorDiaCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CANALIDADES_POR_DIA.format(task_id=task_id)
@@ -7041,6 +7142,7 @@ class ExportarCSVCanalidadesPorDiaCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7070,7 +7172,7 @@ class ExportarCSVCanalidadesPorDiaEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CANALIDADES_POR_DIA_EGRESOS.format(task_id=task_id)
@@ -7085,6 +7187,7 @@ class ExportarCSVCanalidadesPorDiaEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7114,7 +7217,7 @@ class ExportarCSVCanalidadesPorMesCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CANALIDADES_POR_MES.format(task_id=task_id)
@@ -7129,6 +7232,7 @@ class ExportarCSVCanalidadesPorMesCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7158,7 +7262,7 @@ class ExportarCSVCanalidadesPorMesEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CANALIDADES_POR_MES_EGRESOS.format(task_id=task_id)
@@ -7173,6 +7277,7 @@ class ExportarCSVCanalidadesPorMesEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7202,7 +7307,7 @@ class ExportarCSVLlamadasAtendidasCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_ATENDIDAS.format(task_id=task_id)
@@ -7217,6 +7322,7 @@ class ExportarCSVLlamadasAtendidasCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7246,7 +7352,7 @@ class ExportarCSVLlamadasAtendidasEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_ATENDIDAS_EGRESOS.format(task_id=task_id)
@@ -7261,6 +7367,7 @@ class ExportarCSVLlamadasAtendidasEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7290,7 +7397,7 @@ class ExportarCSVLlamadasNoAtendidasCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_NO_ATENDIDAS.format(task_id=task_id)
@@ -7305,6 +7412,7 @@ class ExportarCSVLlamadasNoAtendidasCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7334,7 +7442,7 @@ class ExportarCSVLlamadasNoAtendidasEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_NO_ATENDIDAS_EGRESOS.format(task_id=task_id)
@@ -7349,6 +7457,7 @@ class ExportarCSVLlamadasNoAtendidasEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7378,7 +7487,7 @@ class ExportarCSVLlamadasVozCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min, visible_campaigns) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_VOZ.format(task_id=task_id)
@@ -7394,6 +7503,7 @@ class ExportarCSVLlamadasVozCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7423,7 +7533,7 @@ class ExportarCSVLlamadasVozEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_VOZ_EGRESOS.format(task_id=task_id)
@@ -7438,6 +7548,7 @@ class ExportarCSVLlamadasVozEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7467,7 +7578,7 @@ class ExportarCSVLlamadasPorHoraCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_POR_HORA.format(task_id=task_id)
@@ -7482,6 +7593,7 @@ class ExportarCSVLlamadasPorHoraCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7511,7 +7623,7 @@ class ExportarCSVLlamadasPorHoraEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_POR_HORA_EGRESOS.format(task_id=task_id)
@@ -7526,6 +7638,7 @@ class ExportarCSVLlamadasPorHoraEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7555,7 +7668,7 @@ class ExportarCSVLlamadasPorDiaCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_POR_DIA.format(task_id=task_id)
@@ -7570,6 +7683,7 @@ class ExportarCSVLlamadasPorDiaCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7599,7 +7713,7 @@ class ExportarCSVLlamadasPorDiaEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_POR_DIA_EGRESOS.format(task_id=task_id)
@@ -7614,6 +7728,7 @@ class ExportarCSVLlamadasPorDiaEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7643,7 +7758,7 @@ class ExportarCSVLlamadasPorMesCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_POR_MES.format(task_id=task_id)
@@ -7658,6 +7773,7 @@ class ExportarCSVLlamadasPorMesCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7687,7 +7803,7 @@ class ExportarCSVLlamadasPorMesEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_LLAMADAS_POR_MES_EGRESOS.format(task_id=task_id)
@@ -7702,6 +7818,7 @@ class ExportarCSVLlamadasPorMesEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7731,7 +7848,7 @@ class ExportarCSVConversacionesRespondidasCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CONV_RESP.format(task_id=task_id)
@@ -7746,6 +7863,7 @@ class ExportarCSVConversacionesRespondidasCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7775,7 +7893,7 @@ class ExportarCSVConversacionesRespondidasEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CONV_RESP_EGRESOS.format(task_id=task_id)
@@ -7790,6 +7908,7 @@ class ExportarCSVConversacionesRespondidasEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7819,7 +7938,7 @@ class ExportarCSVConversacionesNoRespondidasCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CONV_NO_RESP.format(task_id=task_id)
@@ -7834,6 +7953,7 @@ class ExportarCSVConversacionesNoRespondidasCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7863,7 +7983,7 @@ class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_CONV_NO_RESP_EGRESOS.format(task_id=task_id)
@@ -7878,6 +7998,7 @@ class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7907,7 +8028,7 @@ class ExportarCSVWhatsappMensajesPorHoraCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_HORA.format(task_id=task_id)
@@ -7921,6 +8042,7 @@ class ExportarCSVWhatsappMensajesPorHoraCentroContacto(APIView):
                 'allowed_campaigns': allowed_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7950,7 +8072,7 @@ class ExportarCSVWhatsappMensajesPorHoraEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_HORA_EGRESOS.format(task_id=task_id)
@@ -7964,6 +8086,7 @@ class ExportarCSVWhatsappMensajesPorHoraEgresosCentroContacto(APIView):
                 'allowed_campaigns': allowed_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -7993,7 +8116,7 @@ class ExportarCSVWhatsappMensajesPorCampanaCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_CAMPANA.format(task_id=task_id)
@@ -8007,6 +8130,7 @@ class ExportarCSVWhatsappMensajesPorCampanaCentroContacto(APIView):
                 'allowed_campaigns': allowed_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -8036,7 +8160,7 @@ class ExportarCSVWhatsappMensajesPorCampanaEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_CAMPANA_EGRESOS.format(task_id=task_id)
@@ -8051,6 +8175,7 @@ class ExportarCSVWhatsappMensajesPorCampanaEgresosCentroContacto(APIView):
                 'allowed_agent_ids': allowed_agent_ids,
                 'customer_id': customer_id,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -8080,7 +8205,7 @@ class ExportarCSVWhatsappMensajesPorDiaCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_DIA.format(task_id=task_id)
@@ -8094,6 +8219,7 @@ class ExportarCSVWhatsappMensajesPorDiaCentroContacto(APIView):
                 'allowed_campaigns': allowed_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -8123,7 +8249,7 @@ class ExportarCSVWhatsappMensajesPorDiaEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_DIA_EGRESOS.format(task_id=task_id)
@@ -8137,6 +8263,7 @@ class ExportarCSVWhatsappMensajesPorDiaEgresosCentroContacto(APIView):
                 'allowed_campaigns': allowed_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -8166,7 +8293,7 @@ class ExportarCSVWhatsappMensajesPorMesCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_MES.format(task_id=task_id)
@@ -8180,6 +8307,7 @@ class ExportarCSVWhatsappMensajesPorMesCentroContacto(APIView):
                 'allowed_campaigns': allowed_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,
@@ -8209,7 +8337,7 @@ class ExportarCSVWhatsappMensajesPorMesEgresosCentroContacto(APIView):
         if err_response is not None:
             return err_response
         (task_id, desde, hasta, allowed_campaigns, allowed_agent_ids,
-         customer_id, address_query, hora_desde, hora_hasta, duracion_agente_min,
+         customer_id, address_query, callid, hora_desde, hora_hasta, duracion_agente_min,
          duracion_bot_min) = parsed
 
         key_task = KEY_TASK_TEMPLATE_WA_MSG_MES_EGRESOS.format(task_id=task_id)
@@ -8223,6 +8351,7 @@ class ExportarCSVWhatsappMensajesPorMesEgresosCentroContacto(APIView):
                 'allowed_campaigns': allowed_campaigns,
                 'allowed_agent_ids': allowed_agent_ids,
                 'address_query': address_query,
+                'callid': callid,
                 'hora_desde': hora_desde,
                 'hora_hasta': hora_hasta,
                 'duracion_agente_min': duracion_agente_min,

@@ -521,6 +521,34 @@ class ReporteCentroContactoFormViewTest(OMLBaseTest):
         self.assertEqual(response.status_code, 200)
         self.assertIsNone(mock_kpis.call_args[1]['address_query'])
 
+    @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
+    def test_callid_is_forwarded_to_kpis(self, mock_kpis):
+        mock_kpis.return_value = MOCK_KPIS
+        response = self._post_form(
+            self.admin_user.username,
+            {
+                'fecha': self.fecha,
+                'campana': [ReporteCentroContactoForm.TODAS_LAS_CAMPANAS_VALUE],
+                'callid': '1234567890.123',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_kpis.call_args[1]['callid'], '1234567890.123')
+
+    @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
+    def test_empty_callid_sets_none(self, mock_kpis):
+        mock_kpis.return_value = MOCK_KPIS
+        response = self._post_form(
+            self.admin_user.username,
+            {
+                'fecha': self.fecha,
+                'campana': [ReporteCentroContactoForm.TODAS_LAS_CAMPANAS_VALUE],
+                'callid': '',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIsNone(mock_kpis.call_args[1]['callid'])
+
 
 class ObtenerKpisCentroContactoTest(SimpleTestCase):
 
@@ -680,6 +708,48 @@ class ObtenerKpisCentroContactoTest(SimpleTestCase):
         self.assertFalse(
             has_address_filter,
             'No debe aplicar filtro por source_address/destination_address cuando address_query es None.',
+        )
+
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary')
+    def test_callid_filter_is_applied_when_provided(self, mock_interactions_summary):
+        queryset = Mock()
+        queryset.filter.return_value = queryset
+        queryset.aggregate.return_value = self._empty_aggregate()
+        mock_interactions_summary.objects.all.return_value = queryset
+
+        obtener_kpis_centro_contacto(
+            start_date=None,
+            end_date=None,
+            allowed_campaigns=[1],
+            callid='abc-123',
+        )
+
+        self.assertTrue(
+            any(kwargs.get('interaction_id') == 'abc-123' for _, kwargs in queryset.filter.call_args_list),
+            'Debe aplicar queryset.filter(interaction_id=callid) cuando se informa callid.',
+        )
+
+    @patch('api_app.views.reports_centro_contacto.InteractionsSummary')
+    def test_callid_filter_is_not_applied_when_none(self, mock_interactions_summary):
+        queryset = Mock()
+        queryset.filter.return_value = queryset
+        queryset.aggregate.return_value = self._empty_aggregate()
+        mock_interactions_summary.objects.all.return_value = queryset
+
+        obtener_kpis_centro_contacto(
+            start_date=None,
+            end_date=None,
+            allowed_campaigns=[1],
+            callid=None,
+        )
+
+        self.assertFalse(
+            any(
+                kwargs.get('interaction_id') is not None
+                for _, kwargs in queryset.filter.call_args_list
+                if kwargs
+            ),
+            'No debe aplicar filtro por interaction_id cuando callid es None.',
         )
 
     @patch('api_app.views.reports_centro_contacto.InteractionsSummary')

@@ -61,13 +61,25 @@ else:
     OML_OMNIDIALER_SECRET = os.getenv('OML_OMNIDIALER_SECRET')
 
 
-ALLOWED_HOSTS = [
-    "*",
-]
+def _split_env_list(value):
+    return [item.strip() for item in value.split(',') if item.strip()]
+
+
+_allowed_hosts_raw = os.getenv('DJANGO_ALLOWED_HOSTS', '')
+ALLOWED_HOSTS = _split_env_list(_allowed_hosts_raw)
+
+_csrf_origins_raw = os.getenv('DJANGO_CSRF_TRUSTED_ORIGINS', '')
+if _csrf_origins_raw:
+    CSRF_TRUSTED_ORIGINS = _split_env_list(_csrf_origins_raw)
+else:
+    CSRF_TRUSTED_ORIGINS = [
+        'https://{}'.format(host) for host in ALLOWED_HOSTS
+        if host not in ('127.0.0.1', 'localhost') and not host[0].isdigit()
+    ]
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 's1+*bfrvb@=k@c&9=pm!0sijjewneu5p5rojil#q+!a2y&as-4'
-SIP_SECRET_KEY = 'SUp3rS3cr3tK3y'
+SECRET_KEY = os.getenv('SECRET_KEY')
+SIP_SECRET_KEY = os.getenv('SIP_SECRET_KEY')
 
 DATABASE_REPLICA_ENABLED = os.getenv("PGHOSTHA") == "True"
 DATABASE_REPLICA_HOST = os.getenv("PGHOSTRO")
