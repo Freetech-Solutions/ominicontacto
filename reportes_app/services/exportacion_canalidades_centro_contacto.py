@@ -54,7 +54,7 @@ def generar_csv_canalidades_centro_contacto(
     allowed_campaigns=None,
     allowed_agent_ids=None,
     customer_id=None,
-    address_query=None,
+    address_query=None,    
     hora_desde=None,
     hora_hasta=None,
     duracion_agente_min=None,

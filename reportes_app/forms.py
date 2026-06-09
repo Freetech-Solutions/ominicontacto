@@ -160,6 +160,18 @@ class ReporteCentroContactoForm(forms.Form):
         ),
         label=_('Telefono / Address / Username')
     )
+    callid = forms.CharField(
+        required=False,
+        strip=True,
+        max_length=64,
+        widget=forms.TextInput(
+            attrs={
+                'class': 'form-control',
+                'placeholder': _('Ej: 1234567890.123'),
+            }
+        ),
+        label=_('Call ID'),
+    )
     hora_desde = forms.TimeField(
         required=False,
         widget=forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),

@@ -97,6 +97,11 @@
                                 {{ form.address.errors }}
                             </div>
                             <div class="col-md-4 col-lg-3 form-group mb-0">
+                                <label for="id_callid">{% trans 'Call ID' %}</label>
+                                {{ form.callid }}
+                                {{ form.callid.errors }}
+                            </div>
+                            <div class="col-md-4 col-lg-3 form-group mb-0">
                                 <label for="id_fecha">{% trans 'Fecha' %}</label>
                                 {{ form.fecha }}
                                 {{ form.fecha.errors }}
@@ -1479,6 +1484,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-centered mb-0">
@@ -1576,6 +1582,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-centered mb-0">
@@ -1985,6 +1992,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
@@ -2081,6 +2089,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
@@ -3112,6 +3121,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-centered mb-0">
@@ -3209,6 +3219,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-centered mb-0">
@@ -3595,6 +3606,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
@@ -3693,6 +3705,7 @@
                                         {% endfor %}
                                         <input type="hidden" name="contacto_id" value="{{ form.contacto_id.value|default:'' }}">
                                         <input type="hidden" name="address" value="{{ form.address.value|default:'' }}">
+                                        <input type="hidden" name="callid" value="{{ form.callid.value|default:'' }}">
                                         <input type="hidden" name="hora_desde" value="{{ form.hora_desde.value|default:'' }}">
                                         <input type="hidden" name="hora_hasta" value="{{ form.hora_hasta.value|default:'' }}">
                                         <ul class="pagination pagination-sm justify-content-center flex-wrap mb-0">
