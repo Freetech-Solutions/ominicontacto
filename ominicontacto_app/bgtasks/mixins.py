@@ -15,7 +15,7 @@ from ominicontacto_app.models import AgenteProfile
 from ominicontacto_app.models import Campana
 from ominicontacto_app.models import OpcionCalificacion
 from ominicontacto_app.models import CalificacionCliente
-from reportes_app.models import InteractionsSummary, LlamadaLog, SpeechAnalysis
+from reportes_app.models import InteractionsSummary
 from ominicontacto_app.utiles import convert_fecha_datetime
 from channels.db import database_sync_to_async
 
@@ -209,7 +209,7 @@ class SearchRecordingsMixin(object):
                     agente = AgenteProfile.objects.get(pk=message["query"]["agente"])
                 else:
                     agente = None
-                queryset = LlamadaLog.objects.obtener_grabaciones_by_filtro(
+                queryset = InteractionsSummary.objects.obtener_grabaciones_by_filtro(
                     convert_fecha_datetime(message["query"]["fecha_desde"]),
                     convert_fecha_datetime(message["query"]["fecha_hasta"]),
                     message["query"]["tipo_llamada"],
