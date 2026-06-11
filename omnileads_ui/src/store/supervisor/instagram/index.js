@@ -7,21 +7,29 @@ import MessageTemplateState from './message_templates/state';
 import ConfigurationCampaignActions from './configuration_campaign/actions';
 import ConfigurationCampaignMutations from './configuration_campaign/mutations';
 import ConfigurationCampaignState from './configuration_campaign/state';
+import {
+    SupervisorInstagramReportActions,
+    SupervisorInstagramReportMutations,
+    SupervisorInstagramReportState
+} from './reports';
 
 export const SupervisorInstagramState = {
     ...AccountsState,
     ...MessageTemplateState,
-    ...ConfigurationCampaignState
+    ...ConfigurationCampaignState,
+    ...SupervisorInstagramReportState
 };
 
 export const SupervisorInstagramMutations = {
     ...AccountsMutations,
     ...MessageTemplateMutations,
-    ...ConfigurationCampaignMutations
+    ...ConfigurationCampaignMutations,
+    ...SupervisorInstagramReportMutations
 };
 
 export const SupervisorInstagramActions = {
     ...AccountsActions,
     ...MessageTemplateActions,
-    ...ConfigurationCampaignActions
+    ...ConfigurationCampaignActions,
+    ...SupervisorInstagramReportActions
 };

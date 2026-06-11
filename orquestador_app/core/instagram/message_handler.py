@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from configuracion_telefonia_app.models import DestinoEntrante
 from instagram_app.models import ConversationInstagramApp, MessageInstagramApp
+from orquestador_app.core.instagram.send_message import autoresponse_welcome
 from orquestador_app.core.notify_agents import send_notify
 
 
@@ -15,6 +16,9 @@ logger = logging.getLogger(__name__)
 async def instagram_handler_messages(account, payloads):
     for entry in payloads.get("entry", []):
         for messaging_event in entry.get("messaging", []):
+            if _is_outgoing_echo(account, messaging_event):
+                logger.info("Instagram echo ignorado: %r", messaging_event)
+                continue
             data = _parse_messaging_event(messaging_event)
             if data:
                 notifications = await _save_inbound_message(account, **data)
@@ -29,6 +33,12 @@ def _get_timestamp(messaging_event):
             int(timestamp) / 1000,
             timezone.get_current_timezone())
     return timezone.now().astimezone(timezone.get_current_timezone())
+
+
+def _is_outgoing_echo(account, messaging_event):
+    sender_id = messaging_event.get("sender", {}).get("id")
+    message = messaging_event.get("message", {})
+    return sender_id == account.ig_user_id or message.get("is_echo")
 
 
 def _parse_messaging_event(messaging_event):
@@ -135,6 +145,7 @@ def _save_inbound_message(account, timestamp, message_id, origen, content,
             client_alias=sender.get("name", ""),
         )
         created_conversation = True
+        autoresponse_welcome(conversation, timestamp)
     else:
         update_fields = ["date_last_interaction", "is_active", "updated_at"]
         conversation.date_last_interaction = timestamp

@@ -80,6 +80,8 @@ module.exports = {
         supervisor_facebook_report_general: getPageConfig('supervisor_facebook_report_general'),
         // Supervisor Instagram Pages
         supervisor_instagram_accounts: getPageConfig('supervisor_instagram_accounts'),
+        supervisor_instagram_report_campaign_conversations: getPageConfig('supervisor_instagram_report_campaign_conversations'),
+        supervisor_instagram_report_general: getPageConfig('supervisor_instagram_report_general'),
         // Agent Facebook Pages
         agent_facebook_index: getPageConfig('agent_facebook_index'),
         agent_facebook_conversation: getPageConfig('agent_facebook_conversation'),

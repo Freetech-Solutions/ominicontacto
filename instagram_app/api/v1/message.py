@@ -30,10 +30,13 @@ class MessageInstagramAppSerializer(serializers.Serializer):
 
 
 class MessageInstagramAppAttachmentSerializer(serializers.ModelSerializer):
+    message_id = serializers.CharField(required=False)
+
     class Meta:
         model = MessageInstagramApp
         fields = [
             'id',
+            'message_id',
             'conversation',
             'sender',
             'file'

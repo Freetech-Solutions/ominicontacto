@@ -1,16 +1,23 @@
 import mimetypes
+import operator
+import uuid
+from dataclasses import dataclass
+from functools import reduce
 
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from rest_framework import decorators, response, serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.views import APIView
 
 from api_app.authentication import ExpiringTokenAuthentication
 from api_app.services.media_url import build_public_media_url
+from api_app.views.permissions import TienePermisoOML
 from facebook_meta_app.models import PlantillaMessenger
 from instagram_app.api.permissions import TienePermisoCanalInstagramAgente
 from instagram_app.api.utils import HttpResponseStatus, get_response_data
+from instagram_app.api.v1.contact import ListSerializer as ContactoSerializer
 from instagram_app.api.v1.message import (
     MessageInstagramAppAttachmentSerializer, MessageInstagramAppSerializer,
 )
@@ -19,8 +26,10 @@ from instagram_app.models import (
 )
 from notification_app.notification import AgentNotifier
 from ominicontacto_app.models import Contacto
+from ominicontacto_app.models import Campana
+from ominicontacto_app.utiles import datetime_hora_maxima_dia, datetime_hora_minima_dia
 from orquestador_app.core.instagram.send_message import (
-    send_media_message, send_text_message, upload_media_to_meta,
+    send_media_message, send_text_message, upload_media_to_meta, uses_instagram_login,
 )
 
 mimetypes.init()
@@ -29,6 +38,76 @@ MESSAGE_SENDERS = {
     'AGENT': 0,
     'CLIENT': 1,
 }
+
+
+@dataclass
+class ConversationFilterParams:
+    start_date: object = None
+    end_date: object = None
+    phone: str = None
+    agents: list = None
+
+
+class ConversationFilterParamsSerializer(serializers.Serializer):
+    start_date = serializers.DateField(required=False, allow_null=True)
+    end_date = serializers.DateField(required=False, allow_null=True)
+    phone = serializers.CharField(required=False, allow_null=True, allow_blank=True)
+    agents = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=False,
+        allow_null=True,
+    )
+
+    def validate(self, attrs):
+        start_date = attrs.get('start_date')
+        end_date = attrs.get('end_date')
+        if bool(start_date) != bool(end_date):
+            raise serializers.ValidationError(
+                _('Debe indicar fecha desde y fecha hasta para aplicar el filtro.')
+            )
+        return attrs
+
+    def create(self, validated_data):
+        start_date = validated_data.get('start_date')
+        end_date = validated_data.get('end_date')
+        if start_date and end_date:
+            validated_data['start_date'] = datetime_hora_minima_dia(start_date)
+            validated_data['end_date'] = datetime_hora_maxima_dia(end_date)
+        return ConversationFilterParams(**validated_data)
+
+
+def get_report_conversations_queryset(campaign, params):
+    chats = ConversationInstagramApp.objects.filter(
+        campana=campaign
+    ).select_related(
+        "conversation_disposition__opcion_calificacion",
+        "client__bd_contacto",
+        "agent__user",
+        "account",
+        "campana",
+    ).annotate(
+        message_number=Count('messages', distinct=True)
+    ).order_by('-date_last_interaction', '-timestamp')
+    list_of_Q = []
+    if params.agents:
+        agents = list(params.agents)
+        if -1 in agents:
+            list_of_Q.append(Q(agent__isnull=True))
+            agents.remove(-1)
+        if agents:
+            list_of_Q.append(Q(agent__in=agents))
+    if list_of_Q:
+        chats = chats.filter(reduce(operator.or_, list_of_Q))
+    list_of_Q = []
+    if params.start_date and params.end_date:
+        list_of_Q.append(
+            Q(date_last_interaction__range=[params.start_date, params.end_date])
+        )
+    if params.phone:
+        list_of_Q.append(Q(ig_scoped_id__contains=params.phone))
+    if list_of_Q:
+        chats = chats.filter(reduce(operator.and_, list_of_Q))
+    return chats
 
 
 def get_type(file_name):
@@ -99,6 +178,130 @@ class ConversacionInstagramSerializer(serializers.Serializer):
         return None
 
 
+class ConversacionInstagramFilterSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    campaign = serializers.SerializerMethodField()
+    destination = serializers.CharField(source='ig_scoped_id', allow_null=True)
+    was_closed_by_system = serializers.SerializerMethodField()
+    disposition = serializers.SerializerMethodField()
+    client = serializers.SerializerMethodField()
+    agent = serializers.SerializerMethodField()
+    is_active = serializers.BooleanField(default=True)
+    expire = serializers.DateTimeField(allow_null=True)
+    timestamp = serializers.DateTimeField()
+    date_last_interaction = serializers.DateTimeField(allow_null=True)
+    message_number = serializers.IntegerField()
+    photo = serializers.CharField(default="")
+    line = serializers.SerializerMethodField()
+    error = serializers.BooleanField(default=False)
+
+    def get_line(self, obj):
+        account = obj.account
+        if not account:
+            return {}
+        return {
+            'id': account.id,
+            'name': account.name,
+            'number': account.ig_user_id,
+        }
+
+    def get_campaign(self, obj):
+        if obj.campana:
+            return {
+                'id': obj.campana.id,
+                'name': obj.campana.nombre,
+                'type': obj.campana.type,
+            }
+        return {}
+
+    def get_agent(self, obj):
+        if obj.agent:
+            return {
+                'id': obj.agent.user.id,
+                'name': obj.agent.user.get_full_name() or obj.agent.user.username,
+            }
+        return None
+
+    def get_client(self, obj):
+        if obj.client:
+            serializer = ContactoSerializer(obj.client)
+            if 'disposition' in serializer.fields:
+                del serializer.fields['disposition']
+            return serializer.data
+        return None
+
+    def get_disposition(self, obj):
+        try:
+            if obj.is_disposition and obj.conversation_disposition:
+                return {
+                    'id': obj.conversation_disposition.opcion_calificacion.id,
+                    'name': obj.conversation_disposition.opcion_calificacion.nombre,
+                }
+            return {}
+        except Exception:
+            return {}
+
+    def get_was_closed_by_system(self, obj):
+        return obj.is_disposition and not obj.conversation_disposition
+
+
+class ReportConversationAPIView(APIView):
+    permission_classes = [TienePermisoOML]
+    authentication_classes = (ExpiringTokenAuthentication, SessionAuthentication)
+
+    def post(self, request, campaing_id):
+        try:
+            campaign = Campana.objects.get(id=campaing_id)
+            params_serializer = ConversationFilterParamsSerializer(
+                data={
+                    'start_date': request.data.get('start_date'),
+                    'end_date': request.data.get('end_date'),
+                    'phone': request.data.get('phone'),
+                    'agents': request.data.get('agents'),
+                }
+            )
+            params_serializer.is_valid(raise_exception=True)
+            params = params_serializer.save()
+            chats = get_report_conversations_queryset(campaign, params)
+            serializer = ConversacionInstagramFilterSerializer(chats, many=True)
+            return response.Response(
+                data=get_response_data(status=HttpResponseStatus.SUCCESS, data=serializer.data),
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            return response.Response(
+                data=get_response_data(
+                    status=HttpResponseStatus.ERROR, data={}, message=_(str(e))
+                ),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ReportConversationDetailAPIView(APIView):
+    permission_classes = [TienePermisoOML]
+    authentication_classes = (ExpiringTokenAuthentication, SessionAuthentication)
+
+    def get(self, request, pk):
+        try:
+            conversation = ConversationInstagramApp.objects.select_related(
+                'campana',
+                'account',
+                'client__bd_contacto',
+                'agent',
+            ).prefetch_related('messages').get(pk=pk)
+            serializer = ConversacionInstagramSerializer(conversation)
+            return response.Response(
+                data=get_response_data(
+                    status=HttpResponseStatus.SUCCESS,
+                    data=serializer.data,
+                    message=_('Se obtuvo la conversacion de forma exitosa')),
+                status=status.HTTP_200_OK)
+        except ConversationInstagramApp.DoesNotExist:
+            return response.Response(
+                data=get_response_data(message=_('Conversacion no encontrada')),
+                status=status.HTTP_404_NOT_FOUND)
+
+
 class ViewSet(viewsets.ModelViewSet):
     queryset = ConversationInstagramApp.objects.all()
     serializer_class = ConversacionInstagramSerializer
@@ -114,6 +317,14 @@ class ViewSet(viewsets.ModelViewSet):
             'client',
             'agent',
         ).prefetch_related('messages').order_by('-date_last_interaction')
+
+    def get_detail_queryset(self):
+        return ConversationInstagramApp.objects.select_related(
+            'campana',
+            'account',
+            'client__bd_contacto',
+            'agent',
+        ).prefetch_related('messages')
 
     def list(self, request):
         try:
@@ -144,7 +355,7 @@ class ViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, pk):
         try:
-            instance = self.get_queryset().get(pk=pk)
+            instance = self.get_detail_queryset().get(pk=pk)
             instance.messages.mensajes_recibidos().update(status='read')
             serializer = ConversacionInstagramSerializer(instance)
             return response.Response(
@@ -323,20 +534,54 @@ class ViewSet(viewsets.ModelViewSet):
                             _('Esta conversación ya está siendo atendida por otro agente'))
                     account = conversation.account
                     data = request.data.copy()
-                    data.update({"conversation": pk, "sender": MESSAGE_SENDERS['AGENT']})
+                    data.update({
+                        "conversation": pk,
+                        "message_id": "instagram-local-{}".format(uuid.uuid4()),
+                        "sender": MESSAGE_SENDERS['AGENT'],
+                    })
                     serializer = MessageInstagramAppAttachmentSerializer(data=data)
                     serializer.is_valid(raise_exception=True)
                     mensaje = serializer.save()
-                    filename = data['file'].name[:100]
-                    file_type = get_type(filename)
-                    media_path = mensaje.file.path
-                    media_url = build_public_media_url(request, mensaje.file.url)
-                    attachment_id = upload_media_to_meta(account, file_type, media_path)
-                    if not attachment_id:
+                    try:
+                        filename = data['file'].name[:100]
+                        file_type = get_type(filename)
+                        media_path = mensaje.file.path
+                        media_url = build_public_media_url(request, mensaje.file.url)
+                        send_by_url_error = None
+                        try:
+                            message_id = send_media_message(
+                                account, conversation.ig_scoped_id, file_type,
+                                attachment_url=media_url)
+                        except Exception as e:
+                            send_by_url_error = e
+                            if uses_instagram_login(account):
+                                raise
+                            message_id = None
+                        if not message_id and not uses_instagram_login(account):
+                            # Legacy Page Access Token flow: keep upload as fallback only.
+                            try:
+                                attachment_id = upload_media_to_meta(
+                                    account, file_type, media_path, media_url)
+                                if not attachment_id:
+                                    raise Exception(_('No se pudo subir el archivo a Meta'))
+                                message_id = send_media_message(
+                                    account, conversation.ig_scoped_id, file_type,
+                                    attachment_id=attachment_id)
+                            except Exception as upload_error:
+                                if send_by_url_error:
+                                    raise Exception(
+                                        '{}: {}; {}: {}'.format(
+                                            _('Error al enviar adjunto por URL'),
+                                            send_by_url_error,
+                                            _('Error al subir archivo a Meta'),
+                                            upload_error,
+                                        ))
+                                raise
+                        if not message_id and send_by_url_error:
+                            raise send_by_url_error
+                    except Exception:
                         mensaje.delete()
-                        raise Exception(_('No se pudo subir el archivo a Meta'))
-                    message_id = send_media_message(
-                        account, conversation.ig_scoped_id, file_type, attachment_id)
+                        raise
                     if message_id:
                         mensaje.message_id = message_id
                         mensaje.origen = account.ig_user_id

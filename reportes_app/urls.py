@@ -30,6 +30,7 @@ from reportes_app import (
     views_reportes
 )
 from facebook_meta_app import views as facebook_views
+from instagram_app import views as instagram_views
 from whatsapp_app import views as whatsapp_views
 
 urlpatterns = [
@@ -158,6 +159,16 @@ urlpatterns = [
          login_required(
              facebook_views.GeneralReportListView.as_view()),
          name='campaign_facebook_report_general',
+         ),
+    path('campana/<int:pk_campana>/instagram_conversations_report/',
+         login_required(
+             instagram_views.CampaignReportConversationsListView.as_view()),
+         name='campaign_instagram_report_conversations',
+         ),
+    path('campana/<int:pk_campana>/instagram_general_report/',
+         login_required(
+             instagram_views.GeneralReportListView.as_view()),
+         name='campaign_instagram_report_general',
          ),
     re_path(r'^resultados_de_base_campana/(?P<pk_campana>\d+)/(?P<all_data>\d+)/$',
             login_required(

@@ -14,6 +14,12 @@ class InstagramAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'instagram_account',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
+            {'nombre': 'api_instagram_reports',
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
+            {'nombre': 'api_campaign_instagram_report_conversations',
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
+            {'nombre': 'api_campaign_instagram_report_conversation_detail',
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
         ]
 
     informacion_de_permisos = {
@@ -23,6 +29,18 @@ class InstagramAppConfig(AppConfig):
         },
         'instagram_account': {
             'descripcion': _('Configuración de cuenta Instagram'),
+            'version': '1.27.0',
+        },
+        'api_instagram_reports': {
+            'descripcion': _('Reportes Instagram'),
+            'version': '1.27.0',
+        },
+        'api_campaign_instagram_report_conversations': {
+            'descripcion': _('Reportes Conversaciones Instagram'),
+            'version': '1.27.0',
+        },
+        'api_campaign_instagram_report_conversation_detail': {
+            'descripcion': _('Detalle de conversación Instagram para reportes'),
             'version': '1.27.0',
         },
     }
