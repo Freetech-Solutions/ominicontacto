@@ -134,7 +134,6 @@ export default {
                 }
             });
             window.parent.document.dispatchEvent(event);
-            window.location.reload();
         },
         setParamsToTemplate (template) {
             this.$emit('handleModalEvent', {

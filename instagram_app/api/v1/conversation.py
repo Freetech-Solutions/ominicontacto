@@ -4,7 +4,10 @@ import uuid
 from dataclasses import dataclass
 from functools import reduce
 
-from django.db.models import Count, Q
+from django.db.models import (
+    Count, IntegerField, OuterRef, Prefetch, Q, Subquery, Value,
+)
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from django.utils.translation import ugettext as _
 from rest_framework import decorators, response, serializers, status, viewsets
@@ -25,8 +28,7 @@ from instagram_app.models import (
     ConversationInstagramApp, MessageInstagramApp, PlantillaInstagram,
 )
 from notification_app.notification import AgentNotifier
-from ominicontacto_app.models import Contacto
-from ominicontacto_app.models import Campana
+from ominicontacto_app.models import Campana, Contacto
 from ominicontacto_app.utiles import datetime_hora_maxima_dia, datetime_hora_minima_dia
 from orquestador_app.core.instagram.send_message import (
     send_media_message, send_text_message, upload_media_to_meta, uses_instagram_login,
@@ -38,6 +40,49 @@ MESSAGE_SENDERS = {
     'AGENT': 0,
     'CLIENT': 1,
 }
+
+
+def _message_count_subquery(filters=None):
+    filters = filters or {}
+    queryset = MessageInstagramApp.objects.filter(
+        conversation_id=OuterRef('id'),
+        **filters
+    ).order_by().values('conversation_id').annotate(
+        count=Count('id')
+    ).values('count')[:1]
+    return Coalesce(
+        Subquery(queryset, output_field=IntegerField()),
+        Value(0),
+        output_field=IntegerField(),
+    )
+
+
+def _conversation_base_queryset():
+    return ConversationInstagramApp.objects.select_related(
+        'campana',
+        'account',
+        'client__bd_contacto',
+        'agent__user',
+    ).annotate(
+        message_number=_message_count_subquery(),
+        message_unread=_message_count_subquery({
+            'origen': OuterRef('ig_scoped_id'),
+            'status': 'delivered',
+        }),
+    )
+
+
+def _ordered_messages_prefetch():
+    return Prefetch(
+        'messages',
+        queryset=MessageInstagramApp.objects.order_by('timestamp', 'id'),
+    )
+
+
+def _get_contact_data(conversation):
+    if conversation.client:
+        return conversation.client.obtener_datos()
+    return {}
 
 
 @dataclass
@@ -77,17 +122,13 @@ class ConversationFilterParamsSerializer(serializers.Serializer):
 
 
 def get_report_conversations_queryset(campaign, params):
-    chats = ConversationInstagramApp.objects.filter(
+    chats = _conversation_base_queryset().filter(
         campana=campaign
     ).select_related(
         "conversation_disposition__opcion_calificacion",
-        "client__bd_contacto",
-        "agent__user",
-        "account",
-        "campana",
-    ).annotate(
-        message_number=Count('messages', distinct=True)
-    ).order_by('-date_last_interaction', '-timestamp')
+    ).order_by(
+        '-date_last_interaction', '-timestamp'
+    )
     list_of_Q = []
     if params.agents:
         agents = list(params.agents)
@@ -157,14 +198,27 @@ class ConversacionInstagramSerializer(serializers.Serializer):
         }
 
     def get_message_number(self, obj):
+        annotated_count = getattr(obj, 'message_number', None)
+        if annotated_count is not None:
+            return annotated_count
         return obj.messages.count()
 
     def get_message_unread(self, obj):
+        annotated_count = getattr(obj, 'message_unread', None)
+        if annotated_count is not None:
+            return annotated_count
         return obj.messages.mensajes_recibidos().filter(status='delivered').count()
 
     def get_messages(self, obj):
-        msgs = obj.messages.all().order_by('timestamp', 'id')
-        return MessageInstagramAppSerializer(msgs, many=True).data
+        if self.context.get('include_messages') is False:
+            return []
+        messages_queryset = obj.messages.all()
+        if 'messages' not in getattr(obj, '_prefetched_objects_cache', {}):
+            messages_queryset = messages_queryset.order_by('timestamp', 'id')
+        serializer_context = dict(self.context)
+        serializer_context['contact_data'] = _get_contact_data(obj)
+        return MessageInstagramAppSerializer(
+            messages_queryset, many=True, context=serializer_context).data
 
     def get_client(self, obj):
         if obj.client:
@@ -283,13 +337,11 @@ class ReportConversationDetailAPIView(APIView):
 
     def get(self, request, pk):
         try:
-            conversation = ConversationInstagramApp.objects.select_related(
-                'campana',
-                'account',
-                'client__bd_contacto',
-                'agent',
-            ).prefetch_related('messages').get(pk=pk)
-            serializer = ConversacionInstagramSerializer(conversation)
+            conversation = _conversation_base_queryset().prefetch_related(
+                _ordered_messages_prefetch()
+            ).get(pk=pk)
+            serializer = ConversacionInstagramSerializer(
+                conversation, context={'request': request})
             return response.Response(
                 data=get_response_data(
                     status=HttpResponseStatus.SUCCESS,
@@ -309,22 +361,14 @@ class ViewSet(viewsets.ModelViewSet):
     permission_classes = (TienePermisoCanalInstagramAgente,)
 
     def get_queryset(self):
-        return ConversationInstagramApp.objects.filter(
+        return _conversation_base_queryset().filter(
             is_disposition=False
-        ).select_related(
-            'campana',
-            'account',
-            'client',
-            'agent',
-        ).prefetch_related('messages').order_by('-date_last_interaction')
+        ).order_by('-date_last_interaction')
 
     def get_detail_queryset(self):
-        return ConversationInstagramApp.objects.select_related(
-            'campana',
-            'account',
-            'client__bd_contacto',
-            'agent',
-        ).prefetch_related('messages')
+        return _conversation_base_queryset().prefetch_related(
+            _ordered_messages_prefetch()
+        )
 
     def list(self, request):
         try:
@@ -343,9 +387,11 @@ class ViewSet(viewsets.ModelViewSet):
                     message=_('Se obtuvieron las conversaciones de forma exitosa'),
                     data={
                         'new_conversations': ConversacionInstagramSerializer(
-                            conversaciones_nuevas, many=True).data,
+                            conversaciones_nuevas, many=True,
+                            context={'include_messages': False}).data,
                         'inprogress_conversations': ConversacionInstagramSerializer(
-                            conversaciones_en_curso, many=True).data,
+                            conversaciones_en_curso, many=True,
+                            context={'include_messages': False}).data,
                     }),
                 status=status.HTTP_200_OK)
         except Exception:
@@ -357,7 +403,8 @@ class ViewSet(viewsets.ModelViewSet):
         try:
             instance = self.get_detail_queryset().get(pk=pk)
             instance.messages.mensajes_recibidos().update(status='read')
-            serializer = ConversacionInstagramSerializer(instance)
+            serializer = ConversacionInstagramSerializer(
+                instance, context={'request': request})
             return response.Response(
                 data=get_response_data(
                     status=HttpResponseStatus.SUCCESS,
@@ -372,15 +419,23 @@ class ViewSet(viewsets.ModelViewSet):
     @decorators.action(detail=True, methods=['post'])
     def attend_chat(self, request, pk):
         try:
-            conversacion = ConversationInstagramApp.objects.get(pk=pk)
+            conversacion = self.get_detail_queryset().get(pk=pk)
             agente = request.user.get_agente_profile()
             if not conversacion.agent or conversacion.agent == agente:
                 conversation_granted = conversacion.otorgar_conversacion(agente)
                 mensajes = conversacion.messages.all()
+                serializer_context = {
+                    'request': request,
+                    'contact_data': _get_contact_data(conversacion),
+                }
                 data = {
                     'conversation_granted': conversation_granted,
-                    'conversation_data': ConversacionInstagramSerializer(conversacion).data,
-                    'messages': MessageInstagramAppSerializer(mensajes, many=True).data,
+                    'conversation_data': ConversacionInstagramSerializer(
+                        conversacion,
+                        context={'request': request, 'include_messages': False},
+                    ).data,
+                    'messages': MessageInstagramAppSerializer(
+                        mensajes, many=True, context=serializer_context).data,
                 }
                 agent_notifier = AgentNotifier()
                 for agente_campana in conversacion.campana.obtener_agentes():
@@ -457,16 +512,25 @@ class ViewSet(viewsets.ModelViewSet):
 
     @decorators.action(detail=True, methods=['get'])
     def messages(self, request, pk):
-        conversation = ConversationInstagramApp.objects.get(pk=pk)
+        conversation = self.get_detail_queryset().get(pk=pk)
         if 'message_id' in request.GET:
             last_message = MessageInstagramApp.objects.get(id=request.GET['message_id'])
             mensajes = MessageInstagramApp.objects.filter(
-                conversation=pk, timestamp__gte=last_message.timestamp).order_by('timestamp')
+                conversation=pk, timestamp__gte=last_message.timestamp
+            ).order_by('timestamp', 'id')
         else:
-            mensajes = MessageInstagramApp.objects.filter(conversation=pk).order_by('timestamp')
+            mensajes = conversation.messages.all()
+        serializer_context = {
+            'request': request,
+            'contact_data': _get_contact_data(conversation),
+        }
         data = {
-            'messages': MessageInstagramAppSerializer(mensajes, many=True).data,
-            'conversation_info': ConversacionInstagramSerializer(conversation).data,
+            'messages': MessageInstagramAppSerializer(
+                mensajes, many=True, context=serializer_context).data,
+            'conversation_info': ConversacionInstagramSerializer(
+                conversation,
+                context={'request': request, 'include_messages': False},
+            ).data,
         }
         return response.Response(
             data=get_response_data(status=HttpResponseStatus.SUCCESS, data=data),

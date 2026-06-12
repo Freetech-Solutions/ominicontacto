@@ -191,9 +191,14 @@ export default {
         },
         listenerEvents () {
             listenerStoreDataByAction(
-                'agtInstagramSetCoversationMessages',
-                this.agtInstagramSetCoversationMessages
+                'agtInstagramSetConversationMessages',
+                this.agtInstagramSetConversationMessages
             );
+            listenerStoreDataByAction(
+                'agtInstagramSetCoversationMessages',
+                this.agtInstagramSetConversationMessages
+            );
+            listenerStoreDataByAction('agtInstagramConversationDetailInit', this.initData);
             listenerStoreDataByAction('agtInstagramCoversationDetailInit', this.initData);
         },
         async updatedLocalStorage () {

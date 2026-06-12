@@ -28,10 +28,28 @@ const getMessageInfo = ({ $t, data = null, itsMine = true }) => {
     };
 };
 
+const appendSentMessage = async ({ commit, state, message, messages = null }) => {
+    const baseMessages = Array.isArray(messages)
+        ? messages
+        : state.agtInstagramConversationMessages || [];
+    const messageIndex = baseMessages.findIndex((item) => item.id === message.id);
+    const updatedMessages = [...baseMessages];
+    if (messageIndex >= 0) {
+        updatedMessages.splice(messageIndex, 1, message);
+    } else {
+        updatedMessages.push(message);
+    }
+    await commit('agtInstagramConversationInitMessages', updatedMessages);
+    await resetStoreDataByAction({
+        action: 'agtInstagramSetConversationMessages',
+        data: updatedMessages
+    });
+};
+
 export default {
     async agtInstagramConversationSendAttachmentMessage(
-        { commit },
-        { conversationId = null, formData, pageId = null, messages, $t}
+        { commit, state },
+        { conversationId = null, formData, pageId = null, messages = null, $t}
     ) {
         try {
             console.log('Sending attachment message with formData:', formData);
@@ -49,13 +67,8 @@ export default {
             if (status === HTTP_STATUS.SUCCESS) {
                 const itsMine = data.origin === pageId;
                 const message = getMessageInfo({ $t, data, itsMine });
-                messages.push(message);
-                await commit('agtInstagramConversationSendMessage', message);
+                await appendSentMessage({ commit, state, message, messages });
             }
-            await resetStoreDataByAction({
-                action: 'agtInstagramSetConversationMessages',
-                data: messages
-            });
             return response;
         } catch (error) {
             console.error('===> ERROR al enviar mensaje multimedia');
@@ -102,7 +115,7 @@ export default {
     },
     async agtInstagramConversationSendTemplateMessage(
         { commit, state },
-        { conversationId = null, templateId = null, pageId = null, $t }
+        { conversationId = null, templateId = null, pageId = null, messages = null, $t }
     ) {
         try {
             if (!conversationId || !templateId || !pageId) {
@@ -115,16 +128,7 @@ export default {
             if (status === HTTP_STATUS.SUCCESS) {
                 const itsMine = data.origin === pageId;
                 const message = getMessageInfo({ $t, data, itsMine });
-
-                // // Creamos un nuevo array para reemplazar la referencia
-                // const updatedMessages = [...this.agtInstagramConversationMessages, message];
-                // // Guardamos en store
-                // await resetStoreDataByAction({
-                //     action: 'agtInstagramSetConversationMessages',
-                //     data: updatedMessages
-                // });
-
-                await commit('agtInstagramConversationSendMessage', message);
+                await appendSentMessage({ commit, state, message, messages });
             }
 
             return result;
@@ -134,7 +138,7 @@ export default {
         }
     },
     async agtInstagramConversationReactiveExpiredConversation(
-        { commit },
+        { commit, state },
         { conversationId = null, templateId = null, params_header, params, pageId, messages, $t }
     ) {
         try {
@@ -152,12 +156,8 @@ export default {
             if (status === HTTP_STATUS.SUCCESS) {
                 const itsMine = data.origin === pageId;
                 const message = getMessageInfo({ $t, data, itsMine });
-                messages.push(message);
+                await appendSentMessage({ commit, state, message, messages });
             }
-            await resetStoreDataByAction({
-                action: 'agtInstagramSetConversationMessages',
-                data: messages
-            });
             await resetStoreDataByAction({
                 action: 'agtInstagramConversationDetailInit',
                 data: null

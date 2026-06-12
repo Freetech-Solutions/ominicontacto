@@ -19,6 +19,9 @@ class MessageInstagramAppSerializer(serializers.Serializer):
     file = serializers.FileField(allow_null=True)
 
     def get_contact_data(self, obj):
+        contact_data = self.context.get('contact_data')
+        if contact_data is not None:
+            return contact_data
         if obj.conversation and obj.conversation.client:
             return obj.conversation.client.obtener_datos()
         return {}

@@ -204,7 +204,7 @@ export default {
                 const reqData = {
                     conversationId: this.agtInstagramConversationInfo.id,
                     templateId: this.template.id,
-                    phoneLine: this.agtInstagramConversationInfo.line.number,
+                    pageId: this.agtInstagramConversationInfo.page.page_id,
                     params_header: this.getFormDataHeader(),
                     params: this.getFormData(),
                     messages,

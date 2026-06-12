@@ -47,7 +47,14 @@ const setFromInfo = (info = null) => {
 
 export default {
     agtInstagramConversationSendMessage (state, message) {
-        state.agtInstagramConversationMessages.push(message);
+        const messages = [...state.agtInstagramConversationMessages];
+        const messageIndex = messages.findIndex((item) => item.id === message.id);
+        if (messageIndex >= 0) {
+            messages.splice(messageIndex, 1, message);
+        } else {
+            messages.push(message);
+        }
+        state.agtInstagramConversationMessages = messages;
     },
     agtInstagramConversationSendTemplateMessage (state, messages) {
         state.agtInstagramConversationMessages = [...messages];
