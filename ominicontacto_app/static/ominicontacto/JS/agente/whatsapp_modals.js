@@ -138,7 +138,8 @@ const onWhatsappCloseContainerEvent = ($event) => {
 
 const closeAgentChannelWrappersFromWhatsapp = () => {
     $('#wrapperWebphone').removeClass('active');
-    $('#wrapperMetaChannels').addClass('hidden');
+    $('#wrapperFacebook').addClass('hidden');
+    $('#wrapperInstagram').addClass('hidden');
 };
 
 const setEventListeners = () => {

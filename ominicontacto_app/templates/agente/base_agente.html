@@ -1022,28 +1022,14 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
             <div class="hidden" id="wrapperWhatsapp">
                 <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_whatsapp_index.html' %}"></iframe>
             </div>
-            {% if tiene_facebook or tiene_instagram %}
-            <div class="hidden" id="wrapperMetaChannels">
-                {% if tiene_facebook and tiene_instagram %}
-                <div class="meta-channel-tabs">
-                    <button type="button" id="metaFacebookTab" class="btn btn-sm btn-light active">
-                        {% trans 'Facebook' %}
-                    </button>
-                    <button type="button" id="metaInstagramTab" class="btn btn-sm btn-light">
-                        {% trans 'Instagram' %}
-                    </button>
-                </div>
-                {% endif %}
-                {% if tiene_facebook %}
-                <div id="wrapperFacebook">
-                    <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_facebook_index.html' %}"></iframe>
-                </div>
-                {% endif %}
-                {% if tiene_instagram %}
-                <div class="{% if tiene_facebook %}hidden{% endif %}" id="wrapperInstagram">
-                    <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_instagram_index.html' %}"></iframe>
-                </div>
-                {% endif %}
+            {% if tiene_facebook %}
+            <div class="hidden" id="wrapperFacebook">
+                <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_facebook_index.html' %}"></iframe>
+            </div>
+            {% endif %}
+            {% if tiene_instagram %}
+            <div class="hidden" id="wrapperInstagram">
+                <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_instagram_index.html' %}"></iframe>
             </div>
             {% endif %}
         </div> <!-- wrapper Inner Content -->
@@ -1059,12 +1045,22 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
           </div>
           <div class="hidden">{% trans 'Webphone' %}</div>
         </div>
+        {% if tiene_instagram %}
+        <div>
+          <i id="newInstagramChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
+          <div class="iconApp" id="instagramChat">
+            <span class="icon icon-solid-messages"></span>
+          </div>
+          <div class="hidden">{% trans 'Instagram' %}</div>
+        </div>
+        {% else %}
         <div>
           <div class="iconApp" id="txtSms">
             <span class="icon icon-solid-messages"></span>
           </div>
           <div class="hidden">{% trans 'SMS' %}</div>
         </div>
+        {% endif %}
         {% if tiene_whatsapp %}
         <div>
           <i id="newChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
@@ -1081,18 +1077,13 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
           </div>
           <div class="hidden">{% trans 'Webchat' %}</div>
         </div> -->
-        {% if tiene_facebook or tiene_instagram %}
+        {% if tiene_facebook %}
         <div>
-          {% if tiene_facebook %}
           <i id="newFacebookChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
-          {% endif %}
-          {% if tiene_instagram %}
-          <i id="newInstagramChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
-          {% endif %}
           <div class="iconApp" id="facebookChat">
             <span class="icon icon-solid-fb-chat"></span>
           </div>
-          <div class="hidden">{% trans 'Meta' %}</div>
+          <div class="hidden">{% trans 'Messenger' %}</div>
         </div>
         {% endif %}
         <div>
@@ -1167,14 +1158,16 @@ $(document).ready(function () {
    $('#btnCloseWebphone').on('click',function(){
      $('#wrapperWebphone').removeClass('active');
      $('#wrapperWhatsapp').addClass('hidden');
-     $('#wrapperMetaChannels').addClass('hidden');
+     $('#wrapperFacebook').addClass('hidden');
+     $('#wrapperInstagram').addClass('hidden');
    });
 
    /* Toggle webphone from bottom bar and close button */
    $('#webCall').on('click',function(){
      $('#wrapperWebphone').toggleClass('active');
      $('#wrapperWhatsapp').addClass('hidden');
-     $('#wrapperMetaChannels').addClass('hidden');
+     $('#wrapperFacebook').addClass('hidden');
+     $('#wrapperInstagram').addClass('hidden');
    });
 
    // Get current window path
@@ -1194,7 +1187,8 @@ $(document).ready(function () {
    var tiene_facebook = '{{ tiene_facebook|safe }}';
    var tiene_instagram = '{{ tiene_instagram|safe }}';
    setWhatsappStatusIcon(tiene_whatsapp === 'True');
-   setFacebookStatusIcon(tiene_facebook === 'True' || tiene_instagram === 'True');
+   setFacebookStatusIcon(tiene_facebook === 'True');
+   setInstagramStatusIcon(tiene_instagram === 'True');
  });
 
 </script>

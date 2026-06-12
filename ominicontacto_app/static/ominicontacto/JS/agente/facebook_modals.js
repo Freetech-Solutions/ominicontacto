@@ -6,7 +6,6 @@ const modalMediaFileFormFacebook = $('#facebook-modal-media-file-form');
 const modalContactFormFacebook = $('#facebook-modal-contact-form');
 const modalConversationNewFacebook = $('#facebook-modal-conversation-new');
 const facebookWrapper = $('#wrapperFacebook');
-const metaChannelsWrapper = $('#wrapperMetaChannels');
 
 const onFacebookTransferChatEvent = ($event) => {
     const { transfer_chat } = $event.detail;
@@ -51,35 +50,13 @@ const onFacebookConversationNewEvent = ($event) => {
 };
 
 const onFacebookCloseContainerEvent = ($event) => {
-    metaChannelsWrapper.addClass('hidden');
+    facebookWrapper.addClass('hidden');
 };
 
-const showMetaChannel = (channel) => {
-    const showFacebook = channel === 'facebook';
-    $('#wrapperFacebook').toggleClass('hidden', !showFacebook);
-    $('#wrapperInstagram').toggleClass('hidden', showFacebook);
-    $('#metaFacebookTab').toggleClass('active', showFacebook);
-    $('#metaInstagramTab').toggleClass('active', !showFacebook);
-    metaChannelsWrapper.removeClass('hidden');
-};
-
-const getDefaultMetaChannel = () => {
-    return $('#wrapperFacebook').length ? 'facebook' : 'instagram';
-};
-
-const getActiveMetaChannel = () => {
-    if ($('#wrapperInstagram').length && !$('#wrapperInstagram').hasClass('hidden')) {
-        return 'instagram';
-    }
-    if ($('#wrapperFacebook').length && !$('#wrapperFacebook').hasClass('hidden')) {
-        return 'facebook';
-    }
-    return getDefaultMetaChannel();
-};
-
-const closeAgentChannelWrappersFromMeta = () => {
+const closeAgentChannelWrappersFromFacebook = () => {
     $('#wrapperWebphone').removeClass('active');
     $('#wrapperWhatsapp').addClass('hidden');
+    $('#wrapperInstagram').addClass('hidden');
 };
 
 const setEventListenersFacebook = () => {
@@ -91,25 +68,10 @@ const setEventListenersFacebook = () => {
     window.document.addEventListener('onFacebookContactFormEvent', onFacebookContactFormEvent, false);
     window.document.addEventListener('onFacebookConversationNewEvent', onFacebookConversationNewEvent, false);
     $('#facebookChat').on('click', function () {
-        const shouldOpen = metaChannelsWrapper.hasClass('hidden');
-        closeAgentChannelWrappersFromMeta();
-        if (shouldOpen) {
-            showMetaChannel(getActiveMetaChannel());
-        } else {
-            metaChannelsWrapper.addClass('hidden');
-        }
+        const shouldOpen = facebookWrapper.hasClass('hidden');
+        closeAgentChannelWrappersFromFacebook();
+        facebookWrapper.toggleClass('hidden', !shouldOpen);
         $('#newFacebookChat').addClass('invisible');
-        $('#newInstagramChat').addClass('invisible');
-    });
-    $('#metaFacebookTab').on('click', function () {
-        closeAgentChannelWrappersFromMeta();
-        showMetaChannel('facebook');
-        $('#newFacebookChat').addClass('invisible');
-    });
-    $('#metaInstagramTab').on('click', function () {
-        closeAgentChannelWrappersFromMeta();
-        showMetaChannel('instagram');
-        $('#newInstagramChat').addClass('invisible');
     });
 };
 

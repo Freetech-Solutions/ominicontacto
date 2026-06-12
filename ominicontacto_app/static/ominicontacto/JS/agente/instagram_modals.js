@@ -6,7 +6,6 @@ const modalMediaFileFormInstagram = $('#instagram-modal-media-file-form');
 const modalContactFormInstagram = $('#instagram-modal-contact-form');
 const modalConversationNewInstagram = $('#instagram-modal-conversation-new');
 const instagramWrapper = $('#wrapperInstagram');
-const metaChannelsWrapperInstagram = $('#wrapperMetaChannels');
 
 const onInstagramTransferChatEvent = ($event) => {
     const { transfer_chat } = $event.detail;
@@ -51,7 +50,13 @@ const onInstagramConversationNewEvent = ($event) => {
 };
 
 const onInstagramCloseContainerEvent = ($event) => {
-    metaChannelsWrapperInstagram.addClass('hidden');
+    instagramWrapper.addClass('hidden');
+};
+
+const closeAgentChannelWrappersFromInstagram = () => {
+    $('#wrapperWebphone').removeClass('active');
+    $('#wrapperWhatsapp').addClass('hidden');
+    $('#wrapperFacebook').addClass('hidden');
 };
 
 const setEventListenersInstagram = () => {
@@ -62,10 +67,16 @@ const setEventListenersInstagram = () => {
     window.document.addEventListener('onInstagramMediaFormEvent', onInstagramMediaFormEvent, false);
     window.document.addEventListener('onInstagramContactFormEvent', onInstagramContactFormEvent, false);
     window.document.addEventListener('onInstagramConversationNewEvent', onInstagramConversationNewEvent, false);
+    $('#instagramChat').on('click', function () {
+        const shouldOpen = instagramWrapper.hasClass('hidden');
+        closeAgentChannelWrappersFromInstagram();
+        instagramWrapper.toggleClass('hidden', !shouldOpen);
+        $('#newInstagramChat').addClass('invisible');
+    });
 };
 
 const setInstagramStatusIcon = (tiene_instagram = false) => {
-    $('#facebookChat').css({ color: tiene_instagram ? '#52C159' : '#6A716A' });
+    $('#instagramChat').css({ color: tiene_instagram ? '#52C159' : '#6A716A' });
 };
 
 $(function () {
