@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import mimetypes
 import operator
+import logging
 from dataclasses import dataclass
 from functools import reduce
 from django.utils import timezone
@@ -33,6 +34,8 @@ from notification_app.notification import AgentNotifier
 from orquestador_app.core.facebook.send_message import (
     send_text_message, upload_media_to_meta, send_media_message
 )
+
+logger = logging.getLogger(__name__)
 
 redis_2 = create_redis_connection(db=2)
 
@@ -628,7 +631,7 @@ class ViewSet(viewsets.ModelViewSet):
                     destination = conversation.page_client_id
                     sender = request.user.get_agente_profile()
                     if not conversation.agent or conversation.agent != sender:
-                        raise Exception(
+                        raise serializers.ValidationError(
                             _('Esta conversación ya está siendo atendida por otro agente'))
                     data = request.data.copy()
                     page = conversation.page
@@ -655,7 +658,7 @@ class ViewSet(viewsets.ModelViewSet):
                                 data=serializer.data),
                             status=status.HTTP_200_OK)
                     else:
-                        raise Exception(
+                        raise serializers.ValidationError(
                             _('Este mensaje no se pudo enviar'))
                 return response.Response(
                     data=get_response_data(
@@ -667,7 +670,7 @@ class ViewSet(viewsets.ModelViewSet):
                     message=_('Conversacion es erronea')),
                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(
                     status=HttpResponseStatus.ERROR, data={},
@@ -701,12 +704,11 @@ class ViewSet(viewsets.ModelViewSet):
                     destination = conversation.page_client_id
                     sender = request.user.get_agente_profile()
                     if not conversation.agent or conversation.agent != sender:
-                        raise Exception(
+                        raise serializers.ValidationError(
                             _('Esta conversación ya está siendo atendida por otro agente'))
                     data = request.data.copy()
                     page = conversation.page
                     template_data = PlantillaMessenger.objects.get(pk=data['template_id'])
-                    print(">>> template_data", template_data)
                     message = template_data.configuracion
                     message_id = send_text_message(
                         page, destination, message)  # orquestador
@@ -721,15 +723,13 @@ class ViewSet(viewsets.ModelViewSet):
                             type="message",
                         )
                         serializer = MessageMessengerMetaAppSerializer(mensaje)
-                        print('>>> send_message_template - mensaje enviado')
-                        print(serializer.data)
                         return response.Response(
                             data=get_response_data(
                                 status=HttpResponseStatus.SUCCESS,
                                 data=serializer.data),
                             status=status.HTTP_200_OK)
                     else:
-                        raise Exception(
+                        raise serializers.ValidationError(
                             _('Este mensaje no se pudo enviar'))
                 return response.Response(
                     data=get_response_data(
@@ -741,6 +741,7 @@ class ViewSet(viewsets.ModelViewSet):
                     message=_('Conversacion es erronea')),
                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(
                     status=HttpResponseStatus.ERROR, data={},
@@ -756,7 +757,7 @@ class ViewSet(viewsets.ModelViewSet):
                 if conversation.is_active:
                     sender = request.user.get_agente_profile()
                     if not conversation.agent or conversation.agent != sender:
-                        raise Exception(
+                        raise serializers.ValidationError(
                             _('Esta conversación ya está siendo atendida por otro agente'))
                     page = conversation.page
                     data = request.data.copy()
@@ -772,7 +773,7 @@ class ViewSet(viewsets.ModelViewSet):
                     attachment_id = upload_media_to_meta(page, file_type, media_path)
                     if not attachment_id:
                         mensaje.delete()
-                        raise Exception(
+                        raise serializers.ValidationError(
                             _('No se pudo subir el archivo a Meta'))
                     page_client_id = conversation.page_client_id
                     message_id = send_media_message(page, page_client_id, file_type, attachment_id)
@@ -795,7 +796,7 @@ class ViewSet(viewsets.ModelViewSet):
                         serializer = MessageMessengerMetaAppSerializer(mensaje)
                     else:
                         mensaje.delete()
-                        raise Exception(
+                        raise serializers.ValidationError(
                             _('Este mensaje no se pudo enviar'))
                     return response.Response(
                         data=get_response_data(
@@ -812,7 +813,7 @@ class ViewSet(viewsets.ModelViewSet):
                     message=_('Conversacion es erronea')),
                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print(">>>>>>>>", e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(
                     status=HttpResponseStatus.ERROR, data={},

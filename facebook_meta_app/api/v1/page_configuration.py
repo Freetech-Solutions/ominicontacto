@@ -1,4 +1,5 @@
 import json
+import logging
 from django.db import transaction
 from django.utils.translation import gettext as _
 from rest_framework import viewsets
@@ -16,6 +17,8 @@ from facebook_meta_app.api.utils import HttpResponseStatus, get_response_data
 
 from facebook_meta_app.services.redis.page import StreamDePaginas
 
+logger = logging.getLogger(__name__)
+
 
 class JSONSerializerField(serializers.Field):
     def to_internal_value(self, data):
@@ -25,8 +28,8 @@ class JSONSerializerField(serializers.Field):
                 json_data = data
             else:
                 json_data = json.loads(json.dumps(data))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.error(f"Error al convertir a JSON: {e}")
 
         return json_data
 
@@ -311,10 +314,9 @@ class DestinoEntranteRelatedField(serializers.RelatedField):
                             self._menu_representation(destino, data_list)
                     representation['data'] = sorted(data_list, key=lambda x: x["id"])
                 except Exception as e:
-                    print("*************", e)
-                    pass
+                    logger.error(str(e))
             else:
-                raise Exception('Tipo de destino incorrecto')
+                raise serializers.ValidationError(_('Tipo de destino incorrecto'))
             return representation
         return {}
 

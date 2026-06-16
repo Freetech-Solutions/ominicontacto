@@ -90,8 +90,10 @@ def test_concurrently(args_list):
             for t in threads:
                 t.join()
             if exceptions:
-                raise Exception('test_concurrently intercepted %s exceptions: %s' %
-                                (len(exceptions), exceptions))
+                raise AssertionError(
+                    'test_concurrently intercepted %s exceptions: %s' %
+                    (len(exceptions), exceptions)
+                )
         return wrapper
     return test_concurrently_decorator
 
