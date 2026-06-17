@@ -24,6 +24,7 @@ from django.conf import settings
 from ominicontacto_app.models import QueueMember, Pausa
 from ominicontacto_app.services.asterisk.redis_database import AgenteFamily
 from ominicontacto_app.services.asterisk.asterisk_ami import AMIManagerConnector
+from ominicontacto_app.services.agent.presence import AgentPresenceManager
 from notification_app.notification import RedisStreamNotifier, AgentNotifier
 
 
@@ -45,10 +46,25 @@ class AgentActivityAmiManager(object):
             self.connect_manager()
         error = self._close_open_session(agente_profile)
         # Inicio nueva sesión
+        pause_on_first_login = (
+            agente_profile.grupo and agente_profile.grupo.pause_on_first_login
+        )
+
         if not error:
             error = self._queue_add_remove(agente_profile, 'QueueAdd')
+
+        if not error and pause_on_first_login:
+            error = self._queue_pause_unpause(agente_profile, '0', 'pause')
+
         if not error:
-            error = self._set_agent_redis_status(agente_profile, 'login')
+            if pause_on_first_login:
+                error = self._set_agent_pause_redis_status(agente_profile, 'ACW', '0')
+                presence_manager = AgentPresenceManager()
+                presence_manager.pause(agente_profile, '0')
+
+            else:
+                error = self._set_agent_redis_status(agente_profile, 'login')
+
         if manage_connection:
             self.disconnect_manager()
         return error

@@ -2260,7 +2260,7 @@ class GrupoForm(forms.ModelForm):
 
     class Meta:
         model = Grupo
-        fields = ('nombre', 'auto_unpause', 'auto_attend_inbound',
+        fields = ('nombre', 'auto_unpause', 'pause_on_first_login', 'auto_attend_inbound',
                   'auto_attend_dialer', 'obligar_calificacion', 'call_off_camp',
                   'acceso_grabaciones_agente', 'acceso_dashboard_agente',
                   'on_hold', 'limitar_agendas_personales', 'cantidad_agendas_personales',
@@ -2287,6 +2287,7 @@ class GrupoForm(forms.ModelForm):
             'tiempo_maximo_para_agendar': _('Cantidad máxima de días para agendar'),
             'obligar_despausa': _('Forzar Despausa'),
             'conjunto_de_pausa': _('Conjunto de Pausas'),
+            'pause_on_first_login': _('Pausar al iniciar sesión')
         }
         labels = {
             'acceso_grabaciones_agente': _('Permitir el acceso a las grabaciones'),

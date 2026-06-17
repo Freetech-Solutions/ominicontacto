@@ -107,7 +107,7 @@ class SupervisorActivityAmiManager(object):
 
         agentes_profiles = []
         for activity_line in user_activity_list.splitlines():
-            if activity_line.find("Unavailable") != -1:
+            if activity_line.find("Unavailable") != -1 and activity_line.find("paused") == -1:
                 fields_activity = activity_line.split()
                 agente_id = fields_activity[1].split('_')[0]
                 agente_profile = AgenteProfile.objects.get(id=agente_id)

@@ -283,6 +283,8 @@ class Grupo(models.Model):
         'Auto atender entrantes'))
     auto_attend_dialer = models.BooleanField(default=False, verbose_name=_('Auto atender dailer'))
     auto_unpause = models.PositiveIntegerField(verbose_name=_('Despausar automaticamente'))
+    pause_on_first_login = models.BooleanField(default=False, verbose_name=_(
+        'Pausar al iniciar sesión'))
     obligar_calificacion = models.BooleanField(default=False, verbose_name=_(
         'Forzar calificación'))
     obligar_despausa = models.BooleanField(default=False, verbose_name=_(
