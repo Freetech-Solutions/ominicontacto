@@ -21,7 +21,6 @@ from rest_framework import response
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
-from api_app.authentication import ExpiringTokenAuthentication
 from facebook_meta_app.api.permissions import TienePermisoCanalFacebookAgente
 from facebook_meta_app.api.utils import HttpResponseStatus, get_response_data
 from facebook_meta_app.models import Campana
@@ -30,7 +29,7 @@ from facebook_meta_app.api.v1.templates_messenger import ListSerializer as Plant
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalFacebookAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     def list(self, request, campana_pk):
         try:

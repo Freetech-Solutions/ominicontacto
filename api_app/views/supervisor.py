@@ -83,7 +83,7 @@ class SupervisorCampanasActivasViewSet(APIView):
     si este no es admin y todas las campañas activas en el caso de sí lo sea
     """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication)
     serializer_class = CampanaSerializer
     http_method_names = ['get']
     renderer_classes = (JSONRenderer, )
@@ -178,7 +178,7 @@ class SupervisorCampanasActivasViewSet(APIView):
 class AgentesStatusAPIView(APIView):
     """Devuelve información de los agentes en el sistema"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -274,7 +274,7 @@ class StatusCampanasSalientesView(APIView):
 
 class InteraccionDeSupervisorSobreAgenteView(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -864,7 +864,7 @@ class ExportarCSVFormularioGestionCampana(ExportarCSVMixin, APIView):
 
 class DashboardSupervision(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 

@@ -27,7 +27,6 @@ from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.decorators import action
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.services.media_url import build_public_media_url
 from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 from whatsapp_app.models import Linea, ConfiguracionProveedor, TemplateWhatsapp
@@ -73,7 +72,7 @@ class RetrieveSerializer(serializers.Serializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     def list(self, request):
         try:

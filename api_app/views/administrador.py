@@ -66,7 +66,7 @@ class AgentesActivosGrupoViewSet(viewsets.ModelViewSet):
 class CrearRolView(APIView):
     """Crea un nuevo Rol"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -95,7 +95,7 @@ class CrearRolView(APIView):
 class ActualizarPermisosDeRolView(APIView):
     """Actualiza los permisos de un Rol"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -128,7 +128,7 @@ class ActualizarPermisosDeRolView(APIView):
 class EliminarRolView(APIView):
     """Elimina un rol"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -261,7 +261,7 @@ class EnviarKeyRegistro(APIView):
     registrada
     """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 

@@ -24,7 +24,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from api_app.serializers.external_system import (
     AgenteProfileSistemaExternoSerializer, SistemaExternoSerializer)
@@ -33,8 +32,7 @@ from ominicontacto_app.models import AgenteProfile, SistemaExterno
 
 class SistemaExternoList(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -59,8 +57,7 @@ class SistemaExternoList(APIView):
 
 class SistemaExternoCreate(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -91,8 +88,7 @@ class SistemaExternoCreate(APIView):
 
 class SistemaExternoUpdate(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['put']
 
@@ -131,8 +127,7 @@ class SistemaExternoUpdate(APIView):
 
 class SistemaExternoDetail(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -162,8 +157,7 @@ class SistemaExternoDetail(APIView):
 
 class AgentesSistemaExternoList(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 

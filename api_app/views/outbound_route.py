@@ -28,7 +28,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from api_app.serializers.outbound_route import (
     RutaSalienteSerializer,
@@ -38,8 +37,7 @@ from configuracion_telefonia_app.models import RutaSaliente, TroncalSIP
 
 class OutboundRouteList(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -63,8 +61,7 @@ class OutboundRouteList(APIView):
 
 class OutboundRouteCreate(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -98,8 +95,7 @@ class OutboundRouteCreate(APIView):
 
 class OutboundRouteUpdate(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['put']
 
@@ -141,8 +137,7 @@ class OutboundRouteUpdate(APIView):
 
 class OutboundRouteDetail(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -173,8 +168,7 @@ class OutboundRouteDetail(APIView):
 
 class OutboundRouteDelete(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['delete']
 
@@ -210,8 +204,7 @@ class OutboundRouteDelete(APIView):
 
 class OutboundRouteSIPTrunksList(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -235,8 +228,7 @@ class OutboundRouteSIPTrunksList(APIView):
 
 class OutboundRouteOrphanTrunks(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -270,8 +262,7 @@ class OutboundRouteOrphanTrunks(APIView):
 
 class OutboundRouteReorder(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['put']
 

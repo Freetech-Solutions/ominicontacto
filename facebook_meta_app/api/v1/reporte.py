@@ -9,7 +9,6 @@ from rest_framework import response, serializers, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from facebook_meta_app.api.utils import HttpResponseStatus, get_response_data
 from facebook_meta_app.models import ConversationMessengerMetaApp, MessageMessengerMetaApp
@@ -119,7 +118,7 @@ class ReporteCampanaFacebookSerializer(serializers.Serializer):
 
 class ReportAPIView(APIView):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication)
+    authentication_classes = (SessionAuthentication, )
 
     def post(self, request):
         try:

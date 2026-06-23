@@ -24,15 +24,13 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
 
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.serializers.reportes import TransferenciaAEncuestaLogSerializer
 from api_app.views.permissions import TienePermisoOML
 
 
 class TransferenciaAEncuestaLogCreateView(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 

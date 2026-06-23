@@ -29,7 +29,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from api_app.serializers.pause import (
     PausaSerializer)
@@ -55,8 +54,7 @@ class SincronizarPausaMixin(object):
 
 class PauseList(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -80,8 +78,7 @@ class PauseList(APIView):
 
 class PauseCreate(APIView, SincronizarPausaMixin):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -128,8 +125,7 @@ class PauseCreate(APIView, SincronizarPausaMixin):
 
 class PauseUpdate(APIView, SincronizarPausaMixin):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['put']
 
@@ -186,8 +182,7 @@ class PauseUpdate(APIView, SincronizarPausaMixin):
 
 class PauseDelete(APIView, SincronizarPausaMixin):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['delete']
 
@@ -229,8 +224,7 @@ class PauseDelete(APIView, SincronizarPausaMixin):
 
 class PauseReactivate(APIView, SincronizarPausaMixin):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['put']
 
@@ -265,8 +259,7 @@ class PauseReactivate(APIView, SincronizarPausaMixin):
 
 class PauseDetail(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 

@@ -29,7 +29,6 @@ from rest_framework import viewsets
 from rest_framework import decorators
 from rest_framework.authentication import SessionAuthentication
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 from ominicontacto_app.models import Campana, AgenteProfile
 from whatsapp_app.models import ConfiguracionWhatsappCampana, ConversacionWhatsapp, MensajeWhatsapp
@@ -103,7 +102,7 @@ def _create_transfer_event_message(conversation, event_type, by_agent=None, to_a
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     def _eligible_campaigns_for_conversation(self, conversation):
         eligible_campaign_ids = ConfiguracionWhatsappCampana.objects.filter(

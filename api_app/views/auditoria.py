@@ -35,7 +35,6 @@ from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from ominicontacto_app.services.reporte_auditoria_csv import ExportacionArchivoCSV
 from ominicontacto_app.models import CalificacionCliente
 
@@ -118,7 +117,7 @@ class ReporteCalificacionesCampanaCSV(ReporteCSV):
 
 class ObtenerArchivoAuditoriaView(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     http_method_names = ['post', 'get']
 
     def generar_csv_calificaciones(

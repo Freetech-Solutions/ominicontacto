@@ -18,7 +18,6 @@
 
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.serializers.base import AgenteProfileNameSerializer, GrupoSerializer
 from ominicontacto_app.models import AgenteProfile, Grupo
 
@@ -27,7 +26,7 @@ from api_app.views.permissions import TienePermisoOML
 
 class ListadoGrupos(viewsets.ReadOnlyModelViewSet):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     serializer_class = GrupoSerializer
 
     def get_queryset(self):
@@ -36,7 +35,7 @@ class ListadoGrupos(viewsets.ReadOnlyModelViewSet):
 
 class ListadoAgentes(viewsets.ReadOnlyModelViewSet):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     serializer_class = AgenteProfileNameSerializer
 
     def get_queryset(self):

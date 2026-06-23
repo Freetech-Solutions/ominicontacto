@@ -24,7 +24,6 @@ from rest_framework import viewsets
 from rest_framework import decorators
 from rest_framework.authentication import SessionAuthentication
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 from ominicontacto_app.models import Contacto, AgenteProfile
 from ominicontacto_app.models import (
@@ -281,7 +280,7 @@ class RespuestaFormularioGestionUpdateSerilializer(serializers.ModelSerializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     def _finalize_conversation(self, conversation_id, calificacion, send_goodbye=True):
         conversation = ConversacionWhatsapp.objects.get(id=conversation_id)
