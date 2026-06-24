@@ -87,6 +87,7 @@ COPY requirements $INSTALL_PREFIX/ominicontacto
 COPY test $INSTALL_PREFIX/ominicontacto
 COPY tests $INSTALL_PREFIX/ominicontacto
 COPY api_app $INSTALL_PREFIX/ominicontacto/api_app
+COPY email_app $INSTALL_PREFIX/ominicontacto/email_app
 COPY configuracion_telefonia_app $INSTALL_PREFIX/ominicontacto/configuracion_telefonia_app
 COPY ominicontacto_app $INSTALL_PREFIX/ominicontacto/ominicontacto_app
 COPY reciclado_app $INSTALL_PREFIX/ominicontacto/reciclado_app
