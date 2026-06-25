@@ -1,6 +1,6 @@
 #!/bin/bash
 
-COMMAND="python3 ${INSTALL_PREFIX}ominicontacto/manage.py"
+COMMAND="python3 ${INSTALL_PREFIX}/ominicontacto/manage.py"
 
 set -e
 

@@ -40,6 +40,19 @@ RUN npm install
 RUN npm run build
 
 ########################################################################
+# Stage build WebUI
+FROM node:lts-alpine as webui
+
+RUN corepack enable
+
+WORKDIR /webui-app
+COPY webui/package.json webui/pnpm-lock.yaml webui/pnpm-workspace.yaml ./
+COPY webui/patches patches
+RUN pnpm install --frozen-lockfile
+COPY webui/ ./
+RUN pnpm build-only --base=/webui-app/
+
+########################################################################
 # Build omlapp image with binaries
 FROM python:3.9-alpine as run
 
@@ -96,6 +109,7 @@ COPY supervision_app $INSTALL_PREFIX/ominicontacto/supervision_app
 COPY notification_app $INSTALL_PREFIX/ominicontacto/notification_app
 COPY utiles_globales.py manage.py $INSTALL_PREFIX/ominicontacto/
 COPY omnileads_ui $INSTALL_PREFIX/ominicontacto/omnileads_ui
+COPY webui $INSTALL_PREFIX/ominicontacto/webui
 COPY orquestador_app $INSTALL_PREFIX/ominicontacto/orquestador_app
 COPY whatsapp_app $INSTALL_PREFIX/ominicontacto/whatsapp_app
 COPY facebook_meta_app $INSTALL_PREFIX/ominicontacto/facebook_meta_app
@@ -104,6 +118,7 @@ COPY build/oml_uwsgi.ini ${INSTALL_PREFIX}/run/oml_uwsgi.ini
 COPY build/scripts/* $INSTALL_PREFIX/bin/
 COPY omnileads_ui/ $INSTALL_PREFIX/ominicontacto/omnileads_ui
 COPY --from=vuejs  /omnileads_ui/oml_frontend/dist/ $INSTALL_PREFIX/ominicontacto/omnileads_ui/dist
+COPY --from=webui /webui-app/dist/ $INSTALL_PREFIX/ominicontacto/webui/dist
 RUN chmod +x $INSTALL_PREFIX/bin/*
 RUN chown -R omnileads:omnileads $INSTALL_PREFIX /var/spool/cron/ /var/spool/cron/crontabs/
 

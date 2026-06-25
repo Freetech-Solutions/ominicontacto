@@ -209,6 +209,7 @@ ORCHESTRATOR_SLAVE_STREAM_FROMID = '$'
 
 STATICFILES_DIRS = [
     ("omnileads-frontend", os.path.join(BASE_DIR, "omnileads_ui/dist")),
+    ("webui-app", os.path.join(BASE_DIR, "webui/dist")),
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
