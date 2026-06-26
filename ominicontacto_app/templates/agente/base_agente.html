@@ -1036,6 +1036,11 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_instagram_index.html' %}"></iframe>
             </div>
             {% endif %}
+            {% if tiene_email %}
+            <div class="hidden" id="wrapperEmail">
+                <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_email_index.html' %}"></iframe>
+            </div>
+            {% endif %}
         </div> <!-- wrapper Inner Content -->
     </div> <!-- wrapper-content -->
 </div> <!-- wrapper-main -->
@@ -1090,13 +1095,16 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
           <div class="hidden">{% trans 'Messenger' %}</div>
         </div>
         {% endif %}
+        {% if tiene_email %}
         <div>
+          <i id="newEmail" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
           <div class="iconApp" id="emailMessages">
-            <span id="fbNotReadMessagesCounter" class="invisible"></span>
+            <span id="emailNotReadMessagesCounter" class="invisible"></span>
             <span class="icon icon-solid-mail"></span>
           </div>
           <div class="hidden">{% trans 'Email' %}</div>
         </div>
+        {% endif %}
     </div>
 </div>
 {% include 'config.html' %}
@@ -1143,6 +1151,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <script type="text/javascript" src="{% static 'ominicontacto/JS/agente/whatsapp_modals.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/agente/facebook_modals.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/agente/instagram_modals.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/agente/email_modals.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/whatsapp_notifications.js' %}"></script>
 <script type="text/javascript">
 $(document).ready(function () {
@@ -1164,6 +1173,7 @@ $(document).ready(function () {
      $('#wrapperWhatsapp').addClass('hidden');
      $('#wrapperFacebook').addClass('hidden');
      $('#wrapperInstagram').addClass('hidden');
+     $('#wrapperEmail').addClass('hidden');
    });
 
    /* Toggle webphone from bottom bar and close button */
@@ -1172,6 +1182,7 @@ $(document).ready(function () {
      $('#wrapperWhatsapp').addClass('hidden');
      $('#wrapperFacebook').addClass('hidden');
      $('#wrapperInstagram').addClass('hidden');
+     $('#wrapperEmail').addClass('hidden');
    });
 
    // Get current window path
@@ -1190,9 +1201,12 @@ $(document).ready(function () {
    var tiene_whatsapp = '{{ tiene_whatsapp|safe }}';
    var tiene_facebook = '{{ tiene_facebook|safe }}';
    var tiene_instagram = '{{ tiene_instagram|safe }}';
+   var tiene_email = '{{ tiene_email|safe }}';
    setWhatsappStatusIcon(tiene_whatsapp === 'True');
    setFacebookStatusIcon(tiene_facebook === 'True');
    setInstagramStatusIcon(tiene_instagram === 'True');
+   setEmailStatusIcon(tiene_email === 'True');
+
  });
 
 </script>

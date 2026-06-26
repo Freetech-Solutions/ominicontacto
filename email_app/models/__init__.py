@@ -16,10 +16,12 @@
 
 from .account import Account
 from .campaign_account import CampaignAccount
+from .conversation import ConversacionEmail
 from .message import Message
 
 __all__ = [
     "Account",
     "CampaignAccount",
+    "ConversacionEmail",
     "Message",
 ]

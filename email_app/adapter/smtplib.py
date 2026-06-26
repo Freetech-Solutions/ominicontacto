@@ -16,7 +16,9 @@
 
 import logging
 import socket
+import ssl
 from smtplib import SMTP
+from smtplib import SMTP_SSL
 
 from ..crypter import decrypt
 from ._utils import AUTH_BASIC
@@ -38,7 +40,13 @@ def client(config, **kwargs):
     if protocol == PROTOCOL_SMTP:
         raise ValueError(f"Unhandled protocol={protocol!r}")
     elif protocol == PROTOCOL_SMTP_WITH_SSL:
-        raise ValueError(f"Unhandled protocol={protocol!r}")
+        ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
+        ssl_check_hostname = config.get("ssl_check_hostname")
+        if ssl_check_hostname is not None:
+            ssl_context.check_hostname = ssl_check_hostname
+        timeout = config.get("timeout", kwargs.get("timeout", socket._GLOBAL_DEFAULT_TIMEOUT))
+        client = SMTP_SSL(host, port, context=ssl_context, timeout=timeout)
+        client.set_debuglevel(1)
     elif protocol == PROTOCOL_SMTP_WITH_TLS:
         timeout = config.get("timeout", kwargs.get("timeout", socket._GLOBAL_DEFAULT_TIMEOUT))
         client = SMTP(host, port, timeout=timeout)
@@ -63,3 +71,9 @@ def login(client: SMTP, config):
 
 def verify(client: SMTP, config):
     client.verify(config["from_addr"])
+
+
+def send(client: SMTP, config, message):
+    """Send an already-built email.message.EmailMessage through the connected
+    (and authenticated) SMTP client."""
+    client.send_message(message)

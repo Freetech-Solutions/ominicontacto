@@ -392,6 +392,7 @@ REST_FRAMEWORK = {
 LOCALE_PATHS = (
     os.path.join(BASE_DIR, 'api_app/locale'),
     os.path.join(BASE_DIR, 'configuracion_telefonia_app/locale'),
+    os.path.join(BASE_DIR, 'email_app/locale'),
     os.path.join(BASE_DIR, 'notification_app/locale'),
     os.path.join(BASE_DIR, 'ominicontacto_app/locale'),
     os.path.join(BASE_DIR, 'reportes_app/locale'),

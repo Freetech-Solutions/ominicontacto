@@ -19,6 +19,8 @@ import logging
 
 from ... import models
 from ...adapter import aioimaplib
+from ..inbound import aingest_inbound_message
+from ..notify import notify_new_email_conversation
 
 log = logging.getLogger(__name__)
 
@@ -112,6 +114,13 @@ class AccountConsumer:
                 if created:
                     # @todo move this to the task/consumer message handler
                     message.hydrate()
+                    # agent-channel: group into a conversation and notify agents.
+                    # Best-effort: a failure here must not break message ingestion.
+                    try:
+                        conversation, conv_created = await aingest_inbound_message(message)
+                        await notify_new_email_conversation(conversation, conv_created, message)
+                    except Exception as exc:
+                        log.exception("email-ingest acc=%r exception=%r", acc, exc)
             local["mailbox"] = cloud["mailbox"]
             local["uidnext"] = max(uids) + 1
             local["uidvalidity"] = uidvalidity

@@ -50,7 +50,10 @@ hydrated_fields = [
 
 
 def parse(self: "Message"):
-    content = self.content_bytes.tobytes()
+    # content_bytes may be a memoryview (read back from a BinaryField via
+    # psycopg2), a bytearray (freshly fetched from IMAP before any DB
+    # round-trip) or plain bytes. bytes() normalizes all of them.
+    content = bytes(self.content_bytes)
 
     date = timezone.now()
     subject = ""
@@ -143,7 +146,35 @@ class QuerySet(models.QuerySet):
 
 
 class Message(models.Model):
+    DIRECTION_INBOUND = "inbound"
+    DIRECTION_OUTBOUND = "outbound"
+    DIRECTION_CHOICES = (
+        (DIRECTION_INBOUND, "inbound"),
+        (DIRECTION_OUTBOUND, "outbound"),
+    )
+
+    TYPE_EMAIL = "email"
+    TYPE_TRANSFER_EVENT = "transfer_event"
+
     account = models.ForeignKey("email_app.Account", on_delete=models.PROTECT)
+
+    # agent-channel: thread this message belongs to (null for legacy/admin-only
+    # messages that were never grouped into a conversation).
+    conversation = models.ForeignKey(
+        "email_app.ConversacionEmail",
+        on_delete=models.CASCADE,
+        related_name="mensajes",
+        null=True,
+    )
+    direction = models.CharField(
+        max_length=10, choices=DIRECTION_CHOICES, default=DIRECTION_INBOUND
+    )
+    is_read = models.BooleanField(default=False)
+    status = models.CharField(max_length=20, default="received")
+    fail_reason = models.CharField(max_length=254, blank=True, default="")
+    # outbound/system author: {"name": ..., "agent_id": ...}; empty for inbound.
+    sender = models.JSONField(default=dict)
+    type = models.CharField(max_length=20, default=TYPE_EMAIL)
 
     content_bytes = models.BinaryField()
     content_stamp = models.CharField(max_length=64)
@@ -168,6 +199,16 @@ class Message(models.Model):
         indexes = [
             models.Index(fields=["content_stamp"], name="email_app-content_stamp-idx"),
         ]
+
+    def thread_key(self):
+        """Stable key used to group messages into a ConversacionEmail. Uses the
+        root of the References chain, then In-Reply-To, then this message's own
+        Message-ID (a brand-new thread is its own root)."""
+        if self.references:
+            return self.references[0]
+        if self.in_reply_to:
+            return self.in_reply_to
+        return self.message_id
 
     @alters_data
     async def asave(self, **kwargs):

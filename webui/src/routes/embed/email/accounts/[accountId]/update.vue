@@ -33,6 +33,8 @@ export type Account = {
     username: string
     password: string
     from_addr: string
+    from_name: string
+    include_agent_name: boolean
   }
 }
 </script>
@@ -122,6 +124,8 @@ const form = ref<Account>({
     username: "",
     password: "",
     from_addr: "",
+    from_name: "",
+    include_agent_name: false,
   },
 })
 
@@ -153,6 +157,8 @@ const { r$ } = useRegle(
       username: { required },
       password: { string },
       from_addr: { required },
+      from_name: { maxLength: maxLength(100) },
+      include_agent_name: { boolean },
     },
   },
   {
@@ -457,9 +463,11 @@ async function handleSubmit({ submitter }: SubmitEvent) {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="basic">BASIC</SelectItem>
-                            <SelectItem value="xoauth2">XOAUTH2</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FieldDescription class="text-xs">
+                          {{ "For Gmail / Google Workspace use BASIC with an App Password." }}
+                        </FieldDescription>
                         <FieldError class="text-xs" v-if="r$.inbound.auth_type.$error" v-bind:errors="r$.inbound.auth_type.$errors" />
                       </Field>
                       <div class="grid gap-6 lg:col-span-3 lg:grid-cols-4">
@@ -667,6 +675,7 @@ async function handleSubmit({ submitter }: SubmitEvent) {
                           <SelectContent>
                             <SelectItem value="smtp" disabled>SMTP</SelectItem>
                             <SelectItem value="smtp+tls">SMTP with TLS</SelectItem>
+                            <SelectItem value="smtp+ssl">SMTP with SSL</SelectItem>
                           </SelectContent>
                         </Select>
                         <FieldError class="text-xs" v-if="r$.outbound.protocol.$error" v-bind:errors="r$.outbound.protocol.$errors" />
@@ -712,9 +721,11 @@ async function handleSubmit({ submitter }: SubmitEvent) {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="basic">BASIC</SelectItem>
-                            <SelectItem value="xoauth2">XOAUTH2</SelectItem>
                           </SelectContent>
                         </Select>
+                        <FieldDescription class="text-xs">
+                          {{ "For Gmail / Google Workspace use BASIC with an App Password." }}
+                        </FieldDescription>
                         <FieldError class="text-xs" v-if="r$.outbound.auth_type.$error" v-bind:errors="r$.outbound.auth_type.$errors" />
                       </Field>
                       <div class="grid gap-6 lg:col-span-3 lg:grid-cols-4">
@@ -752,7 +763,40 @@ async function handleSubmit({ submitter }: SubmitEvent) {
                         type="text"
                         v-bind:aria-invalid="r$.outbound.from_addr.$error"
                         v-model="r$.outbound.from_addr.$value" />
+                      <FieldDescription class="text-xs">
+                        {{ "Real address used to send replies (e.g. soporte@empresa.com)." }}
+                      </FieldDescription>
                       <FieldError class="text-xs" v-if="r$.outbound.from_addr.$error" v-bind:errors="r$.outbound.from_addr.$errors" />
+                    </Field>
+                    <Field v-bind:data-invalid="r$.outbound.from_name.$error">
+                      <FieldLabel for="outbound.from_name">
+                        {{ "From name (display)" }}
+                      </FieldLabel>
+                      <Input
+                        id="outbound.from_name"
+                        placeholder="Equipo de Devops"
+                        type="text"
+                        v-bind:aria-invalid="r$.outbound.from_name.$error"
+                        v-model="r$.outbound.from_name.$value" />
+                      <FieldDescription class="text-xs">
+                        {{ "Optional. Shown as the sender name; the real address stays the one above." }}
+                      </FieldDescription>
+                      <FieldError class="text-xs" v-if="r$.outbound.from_name.$error" v-bind:errors="r$.outbound.from_name.$errors" />
+                    </Field>
+                    <Field orientation="horizontal" v-bind:data-invalid="r$.outbound.include_agent_name.$error">
+                      <Checkbox
+                        id="outbound.include_agent_name"
+                        v-bind:aria-invalid="r$.outbound.include_agent_name.$error"
+                        v-model="r$.outbound.include_agent_name.$value" />
+                      <FieldContent>
+                        <FieldLabel for="outbound.include_agent_name">
+                          {{ "Include the agent's name" }}
+                        </FieldLabel>
+                        <FieldDescription>
+                          {{ "Appends the replying agent, e.g. \"Equipo de Devops (Marcelo Perez)\"." }}
+                        </FieldDescription>
+                        <FieldError class="text-xs" v-if="r$.outbound.include_agent_name.$error" v-bind:errors="r$.outbound.include_agent_name.$errors" />
+                      </FieldContent>
                     </Field>
                   </FieldGroup>
                 </FieldSet>

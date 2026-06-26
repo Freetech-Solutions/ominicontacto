@@ -21,7 +21,8 @@ import json
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 from asgiref.sync import sync_to_async
-from notification_app.consumers import AgentConsole, AgentConsoleWhatsapp, DialerStatsConsumer
+from notification_app.consumers import (
+    AgentConsole, AgentConsoleWhatsapp, AgentConsoleEmail, DialerStatsConsumer)
 from ominicontacto_app.services.redis.redis_streams import RedisStreams
 MESSAGE_SENDERS = {
     'AGENT': 0,
@@ -59,6 +60,10 @@ class AgentNotifier:
     TYPE_INSTAGRAM_CHAT_ATTENDED = 'instagram_chat_attended'
     TYPE_INSTAGRAM_CHAT_TRANSFERED = 'instagram_chat_transfered'
     TYPE_INSTAGRAM_NEW_MESSAGE = 'instagram_new_message'
+    TYPE_EMAIL_NEW_CONVERSATION = 'email_new_conversation'
+    TYPE_EMAIL_NEW_MESSAGE = 'email_new_message'
+    TYPE_EMAIL_CONVERSATION_ATTENDED = 'email_conversation_attended'
+    TYPE_EMAIL_CONVERSATION_TRANSFERED = 'email_conversation_transfered'
 
     def get_group_name(self, user_id=None, whatsapp_event=False):
         if user_id is not None:
@@ -366,6 +371,56 @@ class AgentNotifier:
             }
             await self.send_message_async(
                 self.TYPE_INSTAGRAM_NEW_MESSAGE, message_json, user_id=user_id)
+
+    def get_email_group_name(self, user_id=None):
+        if user_id is not None:
+            return AgentConsoleEmail.GROUP_USER_OBJ.format(user_id=user_id)
+        return AgentConsoleEmail.GROUP_USER_CLS
+
+    def send_email_message(self, type, message, user_id=None):
+        # si user_id=None se envia mensaje a todos los agentes conectados
+        async_to_sync(get_channel_layer().group_send)(
+            self.get_email_group_name(user_id), {
+                'type': 'broadcast',
+                'payload': {'type': type, 'args': message}
+            })
+
+    async def send_email_message_async(self, type, message, user_id=None):
+        await get_channel_layer().group_send(
+            self.get_email_group_name(user_id), {
+                'type': 'broadcast',
+                'payload': {'type': type, 'args': message}
+            })
+
+    async def notify_email_new_conversation(self, user_id, **kwargs):
+        conversation = kwargs.get('conversation', None)
+        if conversation:
+            message = {
+                'conversation_id': conversation.id,
+                'campaign_id': conversation.campana_id,
+                'subject': conversation.subject,
+                'from': conversation.client_name or conversation.client_mail,
+                'timestamp': conversation.timestamp.isoformat(),
+            }
+            await self.send_email_message_async(
+                self.TYPE_EMAIL_NEW_CONVERSATION, message, user_id=user_id)
+
+    async def notify_email_new_message(self, user_id, conversation):
+        """Push an ``email_new_message`` event to the agent that owns an already
+        assigned conversation when the client replies, so their open thread /
+        assigned tab updates and the unread badge grows."""
+        message = {
+            'conversation_id': conversation.id,
+            'campaign_id': conversation.campana_id,
+            'subject': conversation.subject,
+            'from': conversation.client_name or conversation.client_mail,
+        }
+        await self.send_email_message_async(
+            self.TYPE_EMAIL_NEW_MESSAGE, message, user_id=user_id)
+
+    def notify_email_conversation_attended(self, user_id, message):
+        self.send_email_message(
+            self.TYPE_EMAIL_CONVERSATION_ATTENDED, message, user_id=user_id)
 
     def send_message(self, type, message, user_id=None, whatsapp_event=False):
         # si user_id=None se envia mensaje a todos los agentes conectados

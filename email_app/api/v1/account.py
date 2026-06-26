@@ -18,7 +18,9 @@ from email.utils import parseaddr
 from django.core.paginator import Page
 from django.core.validators import EmailValidator
 from django.db.models import Count
+from django.utils.translation import ugettext as _
 from rest_framework import decorators
+from rest_framework import exceptions
 from rest_framework import pagination
 from rest_framework import response
 from rest_framework import serializers
@@ -62,7 +64,9 @@ class InboundSerializer(serializers.Serializer):
     protocol = serializers.ChoiceField(choices=["imap+ssl"])
     host = serializers.CharField()
     port = serializers.IntegerField(min_value=0, max_value=65535)
-    auth_type = serializers.ChoiceField(choices=["basic", "xoauth2"])
+    # NOTE: "xoauth2" (OAuth2) is not implemented yet; only basic auth is
+    # supported (e.g. Gmail / Google Workspace via an App Password).
+    auth_type = serializers.ChoiceField(choices=["basic"])
     username = serializers.CharField()
     password = serializers.CharField(allow_blank=True, write_only=True)
     fetch_mode = serializers.ChoiceField(choices=["idle", "poll"])
@@ -81,13 +85,22 @@ class InboundSerializer(serializers.Serializer):
 
 
 class OutboundSerializer(serializers.Serializer):
-    protocol = serializers.ChoiceField(choices=["smtp+tls"])
+    protocol = serializers.ChoiceField(choices=["smtp+tls", "smtp+ssl"])
     host = serializers.CharField()
     port = serializers.IntegerField(min_value=0, max_value=65535)
-    auth_type = serializers.ChoiceField(choices=["basic", "xoauth2"])
+    # NOTE: "xoauth2" (OAuth2) is not implemented yet; only basic auth is
+    # supported (e.g. Gmail / Google Workspace via an App Password).
+    auth_type = serializers.ChoiceField(choices=["basic"])
     username = serializers.CharField()
     password = serializers.CharField(allow_blank=True, write_only=True)
     from_addr = serializers.CharField(validators=[validate_email_address])
+    # Outbound "From" display-name policy:
+    #   from_name           -> general display name (e.g. "Equipo de Devops").
+    #   include_agent_name  -> append the replying agent's name, mail-client
+    #                          style: "Equipo de Devops (Marcelo Perez)".
+    # The real address is always ``from_addr``.
+    from_name = serializers.CharField(allow_blank=True, required=False, default="")
+    include_agent_name = serializers.BooleanField(required=False, default=False)
 
     parent: "CreateSerializer | RetrieveSerializer"
 
@@ -191,6 +204,11 @@ class UpdateSerializer(serializers.Serializer):
         return instance
 
 
+class AccountInUse(exceptions.APIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_code = "account_in_use"
+
+
 class DestroySerializer(serializers.Serializer):
     instance: models.Account
 
@@ -201,6 +219,18 @@ class DestroySerializer(serializers.Serializer):
         return cls(instance=instance)
 
     def destroy(self, **kwargs):
+        campaigns = list(
+            self.instance.campaign_accounts.values_list("campaign__nombre", flat=True)
+        )
+        if campaigns:
+            raise AccountInUse(
+                _(
+                    "This account cannot be deleted because it is configured in the "
+                    "following campaign(s): %(campaigns)s. Remove the account from "
+                    "those campaigns before deleting it."
+                )
+                % {"campaigns": ", ".join(campaigns)}
+            )
         self.instance.message_set.only("id").delete()
         self.instance.delete()
 

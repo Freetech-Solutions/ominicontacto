@@ -19,12 +19,14 @@ from django.urls import path
 from rest_framework import routers
 
 from .v1 import account as account_v1
+from .v1 import conversation as conversation_v1
 from .v1 import message as message_v1
 from .v1 import self as self_v1
 
 router_v1 = routers.SimpleRouter(trailing_slash=False)
 
 router_v1.register("accounts", account_v1.ViewSet, "account")
+router_v1.register("conversations", conversation_v1.ViewSet, "conversation")
 router_v1.register("messages", message_v1.ViewSet, "message")
 router_v1.register("self", self_v1.ViewSet, "self")
 

@@ -3048,11 +3048,13 @@ class CalificacionCliente(TimeStampedModel, models.Model):
     CANALIDAD_WHATSAPP = 1
     CANALIDAD_FACEBOOK = 2
     CANALIDAD_INSTAGRAM = 3
+    CANALIDAD_EMAIL = 4
     TYPE_CANALIDAD_CHOICES = (
         (CANALIDAD_TELEFONO, _('Teléfono')),
         (CANALIDAD_WHATSAPP, _('Whatsapp')),
         (CANALIDAD_FACEBOOK, _('Facebook')),
         (CANALIDAD_INSTAGRAM, _('Instagram')),
+        (CANALIDAD_EMAIL, _('Email')),
     )
     objects = CalificacionClienteManager()
 
