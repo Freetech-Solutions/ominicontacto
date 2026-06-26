@@ -22,7 +22,6 @@ from django.db import models
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 
-from ..service.email.fetch import EmailFetchService
 from ._utils import alters_data
 
 
@@ -83,6 +82,11 @@ class Account(models.Model):
             fields = min_fields
         event = serializers.serialize("python", [self], fields=fields)[0]
         event["type"] = event_type
+        # Imported lazily: keep the IMAP fetch stack (aioimaplib, channels
+        # consumers) OUT of the model-load path so that simply importing
+        # email_app.models — which Django does at startup in EVERY process,
+        # including daphne and the web server — does not drag in that stack.
+        from ..service.email.fetch import EmailFetchService
         async_to_sync(EmailFetchService.emit)(event)
 
 
