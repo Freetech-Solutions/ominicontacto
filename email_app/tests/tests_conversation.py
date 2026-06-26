@@ -369,6 +369,24 @@ class EmailAgentChannelTest(OMLBaseTest):
             build_from_header({**cfg, "include_agent_name": True}, self.agente),
             formataddr((agent_name, "soporte@fts.com")))
 
+    def test_build_reply_mime_with_signature(self):
+        png = ("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1"
+               "HAwCAAAAC0lEQVR42mNkYPgPAAEEAQB9ssjfAAAAAElFTkSuQmCC")
+        config = {
+            "from_addr": "campania@example.com",
+            "signature_text": "Saludos\nEquipo de Devops",
+            "signature_image": png,
+        }
+        conv = self._conversation(
+            subject="x", client_mail="c@e.com", thread_key="<sig@e>")
+        mime = build_reply_mime(config, conv, None, "cuerpo", "<p>cuerpo</p>", [])
+        raw = bytes(mime)
+        self.assertIn(b"image/png", raw)                       # inline image part
+        self.assertIn(b"Content-ID: <oml-signature>", raw)     # cid for the image
+        # the plain-text part carries the text signature
+        text_part = mime.get_body(preferencelist=("plain",))
+        self.assertIn("Equipo de Devops", text_part.get_content())
+
     def test_build_reply_mime_cc_and_bcc(self):
         config = {"from_addr": "campania@example.com"}
         conv = self._conversation(

@@ -1099,26 +1099,6 @@ body>h1 {
   color: #6A716A;
 }
 
-/* Unread email counter badge, rendered inside the email icon (see email_modals.js) */
-#bottomBar #emailMessages #emailNotReadMessagesCounter {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
-  background-color: #E24C4C;
-  color: #FFFFFF;
-  font-size: 0.7rem;
-  line-height: 18px;
-  text-align: center;
-  z-index: 2;
-}
-
-#bottomBar #emailMessages {
-  position: relative;
-}
 
 #bottomBar>div {
   display: inline-block;

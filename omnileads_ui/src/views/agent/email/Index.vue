@@ -150,7 +150,13 @@
           </div>
         </div>
 
-        <Editor v-model="replyHtml" editorStyle="height: 180px" class="body-box" @load="onEditorLoad">
+        <Editor
+          v-model="replyHtml"
+          editorStyle="height: 180px"
+          class="body-box"
+          @load="onEditorLoad"
+          @text-change="onEditorTextChange"
+        >
           <template #toolbar>
             <span class="ql-formats">
               <button class="ql-bold" type="button"></button>
@@ -401,6 +407,12 @@ export default {
         onEditorLoad (event) {
             this.quill = event && event.instance ? event.instance : null;
         },
+        // PrimeVue's Editor v-model (update:modelValue) is unreliable across
+        // versions; bind text-change explicitly so replyHtml always reflects
+        // the editor content (this is what enables the send buttons / hasBody).
+        onEditorTextChange (event) {
+            this.replyHtml = (event && event.htmlValue) || '';
+        },
         insertEmoji (emoji) {
             if (this.quill) {
                 const range = this.quill.getSelection(true);
@@ -492,23 +504,29 @@ export default {
                     formData.append('attachments', files[i]);
                 }
             }
-            const data = await this.service.reply(this.active.id, formData);
+            const res = await this.service.reply(this.active.id, formData);
             this.sending = false;
-            if (!data || data.detail) {
+            if (!res || !res.ok) {
+                const body = (res && res.body) || {};
+                const detail = body.detail || body.Error ||
+                    'No se pudo enviar el correo.';
                 this.$toast.add({
-                    severity: 'error',
-                    summary: 'Error',
-                    detail: (data && data.detail) || 'No se pudo enviar el correo.',
-                    life: 5000
+                    severity: 'error', summary: 'Error de envío', detail, life: 6000
                 });
                 return;
             }
             this.resetComposer();
-            if (mode === 'unassign') {
-                this.closeThread();
+            if (mode === 'dispose') {
+                // enviar y abrir la calificación (la ventana se cierra al calificar)
+                this.active = res.body;
+                this.openDisposition();
             } else {
-                this.active = data;
-                if (mode === 'dispose') this.openDisposition();
+                // "Desasignar" y "Seguir gestionando": enviar y cerrar la ventana
+                this.$toast.add({
+                    severity: 'success', summary: 'Enviado',
+                    detail: 'El correo fue enviado.', life: 2500
+                });
+                this.closeThread();
             }
         },
         async onRealtime (event) {

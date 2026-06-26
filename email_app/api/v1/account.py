@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 
+from email.message import EmailMessage
 from email.utils import parseaddr
 from django.core.paginator import Page
 from django.core.validators import EmailValidator
@@ -40,6 +41,18 @@ def validate_email_address(value):
     if name:
         return f"{name} <{email}>"
     return email
+
+
+def _build_test_message(config, to=None):
+    """Minimal message used by the account 'Test de envío'. Sent to ``to`` (so
+    the agent can verify reception off-server) or to the account itself when no
+    address is given, confirming the full SMTP send path works."""
+    message = EmailMessage()
+    message["From"] = config["from_addr"]
+    message["To"] = to or config["from_addr"]
+    message["Subject"] = "OMniLeads - test de envío"
+    message.set_content("Test de envío correcto desde OMniLeads.")
+    return message
 
 
 class Pagination(pagination.PageNumberPagination):
@@ -101,6 +114,14 @@ class OutboundSerializer(serializers.Serializer):
     # The real address is always ``from_addr``.
     from_name = serializers.CharField(allow_blank=True, required=False, default="")
     include_agent_name = serializers.BooleanField(required=False, default=False)
+    # Signature appended to the footer of every reply:
+    #   signature_text   -> plain/rich text block.
+    #   signature_image  -> optional PNG/JPG as a data-URI (or raw base64),
+    #                       embedded inline (cid) in the HTML part.
+    signature_text = serializers.CharField(
+        allow_blank=True, required=False, default="")
+    signature_image = serializers.CharField(
+        allow_blank=True, required=False, default="")
 
     parent: "CreateSerializer | RetrieveSerializer"
 
@@ -316,6 +337,9 @@ class TestSerializer(serializers.Serializer):
     instance: models.Account
 
     action = serializers.MultipleChoiceField(choices=["inbound", "outbound"], write_only=True)
+    # optional destination for the outbound test send; defaults to from_addr
+    # (send-to-self) when omitted.
+    to = serializers.EmailField(required=False, allow_blank=True, write_only=True)
     inbound = serializers.JSONField(read_only=True)
     outbound = serializers.JSONField(read_only=True)
     roundtrip = serializers.JSONField(read_only=True)
@@ -328,6 +352,7 @@ class TestSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         action = attrs.pop("action")
+        test_to = attrs.pop("to", "") or None
         is_inbd_valid = None
         if not action or "inbound" in action:
             try:
@@ -347,13 +372,16 @@ class TestSerializer(serializers.Serializer):
         if not action or "outbound" in action:
             try:
                 config = self.instance.settings["outbound"]
-                client = smtplib.client(config, timeout=3)
+                client = smtplib.client(config, timeout=15)
                 with client:
                     smtplib.login(client, config)
-                    smtplib.verify(client, config)
+                    # real test send: exercises the full MAIL FROM / RCPT / DATA
+                    # path (not just VRFY). Goes to the requested address (so it
+                    # can be checked off-server) or to from_addr if none given.
+                    smtplib.send(client, config, _build_test_message(config, test_to))
             except Exception as exc:
                 is_oubd_valid = False
-                attrs["outbound"] = {"ok": False, "errors": exc.args}
+                attrs["outbound"] = {"ok": False, "errors": [str(a) for a in exc.args]}
             else:
                 is_oubd_valid = True
                 attrs["outbound"] = {"ok": True}

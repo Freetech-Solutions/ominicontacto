@@ -35,6 +35,8 @@ export type Account = {
     from_addr: string
     from_name: string
     include_agent_name: boolean
+    signature_text: string
+    signature_image: string
   }
 }
 </script>
@@ -86,6 +88,7 @@ import {
   SelectValue,
   Separator,
   Switch,
+  Textarea,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -126,6 +129,8 @@ const form = ref<Account>({
     from_addr: "",
     from_name: "",
     include_agent_name: false,
+    signature_text: "",
+    signature_image: "",
   },
 })
 
@@ -159,6 +164,8 @@ const { r$ } = useRegle(
       from_addr: { required },
       from_name: { maxLength: maxLength(100) },
       include_agent_name: { boolean },
+      signature_text: { maxLength: maxLength(4000) },
+      signature_image: {},
     },
   },
   {
@@ -251,6 +258,49 @@ const updatePartial = useMutation({
   },
 })
 
+const testTo = ref("")
+const test = useMutation({
+  mutation({ id, to }: { id: number; to: string }) {
+    return api.post<{ outbound?: { ok: boolean; errors?: string[] } }, "json">(
+      `${id}/test`,
+      { action: ["outbound"], to },
+      { headers: { "x-csrftoken": cookies.get("csrftoken") } },
+    )
+  },
+  onError(error: MandeError) {
+    toast.error("No se pudo ejecutar el test", {
+      description: error.body?.detail ?? error.toString(),
+    })
+  },
+  onSuccess(data) {
+    const result = data?.outbound
+    if (result?.ok) {
+      toast.success("Test de envío OK", {
+        description: "El correo de prueba se envió correctamente.",
+      })
+    } else {
+      toast.error("Falló el test de envío", {
+        description: (result?.errors ?? []).join(" ") || "Revisá la configuración SMTP.",
+      })
+    }
+  },
+})
+
+function onSignatureImage(event: Event, model: { $value: string }) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => {
+    model.$value = reader.result as string
+  }
+  reader.readAsDataURL(file) // -> data:image/png;base64,....
+}
+
+function handleTest() {
+  if (!testTo.value) return
+  test.mutate({ id: accountId, to: testTo.value })
+}
+
 function handleRefetch() {
   if (!retrieve.isLoading.value) {
     retrieve.refetch(true)
@@ -292,6 +342,33 @@ async function handleSubmit({ submitter }: SubmitEvent) {
           {{ "Make changes to the email account here" }}
         </CardDescription>
         <CardAction class="flex gap-2">
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button variant="outline">
+                {{ "Test de envío" }}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-80 flex flex-col gap-2">
+              <FieldLabel for="test-to">
+                {{ "Enviar correo de prueba a" }}
+              </FieldLabel>
+              <Input
+                id="test-to"
+                type="email"
+                placeholder="tu@correo.com"
+                v-model="testTo"
+                v-on:keydown.enter.prevent="handleTest" />
+              <FieldDescription class="text-xs">
+                {{ "Recibís el test fuera del servidor para confirmar la entrega." }}
+              </FieldDescription>
+              <Button
+                class="self-end"
+                v-bind:disabled="test.isLoading.value || !testTo"
+                v-on:click="handleTest">
+                {{ test.isLoading.value ? "Enviando…" : "Enviar prueba" }}
+              </Button>
+            </PopoverContent>
+          </Popover>
           <Button size="icon-lg" variant="outline" v-on:click="handleRefetch">
             <i-hugeicons-repost class="size-6" />
           </Button>
@@ -797,6 +874,38 @@ async function handleSubmit({ submitter }: SubmitEvent) {
                         </FieldDescription>
                         <FieldError class="text-xs" v-if="r$.outbound.include_agent_name.$error" v-bind:errors="r$.outbound.include_agent_name.$errors" />
                       </FieldContent>
+                    </Field>
+                    <Field v-bind:data-invalid="r$.outbound.signature_text.$error">
+                      <FieldLabel for="outbound.signature_text">
+                        {{ "Signature" }}
+                      </FieldLabel>
+                      <Textarea
+                        id="outbound.signature_text"
+                        rows="3"
+                        placeholder="Saludos,&#10;Equipo de Devops"
+                        v-bind:aria-invalid="r$.outbound.signature_text.$error"
+                        v-model="r$.outbound.signature_text.$value" />
+                      <FieldDescription class="text-xs">
+                        {{ "Appended to the footer of every reply." }}
+                      </FieldDescription>
+                      <FieldError class="text-xs" v-if="r$.outbound.signature_text.$error" v-bind:errors="r$.outbound.signature_text.$errors" />
+                    </Field>
+                    <Field>
+                      <FieldLabel for="outbound.signature_image">
+                        {{ "Signature image (PNG/JPG)" }}
+                      </FieldLabel>
+                      <input
+                        id="outbound.signature_image"
+                        type="file"
+                        accept="image/png,image/jpeg"
+                        class="text-sm"
+                        v-on:change="(e) => onSignatureImage(e, r$.outbound.signature_image)" />
+                      <div v-if="r$.outbound.signature_image.$value" class="mt-2 flex items-center gap-2">
+                        <img v-bind:src="r$.outbound.signature_image.$value" alt="firma" class="max-h-16 rounded border" />
+                        <Button type="button" size="sm" variant="outline" v-on:click="r$.outbound.signature_image.$value = ''">
+                          {{ "Remove" }}
+                        </Button>
+                      </div>
                     </Field>
                   </FieldGroup>
                 </FieldSet>

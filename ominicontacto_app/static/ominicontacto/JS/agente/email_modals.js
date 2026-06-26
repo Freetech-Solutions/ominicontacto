@@ -24,23 +24,15 @@ const onEmailCloseContainerEvent = () => {
     $('#emailReadingBackdrop').addClass('hidden');
 };
 
-// The email SPA (iframe) emits this on every websocket new-mail / new-reply so
-// the bottom-bar icon mirrors WhatsApp: a red bell + an unread counter badge.
+// The email SPA (iframe) emits this on every websocket new-mail / new-reply.
+// We only flash the red bell (like WhatsApp) — no numeric counter.
 const onEmailNewMessageEvent = ($event) => {
     const count = $event && $event.detail ? $event.detail.count : 0;
-    const $counter = $('#emailNotReadMessagesCounter');
-    if (count > 0) {
-        $('#newEmail').removeClass('invisible');
-        $counter.text(count > 99 ? '99+' : count).removeClass('invisible');
-    } else {
-        $('#newEmail').addClass('invisible');
-        $counter.text('').addClass('invisible');
-    }
+    $('#newEmail').toggleClass('invisible', !(count > 0));
 };
 
 const clearEmailUnreadBadges = () => {
     $('#newEmail').addClass('invisible');
-    $('#emailNotReadMessagesCounter').text('').addClass('invisible');
 };
 
 // When the agent opens/takes an email the SPA asks for a roomier reading area:

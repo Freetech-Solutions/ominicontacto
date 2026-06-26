@@ -77,10 +77,11 @@ export default class EmailConversationService extends BaseService {
         try {
             this.setPayload(HTTP.POST, formData, true);
             const resp = await fetch(this.urls.Reply(id), this.payload);
-            return await resp.json();
+            const body = await resp.json().catch(() => ({}));
+            return { ok: resp.ok, body };
         } catch (error) {
             console.error('Error al responder el Email');
-            return null;
+            return { ok: false, body: {} };
         } finally {
             this.initPayload();
         }

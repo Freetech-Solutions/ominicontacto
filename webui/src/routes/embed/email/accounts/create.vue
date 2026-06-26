@@ -34,6 +34,8 @@ type Account = {
     from_addr: string
     from_name: string
     include_agent_name: boolean
+    signature_text: string
+    signature_image: string
   }
 }
 </script>
@@ -74,11 +76,20 @@ import {
   Separator,
   Skeleton,
   Switch,
+  Textarea,
 } from "~/shadcn"
 
 const api = mande("/email/api/v1/accounts")
 const cookies = useCookies(["csrftoken"])
 const router = useRouter()
+
+function onSignatureImage(event: Event, model: { $value: string }) {
+  const file = (event.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = () => { model.$value = reader.result as string }
+  reader.readAsDataURL(file) // -> data:image/png;base64,....
+}
 
 const { r$: form } = useRegle(
   <Account>{
@@ -108,6 +119,8 @@ const { r$: form } = useRegle(
       from_addr: "",
       from_name: "",
       include_agent_name: false,
+      signature_text: "",
+      signature_image: "",
     },
   },
   {
@@ -137,6 +150,8 @@ const { r$: form } = useRegle(
       from_addr: { required },
       from_name: { maxLength: maxLength(100) },
       include_agent_name: { boolean },
+      signature_text: { maxLength: maxLength(4000) },
+      signature_image: {},
     },
   },
   {
@@ -633,6 +648,38 @@ async function handleSubmit() {
                       </FieldDescription>
                       <FieldError class="text-xs" v-if="form.outbound.include_agent_name.$error" v-bind:errors="form.outbound.include_agent_name.$errors" />
                     </FieldContent>
+                  </Field>
+                  <Field v-bind:data-invalid="form.outbound.signature_text.$error">
+                    <FieldLabel for="outbound.signature_text">
+                      {{ "Signature" }}
+                    </FieldLabel>
+                    <Textarea
+                      id="outbound.signature_text"
+                      rows="3"
+                      placeholder="Saludos,&#10;Equipo de Devops"
+                      v-bind:aria-invalid="form.outbound.signature_text.$error"
+                      v-model="form.outbound.signature_text.$value" />
+                    <FieldDescription class="text-xs">
+                      {{ "Appended to the footer of every reply." }}
+                    </FieldDescription>
+                    <FieldError class="text-xs" v-if="form.outbound.signature_text.$error" v-bind:errors="form.outbound.signature_text.$errors" />
+                  </Field>
+                  <Field>
+                    <FieldLabel for="outbound.signature_image">
+                      {{ "Signature image (PNG/JPG)" }}
+                    </FieldLabel>
+                    <input
+                      id="outbound.signature_image"
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      class="text-sm"
+                      v-on:change="(e) => onSignatureImage(e, form.outbound.signature_image)" />
+                    <div v-if="form.outbound.signature_image.$value" class="mt-2 flex items-center gap-2">
+                      <img v-bind:src="form.outbound.signature_image.$value" alt="firma" class="max-h-16 rounded border" />
+                      <Button type="button" size="sm" variant="outline" v-on:click="form.outbound.signature_image.$value = ''">
+                        {{ "Remove" }}
+                      </Button>
+                    </div>
                   </Field>
                 </FieldGroup>
               </FieldSet>

@@ -15,7 +15,6 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 
 import logging
-import socket
 import ssl
 from smtplib import SMTP
 from smtplib import SMTP_SSL
@@ -30,7 +29,18 @@ from ._utils import PROTOCOL_SMTP_WITH_TLS
 log = logging.getLogger(__name__)
 log_smtplib = logging.getLogger("smtplib")
 
-SMTP._print_debug = lambda self, *args: log_smtplib.debug("%s", " ".join(args))
+# NOTE: smtplib calls _print_debug with non-string args too (e.g. the DATA
+# phase does `_print_debug('data:', (code, repl))` and connect passes a
+# `(host, port)` tuple), so each arg MUST be stringified — a plain
+# `" ".join(args)` raises TypeError mid-send and aborts delivery.
+SMTP._print_debug = lambda self, *args: log_smtplib.debug(
+    "%s", " ".join(str(arg) for arg in args))
+
+# Never block a worker indefinitely on a stalled SMTP dialog (connect / STARTTLS
+# / AUTH / DATA). The socket timeout applies to every blocking operation, so a
+# hung relay fails fast with a clear error instead of pinning the worker until
+# the upstream gateway (nginx) times out. Critical for stability under load.
+DEFAULT_SMTP_TIMEOUT = 20  # seconds
 
 
 def client(config, **kwargs):
@@ -44,11 +54,11 @@ def client(config, **kwargs):
         ssl_check_hostname = config.get("ssl_check_hostname")
         if ssl_check_hostname is not None:
             ssl_context.check_hostname = ssl_check_hostname
-        timeout = config.get("timeout", kwargs.get("timeout", socket._GLOBAL_DEFAULT_TIMEOUT))
+        timeout = config.get("timeout", kwargs.get("timeout", DEFAULT_SMTP_TIMEOUT))
         client = SMTP_SSL(host, port, context=ssl_context, timeout=timeout)
         client.set_debuglevel(1)
     elif protocol == PROTOCOL_SMTP_WITH_TLS:
-        timeout = config.get("timeout", kwargs.get("timeout", socket._GLOBAL_DEFAULT_TIMEOUT))
+        timeout = config.get("timeout", kwargs.get("timeout", DEFAULT_SMTP_TIMEOUT))
         client = SMTP(host, port, timeout=timeout)
         client.set_debuglevel(1)
         client.starttls()

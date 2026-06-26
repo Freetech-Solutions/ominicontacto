@@ -14,6 +14,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 
+import base64
+import html as html_lib
 import logging
 from email.message import EmailMessage
 from email.utils import formataddr
@@ -27,6 +29,65 @@ from ..adapter import smtplib
 from ..models import Message
 
 log = logging.getLogger(__name__)
+
+# Content-ID used to embed the account signature image inline in the HTML body.
+SIGNATURE_CID = "oml-signature"
+
+
+def _decode_signature_image(data):
+    """Decode the configured signature image (a ``data:`` URI or raw base64)
+    into ``(bytes, maintype, subtype)``; returns None on anything unusable so a
+    bad image never blocks an outbound reply."""
+    if not data:
+        return None
+    try:
+        if data.startswith("data:"):
+            header, b64 = data.split(",", 1)
+            mime = header[5:].split(";")[0] or "image/png"
+        else:
+            b64, mime = data, "image/png"
+        maintype, _, subtype = mime.partition("/")
+        return base64.b64decode(b64), (maintype or "image"), (subtype or "png")
+    except Exception:
+        log.exception("email signature image: decode failed")
+        return None
+
+
+def _set_bodies_with_signature(message, config, body_text, body_html):
+    """Set the text/plain and text/html bodies, appending the account signature
+    (text + optional inline image) to the footer of both."""
+    sig_text = (config.get("signature_text") or "").strip()
+    sig_image = _decode_signature_image(config.get("signature_image") or "")
+
+    text = body_text or ""
+    if sig_text:
+        text = "{0}\n\n-- \n{1}".format(text, sig_text)
+    message.set_content(text)
+
+    # always provide an HTML alternative when there is HTML body or a signature
+    if body_html or sig_text or sig_image:
+        chunks = [body_html or ""]
+        if sig_text or sig_image:
+            chunks.append('<br><br><div class="oml-signature">')
+            if sig_text:
+                chunks.append('<div style="white-space:pre-wrap">{0}</div>'.format(
+                    html_lib.escape(sig_text).replace("\n", "<br>")))
+            if sig_image:
+                chunks.append(
+                    '<img src="cid:{0}" alt="firma" '
+                    'style="max-width:320px;height:auto"/>'.format(SIGNATURE_CID))
+            chunks.append('</div>')
+        message.add_alternative("".join(chunks), subtype="html")
+        if sig_image:
+            try:
+                img_bytes, maintype, subtype = sig_image
+                html_part = message.get_body(preferencelist=("html",))
+                if html_part is not None:
+                    html_part.add_related(
+                        img_bytes, maintype=maintype, subtype=subtype,
+                        cid="<{0}>".format(SIGNATURE_CID))
+            except Exception:
+                log.exception("email signature image: embed failed")
 
 
 def build_from_header(config, agente=None):
@@ -78,9 +139,7 @@ def build_reply_mime(config, conversation, last_inbound, body_text, body_html,
         references.append(last_inbound.message_id)
         message["References"] = " ".join(references)
 
-    message.set_content(body_text or "")
-    if body_html:
-        message.add_alternative(body_html, subtype="html")
+    _set_bodies_with_signature(message, config, body_text, body_html)
 
     for upload in files:
         content_type = getattr(upload, "content_type", "") or "application/octet-stream"
