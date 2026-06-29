@@ -21,7 +21,6 @@
 from __future__ import unicode_literals
 
 import logging
-import subprocess
 import os
 import json
 import time
@@ -42,6 +41,21 @@ class WombatAPI(object):
     STOP_SERVICE_URL = "api/engine/?op=STOP"
     START_SERVICE_URL = "api/engine/?op=START"
 
+    def _post(self, endpoint, data=None):
+        url = urljoin(settings.OML_WOMBAT_URL + "/", endpoint)
+
+        response = requests.post(
+            url,
+            auth=requests.auth.HTTPBasicAuth(
+                settings.OML_WOMBAT_USER,
+                settings.OML_WOMBAT_PASSWORD
+            ),
+            data=data,
+            timeout=int(settings.OML_WOMBAT_TIMEOUT),
+        )
+        response.raise_for_status()
+        return response
+
     def update_config_wombat(self, json_file, url_edit):
         """Realiza un update en la config de wombat
 
@@ -49,24 +63,17 @@ class WombatAPI(object):
                   0 (cero) si fue exitoso, otro valor si se produjo
                   un error
         """
-        filename = os.path.join(settings.OML_WOMBAT_FILENAME,
-                                json_file)
         try:
-            # subprocess.check_call(settings.FTS_RELOAD_CMD,
-            #                      stdout=stdout_file, stderr=stderr_file)
-            out = subprocess.check_output(['curl', '--user',
-                                           ':'.join([settings.OML_WOMBAT_USER,
-                                                     settings.OML_WOMBAT_PASSWORD]),
-                                           '-X', 'POST', '--data-urlencode',
-                                           '@'.join(['data', filename]),
-                                           '/'.join([settings.OML_WOMBAT_URL,
-                                                     url_edit])])
+            filename = os.path.join(settings.OML_WOMBAT_FILENAME, json_file)
+            with open(filename, encoding="utf-8") as f:
+                data = {"data": f.read()}
+
+            response = self._post(url_edit, data=data)
             logger.info(_("actualizacion en WOMBAT OK"))
-            return json.loads(out)
-        except subprocess.CalledProcessError as e:
-            logger.warning(_("Exit status erroneo: {0}".format(e.returncode)))
-            logger.warning(" - Comando ejecutado: {0}".format(e.cmd))
-            print(e)
+            return response.json()
+
+        except (OSError, requests.RequestException) as e:
+            logger.warning(_("Error actualizando WOMBAT: %s"), e)
 
     def update_lista_wombat(self, nombre_archivo, url_edit):
         """Realiza un update en la config de wombat
@@ -76,21 +83,16 @@ class WombatAPI(object):
                   un error
         """
         try:
-            # subprocess.check_call(settings.FTS_RELOAD_CMD,
-            #                      stdout=stdout_file, stderr=stderr_file)
             filename_archivo = settings.OML_WOMBAT_FILENAME + nombre_archivo
-            out = subprocess.check_output(['curl', '--user',
-                                           ':'.join([settings.OML_WOMBAT_USER,
-                                                     settings.OML_WOMBAT_PASSWORD]),
-                                           '-m', settings.OML_WOMBAT_TIMEOUT, '-X', 'POST', '-w',
-                                           'string', '-d', "@{0}".format(filename_archivo),
-                                           '/'.join([settings.OML_WOMBAT_URL,
-                                                     url_edit])])
-            return out
-        except subprocess.CalledProcessError as e:
-            logger.warning(_("Exit status erroneo: {0}".format(e.returncode)))
-            logger.warning(_(" - Comando ejecutado: {0}".format(e.cmd)))
-            print(e)
+
+            with open(filename_archivo, "rb") as f:
+                data = f.read()
+
+            response = self._post(url_edit, data=data)
+            return response.content
+
+        except (OSError, requests.RequestException) as e:
+            logger.warning(_("Error actualizando WOMBAT: %s"), e)
 
     def list_config_wombat(self, url_edit):
         # TODO: Renombrar. Impacta en wombat sin parametros (solo url). Devuelve respuesta JSON
@@ -101,61 +103,36 @@ class WombatAPI(object):
                   un error
         """
         try:
-            # subprocess.check_call(settings.FTS_RELOAD_CMD,
-            #                      stdout=stdout_file, stderr=stderr_file)
-            out = subprocess.check_output(['curl', '--user',
-                                           ':'.join([settings.OML_WOMBAT_USER,
-                                                     settings.OML_WOMBAT_PASSWORD]),
-                                           '-X', 'POST',
-                                           '/'.join([settings.OML_WOMBAT_URL,
-                                                     url_edit])])
+            response = self._post(url_edit)
             logger.info(_("list en WOMBAT OK"))
-            return json.loads(out)
-        except subprocess.CalledProcessError as e:
-            logger.warning(_("Exit status erroneo: {0}".format(e.returncode)))
-            logger.warning(_(" - Comando ejecutado: {0}".format(e.cmd)))
-            print(e)
+            return response.json()
+        except requests.RequestException as e:
+            logger.warning(_("Error consultando WOMBAT: %s"), e)
 
     def set_call_ext_status(self, url_set_status):
         try:
-            # subprocess.check_call(settings.FTS_RELOAD_CMD,
-            #                      stdout=stdout_file, stderr=stderr_file)
-            out = subprocess.check_output(['curl', '--user',
-                                           ':'.join([settings.OML_WOMBAT_USER,
-                                                     settings.OML_WOMBAT_PASSWORD]),
-                                           '-X', 'POST',
-                                           '/'.join([settings.OML_WOMBAT_URL,
-                                                     url_set_status])])
-            if 'Event CALLSTATUS queued' in str(out):
+            response = self._post(url_set_status)
+            if 'Event CALLSTATUS queued' in response.text:
                 logger.info(_("Set extStatus en WOMBAT OK"))
             return True
-        except subprocess.CalledProcessError as e:
-            logger.warning(_("Exit status erroneo: {0}".format(e.returncode)))
-            logger.warning(_(" - Comando ejecutado: {0}".format(e.cmd)))
-            print(e)
+        except requests.RequestException as e:
+            logger.warning(_("Error consultando WOMBAT: %s"), e)
 
-    def post_json(self, url, object):
+    def post_json(self, url, obj):
         """Realiza un POST a wombat enviando el json de un objeto usando data-urlencode
 
         :returns: json -- exit status de proceso ejecutado.
                   otro valor si se produjo un error
         """
         try:
-            # subprocess.check_call(settings.FTS_RELOAD_CMD,
-            #                      stdout=stdout_file, stderr=stderr_file)
-            out = subprocess.check_output(['curl', '--user',
-                                           ':'.join([settings.OML_WOMBAT_USER,
-                                                     settings.OML_WOMBAT_PASSWORD]),
-                                           '-X', 'POST', '--data-urlencode',
-                                           "data={0}".format(json.dumps(object)),
-                                           '/'.join([settings.OML_WOMBAT_URL,
-                                                     url])])
+            response = self._post(
+                url,
+                data={"data": json.dumps(obj)}
+            )
             logger.info(_("POST en WOMBAT OK"))
-            return json.loads(out)
-        except subprocess.CalledProcessError as e:
-            logger.warning(_("Exit status erroneo: {0}".format(e.returncode)))
-            logger.warning(_(" - Comando ejecutado: {0}".format(e.cmd)))
-            print(e)
+            return response.json()
+        except requests.RequestException as e:
+            logger.warning(_("Error consultando WOMBAT: %s"), e)
 
     def get_dialer_state(self):
         response = self.list_config_wombat(self.GET_DIALER_STATE_URL)
@@ -243,7 +220,7 @@ class WombatReloader(object):
         # Si tarda mucho el unico otro estado que deberia tener es "TIMEOUT_NO_REPLY" (?)
         state, uptime = self.service.get_dialer_state()
         if state == 'READY':
-            self.config_constance.WOMBAT_DIALER_STATE = self.STATE_READY
+            config_constance.WOMBAT_DIALER_STATE = self.STATE_READY
             self.save_update_datetime(uptime)
             return
         else:

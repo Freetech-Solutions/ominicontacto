@@ -18,8 +18,6 @@
 
 from __future__ import unicode_literals
 
-import os
-
 from django.urls import resolve
 from django.conf import settings
 from django.forms import ValidationError
@@ -59,9 +57,6 @@ def validar_estructura_csv(data_csv_memory, err_message, logger):
         except Exception as e:
             logger.warn("Error: {0}".format(e))
             raise OmlArchivoImportacionInvalidoError(err_message)
-
-
-interface = os.popen("ip route list | awk '/^default/ {print $5}'").read().strip("\n")
 
 
 def adicionar_render_unicode(pygal_object):
