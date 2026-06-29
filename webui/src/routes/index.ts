@@ -27,6 +27,28 @@ export const routes: RouteRecordRaw[] = [
             component: () => import("./embed/email.vue"),
           },
           {
+            path: "campaigns",
+            children: [
+              {
+                path: ":campaignId",
+                children: [
+                  {
+                    path: "conversations",
+                    name: "embed:email:campaign:conversations",
+                    component: () => import("./embed/email/campaigns/[campaignId]/conversations.vue"),
+                    props: ({ params }) => ({ campaignId: Number(params.campaignId) }),
+                  },
+                  {
+                    path: "reports",
+                    name: "embed:email:campaign:reports",
+                    component: () => import("./embed/email/campaigns/[campaignId]/reports.vue"),
+                    props: ({ params }) => ({ campaignId: Number(params.campaignId) }),
+                  },
+                ],
+              },
+            ],
+          },
+          {
             path: "accounts",
             children: [
               {

@@ -195,6 +195,9 @@ def send_reply(conversation, agente, body_text, body_html, files=(), mode="keep"
         conversation=conversation,
         direction=Message.DIRECTION_OUTBOUND,
         content_stamp=content_stamp,
+        # sent mail has no IMAP Date header of its own; stamp it now so it is
+        # ordered, displayed and counted in reports like any other message.
+        date=timezone.now(),
         mailbox_uidva="",
         sender={
             "name": agente.user.get_full_name() or agente.user.username,
