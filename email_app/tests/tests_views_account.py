@@ -68,6 +68,24 @@ class AccountABMTest(OMLBaseTest):
         settings = {"inbound": payload["inbound"], "outbound": payload["outbound"]}
         return models.Account.objects.create(name=name, active=True, settings=settings)
 
+    def test_purge_history_deletes_local_data_and_resets_insights(self):
+        account = self._create_account("purge-cuenta")
+        account.insights = {"mailbox": "INBOX", "uidnext": 50, "uidvalidity": 999}
+        account.save()
+        conv = models.ConversacionEmail.objects.create(account=account, thread_key="<p@e>")
+        models.Message.objects.create(
+            account=account, conversation=conv, content_bytes=b"",
+            content_stamp="pg1", mailbox_uidva="999:1")
+        url = reverse("email:api:v1:account-purge-history", args=[account.pk])
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(models.Message.objects.filter(account=account).exists())
+        self.assertFalse(
+            models.ConversacionEmail.objects.filter(account=account).exists())
+        account.refresh_from_db()
+        # insights reset -> next sync re-downloads from SINCE
+        self.assertEqual(account.insights, {})
+
     # --- Alta (create) -----------------------------------------------------
 
     def test_account_create(self):

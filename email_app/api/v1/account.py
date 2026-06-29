@@ -297,6 +297,36 @@ class ResyncSerializer(serializers.Serializer):
         self.instance.resync()
 
 
+class PurgeHistorySerializer(serializers.Serializer):
+    """Delete this account's local data (conversations + messages) and reset the
+    fetch progress so the next sync re-downloads the inbox from the configured
+    ``since`` date. Does NOT touch the IMAP server."""
+    instance: models.Account
+
+    id = serializers.IntegerField(read_only=True)
+    deleted_messages = serializers.IntegerField(read_only=True)
+
+    @classmethod
+    def get_instance(cls, pk):
+        instance = models.Account.objects.get(pk=pk)
+        return cls(instance=instance)
+
+    def purge(self):
+        account = self.instance
+        # messages first (FK message.conversation), then conversations
+        deleted, _ = models.Message.objects.filter(account=account).delete()
+        models.ConversacionEmail.objects.filter(account=account).delete()
+        # reset the fetch marker -> next sync does a full re-fetch honouring SINCE
+        account.insights = {}
+        account.save(update_fields=["insights"])
+        self._deleted_messages = deleted
+
+    @property
+    def data(self):
+        return {"id": self.instance.pk, "deleted_messages": getattr(
+            self, "_deleted_messages", 0)}
+
+
 class TemplateSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(max_length=100, write_only=True)
@@ -437,6 +467,13 @@ class ViewSet(viewsets.ViewSet):
         serializer = ResyncSerializer.get_instance(pk)
         self.check_object_permissions(request, serializer.instance)
         serializer.resync()
+        return response.Response(data=serializer.data)
+
+    @decorators.action(detail=True, methods=["post"])
+    def purge_history(self, request, pk):
+        serializer = PurgeHistorySerializer.get_instance(pk)
+        self.check_object_permissions(request, serializer.instance)
+        serializer.purge()
         return response.Response(data=serializer.data)
 
     @decorators.action(detail=True, methods=["post"])

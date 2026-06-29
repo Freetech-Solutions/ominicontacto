@@ -5,6 +5,7 @@ import { boolean, maxLength, maxValue, minValue, number, required, string } from
 import { useCookies } from "@vueuse/integrations/useCookies"
 import { mande, type MandeError } from "mande"
 import { toast } from "vue-sonner"
+import { t } from "~/i18n"
 import { iso8601dateString } from "~/rules/iso8601dateString"
 
 export type Account = {
@@ -301,6 +302,29 @@ function handleTest() {
   test.mutate({ id: accountId, to: testTo.value })
 }
 
+const purge = useMutation({
+  mutation(id: number) {
+    return api.post<{ deleted_messages?: number }, "json">(
+      `${id}/purge_history`,
+      {},
+      { headers: { "x-csrftoken": cookies.get("csrftoken") } },
+    )
+  },
+  onError(error: MandeError) {
+    toast.error(t("account.purge.error"), {
+      description: error.body?.detail ?? error.toString(),
+    })
+  },
+  onSuccess() {
+    toast.success(t("account.purge.success"))
+    handleRefetch()
+  },
+})
+
+function handlePurge() {
+  purge.mutate(accountId)
+}
+
 function handleRefetch() {
   if (!retrieve.isLoading.value) {
     retrieve.refetch(true)
@@ -393,6 +417,31 @@ async function handleSubmit({ submitter }: SubmitEvent) {
                 </AlertDialogCancel>
                 <AlertDialogAction variant="destructive" v-on:click="handleDestroy">
                   {{ "Delete" }}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+          <AlertDialog>
+            <AlertDialogTrigger as-child>
+              <Button variant="destructive" v-bind:disabled="purge.isLoading.value">
+                {{ t("account.purge.button") }}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {{ t("account.purge.title") }}
+                </AlertDialogTitle>
+                <AlertDialogDescription>
+                  {{ t("account.purge.description") }}
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter v-equalize-children-width>
+                <AlertDialogCancel>
+                  {{ t("account.purge.cancel") }}
+                </AlertDialogCancel>
+                <AlertDialogAction variant="destructive" v-on:click="handlePurge">
+                  {{ t("account.purge.confirm") }}
                 </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
