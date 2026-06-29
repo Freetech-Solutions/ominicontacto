@@ -27,6 +27,9 @@ from django.utils import timezone
 
 from ..adapter import smtplib
 from ..models import Message
+from ..models import email_raw_storage_enabled
+from ..models import email_raw_key
+from ..models import store_email_raw_bytes
 
 log = logging.getLogger(__name__)
 
@@ -186,12 +189,12 @@ def send_reply(conversation, agente, body_text, body_html, files=(), mode="keep"
     deliver(config, mime)
 
     raw = bytes(mime)
-    message = Message.objects.create(
+    content_stamp = sha256(raw).hexdigest()
+    create_kwargs = dict(
         account=account,
         conversation=conversation,
         direction=Message.DIRECTION_OUTBOUND,
-        content_bytes=raw,
-        content_stamp=sha256(raw).hexdigest(),
+        content_stamp=content_stamp,
         mailbox_uidva="",
         sender={
             "name": agente.user.get_full_name() or agente.user.username,
@@ -200,6 +203,14 @@ def send_reply(conversation, agente, body_text, body_html, files=(), mode="keep"
         status="sent",
         type=Message.TYPE_EMAIL,
     )
+    # offload the raw MIME to object storage (keep only the key) when enabled.
+    if email_raw_storage_enabled():
+        key = email_raw_key(account.id, content_stamp)
+        store_email_raw_bytes(key, raw)
+        create_kwargs["content_key"] = key
+    else:
+        create_kwargs["content_bytes"] = raw
+    message = Message.objects.create(**create_kwargs)
     # reuse the inbound parser to populate subject/body/attachments/etc.
     message.hydrate()
 

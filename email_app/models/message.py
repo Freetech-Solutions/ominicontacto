@@ -16,6 +16,7 @@
 
 import base64
 import logging
+import os
 from email.utils import parseaddr
 from os import path
 import mailparser
@@ -31,6 +32,23 @@ from ._utils import TruncatedCharField
 from ._utils import alters_data
 
 log = logging.getLogger(__name__)
+
+
+def email_raw_storage_enabled():
+    """Whether the raw MIME (.eml) is offloaded to object storage (MinIO/S3)
+    instead of being stored inline in the row. Reuses the recordings' flag."""
+    return bool(os.getenv("S3_STORAGE_ENABLED"))
+
+
+def email_raw_key(account_id, content_stamp):
+    """Object-storage key for a message's raw MIME."""
+    return "email/raw/{0}/{1}.eml".format(account_id, content_stamp)
+
+
+def store_email_raw_bytes(key, data):
+    """Upload the raw MIME to object storage (blocking; wrap for async callers)."""
+    from api_app.services.storage_service import StorageService
+    StorageService().upload_bytes(key, data)
 
 
 hydrated_fields = [
@@ -50,10 +68,9 @@ hydrated_fields = [
 
 
 def parse(self: "Message"):
-    # content_bytes may be a memoryview (read back from a BinaryField via
-    # psycopg2), a bytearray (freshly fetched from IMAP before any DB
-    # round-trip) or plain bytes. bytes() normalizes all of them.
-    content = bytes(self.content_bytes)
+    # the raw MIME lives either in object storage (content_key) or, for legacy
+    # rows / when object storage is disabled, inline in content_bytes.
+    content = self.raw_bytes()
 
     date = timezone.now()
     subject = ""
@@ -176,7 +193,10 @@ class Message(models.Model):
     sender = models.JSONField(default=dict)
     type = models.CharField(max_length=20, default=TYPE_EMAIL)
 
-    content_bytes = models.BinaryField()
+    # raw MIME (.eml): stored inline (legacy / object storage disabled) OR
+    # offloaded to object storage with only the key kept here (content_key).
+    content_bytes = models.BinaryField(null=True)
+    content_key = models.CharField(max_length=512, blank=True, default="")
     content_stamp = models.CharField(max_length=64)
     mailbox_uidva = models.CharField(max_length=100)
 
@@ -199,6 +219,17 @@ class Message(models.Model):
         indexes = [
             models.Index(fields=["content_stamp"], name="email_app-content_stamp-idx"),
         ]
+
+    def raw_bytes(self):
+        """Return the raw MIME bytes, from object storage when offloaded
+        (content_key) or inline (content_bytes) otherwise. content_bytes may be
+        a memoryview / bytearray / bytes, so bytes() normalizes it."""
+        if self.content_key:
+            from api_app.services.storage_service import StorageService
+            return StorageService().download_bytes(self.content_key)
+        if self.content_bytes is not None:
+            return bytes(self.content_bytes)
+        return b""
 
     def thread_key(self):
         """Stable key used to group messages into a ConversacionEmail. Uses the

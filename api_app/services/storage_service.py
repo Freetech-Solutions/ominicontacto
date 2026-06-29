@@ -116,3 +116,20 @@ class StorageService(object):
             logger.error(f'Error borrando archivo desde S3 {e.__str__()}')
             return False
         return True
+
+    def upload_bytes(self, key, data):
+        """Store an in-memory bytes object under ``key`` (no leading slash)."""
+        self.client.put_object(Bucket=self.bucket_name, Key=key, Body=data)
+
+    def download_bytes(self, key):
+        """Read back the object stored under ``key`` as bytes."""
+        obj = self.client.get_object(Bucket=self.bucket_name, Key=key)
+        return obj["Body"].read()
+
+    def delete_key(self, key):
+        try:
+            self.client.delete_object(Bucket=self.bucket_name, Key=key)
+        except Exception as e:
+            logger.error(f'Error borrando objeto {key} desde S3 {e.__str__()}')
+            return False
+        return True

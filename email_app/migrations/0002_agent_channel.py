@@ -82,4 +82,16 @@ class Migration(migrations.Migration):
             name='type',
             field=models.CharField(default='email', max_length=20),
         ),
+        # raw MIME offload to object storage: keep only the key in the row, and
+        # allow content_bytes to be null (legacy / object-storage-disabled rows).
+        migrations.AddField(
+            model_name='message',
+            name='content_key',
+            field=models.CharField(blank=True, default='', max_length=512),
+        ),
+        migrations.AlterField(
+            model_name='message',
+            name='content_bytes',
+            field=models.BinaryField(null=True),
+        ),
     ]

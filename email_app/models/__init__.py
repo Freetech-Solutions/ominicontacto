@@ -18,10 +18,16 @@ from .account import Account
 from .campaign_account import CampaignAccount
 from .conversation import ConversacionEmail
 from .message import Message
+from .message import email_raw_storage_enabled
+from .message import email_raw_key
+from .message import store_email_raw_bytes
 
 __all__ = [
     "Account",
     "CampaignAccount",
     "ConversacionEmail",
     "Message",
+    "email_raw_storage_enabled",
+    "email_raw_key",
+    "store_email_raw_bytes",
 ]

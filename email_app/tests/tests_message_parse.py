@@ -17,9 +17,11 @@
 #
 from __future__ import unicode_literals
 
+from unittest.mock import patch
+
 from django.test import SimpleTestCase
 
-from email_app.models.message import Message, parse
+from email_app.models.message import Message, email_raw_key, parse
 
 RAW_EMAIL = (
     b"From: Rodrigo Montiel <rodrigo.montiel@freetechsolutions.com.ar>\r\n"
@@ -55,3 +57,23 @@ class MessageParseTest(SimpleTestCase):
     def test_parse_accepts_bytes(self):
         data = parse(Message(content_bytes=RAW_EMAIL))
         self._assert_parsed(data)
+
+    def test_raw_bytes_inline_fallback(self):
+        # sin content_key, se usa el inline content_bytes
+        self.assertEqual(Message(content_bytes=RAW_EMAIL).raw_bytes(), RAW_EMAIL)
+
+    def test_raw_bytes_from_object_storage(self):
+        msg = Message(content_key="email/raw/3/abc.eml", content_bytes=None)
+        with patch("api_app.services.storage_service.StorageService") as cls:
+            cls.return_value.download_bytes.return_value = RAW_EMAIL
+            self.assertEqual(msg.raw_bytes(), RAW_EMAIL)
+            cls.return_value.download_bytes.assert_called_once_with("email/raw/3/abc.eml")
+
+    def test_parse_reads_from_object_storage(self):
+        msg = Message(content_key="email/raw/3/abc.eml", content_bytes=None)
+        with patch("api_app.services.storage_service.StorageService") as cls:
+            cls.return_value.download_bytes.return_value = RAW_EMAIL
+            self._assert_parsed(parse(msg))
+
+    def test_email_raw_key_format(self):
+        self.assertEqual(email_raw_key(3, "abc"), "email/raw/3/abc.eml")

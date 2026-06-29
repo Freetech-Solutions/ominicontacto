@@ -17,6 +17,8 @@
 import asyncio
 import logging
 
+from asgiref.sync import sync_to_async
+
 from ... import models
 from ...adapter import aioimaplib
 from ..inbound import aingest_inbound_message
@@ -103,13 +105,21 @@ class AccountConsumer:
         for uids in uid_chunks:
             log.debug("fetch-chunk acc=%r uids=%r", acc, uids)
             async for uid, content_bytes, content_stamp in aioimaplib.fetch(client, uids):
+                defaults = {
+                    "account": account,
+                    "mailbox_uidva": f"{uidvalidity}:{uid}",
+                }
+                # offload the raw MIME to object storage (keep only the key in
+                # the row) when enabled; otherwise store it inline as before.
+                if models.email_raw_storage_enabled():
+                    key = models.email_raw_key(acc, content_stamp)
+                    await sync_to_async(models.store_email_raw_bytes)(key, bytes(content_bytes))
+                    defaults["content_key"] = key
+                else:
+                    defaults["content_bytes"] = content_bytes
                 message, created = await models.Message.objects.aget_or_create(
                     content_stamp=content_stamp,
-                    defaults={
-                        "account": account,
-                        "content_bytes": content_bytes,
-                        "mailbox_uidva": f"{uidvalidity}:{uid}",
-                    },
+                    defaults=defaults,
                 )
                 if created:
                     # @todo move this to the task/consumer message handler
