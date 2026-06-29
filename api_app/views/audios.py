@@ -18,7 +18,6 @@
 
 from __future__ import unicode_literals
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from rest_framework.authentication import SessionAuthentication
 from rest_framework import viewsets
 from api_app.serializers.base import AudioSerializer
@@ -27,7 +26,7 @@ from ominicontacto_app.models import ArchivoDeAudio
 
 class ListadoAudiosView(viewsets.ReadOnlyModelViewSet):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     serializer_class = AudioSerializer
 
     def get_queryset(self):

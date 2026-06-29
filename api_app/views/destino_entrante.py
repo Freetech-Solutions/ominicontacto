@@ -22,7 +22,6 @@ from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.authentication import SessionAuthentication
 
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 
 from configuracion_telefonia_app.models import DestinoEntrante
@@ -30,7 +29,7 @@ from configuracion_telefonia_app.models import DestinoEntrante
 
 class DestinoEntranteView(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -46,7 +45,7 @@ class DestinoEntranteView(APIView):
 
 class DestinoEntranteTiposView(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 

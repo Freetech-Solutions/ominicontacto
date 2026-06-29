@@ -24,7 +24,6 @@ from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 
 from configuracion_telefonia_app.models import DestinoEntrante
@@ -38,7 +37,7 @@ class ListSerializer(serializers.Serializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     def list(self, request):
         try:

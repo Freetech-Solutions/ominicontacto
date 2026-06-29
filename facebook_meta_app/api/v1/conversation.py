@@ -10,7 +10,6 @@ from rest_framework import serializers, response, status, viewsets, decorators
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
 
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.services.media_url import build_public_media_url
 from api_app.views.permissions import TienePermisoOML
 from facebook_meta_app.api.permissions import TienePermisoCanalFacebookAgente
@@ -317,7 +316,7 @@ class ConversacionMessengerEnCursoSerializer(ConversacionMessengerSerializer):
 
 class ReportConversationAPIView(APIView):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (ExpiringTokenAuthentication, SessionAuthentication)
+    authentication_classes = (SessionAuthentication, )
 
     def post(self, request, campaing_id):
         try:
@@ -351,7 +350,7 @@ class ViewSet(viewsets.ModelViewSet):
     """ViewSet para manejar las conversaciones de Messenger Meta App."""
     queryset = ConversationMessengerMetaApp.objects.all()
     serializer_class = ConversacionMessengerSerializer
-    authentication_classes = (ExpiringTokenAuthentication, SessionAuthentication)
+    authentication_classes = (SessionAuthentication, )
     permission_classes = (TienePermisoCanalFacebookAgente,)
 
     def get_serializer_class(self):
