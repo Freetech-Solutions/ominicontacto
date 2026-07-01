@@ -62,7 +62,7 @@ class WombatService(AbstractPhoneDialerService):
         if service_ok:
             service_ok = self.campana_service.update_endpoint(campana)
         if not service_ok:
-            raise Exception('No se ha podico crear la campaña en Wombat.')
+            raise RuntimeError('No se ha podico crear la campaña en Wombat.')
         # recarga campaña en wombat
         if campana.estado == Campana.ESTADO_ACTIVA:
             self.campana_service.reload_campana_wombat(campana)

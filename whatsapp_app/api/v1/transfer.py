@@ -17,6 +17,7 @@
 #
 
 # APIs para visualizar destinos
+import logging
 import uuid
 from asgiref.sync import async_to_sync
 from django.db import transaction
@@ -33,6 +34,8 @@ from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 from ominicontacto_app.models import Campana, AgenteProfile
 from whatsapp_app.models import ConfiguracionWhatsappCampana, ConversacionWhatsapp, MensajeWhatsapp
 from notification_app.notification import AgentNotifier
+
+logger = logging.getLogger(__name__)
 
 
 class ListSerializer(serializers.Serializer):
@@ -186,7 +189,7 @@ class ViewSet(viewsets.ViewSet):
                 )
                 success = conversacion.otorgar_conversacion(agent, attended=False)
                 if not success:
-                    raise Exception(_('Error al tranferir conversacion'))
+                    raise serializers.ValidationError(_('Error al tranferir conversacion'))
             if success:
                 AgentNotifier().notify_whatsapp_chat_transfered(
                     request.user.username, agent_id, conversacion)
@@ -199,7 +202,7 @@ class ViewSet(viewsets.ViewSet):
                     message=_('Error al tranferir conversacion')),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(
                     message=_('Error al tranferir conversacion')),

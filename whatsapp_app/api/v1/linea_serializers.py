@@ -16,6 +16,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import json
+import logging
 from django.utils.translation import ugettext as _
 from rest_framework import serializers
 from configuracion_telefonia_app.models import DestinoEntrante, GrupoHorario, OpcionDestino
@@ -23,7 +25,8 @@ from ominicontacto_app.models import Campana
 from whatsapp_app.models import ConfiguracionProveedor, Linea
 from whatsapp_app.models import (
     PlantillaMensaje, MenuInteractivoWhatsapp, OpcionMenuInteractivoWhatsapp)
-import json
+
+logger = logging.getLogger(__name__)
 
 
 class ListSerializer(serializers.Serializer):
@@ -453,10 +456,9 @@ class DestinoEntranteRelatedField(serializers.RelatedField):
                             self._menu_representation(destino, data_list)
                     representation['data'] = sorted(data_list, key=lambda x: x["id"])
                 except Exception as e:
-                    print("*************", e)
-                    pass
+                    logger.error(str(e))
             else:
-                raise Exception('Tipo de destino incorrecto')
+                raise serializers.ValidationError(_('Tipo de destino incorrecto'))
             return representation
         return {}
 
