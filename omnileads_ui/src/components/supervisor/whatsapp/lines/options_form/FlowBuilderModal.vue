@@ -3,9 +3,10 @@
     :visible="showModal"
     :modal="true"
     :closable="false"
-    :style="{ width: '96vw', height: '100vh', maxHeight: '100vh' }"
+    :style="dialogStyle"
     :contentStyle="{ padding: '0', overflow: 'hidden', height: '100%' }"
     class="whatsapp-flow-builder"
+    :class="{ 'whatsapp-flow-builder--fullscreen': isFullScreen }"
   >
     <template #header>
       <div class="flow-builder-header">
@@ -40,6 +41,14 @@
         <span>{{ Math.round(scale * 100) }}%</span>
         <Button icon="pi pi-search-plus" class="p-button-text" @click="zoomIn" />
         <Button icon="pi pi-refresh" class="p-button-text" @click="resetViewport" />
+        <Button
+          :icon="isFullScreen ? 'pi pi-window-minimize' : 'pi pi-window-maximize'"
+          class="p-button-text"
+          :title="isFullScreen
+            ? $t('views.whatsapp.line.flow.exit_fullscreen')
+            : $t('views.whatsapp.line.flow.fullscreen')"
+          @click="toggleFullScreen"
+        />
       </div>
       <div
         ref="canvasStage"
@@ -502,6 +511,8 @@ export default {
             selectedNodeId: null,
             editingNodeId: null,
             showEditorModal: false,
+            isFullScreen: false,
+            frameOriginalCssText: null,
             nodeRefs: {},
             arrows: [],
             canvasSize: {
@@ -512,8 +523,6 @@ export default {
             isPanning: false,
             panStartX: 0,
             panStartY: 0,
-            scrollStartLeft: 0,
-            scrollStartTop: 0,
             draggingNodeId: null,
             dragStartX: 0,
             dragStartY: 0,
@@ -525,7 +534,6 @@ export default {
             panStartOffsetX: 0,
             panStartOffsetY: 0,
             suppressClick: false,
-            resolvingOverlaps: false,
             linkingOption: null,
             destinationTypes: [
                 {
@@ -544,6 +552,21 @@ export default {
         };
     },
     computed: {
+        dialogStyle () {
+            if (this.isFullScreen) {
+                return {
+                    width: '100vw',
+                    height: '100vh',
+                    maxWidth: '100vw',
+                    maxHeight: '100vh'
+                };
+            }
+            return {
+                width: '96vw',
+                height: '100vh',
+                maxHeight: '100vh'
+            };
+        },
         editingNode () {
             return this.nodes.find((node) => node.id_tmp === this.editingNodeId) || null;
         },
@@ -599,6 +622,7 @@ export default {
         window.removeEventListener('resize', this.refreshArrows);
         window.removeEventListener('mousemove', this.handlePointerMove);
         window.removeEventListener('mouseup', this.stopPointerInteraction);
+        this.restoreHostFrame();
         document.body.style.userSelect = '';
     },
     methods: {
@@ -669,6 +693,12 @@ export default {
             if (this.nodes.length === 0) {
                 this.nodes.push(this.buildNode(true));
             }
+            // Detectamos que bloques carecen de posicion explicita ANTES de
+            // normalizar (normalizeNode les asigna una grilla por defecto).
+            const nodesToPlace = this.nodes.filter((node) => (
+                typeof node.flow_builder_x !== 'number' ||
+                typeof node.flow_builder_y !== 'number'
+            ));
             this.nodes.forEach((node, index) => this.normalizeNode(node, index));
             if (!this.nodes.some((node) => node.is_main) && this.nodes[0]) {
                 this.nodes[0].is_main = true;
@@ -676,14 +706,20 @@ export default {
             if (!this.selectedNodeId || !this.nodes.find((node) => node.id_tmp === this.selectedNodeId)) {
                 this.selectedNodeId = this.nodes[0].id_tmp;
             }
-            this.refreshArrows();
+            nextTick(() => {
+                this.placeUnpositionedNodes(nodesToPlace);
+                this.refreshArrows();
+            });
         },
         addNode () {
             const node = this.buildNode(false);
             this.normalizeNode(node, this.nodes.length);
             this.nodes.push(node);
             this.selectNode(node.id_tmp);
-            this.refreshArrows();
+            nextTick(() => {
+                this.placeUnpositionedNodes([node]);
+                this.refreshArrows();
+            });
         },
         deleteNode (nodeId) {
             const nextNodes = this.nodes.filter((node) => node.id_tmp !== nodeId);
@@ -1011,35 +1047,39 @@ export default {
                 top: fallbackPosition.y + (attempts * NODE_VERTICAL_GAP)
             };
         },
-        resolveNodeCollisions () {
-            if (this.draggingNodeId) {
-                return false;
+        placeUnpositionedNodes (nodesToPlace) {
+            // Solo ubicamos automaticamente los bloques que NO tienen una
+            // posicion propia (bloques nuevos o sin layout guardado). Los
+            // bloques ya posicionados por el usuario o restaurados desde el
+            // backend se tratan como obstaculos fijos y jamas se reacomodan,
+            // de modo que el orden guardado se respeta al reabrir el Flow.
+            if (!Array.isArray(nodesToPlace) || nodesToPlace.length === 0) {
+                return;
             }
             const occupiedRects = [];
-            let hasChanges = false;
             const incomingNode = this.$refs.incomingNode;
             if (incomingNode) {
                 occupiedRects.push(this.getElementMetrics(incomingNode));
             }
-            this.nodes.forEach((node, index) => {
-                const resolvedPosition = this.findAvailableNodePosition(node, index, occupiedRects);
-                const nodeMetrics = this.getNodeMetrics(node);
-                if (
-                    node.flow_builder_x !== resolvedPosition.left ||
-                    node.flow_builder_y !== resolvedPosition.top
-                ) {
-                    node.flow_builder_x = resolvedPosition.left;
-                    node.flow_builder_y = resolvedPosition.top;
-                    hasChanges = true;
+            this.nodes.forEach((node) => {
+                if (nodesToPlace.includes(node)) {
+                    return;
                 }
+                const metrics = this.getNodeMetrics(node);
                 occupiedRects.push({
                     left: node.flow_builder_x,
                     top: node.flow_builder_y,
-                    width: nodeMetrics.width,
-                    height: nodeMetrics.height
+                    width: metrics.width,
+                    height: metrics.height
                 });
             });
-            return hasChanges;
+            nodesToPlace.forEach((node) => {
+                const index = this.nodes.indexOf(node);
+                const resolvedPosition = this.findAvailableNodePosition(node, index, occupiedRects);
+                node.flow_builder_x = resolvedPosition.left;
+                node.flow_builder_y = resolvedPosition.top;
+                occupiedRects.push(resolvedPosition);
+            });
         },
         updateCanvasSize () {
             const metrics = [];
@@ -1105,17 +1145,6 @@ export default {
         },
         refreshArrows () {
             nextTick(() => {
-                if (!this.resolvingOverlaps) {
-                    const overlapsResolved = this.resolveNodeCollisions();
-                    if (overlapsResolved) {
-                        this.resolvingOverlaps = true;
-                        nextTick(() => {
-                            this.resolvingOverlaps = false;
-                            this.refreshArrows();
-                        });
-                        return;
-                    }
-                }
                 this.updateCanvasSize();
                 const arrows = [];
                 const incomingElement = this.$refs.incomingNode;
@@ -1156,6 +1185,48 @@ export default {
                 });
                 this.arrows = arrows;
             });
+        },
+        toggleFullScreen () {
+            // "Maximizar" = ocupar todo el browser (NO pantalla completa del
+            // SO). La SPA corre embebida en un iframe del shell de OMniLeads,
+            // por lo que 100vw solo llena el iframe. Para cubrir tambien el
+            // sidebar/topbar del shell agrandamos el propio iframe en el
+            // documento padre. Al no usar la Fullscreen API, el sub-modal de
+            // edicion de bloque se sigue viendo con normalidad.
+            if (this.isFullScreen) {
+                this.restoreHostFrame();
+                this.isFullScreen = false;
+            } else {
+                this.expandHostFrame();
+                this.isFullScreen = true;
+            }
+            nextTick(() => this.refreshArrows());
+        },
+        expandHostFrame () {
+            try {
+                const frame = window.frameElement;
+                if (frame && this.frameOriginalCssText === null) {
+                    this.frameOriginalCssText = frame.style.cssText;
+                    frame.style.cssText += ';position:fixed;top:0;left:0;right:0;bottom:0;' +
+                        'width:100vw;height:100vh;max-width:100vw;max-height:100vh;' +
+                        'margin:0;border:0;z-index:2147483647;';
+                }
+            } catch (error) {
+                // Sin acceso al iframe padre (ej. cross-origin): el maximizado
+                // por CSS dentro del iframe sigue aplicando igualmente.
+            }
+        },
+        restoreHostFrame () {
+            try {
+                const frame = window.frameElement;
+                if (frame && this.frameOriginalCssText !== null) {
+                    frame.style.cssText = this.frameOriginalCssText;
+                }
+            } catch (error) {
+                // no-op
+            } finally {
+                this.frameOriginalCssText = null;
+            }
         },
         zoomIn () {
             this.scale = Math.min(2, this.scale + 0.1);
@@ -1229,8 +1300,11 @@ export default {
             this.isPanning = true;
             this.panStartX = event.clientX;
             this.panStartY = event.clientY;
-            this.scrollStartLeft = wrapper.scrollLeft;
-            this.scrollStartTop = wrapper.scrollTop;
+            // Capturamos el offset actual como base del arrastre para que el
+            // desplazamiento continue desde donde estaba la vista y no se pierda
+            // la posicion previa (sobre todo tras hacer zoom-in / zoom-out).
+            this.panStartOffsetX = this.panOffsetX;
+            this.panStartOffsetY = this.panOffsetY;
             document.body.style.userSelect = 'none';
         },
         startDrag (event, nodeId) {
@@ -1287,6 +1361,8 @@ export default {
                     this.ensureNodes();
                 } else {
                     this.closeEditor();
+                    this.restoreHostFrame();
+                    this.isFullScreen = false;
                 }
             },
             immediate: true
@@ -1653,5 +1729,32 @@ export default {
   .flow-option__row--destinations {
     grid-template-columns: 1fr;
   }
+}
+</style>
+
+<style>
+/* El root del Dialog de PrimeVue se renderiza fuera del arbol del componente
+   (teleport), por eso este bloque no es scoped. Al maximizar, el Dialog ocupa
+   el 100% del iframe (que a su vez se agranda para cubrir todo el browser),
+   eliminando margen y radio para un editor de borde a borde. */
+.p-dialog.whatsapp-flow-builder--fullscreen {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  top: 0 !important;
+  left: 0 !important;
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+.p-dialog.whatsapp-flow-builder--fullscreen .p-dialog-content {
+  border-radius: 0 !important;
+}
+
+/* Maximizado: el lienzo usa el alto completo del browser menos el header y
+   footer del editor. */
+.p-dialog.whatsapp-flow-builder--fullscreen .flow-builder-canvas-wrapper {
+  height: calc(100vh - 120px) !important;
 }
 </style>

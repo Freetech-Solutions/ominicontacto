@@ -210,7 +210,9 @@ export default {
                 open_emoji_picker: 'Abrir selector de emojis',
                 meta_rows_warning: 'Meta no documenta de forma explícita si el valor y la descripción de cada opción admiten emojis. Se habilitan para prueba, pero conviene validarlo con tu proveedor Meta.',
                 preview_time: '09:27',
-                default_list_button: 'Elige una opción'
+                default_list_button: 'Elige una opción',
+                fullscreen: 'Maximizar',
+                exit_fullscreen: 'Restaurar tamaño'
             },
             step1: {
                 title: 'Datos basicos'
