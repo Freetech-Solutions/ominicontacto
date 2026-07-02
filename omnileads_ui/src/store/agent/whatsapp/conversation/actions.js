@@ -256,6 +256,40 @@ export default {
             };
         }
     },
+    async agtWhatsLastConversationDetail ({ commit }, { conversationId = null, $t }) {
+        try {
+            if (!conversationId) {
+                commit('agtWhatsLastConversationInitMessages', []);
+                commit('agtWhatsLastConversationInfoInit', {});
+                return {
+                    status: HTTP_STATUS.ERROR,
+                    message: 'Error al obtener detalle de la conversacion'
+                };
+            }
+            const { status, data } = await service.getConversationDetail(
+                conversationId
+            );
+            if (status === HTTP_STATUS.SUCCESS) {
+                commit(
+                    'agtWhatsLastConversationInitMessages',
+                    data.messages.map((msg) => {
+                        const itsMine = msg.origin === data.line.number;
+                        return getMessageInfo({ $t, data: msg, itsMine });
+                    })
+                );
+                commit('agtWhatsLastConversationInfoInit', data);
+            }
+        } catch (error) {
+            console.error('===> ERROR al obtener detalle de la conversacion');
+            console.error(error);
+            commit('agtWhatsLastConversationInitMessages', []);
+            commit('agtWhatsLastConversationInfoInit', {});
+            return {
+                status: HTTP_STATUS.ERROR,
+                message: 'Error al obtener detalle de la conversacion'
+            };
+        }
+    },
     async agtWhatsChatsListInit ({ commit }) {
         try {
             const { status, data } = await service.getAgentChatsList();

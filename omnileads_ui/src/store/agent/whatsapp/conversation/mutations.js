@@ -102,6 +102,78 @@ export default {
     agtWhatsConversationInitMessages (state, messages) {
         state.agtWhatsCoversationMessages = messages;
     },
+
+    agtWhatsLastConversationInitMessages (state, messages) {
+        state.agtWhatsLastCoversationMessages = messages;
+    },
+    agtWhatsLastConversationInfoInit (state, conversation = null) {
+        state.agtWhatsLastCoversationInfo = {
+            id: conversation && conversation.id ? conversation.id : null,
+            campaignId:
+                conversation && conversation.campaing_id
+                    ? conversation.campaing_id
+                    : null,
+            campaignName:
+                conversation && conversation.campaing_name
+                    ? conversation.campaing_name
+                    : null,
+            destination:
+                conversation && conversation.destination
+                    ? conversation.destination
+                    : null,
+            agent:
+                conversation && conversation.agent_name ? conversation.agent_name : null,
+            transferAgent:
+                conversation && conversation.transfer_agent
+                    ? conversation.transfer_agent
+                    : null,
+            isActive:
+                conversation && conversation.is_active
+                    ? conversation.is_active
+                    : null,
+            isDisposition:
+                conversation && conversation.is_disposition
+                    ? conversation.is_disposition
+                    : null,
+            expire:
+                conversation && conversation.expire
+                    ? conversation.expire
+                    : null,
+            timestamp:
+                conversation && conversation.timestamp ? conversation.timestamp
+                    : null,
+            messageNumber:
+                conversation && conversation.message_number
+                    ? conversation.message_number
+                    : null,
+            messageUnreadNumber:
+                conversation && conversation.message_unread
+                    ? conversation.message_unread
+                    : null,
+            photo:
+                conversation && conversation.photo ? conversation.photo : null,
+            client: setClientInfo(
+                conversation && conversation.client ? conversation.client : null
+            ),
+            line: setLineInfo(
+                conversation && conversation.line ? conversation.line : null
+            ),
+            error:
+                conversation && conversation.error ? conversation.error : false,
+            errorEx:
+                conversation && conversation.error_ex ? conversation.error_ex : null,
+            client_alias:
+                conversation && conversation.client_alias ? conversation.client_alias : null,
+            isOutbound:
+                conversation && conversation.saliente ? conversation.saliente : false,
+            previousConversation:
+                conversation && conversation.conversacion_previa ? conversation.conversacion_previa : null,
+            wasClosedBySystem:
+                conversation && conversation.was_closed_by_system ? conversation.was_closed_by_system : null,
+            disposition:
+                conversation && conversation.disposition ? conversation.disposition : null
+        };
+    },
     agtWhatsConversationInfoInit (state, conversation = null) {
         state.agtWhatsCoversationInfo = {
             id: conversation && conversation.id ? conversation.id : null,
@@ -173,7 +245,9 @@ export default {
             client_alias:
                 conversation && conversation.client_alias ? conversation.client_alias : null,
             isOutbound:
-                conversation && conversation.saliente ? conversation.saliente : false
+                conversation && conversation.saliente ? conversation.saliente : false,
+            previousConversation:
+                conversation && conversation.conversacion_previa ? conversation.conversacion_previa : null
         };
     },
     agtWhatsChatsListInit (state, { isNew, inProgress }) {

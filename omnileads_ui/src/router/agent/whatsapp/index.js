@@ -4,6 +4,7 @@ import TemplateRoutes from './template_routes';
 import DispositionChatRoutes from './disposition_chat_routes';
 import MessageTransferRoutes from './message_transfer_routes';
 import ContactRoutes from './contact_routes';
+import LastConversationRoutes from './last_conversation_routes';
 import { WHATSAPP_URL_NAME } from '@/globals/agent/whatsapp';
 
 export default [
@@ -16,5 +17,6 @@ export default [
     ...TemplateRoutes,
     ...DispositionChatRoutes,
     ...MessageTransferRoutes,
-    ...ContactRoutes
+    ...ContactRoutes,
+    ...LastConversationRoutes
 ];

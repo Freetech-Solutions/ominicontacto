@@ -394,6 +394,7 @@ class ConversacionSerializer(serializers.Serializer):
     destination = serializers.CharField()
     client = serializers.SerializerMethodField()
     agent = serializers.PrimaryKeyRelatedField(queryset=AgenteProfile.objects.all())
+    agent_name = serializers.SerializerMethodField()
     is_active = serializers.BooleanField(default=True)
     is_disposition = serializers.BooleanField()
     expire = serializers.DateTimeField()
@@ -410,6 +411,9 @@ class ConversacionSerializer(serializers.Serializer):
     error = serializers.BooleanField(default=False)
     error_ex = serializers.JSONField()
     client_alias = serializers.CharField(default="")
+    conversacion_previa = serializers.SerializerMethodField()
+    was_closed_by_system = serializers.SerializerMethodField()
+    disposition = serializers.SerializerMethodField()
 
     def get_line(self, obj):
         serializer = LineSerializer(instance=obj.line)
@@ -442,6 +446,44 @@ class ConversacionSerializer(serializers.Serializer):
 
     def get_transferred_campaign(self, obj):
         return _extract_transfer_summary(obj)['transferred_campaign']
+
+    def get_conversacion_previa(self, obj):
+        if obj.client_id and obj.line and obj.campana_id:
+            # Obtener la conversación previa en la misma campaña
+            conversacion_previa = ConversacionWhatsapp.objects.filter(
+                campana__id=obj.campana_id,
+                client__id=obj.client_id,
+                line__id=obj.line_id).exclude(id=obj.id).order_by('-date_last_interaction').first()
+            if not conversacion_previa:
+                # Si no hay conversación previa en la misma campaña, buscar en otras campañas
+                conversacion_previa = ConversacionWhatsapp.objects.filter(
+                    client__id=obj.client_id,
+                    line__id=obj.line_id)\
+                    .exclude(id=obj.id).order_by('-date_last_interaction').first()
+            return conversacion_previa.id if conversacion_previa else None
+        return None
+
+    def get_was_closed_by_system(self, obj):
+        return obj.is_disposition and not obj.conversation_disposition
+
+    def get_disposition(self, obj):
+        try:
+            if obj.is_disposition and obj.conversation_disposition:
+                serializer = OpcionCalificacionSerializer(
+                    obj.conversation_disposition.opcion_calificacion)
+                return serializer.data
+            return {}
+        except Exception as e:
+            print(e)
+
+    def get_agent_name(self, obj):
+        if not obj.agent:
+            return None
+
+        if not getattr(obj.agent, "user", None):
+            return None
+
+        return obj.agent.user.get_full_name() or obj.agent.user.username
 
 
 class ConversacionFilterSerializer(serializers.Serializer):

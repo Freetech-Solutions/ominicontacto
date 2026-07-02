@@ -255,6 +255,9 @@ export default {
         message_transfer: {
             title: 'Transfer chat'
         },
+        last_conversation: {
+            title: 'Last Conversation'
+        },
         conversations: {
             answered: 'Answered',
             new: 'New',

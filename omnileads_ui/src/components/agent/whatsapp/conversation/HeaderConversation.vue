@@ -66,6 +66,13 @@
           v-tooltip.top="$t('views.whatsapp.contact.settings.edit_info')"
         />
         <Button
+          v-if="agtWhatsCoversationInfo.previousConversation"
+          icon="pi pi-eye"
+          class="p-button-success ml-2"
+          @click="showLastConversation(agtWhatsCoversationInfo.previousConversation)"
+          v-tooltip.top="$t('views.whatsapp.last_conversation.title')"
+        />
+        <Button
           icon="pi pi-times"
           @click="close"
           class="p-button-danger ml-2"
@@ -132,7 +139,8 @@ export default {
                 phone: '',
                 avatar:
           'https://www.primefaces.org/wp-content/uploads/2020/05/placeholder.png'
-            }
+            },
+            lastConversationId: null
         };
     },
     computed: {
@@ -256,6 +264,16 @@ export default {
                 }
             });
             window.parent.document.dispatchEvent(modalEvent);
+        },
+        showLastConversation (conversationId) {
+            localStorage.setItem('agtWhatsLastConversationId', conversationId);
+            const event = new CustomEvent('onLastConversationMessagesEvent', {
+                detail: {
+                    last_conversation: true,
+                    conversationId
+                }
+            });
+            window.parent.document.dispatchEvent(event);
         },
         close () {
             const event = new CustomEvent('onWhatsappCloseContainerEvent', {
