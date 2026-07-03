@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('ominicontacto_app', '0117_canalidad_facebook'),
+        ('ominicontacto_app', '0118_grupo_pause_on_first_login'),
     ]
 
     operations = [

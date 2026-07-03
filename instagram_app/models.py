@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2018 Freetech Solutions
+
+# This file is part of OMniLeads
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License version 3, as published by
+# the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
 import uuid
 
 from django.db import models
@@ -151,7 +168,9 @@ class ConversationInstagramApp(models.Model):
         ordering = ['-updated_at']
 
     def __str__(self):
-        return f"Conversation between {self.ig_scoped_id} and Instagram ID: {self.account.ig_user_id}"
+        return (
+            f'Conversation between {self.ig_scoped_id} and Instagram ID: {self.account.ig_user_id}'
+        )
 
     def otorgar_conversacion(self, agent, attended=True):
         try:

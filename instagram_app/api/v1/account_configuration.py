@@ -1,3 +1,20 @@
+# -*- coding: utf-8 -*-
+# Copyright (C) 2018 Freetech Solutions
+
+# This file is part of OMniLeads
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License version 3, as published by
+# the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+
+# You should have received a copy of the GNU Lesser General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses/.
+#
 import json
 
 from django.db import transaction
@@ -438,7 +455,7 @@ class ViewSet(viewsets.ViewSet):
                 data=get_response_data(
                     status=HttpResponseStatus.ERROR,
                     message=_('No se pudo actualizar la cuenta de Instagram'),
-                data={'id': [_('No existe una cuenta de Instagram con este id')]}),
+                    data={'id': [_('No existe una cuenta de Instagram con este id')]}),
                 status=status.HTTP_404_NOT_FOUND)
         request_data = request.data.copy()
         destino_data = request_data.pop('destination', None)

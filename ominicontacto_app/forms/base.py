@@ -2293,7 +2293,8 @@ class GrupoForm(forms.ModelForm):
                   'acceso_campanas_preview_agente', 'conjunto_de_pausa',
                   'acceso_cambiar_contrasena_agente',
                   'obligar_despausa', 'whatsapp_habilitado', 'meta_facebook_habilitado',
-                  'instagram_habilitado', 'restringir_tipo_llamadas_manuales', 'permitir_llamadas_manuales_a_manuales',
+                  'instagram_habilitado', 'restringir_tipo_llamadas_manuales',
+                  'permitir_llamadas_manuales_a_manuales',
                   'permitir_llamadas_manuales_a_dialer', 'permitir_llamadas_manuales_a_entrante',
                   'permitir_llamadas_manuales_a_preview', 'call_another_agent')
         widgets = {

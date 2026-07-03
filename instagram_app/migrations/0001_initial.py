@@ -12,7 +12,8 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('configuracion_telefonia_app', '0026_instagram_destinoentrante_tipo'),
-        ('ominicontacto_app', '0118_canalidad_instagram'),
+        ('ominicontacto_app', '0119_canalidad_instagram'),
+        ('facebook_meta_app', '0001_initial'),
     ]
 
     operations = [
@@ -226,6 +227,10 @@ class Migration(migrations.Migration):
                     blank=True, null=True, on_delete=django.db.models.deletion.PROTECT,
                     related_name='configuracion_instagram',
                     to='instagram_app.grupoplantillainstagram')),
+                ('grupo_plantilla_facebook', models.ForeignKey(
+                    blank=True, null=True, on_delete=django.db.models.deletion.PROTECT,
+                    related_name='configuracion_instagram',
+                    to='facebook_meta_app.grupoplantillamessenger')),
             ],
             options={
                 'verbose_name': 'Configuración Instagram Campaña',
