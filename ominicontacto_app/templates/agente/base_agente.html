@@ -626,6 +626,11 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 {% include "agente/modals/facebook/index.html" %}
 {% endif %}
 
+{% if tiene_instagram %}
+<!-- INSTAGRAM MODALS -->
+{% include "agente/modals/instagram/index.html" %}
+{% endif %}
+
 <!-- modal informacion -->
 <div class="modal fade" id="modalMensaje" role="dialog">
   <div class="modal-dialog modal-sm">
@@ -1022,6 +1027,11 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_facebook_index.html' %}"></iframe>
             </div>
             {% endif %}
+            {% if tiene_instagram %}
+            <div class="hidden" id="wrapperInstagram">
+                <iframe class="whatsapp_panel_view" src="{% static 'omnileads-frontend/agent_instagram_index.html' %}"></iframe>
+            </div>
+            {% endif %}
         </div> <!-- wrapper Inner Content -->
     </div> <!-- wrapper-content -->
 </div> <!-- wrapper-main -->
@@ -1035,12 +1045,22 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
           </div>
           <div class="hidden">{% trans 'Webphone' %}</div>
         </div>
+        {% if tiene_instagram %}
+        <div>
+          <i id="newInstagramChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
+          <div class="iconApp" id="instagramChat">
+            <span class="icon icon-solid-messages"></span>
+          </div>
+          <div class="hidden">{% trans 'Instagram' %}</div>
+        </div>
+        {% else %}
         <div>
           <div class="iconApp" id="txtSms">
             <span class="icon icon-solid-messages"></span>
           </div>
           <div class="hidden">{% trans 'SMS' %}</div>
         </div>
+        {% endif %}
         {% if tiene_whatsapp %}
         <div>
           <i id="newChat" class="fa fa-bell invisible" style="position:fixed; color:red; z-index:1;"></i>
@@ -1118,6 +1138,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 <script type="text/javascript" src="{% static 'JS/ext/sweetalert2.min.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/agente/whatsapp_modals.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/agente/facebook_modals.js' %}"></script>
+<script type="text/javascript" src="{% static 'ominicontacto/JS/agente/instagram_modals.js' %}"></script>
 <script type="text/javascript" src="{% static 'ominicontacto/JS/whatsapp_notifications.js' %}"></script>
 <script type="text/javascript">
 $(document).ready(function () {
@@ -1138,6 +1159,7 @@ $(document).ready(function () {
      $('#wrapperWebphone').removeClass('active');
      $('#wrapperWhatsapp').addClass('hidden');
      $('#wrapperFacebook').addClass('hidden');
+     $('#wrapperInstagram').addClass('hidden');
    });
 
    /* Toggle webphone from bottom bar and close button */
@@ -1145,6 +1167,7 @@ $(document).ready(function () {
      $('#wrapperWebphone').toggleClass('active');
      $('#wrapperWhatsapp').addClass('hidden');
      $('#wrapperFacebook').addClass('hidden');
+     $('#wrapperInstagram').addClass('hidden');
    });
 
    // Get current window path
@@ -1162,8 +1185,10 @@ $(document).ready(function () {
    // Whatsapp Icon Status
    var tiene_whatsapp = '{{ tiene_whatsapp|safe }}';
    var tiene_facebook = '{{ tiene_facebook|safe }}';
+   var tiene_instagram = '{{ tiene_instagram|safe }}';
    setWhatsappStatusIcon(tiene_whatsapp === 'True');
    setFacebookStatusIcon(tiene_facebook === 'True');
+   setInstagramStatusIcon(tiene_instagram === 'True');
  });
 
 </script>

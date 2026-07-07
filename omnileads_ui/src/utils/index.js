@@ -26,12 +26,10 @@ export function listenerStoreDataByAction (action, callback) {
         if (!isTrustedOrigin(event.origin)) {
             return;
         }
-        if (event.source !== window) {
+        if (!event.data || event.data.action !== action || typeof callback !== 'function') {
             return;
         }
-        if (event.data.action === action) {
-            callback(event.data.data);
-        }
+        callback(event.data.data);
     });
 }
 

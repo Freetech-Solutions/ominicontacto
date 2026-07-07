@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'whatsapp_app.apps.WhatsappAppConfig',
     'orquestador_app.apps.OrquestadorAppConfig',
     'facebook_meta_app.apps.FacebookMetaAppConfig',
+    'instagram_app.apps.InstagramAppConfig',
     'constance',
     'django_js_reverse',
     'import_export',
@@ -395,6 +396,7 @@ LOCALE_PATHS = (
     os.path.join(BASE_DIR, 'reciclado_app/locale'),
     os.path.join(BASE_DIR, 'supervision_app/locale'),
     os.path.join(BASE_DIR, 'whatsapp_app/locale'),
+    os.path.join(BASE_DIR, 'instagram_app/locale'),
 )
 
 LANGUAGES = (

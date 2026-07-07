@@ -33,12 +33,17 @@ from django.db.models.functions import Concat
 from redis.asyncio import Redis
 from orquestador_app.core.facebook.message_handler import (
     facebook_messenger_handler_messages)
+from orquestador_app.core.instagram.message_handler import instagram_handler_messages
 from orquestador_app.core.whatsapp.message_handler import (
     handle_gupshup_message,
     handle_meta_messages,
 )
+from instagram_app.models import CuentaInstagram as InstagramAccount
+from instagram_app.services.redis.account import StreamDeCuentasInstagram
+from facebook_meta_app.services.redis.page import StreamDePaginas
 from whatsapp_app.models import ConfiguracionProveedor as ProviderConfig
 from whatsapp_app.models import Linea as Line
+from whatsapp_app.services.redis.linea import StreamDeLineas
 from facebook_meta_app.models import PaginaMetaFacebook as Page
 
 logger = logging.getLogger(__name__)
@@ -47,7 +52,7 @@ logger = logging.getLogger(__name__)
 class EventsProcessor(object):
 
     def __init__(self):
-        self.master_job = None
+        self.master_jobs = []
         self.redis_client = None
         self.shutdown = asyncio.Event()
         self.slave_tasks = {}
@@ -65,19 +70,30 @@ class EventsProcessor(object):
         loop = asyncio.get_running_loop()
         for sig in (signal.SIGINT, signal.SIGTERM):
             loop.add_signal_handler(sig, functools.partial(self.loop_signal_handler, sig))
-        self.master_job = asyncio.create_task(
-            self.read_stream("whatsapp_enabled_lines", self.handle_master_stream_message_whatsapp),
-            name="whatsapp_enabled_lines (suscriber)",
-        )
-        self.master_job = asyncio.create_task(
-            self.read_stream("facebook_enabled_pages", self.handle_master_stream_message_page),
-            name="facebook_enabled_pages (suscriber)",
-        )
+        await self._regenerate_master_streams()
+        self.master_jobs.append(
+            asyncio.create_task(
+                self.read_stream(
+                    "whatsapp_enabled_lines", self.handle_master_stream_message_whatsapp),
+                name="whatsapp_enabled_lines (suscriber)",
+            ))
+        self.master_jobs.append(
+            asyncio.create_task(
+                self.read_stream(
+                    "facebook_enabled_pages", self.handle_master_stream_message_page),
+                name="facebook_enabled_pages (suscriber)",
+            ))
+        self.master_jobs.append(
+            asyncio.create_task(
+                self.read_stream(
+                    "instagram_enabled_accounts", self.handle_master_stream_message_instagram),
+                name="instagram_enabled_accounts (suscriber)",
+            ))
         return self
 
     async def __aexit__(self, exc_type, exc, tb):
         tasks = []
-        tasks.append(self.master_job)
+        tasks.extend(self.master_jobs)
         tasks.extend(self.slave_tasks.values())
         for task in tasks:
             task.cancel()
@@ -120,15 +136,16 @@ class EventsProcessor(object):
         line_id = message.get("value")
         try:
             line = await self._get_line(line_id)
-            if line.pk in self.slave_tasks:
-                task = self.slave_tasks.pop(line.pk)
+            task_key = ("whatsapp", line.pk)
+            if task_key in self.slave_tasks:
+                task = self.slave_tasks.pop(task_key)
                 task.cancel()
                 logger.info("task -> cancel")
                 for info in task._repr_info()[1:]:
                     logger.info("task    %s", info)
                 await asyncio.gather(task, return_exceptions=True)
             if line.is_active:
-                self.slave_tasks[line.pk] = asyncio.create_task(
+                self.slave_tasks[task_key] = asyncio.create_task(
                     self.read_stream(
                         line.stream_name,
                         functools.partial(self.handle_slave_streams_message_whatsapp, line),
@@ -145,15 +162,16 @@ class EventsProcessor(object):
         page_id = message.get("value")
         try:
             page = await self._get_page(page_id)
-            if page.pk in self.slave_tasks:
-                task = self.slave_tasks.pop(page.pk)
+            task_key = ("facebook", page.pk)
+            if task_key in self.slave_tasks:
+                task = self.slave_tasks.pop(task_key)
                 task.cancel()
                 logger.info("task -> cancel")
                 for info in task._repr_info()[1:]:
                     logger.info("task    %s", info)
                 await asyncio.gather(task, return_exceptions=True)
             if page.is_active:
-                self.slave_tasks[page.pk] = asyncio.create_task(
+                self.slave_tasks[task_key] = asyncio.create_task(
                     self.read_stream(
                         page.stream_name,
                         functools.partial(self.handle_slave_streams_message_page, page),
@@ -165,6 +183,36 @@ class EventsProcessor(object):
             logger.error("process-main-stream-message %r %r", page_id, exception)
         else:
             logger.info("process-main-stream-message %r", page_id)
+
+    async def handle_master_stream_message_instagram(self, message: dict):
+        account_id = message.get("value")
+        try:
+            account = await self._get_instagram_account(account_id)
+            task_key = ("instagram", account.pk)
+            if task_key in self.slave_tasks:
+                task = self.slave_tasks.pop(task_key)
+                task.cancel()
+                logger.info("task -> cancel")
+                for info in task._repr_info()[1:]:
+                    logger.info("task    %s", info)
+                await asyncio.gather(task, return_exceptions=True)
+            if account.is_active:
+                self.slave_tasks[task_key] = asyncio.create_task(
+                    self.read_stream(
+                        account.get_stream_name,
+                        functools.partial(
+                            self.handle_slave_streams_message_instagram, account),
+                        fromid=settings.ORCHESTRATOR_SLAVE_STREAM_FROMID,
+                    ),
+                    name=f"{account.get_stream_name} (suscriber)",
+                )
+        except (
+            InstagramAccount.DoesNotExist,
+            InstagramAccount.MultipleObjectsReturned,
+        ) as exception:
+            logger.error("process-main-stream-message-instagram %r %r", account_id, exception)
+        else:
+            logger.info("process-main-stream-message-instagram %r", account_id)
 
     async def handle_slave_streams_message_whatsapp(self, line: Line, event: dict):
         try:
@@ -192,6 +240,19 @@ class EventsProcessor(object):
             await facebook_messenger_handler_messages(page, payload)
         except Exception as exception:
             logger.error("handle_slave_streams_message_page %r %r", page.id, exception)
+            logger.error("Event: %r", event)
+
+    async def handle_slave_streams_message_instagram(
+            self, account: InstagramAccount, event: dict):
+        try:
+            if event.get("action") == "stop":
+                self.shutdown.set()
+                return
+            payload = json.loads(event.get("value"))
+            await instagram_handler_messages(account, payload)
+        except Exception as exception:
+            logger.error(
+                "handle_slave_streams_message_instagram %r %r", account.id, exception)
             logger.error("Event: %r", event)
 
     @database_sync_to_async
@@ -244,6 +305,40 @@ class EventsProcessor(object):
             )
         )
         return queryset.get(pk=pk)
+
+    @database_sync_to_async
+    def _get_instagram_account(self, pk):
+        queryset = (
+            InstagramAccount.objects_default.only(
+                "pk",
+                "is_active",
+                "ig_user_id",
+                "app_id",
+                "name",
+                "destination",
+                "horario",
+            ).select_related(
+                "destination",
+                "horario",
+            ).prefetch_related(
+                "horario__validaciones_tiempo",
+            )
+        )
+        return queryset.get(pk=pk)
+
+    @database_sync_to_async
+    def _regenerate_master_streams(self):
+        regenerators = (
+            ("whatsapp", StreamDeLineas().regenerar_stream),
+            ("facebook", StreamDePaginas().regenerar_stream),
+            ("instagram", StreamDeCuentasInstagram().regenerar_stream),
+        )
+        for channel, regenerate_stream in regenerators:
+            try:
+                regenerate_stream()
+                logger.info("regenerate-master-stream %r done", channel)
+            except Exception as exception:
+                logger.exception("regenerate-master-stream %r %r", channel, exception)
 
 
 class Command(BaseCommand):

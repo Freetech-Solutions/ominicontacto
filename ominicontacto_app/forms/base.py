@@ -57,6 +57,7 @@ from ominicontacto_app.utiles import (convertir_ascii_string, validar_nombres_ca
 from configuracion_telefonia_app.models import DestinoEntrante, Playlist, RutaSaliente
 from whatsapp_app.models import ConfiguracionWhatsappCampana
 from facebook_meta_app.models import ConfiguracionMetaFacebookCampana
+from instagram_app.models import ConfiguracionInstagramCampana
 
 from ominicontacto_app.utiles import convert_fecha_datetime
 from reportes_app.models import LlamadaLog
@@ -954,6 +955,27 @@ class CampanaMixinForm(object):
                     is_active=True, campana=instance).update(is_active=False)
         return meta_facebook_habilitado
 
+    def clean_instagram_habilitado(self):
+        instance = getattr(self, 'instance', None)
+        instagram_habilitado = self.cleaned_data.get('instagram_habilitado')
+        if instance is not None:
+            if instance.instagram_habilitado and not instagram_habilitado:
+                cuentas_antecesoras = []
+                try:
+                    nodo = DestinoEntrante.get_nodo_ruta_entrante(instance)
+                    cuentas_antecesoras = nodo.cuentas_instagram_antecesoras()
+                except Exception:
+                    pass
+                if cuentas_antecesoras:
+                    nombres_cuentas = cuentas_antecesoras.values_list('name', flat=True)
+                    nombres_cuentas = ', '.join(nombres_cuentas)
+                    msg = _("Debe mantener la canalidad Instagram habilitada ya que la "
+                            "campaña es destino de las siguientes cuentas de Instagram: {0}")
+                    raise forms.ValidationError(msg.format(nombres_cuentas))
+                ConfiguracionInstagramCampana.objects.filter(
+                    is_active=True, campana=instance).update(is_active=False)
+        return instagram_habilitado
+
 
 class CampanaEntranteForm(CampanaMixinForm, forms.ModelForm):
 
@@ -993,7 +1015,7 @@ class CampanaEntranteForm(CampanaMixinForm, forms.ModelForm):
                   'tipo_interaccion', 'sitio_externo', 'objetivo', 'mostrar_nombre',
                   'mostrar_did', 'mostrar_nombre_ruta_entrante', 'outcid', 'outr',
                   'videocall_habilitada', 'whatsapp_habilitado', 'meta_facebook_habilitado',
-                  'speech', 'control_de_duplicados', 'mostrar_callid',
+                  'instagram_habilitado', 'speech', 'control_de_duplicados', 'mostrar_callid',
                   'permitir_calificar_telefonos')
         labels = {
             'bd_contacto': 'Base de Datos de Contactos',
@@ -1733,7 +1755,7 @@ class CampanaDialerForm(CampanaMixinForm, forms.ModelForm):
                   'tipo_interaccion', 'sitio_externo', 'objetivo', 'mostrar_nombre',
                   'outcid', 'outr', 'speech', 'prioridad', 'whatsapp_habilitado',
                   'mostrar_callid', 'permitir_calificar_telefonos',
-                  'meta_facebook_habilitado', 'mostrar_callid')
+                  'meta_facebook_habilitado', 'instagram_habilitado', 'mostrar_callid')
         labels = {
             'bd_contacto': 'Base de Datos de Contactos',
         }
@@ -2142,7 +2164,8 @@ class CampanaManualForm(CampanaMixinForm, forms.ModelForm):
         fields = ('nombre', 'bd_contacto', 'control_de_duplicados', 'campo_direccion',
                   'sistema_externo', 'id_externo', 'tipo_interaccion', 'sitio_externo',
                   'objetivo', 'outcid', 'outr', 'speech', 'whatsapp_habilitado',
-                  'meta_facebook_habilitado', 'mostrar_callid', 'permitir_calificar_telefonos')
+                  'meta_facebook_habilitado', 'instagram_habilitado', 'mostrar_callid',
+                  'permitir_calificar_telefonos')
 
         widgets = {
             'sistema_externo': forms.Select(attrs={'class': 'form-control'}),
@@ -2207,7 +2230,7 @@ class CampanaPreviewForm(CampanaMixinForm, forms.ModelForm):
         fields = ('nombre', 'sistema_externo', 'id_externo', 'control_de_duplicados',
                   'tipo_interaccion', 'sitio_externo', 'objetivo', 'bd_contacto',
                   'campo_direccion', 'tiempo_desconexion', 'outr', 'outcid', 'speech',
-                  'whatsapp_habilitado', 'meta_facebook_habilitado',
+                  'whatsapp_habilitado', 'meta_facebook_habilitado', 'instagram_habilitado',
                   'mostrar_callid', 'permitir_calificar_telefonos')
 
         widgets = {
@@ -2270,7 +2293,8 @@ class GrupoForm(forms.ModelForm):
                   'acceso_campanas_preview_agente', 'conjunto_de_pausa',
                   'acceso_cambiar_contrasena_agente',
                   'obligar_despausa', 'whatsapp_habilitado', 'meta_facebook_habilitado',
-                  'restringir_tipo_llamadas_manuales', 'permitir_llamadas_manuales_a_manuales',
+                  'instagram_habilitado', 'restringir_tipo_llamadas_manuales',
+                  'permitir_llamadas_manuales_a_manuales',
                   'permitir_llamadas_manuales_a_dialer', 'permitir_llamadas_manuales_a_entrante',
                   'permitir_llamadas_manuales_a_preview', 'call_another_agent')
         widgets = {
@@ -2629,6 +2653,17 @@ class CampanaConfiguracionMetaFacebookForm(forms.ModelForm):
         fields = ('pagina', 'nivel_servicio', 'grupo_plantilla_facebook')
         widgets = {
             'pagina': forms.Select(attrs={'class': 'form-control'}),
+            'nivel_servicio': forms.NumberInput(attrs={'class': 'form-control'}),
+            'grupo_plantilla_facebook': forms.Select(attrs={'class': 'form-control'})
+        }
+
+
+class CampanaConfiguracionInstagramForm(forms.ModelForm):
+    class Meta:
+        model = ConfiguracionInstagramCampana
+        fields = ('cuenta', 'nivel_servicio', 'grupo_plantilla_facebook')
+        widgets = {
+            'cuenta': forms.Select(attrs={'class': 'form-control'}),
             'nivel_servicio': forms.NumberInput(attrs={'class': 'form-control'}),
             'grupo_plantilla_facebook': forms.Select(attrs={'class': 'form-control'})
         }

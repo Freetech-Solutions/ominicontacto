@@ -836,6 +836,29 @@ class ViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+    @decorators.action(detail=False, methods=['post'])
+    def mark_as_read(self, request):
+        try:
+            message_ids = request.data
+            if isinstance(message_ids, dict):
+                if 'message_ids' in message_ids:
+                    message_ids = message_ids['message_ids']
+                elif 'message_id' in message_ids:
+                    message_ids = [message_ids['message_id']]
+                else:
+                    message_ids = []
+            if not isinstance(message_ids, list):
+                message_ids = []
+            MessageMessengerMetaApp.objects.filter(id__in=message_ids).update(status='read')
+            return response.Response(
+                data=get_response_data(status=HttpResponseStatus.SUCCESS, data=[]),
+                status=status.HTTP_200_OK)
+        except Exception as e:
+            return response.Response(
+                data=get_response_data(
+                    status=HttpResponseStatus.ERROR, data={}, message=_(str(e))),
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @decorators.action(detail=False, methods=['get'])
     def closed_conversations(self, request):
         """Obtiene todas las conversaciones cerradas."""

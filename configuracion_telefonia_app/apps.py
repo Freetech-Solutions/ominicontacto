@@ -98,6 +98,11 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 'label': _('Páginas'),
                 'url': reverse('messenger_meta_configuration')
             })
+        if 'instagram_accounts_configuration' in permissions or True:  # TEMPORAL
+            messenger.append({
+                'label': _('Instagram'),
+                'url': reverse('instagram_accounts_configuration')
+            })
         if messenger:
             conexiones.append({
                 'label': _('Meta/Facebook'),

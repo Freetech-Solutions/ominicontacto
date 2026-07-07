@@ -16,4 +16,5 @@ exclude =
     supervision_app/services/redisgears_action_scripts
     whatsapp_app/migrations/*
     facebook_meta_app/migrations/*
+    instagram_app/migrations/*
     omnileads_ui/*
