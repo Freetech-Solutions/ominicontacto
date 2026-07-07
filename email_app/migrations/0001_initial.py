@@ -4,6 +4,7 @@ import django.contrib.postgres.fields
 import django.core.serializers.json
 from django.db import migrations, models
 import django.db.models.deletion
+import django.utils.timezone
 import email_app.models._utils
 
 
@@ -12,7 +13,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('ominicontacto_app', '0118_auto_20260506_1259'),
+        ('ominicontacto_app', '0120_canalidad_email'),
     ]
 
     operations = [
@@ -33,7 +34,7 @@ class Migration(migrations.Migration):
             name='Message',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('content_bytes', models.BinaryField()),
+                ('content_bytes', models.BinaryField(null=True)),
                 ('content_stamp', models.CharField(max_length=64)),
                 ('mailbox_uidva', models.CharField(max_length=100)),
                 ('date', models.DateTimeField(null=True)),
@@ -48,6 +49,15 @@ class Migration(migrations.Migration):
                 ('in_reply_to', models.CharField(max_length=254)),
                 ('references', django.contrib.postgres.fields.ArrayField(base_field=models.CharField(max_length=254), default=list, size=None)),
                 ('attachments', models.JSONField(default=list)),
+                ('direction', models.CharField(choices=[('inbound', 'inbound'), ('outbound', 'outbound')], default='inbound', max_length=10)),
+                ('is_read', models.BooleanField(default=False)),
+                ('status', models.CharField(default='received', max_length=20)),
+                ('fail_reason', models.CharField(blank=True, default='', max_length=254)),
+                ('sender', models.JSONField(default=dict)),
+                ('type', models.CharField(default='email', max_length=20)),
+                # raw MIME offload to object storage: keep only the key in the row, and
+                # allow content_bytes to be null (legacy / object-storage-disabled rows).
+                ('content_key', models.CharField(blank=True, default='', max_length=512)),
                 ('account', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='email_app.account')),
             ],
         ),
@@ -59,6 +69,47 @@ class Migration(migrations.Migration):
                 ('account', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='campaign_accounts', to='email_app.account')),
                 ('campaign', models.OneToOneField(on_delete=django.db.models.deletion.PROTECT, related_name='email_account', to='ominicontacto_app.campana')),
             ],
+        ),
+        migrations.CreateModel(
+            name='ConversacionEmail',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('thread_key', models.CharField(db_index=True, max_length=254)),
+                ('subject', models.CharField(blank=True, default='', max_length=254)),
+                ('client_mail', models.CharField(blank=True, default='', max_length=254)),
+                ('client_name', models.CharField(blank=True, default='', max_length=100)),
+                ('is_active', models.BooleanField(default=True)),
+                ('atendida', models.BooleanField(default=False)),
+                ('is_disposition', models.BooleanField(default=False)),
+                ('status', models.CharField(
+                    choices=[
+                        ('new', 'new'),
+                        ('assigned', 'assigned'),
+                        ('in_progress', 'in_progress'),
+                        ('answered', 'answered'),
+                        ('reopened', 'reopened'),
+                        ('closed', 'closed'),
+                    ],
+                    db_index=True,
+                    default='new',
+                    max_length=20,
+                )),
+                ('timestamp', models.DateTimeField(db_index=True, default=django.utils.timezone.now)),
+                ('date_last_interaction', models.DateTimeField(null=True)),
+                ('account', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name='conversations', to='email_app.account')),
+                ('agent', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='email_conversations', to='ominicontacto_app.agenteprofile')),
+                ('campana', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='email_conversations', to='ominicontacto_app.campana')),
+                ('contacto', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='email_conversations', to='ominicontacto_app.contacto')),
+                ('conversation_disposition', models.ForeignKey(null=True, on_delete=django.db.models.deletion.SET_NULL, related_name='+', to='ominicontacto_app.historicalcalificacioncliente')),
+            ],
+            options={
+                'ordering': ['-date_last_interaction', '-id'],
+            },
+        ),
+        migrations.AddField(
+            model_name='message',
+            name='conversation',
+            field=models.ForeignKey(null=True, on_delete=django.db.models.deletion.CASCADE, related_name='mensajes', to='email_app.conversacionemail'),
         ),
         migrations.AddIndex(
             model_name='message',
