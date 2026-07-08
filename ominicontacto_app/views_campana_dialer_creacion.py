@@ -32,6 +32,7 @@ from ominicontacto_app.forms.base import (CampanaConfiguracionMetaFacebookForm,
                                           SincronizaDialerForm, ActuacionVigenteForm,
                                           ReglasIncidenciaFormSet, CampanaDialerForm,
                                           OpcionCalificacionFormSet,
+                                          CampaignEmailAccountForm,
                                           ParametrosCrmFormSet, CampanaSupervisorUpdateForm,
                                           QueueMemberFormset, CampanaConfiguracionWhatsappForm)
 from ominicontacto_app.models import Campana
@@ -53,6 +54,7 @@ class CampanaDialerMixin(CampanaWizardMixin):
     CONFIGURACION_WHATSAPP = '2'
     CONFIGURACION_META_FACEBOOK = '3'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '4'
     PARAMETROS_CRM = '5'
     ACTUACION_VIGENTE = '6'
@@ -66,6 +68,7 @@ class CampanaDialerMixin(CampanaWizardMixin):
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
              (ACTUACION_VIGENTE, ActuacionVigenteForm),
@@ -81,6 +84,7 @@ class CampanaDialerMixin(CampanaWizardMixin):
                  "campanas/campana_dialer/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_dialer/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_dialer/configuracion_email.html",
                  OPCIONES_CALIFICACION: 'campanas/campana_dialer/opcion_calificacion.html',
                  PARAMETROS_CRM: 'campanas/campana_dialer/parametros_crm_sitio_externo.html',
                  ACTUACION_VIGENTE: 'campanas/campana_dialer/actuacion_vigente_campana.html',
@@ -168,6 +172,12 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
         if campana.instagram_habilitado:
             self._save_configuracion_instagram(
                 form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
+        if campana.email_habilitado:
+            configuracion_email_form = form_dict.get(self.CONFIGURACION_EMAIL)
+            if configuracion_email_form.is_valid():
+                configuracion_email_form.instance.campaign = campana
+                configuracion_email_form.instance.save()
+
         opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
         if campana.tiene_interaccion_con_sitio_externo:
             parametros_crm_formset = form_dict[self.PARAMETROS_CRM]
@@ -238,6 +248,7 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
     CONFIGURACION_WHATSAPP = '2'
     CONFIGURACION_META_FACEBOOK = '3'
     CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '4'
     PARAMETROS_CRM = '5'
     ACTUACION_VIGENTE = '6'
@@ -247,6 +258,7 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
              (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
              (ACTUACION_VIGENTE, ActuacionVigenteForm), ]
@@ -258,6 +270,7 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                  "campanas/campana_dialer/configuracion_meta_facebook.html",
                  CONFIGURACION_INSTAGRAM:
                  "campanas/campana_dialer/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_dialer/configuracion_email.html",
                  OPCIONES_CALIFICACION: 'campanas/campana_dialer/opcion_calificacion.html',
                  PARAMETROS_CRM: 'campanas/campana_dialer/parametros_crm_sitio_externo.html',
                  ACTUACION_VIGENTE: 'campanas/campana_dialer/actuacion_vigente_campana.html', }
@@ -307,6 +320,12 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                 if campana.instagram_habilitado:
                     self._save_configuracion_instagram(
                         form_dict.get(self.CONFIGURACION_INSTAGRAM), campana)
+                if campana.email_habilitado:
+                    configuracion_email_form = form_dict.get(self.CONFIGURACION_EMAIL)
+                    if configuracion_email_form.is_valid():
+                        if configuracion_email_form.instance.pk is None:
+                            configuracion_email_form.instance.campaign = campana
+                        configuracion_email_form.instance.save()
 
                 opciones_calificacion_formset = form_dict[self.OPCIONES_CALIFICACION]
 
@@ -324,6 +343,12 @@ class CampanaDialerUpdateView(CampanaDialerMixin, SessionWizardView):
                 # Intento editar la campaña en wombat como parte de la transaccion
                 if wombat_habilitado():
                     self._update_dialer(campana)
+
+                if campana.email_habilitado:
+                    configuracion_email_form = form_dict.get(self.CONFIGURACION_EMAIL)
+                    if configuracion_email_form.is_valid():
+                        configuracion_email_form.instance.campaign = campana
+                        configuracion_email_form.instance.save()
 
                 # Actualizo en OMniDialer una vez que ya se modifico en la base de datos
                 if not wombat_habilitado():

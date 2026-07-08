@@ -57,6 +57,7 @@ const closeAgentChannelWrappersFromFacebook = () => {
     $('#wrapperWebphone').removeClass('active');
     $('#wrapperWhatsapp').addClass('hidden');
     $('#wrapperInstagram').addClass('hidden');
+    $('#wrapperEmail').addClass('hidden');
 };
 
 const setEventListenersFacebook = () => {

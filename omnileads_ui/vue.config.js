@@ -100,7 +100,9 @@ module.exports = {
         agent_instagram_message_transfer: getPageConfig('agent_instagram_message_transfer'),
         agent_instagram_image_uploader: getPageConfig('agent_instagram_image_uploader'),
         agent_instagram_file_uploader: getPageConfig('agent_instagram_file_uploader'),
-        agent_instagram_contact_form: getPageConfig('agent_instagram_contact_form')
+        agent_instagram_contact_form: getPageConfig('agent_instagram_contact_form'),
+        // Agent Email Page (single SPA: inbox tabs + thread-on-click + reply/disposition/contact)
+        agent_email_index: getPageConfig('agent_email_index')
     },
     devServer: {
         historyApiFallback,

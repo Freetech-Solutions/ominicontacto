@@ -26,6 +26,7 @@ test:
     DJANGO_SETTINGS_MODULE: "ominicontacto.settings.gitlab"
   script:
     - bash check-js.sh
+    - pip install -r requirements/requirements.txt
     - flake8
     - python manage.py test --failfast
     - python manage.py compilemessages

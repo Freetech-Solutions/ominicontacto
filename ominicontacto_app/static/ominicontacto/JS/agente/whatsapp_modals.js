@@ -140,6 +140,7 @@ const closeAgentChannelWrappersFromWhatsapp = () => {
     $('#wrapperWebphone').removeClass('active');
     $('#wrapperFacebook').addClass('hidden');
     $('#wrapperInstagram').addClass('hidden');
+    $('#wrapperEmail').addClass('hidden');
 };
 
 const setEventListeners = () => {

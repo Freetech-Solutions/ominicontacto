@@ -64,7 +64,13 @@ ALLOWED_HOSTS = [
     "*",
 ]
 
+SALT_KEY = os.getenv("SALT_KEY", "0123456789abcdefghijklmnopqrstuvwxyz")
+if SALT_KEY_FALLBACKS := os.getenv("SALT_KEY_FALLBACKS", []):
+    SALT_KEY_FALLBACKS = SALT_KEY_FALLBACKS.split(",")
+
 SECRET_KEY = os.getenv("SECRET_KEY", 's1+*bfrvb@=k@c&9=pm!0sijjewneu5p5rojil#q+!a2y&as-4')
+if SECRET_KEY_FALLBACKS := os.getenv("SECRET_KEY_FALLBACKS", []):
+    SECRET_KEY_FALLBACKS = SECRET_KEY_FALLBACKS.split(",")
 
 SIP_SECRET_KEY = 'SUp3rS3cr3tK3y'
 

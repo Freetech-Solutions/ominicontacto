@@ -736,6 +736,7 @@ class SupervisorCampanaTests(CampanasTests):
             'campana_entrante_create_view-current_step': 0,
             '0-whatsapp_habilitado': False,
             '0-meta_facebook_habilitado': False,
+            '0-email_habilitado': False,
         }
         post_step1_data = {
             '1-timeout': 1,
@@ -771,6 +772,7 @@ class SupervisorCampanaTests(CampanasTests):
                 "cant_col": 4,
                 "nombres_de_columnas": ["telefono", "nombre", "apellido", "dni"],
                 "col_id_externo": 3,
+                "col_email": None,
                 "cols_telefono": [0]
             })
         }
@@ -839,6 +841,7 @@ class SupervisorCampanaTests(CampanasTests):
             '0-fecha_fin': fecha_fin.date().strftime("%d/%m/%Y"),
             '0-whatsapp_habilitado': False,
             '0-meta_facebook_habilitado': False,
+            '0-email_habilitado': False,
             'campana_dialer_create_view-current_step': 0,
         }
         post_step1_data = {
@@ -1022,6 +1025,7 @@ class SupervisorCampanaTests(CampanasTests):
             '0-whatsapp_habilitado': False,
             '0-meta_facebook_habilitado': False,
             '0-instagram_habilitado': False,
+            '0-email_habilitado': False,
         }
         post_step1_data = {
             'campana_manual_create_view-current_step': 1,
@@ -1049,6 +1053,7 @@ class SupervisorCampanaTests(CampanasTests):
                 "cant_col": 4,
                 "nombres_de_columnas": ["telefono", "nombre", "apellido", "dni"],
                 "col_id_externo": 3,
+                "col_email": None,
                 "cols_telefono": [0]
             })
         }

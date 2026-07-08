@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     'orquestador_app.apps.OrquestadorAppConfig',
     'facebook_meta_app.apps.FacebookMetaAppConfig',
     'instagram_app.apps.InstagramAppConfig',
+    'email_app.apps.AppConfig',
     'constance',
     'django_js_reverse',
     'import_export',
@@ -208,6 +209,7 @@ ORCHESTRATOR_SLAVE_STREAM_FROMID = '$'
 
 STATICFILES_DIRS = [
     ("omnileads-frontend", os.path.join(BASE_DIR, "omnileads_ui/dist")),
+    ("webui-app", os.path.join(BASE_DIR, "webui/dist")),
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.AutoField'
@@ -390,6 +392,7 @@ REST_FRAMEWORK = {
 LOCALE_PATHS = (
     os.path.join(BASE_DIR, 'api_app/locale'),
     os.path.join(BASE_DIR, 'configuracion_telefonia_app/locale'),
+    os.path.join(BASE_DIR, 'email_app/locale'),
     os.path.join(BASE_DIR, 'notification_app/locale'),
     os.path.join(BASE_DIR, 'ominicontacto_app/locale'),
     os.path.join(BASE_DIR, 'reportes_app/locale'),

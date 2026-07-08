@@ -322,6 +322,8 @@ class Grupo(models.Model):
         'Permiso de uso de la canalidad Meta Facebook'))
     instagram_habilitado = models.BooleanField(default=False, verbose_name=_(
         'Permiso de uso de la canalidad Instagram'))
+    email_habilitado = models.BooleanField(default=False, verbose_name=_(
+        'Permiso de uso de la canalidad Email'))
     restringir_tipo_llamadas_manuales = models.BooleanField(default=False, verbose_name=_(
         'Restringir tipo de llamadas manuales'))
     permitir_llamadas_manuales_a_manuales = models.BooleanField(default=False, verbose_name=_(
@@ -1356,6 +1358,7 @@ class Campana(models.Model):
     whatsapp_habilitado = models.BooleanField(default=False)
     meta_facebook_habilitado = models.BooleanField(default=False)
     instagram_habilitado = models.BooleanField(default=False)
+    email_habilitado = models.BooleanField(default=False)
     permitir_calificar_telefonos = models.BooleanField(default=False, blank=True)
 
     def __str__(self):
@@ -1605,6 +1608,8 @@ class Campana(models.Model):
             super(Campana, self).save(*args, **kwargs)
         if self.whatsapp_habilitado is False and self.configuracionwhatsapp.all():
             self.configuracionwhatsapp.all().delete()
+        if self.email_habilitado is False and hasattr(self, "email_account"):
+            self.email_account.delete()
 
     def obtener_agentes(self):
         return self.queue_campana.members.all()
@@ -2205,6 +2210,33 @@ class MetadataBaseDatosContactoDTO(object):
     # -----
 
     @property
+    def columna_email(self):
+        try:
+            return self._metadata['col_email']
+        except KeyError:
+            return None
+
+    @columna_email.setter
+    def columna_email(self, value):
+        """
+        Parametros:
+        - Un entero que indica la columna con campo email.
+        """
+        if value is None:
+            del self._metadata['col_email']
+        else:
+            assert isinstance(value, int), (
+                "'columna_email' debe ser int. Se recibio: {0}".format(type(value))
+            )
+            self._metadata['col_email'] = value
+
+    @property
+    def nombre_campo_email(self):
+        if self.columna_email is not None:
+            return self._metadata['nombres_de_columnas'][self.columna_email]
+        return None
+
+    @property
     def columnas_con_fecha(self):
         try:
             return self._metadata['cols_fecha']
@@ -2309,6 +2341,7 @@ class MetadataBaseDatosContactoDTO(object):
                     if columna not in (
                         self.nombre_campo_telefono,
                         self.nombre_campo_id_externo,
+                        self.nombre_campo_email,
                     )
                 ]
             except KeyError:
@@ -2759,6 +2792,7 @@ class Contacto(models.Model):
     telefono = models.CharField(max_length=128)
     facebook = models.CharField(max_length=128, blank=True)
     ig_scoped_id = models.CharField(max_length=128, blank=True)
+    email = models.EmailField(blank=True)
     datos = models.TextField()
     bd_contacto = models.ForeignKey(
         'BaseDatosContacto',
@@ -2804,17 +2838,19 @@ class Contacto(models.Model):
             bd_metadata = self.bd_contacto.get_metadata()
             datos = self.lista_de_datos()
             pos_primer_telefono = bd_metadata.columnas_con_telefono[0]
-            if bd_metadata.columna_id_externo is not None:
-                # Inserto primero el de menor indice para que se respete el orden
-                if (pos_primer_telefono < bd_metadata.columna_id_externo):
-                    datos.insert(pos_primer_telefono, self.telefono)
-                    datos.insert(bd_metadata.columna_id_externo, self.id_externo)
-                else:
-                    datos.insert(bd_metadata.columna_id_externo, self.id_externo)
-                    datos.insert(pos_primer_telefono, self.telefono)
-            else:
-                datos.insert(pos_primer_telefono, self.telefono)
-
+            pos_and_val_of_attributes = sorted(
+                (
+                    pos_and_value for pos_and_value in (
+                        (pos_primer_telefono, self.telefono),
+                        (bd_metadata.columna_id_externo, self.id_externo),
+                        (bd_metadata.columna_email, self.email),
+                    )
+                    if pos_and_value[0] is not None
+                ),
+                key=lambda pos_and_val: pos_and_val[0]
+            )
+            for pos, val in pos_and_val_of_attributes:
+                datos.insert(pos, val)
             self.lista_datos_contacto = datos
         return self.lista_datos_contacto
 
@@ -3012,11 +3048,13 @@ class CalificacionCliente(TimeStampedModel, models.Model):
     CANALIDAD_WHATSAPP = 1
     CANALIDAD_FACEBOOK = 2
     CANALIDAD_INSTAGRAM = 3
+    CANALIDAD_EMAIL = 4
     TYPE_CANALIDAD_CHOICES = (
         (CANALIDAD_TELEFONO, _('Teléfono')),
         (CANALIDAD_WHATSAPP, _('Whatsapp')),
         (CANALIDAD_FACEBOOK, _('Facebook')),
         (CANALIDAD_INSTAGRAM, _('Instagram')),
+        (CANALIDAD_EMAIL, _('Email')),
     )
     objects = CalificacionClienteManager()
 

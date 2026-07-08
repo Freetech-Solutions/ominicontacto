@@ -1,0 +1,72 @@
+# OMniLeads email_app translations.
+# Copyright (C) 2026 Freetech Solutions
+# This file is distributed under the same license as the OMniLeads package.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: OMniLeads\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-06-25 00:00-0300\n"
+"PO-Revision-Date: 2026-06-25 00:00-0300\n"
+"Last-Translator: Freetech Solutions\n"
+"Language-Team: Portuguese-Br\n"
+"Language: pt_BR\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+
+#: email_app/apps.py:26
+msgid "Optiene los detalles de la cuenta de correo"
+msgstr "Obtém os detalhes da conta de e-mail"
+
+#: email_app/apps.py:30
+msgid "Lista las cuentas de correo"
+msgstr "Lista as contas de e-mail"
+
+#: email_app/apps.py:34
+msgid "Prueba los datos de la cuenta de correo"
+msgstr "Testa os dados da conta de e-mail"
+
+#: email_app/api/v1/self.py:115
+msgid "Invalid credentials or deactivated Account."
+msgstr "Credenciais inválidas ou conta desativada."
+
+#: email_app/api/v1/account.py:221
+#, python-format
+msgid ""
+"This account cannot be deleted because it is configured in the following "
+"campaign(s): %(campaigns)s. Remove the account from those campaigns before "
+"deleting it."
+msgstr ""
+"Esta conta não pode ser excluída porque está configurada na(s) seguinte(s) "
+"campanha(s): %(campaigns)s. Remova a conta dessas campanhas antes de "
+"excluí-la."
+
+#: email_app/api/v1/conversation.py:121
+msgid "The conversation does not exist."
+msgstr "A conversa não existe."
+
+#: email_app/api/v1/conversation.py:126
+msgid "You do not have access to this conversation."
+msgstr "Você não tem acesso a esta conversa."
+
+#: email_app/api/v1/conversation.py:156
+msgid "This conversation is already being attended by another agent."
+msgstr "Esta conversa já está sendo atendida por outro agente."
+
+#: email_app/api/v1/conversation.py:112
+msgid "Provide a message body."
+msgstr "Forneça o corpo da mensagem."
+
+#: email_app/api/v1/conversation.py:213
+msgid "The email could not be sent."
+msgstr "Não foi possível enviar o e-mail."
+
+#: email_app/api/v1/conversation.py:277
+msgid "The conversation has no campaign."
+msgstr "A conversa não tem campanha."
+
+#: email_app/api/v1/conversation.py:281
+msgid "Save the contact before dispositioning the conversation."
+msgstr "Salve o contato antes de qualificar a conversa."

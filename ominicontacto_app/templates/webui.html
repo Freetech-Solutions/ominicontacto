@@ -1,21 +1,59 @@
 {% extends "base.html" %}
+{% load i18n %}
 
 {% block extra_css %}
 {% if name == "premiumreports" %}
 <style>body { background-color: oklch(98.4% 0.003 247.858); /*slate-50*/ }</style>
 {% endif %}
+{% if name == "app" %}
+<style> iframe[name="webui"] { height: calc(100vh - 60px - 30px); } .wrapper-info { padding: 4px 0 0 0; }</style>
+{% else %}
+<style>iframe[name="webui"] { height: calc(100vh - 124px); }</style>
+{% endif %}
 {% endblock %}
 
 {% block content %}
-  <iframe
-    name="webui"
-    src="/{{ prefix }}-{{ name }}/{{ path }}{% if request.META.QUERY_STRING %}?{{ request.META.QUERY_STRING }}{% endif %}"
-    style="border: none; display: block; height: calc(100vh - 124px); margin: 0; padding: 0; width: 100%;">
-  </iframe>
+  <style>
+    #webui-frame-wrap { position: relative; width: 100%; }
+    #webui-loader {
+      position: absolute; inset: 0; z-index: 5;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 12px; background: var(--bg-main, #ffffff);
+      transition: opacity .25s ease;
+    }
+    #webui-loader.is-hidden { opacity: 0; pointer-events: none; }
+    #webui-loader .webui-spinner {
+      width: 42px; height: 42px;
+      border: 4px solid rgba(0, 0, 0, .1); border-top-color: #4CAF50;
+      border-radius: 50%; animation: webui-spin .8s linear infinite;
+    }
+    #webui-loader .webui-loader-text {
+      font-family: 'Asap', sans-serif; font-size: 14px; color: #6b7280;
+    }
+    @keyframes webui-spin { to { transform: rotate(360deg); } }
+  </style>
+  <div id="webui-frame-wrap">
+    <div id="webui-loader" role="status" aria-live="polite">
+      <div class="webui-spinner" aria-hidden="true"></div>
+      <span class="webui-loader-text">{% trans 'Cargando...' %}</span>
+    </div>
+    <iframe
+      name="webui"
+      src="/{{ prefix }}-{{ name }}/{{ path }}{% if request.META.QUERY_STRING %}?{{ request.META.QUERY_STRING }}{% endif %}"
+      onload="(function(){var l=document.getElementById('webui-loader'); if(l){l.classList.add('is-hidden'); setTimeout(function(){l.style.display='none';}, 300);}})()"
+      style="border: none; display: block; margin: 0; padding: 0; width: 100%;">
+    </iframe>
+  </div>
   <script>
     (function(){
       const name = "{{ name | escapejs }}"
       const prefix = "{{ prefix | escapejs }}"
+      // Fallback: hide the loader after a max wait in case the iframe 'load'
+      // event was missed (e.g. fired before the handler attached).
+      setTimeout(function(){
+        const l = document.getElementById("webui-loader");
+        if (l) { l.style.display = "none"; }
+      }, 15000);
       window.addEventListener("message", function(event) {
         if (event.origin !== window.location.origin) return;
         const iframe = document.querySelector('iframe[name="webui"]');

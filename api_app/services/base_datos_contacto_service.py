@@ -71,11 +71,13 @@ class BaseDatosContactoService(object):
         return predictor_metadata.inferir_metadata_desde_lineas(
             estructura_archivo)
 
-    def importa_contactos_desde_api(self, id, campos_telefonicos, columna_id_externo):
+    def importa_contactos_desde_api(self, id, campos_telefonicos, columna_id_externo,
+                                    columna_email):
         bd_contactos = BaseDatosContacto.objects.obtener_en_actualizada_para_editar(id)
-        self.importa_contactos(bd_contactos, campos_telefonicos, columna_id_externo)
+        self.importa_contactos(bd_contactos, campos_telefonicos, columna_id_externo, columna_email)
 
-    def importa_contactos(self, base_datos_contacto, campos_telefonicos, columna_id_externo):
+    def importa_contactos(self, base_datos_contacto, campos_telefonicos, columna_id_externo,
+                          columna_email):
         """
         Tercer paso de la creación de una BaseDatosContacto.
         Este método se encarga de generar los objectos Contacto por cada linea
@@ -99,8 +101,8 @@ class BaseDatosContactoService(object):
             objs = []
             for lista_dato in estructura_archivo[1:]:
                 numero_fila += 1
-                telefono, datos, id_externo = self._obtener_telefono_y_datos(
-                    lista_dato, posicion_primer_telefono, columna_id_externo)
+                telefono, datos, id_externo, email = self._obtener_telefono_y_datos(
+                    lista_dato, posicion_primer_telefono, columna_id_externo, columna_email)
                 cantidad_contactos += 1
                 if id_externo is not None and id_externo != '':
                     # El id_externo no puede estar repetido
@@ -117,6 +119,7 @@ class BaseDatosContactoService(object):
                         telefono=telefono,
                         datos=datos,
                         bd_contacto=base_datos_contacto,
+                        email=email,
                         id_externo=id_externo
                     )
                 )
@@ -144,8 +147,9 @@ class BaseDatosContactoService(object):
         return BaseDatosContacto.objects.filter(nombre=nombre).exists()
 
     def _obtener_telefono_y_datos(self, lista_dato, posicion_primer_telefono,
-                                  columna_id_externo) -> any:
+                                  columna_id_externo, columna_email) -> any:
         id_externo = None
+        email = ""
         if len(lista_dato) > 1:
             item = []
             for i, valor in enumerate(lista_dato):
@@ -153,6 +157,8 @@ class BaseDatosContactoService(object):
                     telefono = valor
                 elif i == columna_id_externo:
                     id_externo = valor
+                elif i == columna_email:
+                    email = valor
                 else:
                     item.append(valor)
         else:
@@ -160,7 +166,7 @@ class BaseDatosContactoService(object):
             item = ['']
 
         datos = json.dumps(item)
-        return telefono, datos, id_externo
+        return telefono, datos, id_externo, email
 
     def remove_db(self, id):
         BaseDatosContacto.objects.filter(id=id).delete()

@@ -111,6 +111,26 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 'id': 'menuMessenger',
                 'children': messenger
             })
+
+        email = []
+        if "email:api:v1:account-list" in permissions:
+            email.append(
+                {
+                    "label": _("Cuentas"),
+                    "url": reverse("webui", kwargs={"name": "app", "path": "embed/email/accounts"}),
+                }
+            )
+
+        if email:
+            conexiones.append(
+                {
+                    "label": _("Email"),
+                    "class": "",
+                    "id": "menuEmail",
+                    "children": email,
+                }
+            )
+
         recursos = []
         audios = []
         if 'adicionar_audios_asterisk' in permissions:
