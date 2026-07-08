@@ -629,6 +629,9 @@ class ApiEventoHold(APIView):
             event = 'UNHOLD'
         else:
             event = 'HOLD'
+        # Evitamos agregar HOLD si la llamada ya finalizó (condición de carrera).
+        if llamadalog.event in LlamadaLog.EVENTOS_FIN_CONEXION:
+            return Response(data={'status': 'ERROR'})
 
         evento_hold = LlamadaLog.objects.create(duracion_llamada=-1, agente_id=agente.id,
                                                 callid=callid, campana_id=campana_id,
