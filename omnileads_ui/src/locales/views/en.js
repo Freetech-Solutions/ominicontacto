@@ -210,7 +210,9 @@ export default {
                 open_emoji_picker: 'Open emoji picker',
                 meta_rows_warning: 'Meta does not explicitly document whether row value and description support emojis. They are enabled for testing, but should be validated with your Meta provider.',
                 preview_time: '09:27',
-                default_list_button: 'Choose an option'
+                default_list_button: 'Choose an option',
+                fullscreen: 'Maximize',
+                exit_fullscreen: 'Restore size'
             },
             step1: {
                 title: 'Basic data'

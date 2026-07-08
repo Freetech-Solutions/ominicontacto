@@ -561,6 +561,69 @@ class LineaTest(OMLBaseTest):
         notificar_nueva_linea.assert_called()
 
     @patch('whatsapp_app.services.redis.linea.StreamDeLineas.notificar_nueva_linea')
+    def test_create_linea_remapea_flow_builder_layout_a_ids_reales(self, notificar_nueva_linea):
+        url = reverse('whatsapp_app:linea-list')
+        data = self.get_menu_options_menus_post_data()
+        # El front keyea el layout del editor Flow con el id_tmp de cada bloque.
+        # Al persistir, esas claves deben reasignarse al id real del
+        # MenuInteractivoWhatsapp para que las posiciones se restauren al reabrir.
+        data['configuration']['flow_builder_layout'] = {
+            '1': {'x': 111, 'y': 121},
+            '2': {'x': 222, 'y': 232},
+            '3': {'x': 333, 'y': 343},
+        }
+        response = self.client.post(url, data, content_type="application/json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        linea = Linea.objects.get(id=response.json()['data']['id'])
+        layout = linea.configuracion['flow_builder_layout']
+        # Las claves ahora son los ids reales de cada bloque, correlacionados
+        # por su encabezado con el id_tmp original que envio el front.
+        menu_m1 = MenuInteractivoWhatsapp.objects.get(line=linea, menu_header='m1')
+        menu_m2 = MenuInteractivoWhatsapp.objects.get(line=linea, menu_header='m2')
+        menu_m3 = MenuInteractivoWhatsapp.objects.get(line=linea, menu_header='m3')
+        self.assertEqual(layout[str(menu_m1.id)], {'x': 111, 'y': 121})
+        self.assertEqual(layout[str(menu_m2.id)], {'x': 222, 'y': 232})
+        self.assertEqual(layout[str(menu_m3.id)], {'x': 333, 'y': 343})
+        self.assertEqual(len(layout), 3)
+        notificar_nueva_linea.assert_called()
+
+    @patch('whatsapp_app.services.redis.linea.StreamDeLineas.notificar_nueva_linea')
+    def test_update_linea_remapea_flow_builder_layout_a_ids_reales(self, notificar_nueva_linea):
+        # En cada update los menus se borran y recrean con PKs nuevos, por lo
+        # que el layout keyeado con los ids anteriores queda invalido si no se
+        # remapea. Verificamos que el update reasigne las claves a los ids
+        # reales de los bloques recien recreados.
+        self.crear_linea_a_campana()
+        url = reverse('whatsapp_app:linea-detail', args=[self.linea_a_campana.id])
+        destination_data = self.get_menu_options_menus_post_data()['destination']
+        data = {
+            'name': 'Nuevo Nombre',
+            'provider': self.proveedor_gupshup.id,
+            'configuration': {
+                'app_name': 'NewLineaAppName',
+                'app_id': 'NewLineaAppId',
+                'flow_builder_layout': {
+                    '1': {'x': 111, 'y': 121},
+                    '2': {'x': 222, 'y': 232},
+                    '3': {'x': 333, 'y': 343},
+                },
+            },
+            'destination': destination_data,
+        }
+        response = self.client.put(url, data, content_type="application/json")
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        linea = Linea.objects.get(id=self.linea_a_campana.id)
+        layout = linea.configuracion['flow_builder_layout']
+        menu_m1 = MenuInteractivoWhatsapp.objects.get(line=linea, menu_header='m1')
+        menu_m2 = MenuInteractivoWhatsapp.objects.get(line=linea, menu_header='m2')
+        menu_m3 = MenuInteractivoWhatsapp.objects.get(line=linea, menu_header='m3')
+        self.assertEqual(layout[str(menu_m1.id)], {'x': 111, 'y': 121})
+        self.assertEqual(layout[str(menu_m2.id)], {'x': 222, 'y': 232})
+        self.assertEqual(layout[str(menu_m3.id)], {'x': 333, 'y': 343})
+        self.assertEqual(len(layout), 3)
+        notificar_nueva_linea.assert_called()
+
+    @patch('whatsapp_app.services.redis.linea.StreamDeLineas.notificar_nueva_linea')
     def test_update_linea_gupshup_con_menu_interactivo_options_menus_a_campana(
             self, notificar_nueva_linea):
         num_menu = MenuInteractivoWhatsapp.objects.count()
