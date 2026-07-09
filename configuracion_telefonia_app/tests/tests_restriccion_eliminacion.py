@@ -19,8 +19,9 @@
 from mock import patch
 from django.urls import reverse
 from ominicontacto_app.tests.utiles import OMLBaseTest
-from ominicontacto_app.tests.factories import CampanaFactory
+from ominicontacto_app.tests.factories import CampanaFactory, QueueFactory
 from ominicontacto_app.models import Campana
+from ominicontacto_app.services.creacion_queue import ActivacionQueueService
 from ominicontacto_app.views_campana import CampanaDeleteView
 from configuracion_telefonia_app.tests.factories import (
     RutaEntranteFactory, IVRFactory, ValidacionFechaHoraFactory, OpcionDestinoFactory)
@@ -34,6 +35,7 @@ from whatsapp_app.models import OpcionMenuInteractivoWhatsapp
 
 class BaseTestRestriccionEliminacion(OMLBaseTest):
     PWD = u'admin123'
+    ejecutar_actualizar_permisos = True
 
     def setUp(self, *args, **kwargs):
         super(BaseTestRestriccionEliminacion, self).setUp(*args, **kwargs)
@@ -46,6 +48,8 @@ class BaseTestRestriccionEliminacion(OMLBaseTest):
     def _crear_campanas_entrantes(self):
         self.camp_1 = CampanaFactory(type=Campana.TYPE_ENTRANTE, estado=Campana.ESTADO_ACTIVA)
         self.camp_2 = CampanaFactory(type=Campana.TYPE_ENTRANTE, estado=Campana.ESTADO_ACTIVA)
+        QueueFactory.create(campana=self.camp_1)
+        QueueFactory.create(campana=self.camp_2)
         self.nodo_camp_1 = DestinoEntrante.crear_nodo_ruta_entrante(self.camp_1)
         self.nodo_camp_2 = DestinoEntrante.crear_nodo_ruta_entrante(self.camp_2)
 
@@ -67,12 +71,11 @@ class TestRestriccionEliminacionValidacionFechaHora(BaseTestRestriccionEliminaci
                              destino_siguiente=self.nodo_camp_2)
         url = reverse('eliminar_validacion_fecha_hora', args=[validacion_fh.id])
         response = self.client.post(url, follow=True)
-        mock_sincronizacion.assert_called_with(validacion_fh)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, ValidacionFechaHoraDeleteView.nodo_eliminado)
         self.assertEqual(ValidacionFechaHora.objects.count(), 0)
         self.assertEqual(DestinoEntrante.objects.count(), destinos_iniciales)
         self.assertEqual(OpcionDestino.objects.count(), 0)
+        mock_sincronizacion.assert_called_with(validacion_fh)
 
     @patch('configuracion_telefonia_app.regeneracion_configuracion_telefonia.'
            'SincronizadorDeConfiguracionValidacionFechaHoraAsterisk.eliminar_y_regenerar_asterisk')
@@ -124,8 +127,7 @@ class TestRestriccionEliminacionValidacionFechaHora(BaseTestRestriccionEliminaci
 
 class TestRestriccionEliminacionCampanaEntrante(BaseTestRestriccionEliminacion):
 
-    @patch('ominicontacto_app.services.creacion_queue.ActivacionQueueService'
-           '.sincronizar_por_eliminacion')
+    @patch.object(ActivacionQueueService, 'sincronizar_por_eliminacion')
     def test_elimina_campana_ok(self, sincronizar_por_eliminacion):
         # Intento Eliminar una Campaña que no es destino
         total_campanas = Campana.objects.count()
@@ -134,7 +136,8 @@ class TestRestriccionEliminacionCampanaEntrante(BaseTestRestriccionEliminacion):
         url = reverse('campana_elimina', args=[self.camp_1.id])
         response = self.client.post(url, follow=True)
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, u'Se llevó a cabo con éxito la eliminación de la campana')
+        self.camp_1.refresh_from_db()
+        self.assertEqual(self.camp_1.estado, Campana.ESTADO_BORRADA)
         self.assertEqual(Campana.objects.count(), total_campanas)
         self.assertEqual(Campana.objects.filter(estado=Campana.ESTADO_ACTIVA).count(),
                          campanas_iniciales - 1)

@@ -125,13 +125,13 @@ class TestInfiereMetadata(OMLBaseTest):
         service = PredictorMetadataService()
         metadata = service.inferir_metadata_desde_lineas(lineas)
 
-        self.assertEquals(metadata.cantidad_de_columnas, 5)
-        self.assertEquals(metadata.columna_con_telefono, 0)
-        self.assertEquals(metadata.columnas_con_fecha, [3])
-        self.assertEquals(metadata.columnas_con_hora, [4])
+        self.assertEqual(metadata.cantidad_de_columnas, 5)
+        self.assertEqual(metadata.columna_con_telefono, 0)
+        self.assertEqual(metadata.columnas_con_fecha, [3])
+        self.assertEqual(metadata.columnas_con_hora, [4])
 
-        self.assertEquals(metadata.primer_fila_es_encabezado, True)
-        self.assertEquals(metadata.nombres_de_columnas, ENCABEZADO_AJUSTADO)
+        self.assertEqual(metadata.primer_fila_es_encabezado, True)
+        self.assertEqual(metadata.nombres_de_columnas, ENCABEZADO_AJUSTADO)
 
     def test_no_infiere_nada_sin_datos(self):
         lineas = [
@@ -194,7 +194,7 @@ class TestSaneadorNombreDeCampo(OMLBaseTest):
 
         for nombre_original, nombre_saneado_esperado in NOMBRES:
             resultado = service.sanear_nombre_de_columna(nombre_original)
-            self.assertEquals(resultado,
+            self.assertEqual(resultado,
                               nombre_saneado_esperado,
                               "sanear_nombre_de_columna() ha devuelto un "
                               "valor inesperado al sanear '{0}'. "
@@ -228,7 +228,7 @@ class TestImportarDesdeCsvNoAscii(OMLBaseTest):
 
         service.importa_contactos(bd, ['telefono'], None)
 
-        self.assertEquals(Contacto.objects.count(), 2)
+        self.assertEqual(Contacto.objects.count(), 2)
         contactos = list(Contacto.objects.all())
         contactos_dict = dict([(c.telefono, c.datos) for c in contactos])
 

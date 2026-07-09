@@ -110,16 +110,17 @@ class ExportacionAgentsActivityV2ListadoServiceTest(SimpleTestCase):
             self.assertGreaterEqual(len(rows), 4)
             header = rows[0]
             self.assertEqual(header[0], 'Agente')
-            self.assertEqual(header[13], 'Talk Time')
-            self.assertEqual(header[14], 'ATT')
-            self.assertEqual(header[15], 'ACT')
+            self.assertEqual(header[13], 'Chat In')
+            self.assertEqual(header[15], 'Talk Time')
+            self.assertEqual(header[16], 'ATT')
+            self.assertEqual(header[17], 'ACT')
 
             first_data = rows[1]
             self.assertEqual(first_data[2], '01:00:00')
             self.assertEqual(first_data[3], '00:30:00')
-            self.assertEqual(first_data[13], '00:10:00')
-            self.assertEqual(first_data[14], '00:02:00')
-            self.assertEqual(first_data[15], '00:01:00')
+            self.assertEqual(first_data[15], '00:10:00')
+            self.assertEqual(first_data[16], '00:02:00')
+            self.assertEqual(first_data[17], '00:01:00')
 
             totals = rows[-1]
             self.assertEqual(totals[0], 'Total')
@@ -127,8 +128,8 @@ class ExportacionAgentsActivityV2ListadoServiceTest(SimpleTestCase):
             self.assertEqual(totals[4], '50.0')
             self.assertEqual(totals[6], '22.2')
             self.assertEqual(totals[8], '27.8')
-            self.assertEqual(totals[14], '')
-            self.assertEqual(totals[15], '')
+            self.assertEqual(totals[16], '')
+            self.assertEqual(totals[17], '')
 
             download_url = obtener_url_descarga_agents_activity_v2_listado(task_id)
             self.assertEqual(

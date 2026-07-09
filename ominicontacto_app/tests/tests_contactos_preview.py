@@ -22,6 +22,8 @@ Tests relacionados con la lista de contactos de los Agentes
 from __future__ import unicode_literals
 
 import json
+import csv
+from io import StringIO
 from mock import patch
 from django.utils.translation import gettext_lazy as _
 from django.core.files.uploadedfile import SimpleUploadedFile
@@ -36,6 +38,8 @@ from ominicontacto_app.models import AgenteEnContacto, Campana, User
 
 
 class AsignacionDeContactosPreviewTests(OMLBaseTest):
+
+    ejecutar_actualizar_permisos = True
 
     def setUp(self):
         self.agente_1 = self.crear_agente_profile()
@@ -436,34 +440,51 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
         self.assertEqual(content.find(self.contacto_2.telefono) >= 0, True)
 
     def test_importar_contactos_campana_preview_ok(self):
-        ag_en_cont_id_1, ag_en_cont_id_2 = AgenteEnContacto.objects.values_list('pk', flat=True)
+        ag_en_cont_1 = AgenteEnContacto.objects.get(
+            campana_id=self.campana_preview.pk, contacto_id=self.contacto_1.pk)
+        ag_en_cont_2 = AgenteEnContacto.objects.get(
+            campana_id=self.campana_preview.pk, contacto_id=self.contacto_2.pk)
+        self.client.login(username=self.supervisor.user.username, password=PASSWORD)
+        metadata = self.campana_preview.bd_contacto.get_metadata()
+        nombre_col = metadata.nombres_de_columnas[1]
+        apellido_col = metadata.nombres_de_columnas[2]
+        telefono_col = metadata.nombre_campo_telefono
         url = reverse('actualizar_contactos_preview', args=[self.campana_preview.pk, ])
-        csv_content = (f'id,{str(_("_telefono"))},{str(_("_nombre"))},{str(_("_apellido"))}\r\n'
-                       f'{ag_en_cont_id_1},{self.contacto_1.telefono},Boca,Juniors\r\n'
-                       f'{ag_en_cont_id_2},{self.contacto_2.telefono},River,Plate\r\n')
-
-        # Simular el archivo subido
+        export_url = reverse('descargar_datos_contactos_preview', args=[self.campana_preview.pk, ])
+        export_response = self.client.post(export_url, {})
+        csv_content = export_response.content.decode('utf8')
+        reader = list(csv.reader(StringIO(csv_content)))
+        header = reader[0]
+        rows = reader[1:]
+        row_by_ag_id = {int(row[0]): row for row in rows}
+        row_by_ag_id[ag_en_cont_1.pk][header.index(nombre_col)] = 'Boca'
+        row_by_ag_id[ag_en_cont_2.pk][header.index(nombre_col)] = 'River'
+        output = StringIO()
+        writer = csv.writer(output, lineterminator='\r\n')
+        writer.writerow(header)
+        for row in rows:
+            writer.writerow(row_by_ag_id[int(row[0])])
         csv_file = SimpleUploadedFile(
             "test.csv",
-            csv_content.encode("utf-8"),
+            output.getvalue().encode("utf-8"),
             content_type="text/csv"
         )
-
-        self.client.post(
+        response = self.client.post(
             url, {
                 "csv_actualizaciones_contactos": csv_file,
-                "campos_a_actualizar": [str(_("_nombre"))],
+                "campos_a_actualizar": [nombre_col],
             },
             follow=True)
+        self.assertEqual(response.status_code, 200)
 
-        agente_en_contacto1 = AgenteEnContacto.objects.get(pk=ag_en_cont_id_1)
-        agente_en_contacto2 = AgenteEnContacto.objects.get(pk=ag_en_cont_id_2)
+        agente_en_contacto1 = AgenteEnContacto.objects.get(pk=ag_en_cont_1.pk)
+        agente_en_contacto2 = AgenteEnContacto.objects.get(pk=ag_en_cont_2.pk)
 
         self.assertEqual(
-            json.loads(agente_en_contacto1.datos_contacto)[str(_("_nombre"))], 'Boca')
+            json.loads(agente_en_contacto1.datos_contacto)[nombre_col], 'Boca')
         self.assertNotEqual(
-            json.loads(agente_en_contacto1.datos_contacto)[str(_("_apellido"))], 'Juniors')
+            json.loads(agente_en_contacto1.datos_contacto)[apellido_col], 'Juniors')
         self.assertEqual(
-            json.loads(agente_en_contacto2.datos_contacto)[str(_("_nombre"))], 'River')
+            json.loads(agente_en_contacto2.datos_contacto)[nombre_col], 'River')
         self.assertNotEqual(
-            json.loads(agente_en_contacto2.datos_contacto)[str(_("_apellido"))], 'Plate')
+            json.loads(agente_en_contacto2.datos_contacto)[apellido_col], 'Plate')

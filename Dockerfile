@@ -136,9 +136,9 @@ RUN set -eux; \
       "${INSTALL_PREFIX}/asterisk/var/spool/monitor"
 
 COPY ominicontacto/ "${INSTALL_PREFIX}/ominicontacto/ominicontacto"
-COPY requirements "${INSTALL_PREFIX}/ominicontacto"
-COPY test "${INSTALL_PREFIX}/ominicontacto"
-COPY tests "${INSTALL_PREFIX}/ominicontacto"
+COPY requirements "${INSTALL_PREFIX}/ominicontacto/requirements"
+COPY test "${INSTALL_PREFIX}/ominicontacto/test"
+COPY tests "${INSTALL_PREFIX}/ominicontacto/tests"
 COPY api_app "${INSTALL_PREFIX}/ominicontacto/api_app"
 COPY configuracion_telefonia_app "${INSTALL_PREFIX}/ominicontacto/configuracion_telefonia_app"
 COPY ominicontacto_app "${INSTALL_PREFIX}/ominicontacto/ominicontacto_app"

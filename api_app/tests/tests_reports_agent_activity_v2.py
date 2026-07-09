@@ -40,6 +40,7 @@ class ReportsAgentActivityV2Test(OMLBaseTest):
     def _json(self, response):
         return json.loads(response.content.decode('utf-8'))
 
+    @patch('api_app.views.reports_agent_activity_v2._compute_allowed_agent_ids', return_value=(None, None))
     @patch('api_app.views.permissions.TienePermisoOML.has_permission', return_value=True)
     @patch('api_app.views.reports_agent_activity_v2._get_agent_whatsapp_act_avg')
     @patch('api_app.views.reports_agent_activity_v2.get_agent_transfer_counts')
@@ -52,6 +53,7 @@ class ReportsAgentActivityV2Test(OMLBaseTest):
         mock_transfers,
         mock_act_avg,
         _mock_permission,
+        _mock_allowed_agents,
     ):
         mock_activity.return_value = {
             'agents': [{
@@ -93,6 +95,7 @@ class ReportsAgentActivityV2Test(OMLBaseTest):
         self.assertEqual(row['transfer_pct'], 25.0)
         self.assertEqual(row['act_avg'], 75.0)
 
+    @patch('api_app.views.reports_agent_activity_v2._compute_allowed_agent_ids', return_value=(None, None))
     @patch('api_app.views.permissions.TienePermisoOML.has_permission', return_value=True)
     @patch('api_app.views.reports_agent_activity_v2._get_agent_whatsapp_act_avg')
     @patch('api_app.views.reports_agent_activity_v2.get_agent_transfer_counts')
@@ -105,6 +108,7 @@ class ReportsAgentActivityV2Test(OMLBaseTest):
         mock_transfers,
         mock_act_avg,
         _mock_permission,
+        _mock_allowed_agents,
     ):
         mock_activity.return_value = {'agents': [{'agente_id': 102}]}
         mock_interactions.return_value = [{
@@ -168,6 +172,7 @@ class ReportsAgentActivityV2Test(OMLBaseTest):
         _, interactions_kwargs = mock_interactions.call_args
         self.assertTrue(interactions_kwargs.get('include_whatsapp_in_out'))
 
+    @patch('api_app.views.reports_agent_activity_v2._compute_allowed_agent_ids', return_value=(None, None))
     @patch('api_app.views.permissions.TienePermisoOML.has_permission', return_value=True)
     @patch('api_app.views.reports_agent_activity_v2._get_agent_whatsapp_act_avg')
     @patch('api_app.views.reports_agent_activity_v2.get_agent_transfer_counts')
@@ -180,6 +185,7 @@ class ReportsAgentActivityV2Test(OMLBaseTest):
         mock_transfers,
         mock_act_avg,
         _mock_permission,
+        _mock_allowed_agents,
     ):
         mock_activity.return_value = {'agents': [{'agente_id': 104}]}
         mock_interactions.return_value = [{

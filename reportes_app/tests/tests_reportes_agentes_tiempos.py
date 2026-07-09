@@ -27,11 +27,10 @@ from mock import patch
 from django.test import override_settings
 from django.utils import timezone
 from ominicontacto_app.tests.utiles import OMLBaseTest
-from reportes_app.tests.utiles import GeneradorDeLlamadaLogs
+from reportes_app.tests.utiles import GeneradorDeLlamadaLogs, crear_llamada_log_y_resumen
 from ominicontacto_app.models import AgenteProfile, Campana, Pausa, User
 from ominicontacto_app.tests.factories import (
     CampanaFactory, ContactoFactory, ActividadAgenteLogFactory, PausaFactory,
-    LlamadaLogFactory
 )
 from reportes_app.reportes.reporte_agente_tiempos import TiemposAgente
 from ominicontacto_app.utiles import cast_datetime_part_date, datetime_hora_maxima_dia
@@ -653,18 +652,18 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         """ Test controla los tiempos de duracion de llamadas por fecha
         para un agente"""
         fecha_llamada = self.inicio_sesion_agente.time + timezone.timedelta(hours=2)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='COMPLETEAGENT', campana_id=self.dialer.id,
             numero_marcado='456892344', tipo_campana=self.dialer.type,
             tipo_llamada=self.dialer.type, agente_id=self.agente.id,
             duracion_llamada=44)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='COMPLETEOUTNUM', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id,
             duracion_llamada=62)
         fecha_anterior = fecha_llamada - timezone.timedelta(days=5)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_anterior, event='COMPLETEAGENT', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id,
@@ -695,21 +694,21 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         para un agente"""
         fecha_llamada = self.inicio_sesion_agente.time + timezone.timedelta(
             hours=2)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='BUSY', campana_id=self.dialer.id,
             numero_marcado='456892344', tipo_campana=self.dialer.type,
             tipo_llamada=self.dialer.type, agente_id=self.agente.id)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='NOANSWER', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='COMPLETEOUTNUM', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id,
             duracion_llamada=62)
         fecha_anterior = fecha_llamada - timezone.timedelta(days=5)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_anterior, event='FAIL', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id)
@@ -781,31 +780,31 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
             pausa_id=pausa1.id)
 
         fecha_llamada = self.inicio_sesion_agente.time
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='COMPLETEAGENT', campana_id=self.dialer.id,
             numero_marcado='456892344', tipo_campana=self.dialer.type,
             tipo_llamada=self.dialer.type, agente_id=self.agente.id,
             duracion_llamada=44)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='COMPLETEOUTNUM', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id,
             duracion_llamada=62)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='BUSY', campana_id=self.dialer.id,
             numero_marcado='456892344', tipo_campana=self.dialer.type,
             tipo_llamada=self.dialer.type, agente_id=self.agente.id)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_llamada, event='NOANSWER', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id)
         fecha_anterior = fecha_llamada - timezone.timedelta(days=10)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_anterior, event='COMPLETEAGENT', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id,
             duracion_llamada=88)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=fecha_anterior, event='FAIL', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id)
@@ -911,15 +910,15 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         # Creacion de Hold para el agente 1
         t_hold2 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=10)
         t_unhold2 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=30)
-        self.hold2 = LlamadaLogFactory(agente_id=self.agente1.id, event='HOLD', time=t_hold2)
-        self.unhold2 = LlamadaLogFactory(agente_id=self.agente1.id, event='UNHOLD',
+        self.hold2 = crear_llamada_log_y_resumen(agente_id=self.agente1.id, event='HOLD', time=t_hold2)
+        self.unhold2 = crear_llamada_log_y_resumen(agente_id=self.agente1.id, event='UNHOLD',
                                          callid=self.hold2.callid, time=t_unhold2)
 
         # Creacion de Hold para el agente
         t_hold1 = self.inicio_sesion_agente.time + timezone.timedelta(minutes=15)
         t_fin_conexion = self.inicio_sesion_agente.time + timezone.timedelta(minutes=30)
-        self.hold1 = LlamadaLogFactory(agente_id=self.agente.id, event='HOLD', time=t_hold1)
-        self.fin_conexion = LlamadaLogFactory(agente_id=self.agente.id, event="COMPLETEAGENT",
+        self.hold1 = crear_llamada_log_y_resumen(agente_id=self.agente.id, event='HOLD', time=t_hold1)
+        self.fin_conexion = crear_llamada_log_y_resumen(agente_id=self.agente.id, event="COMPLETEAGENT",
                                               time=t_fin_conexion, callid=self.hold1.callid)
         f_limite_1 = datetime_hora_maxima_dia(t_fin_conexion.date())
         reportes_agente = ActividadAgente(self.agente, f_limite_1)
@@ -935,11 +934,11 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         # Evento de Hold para el agente
         t_hold1 = self.inicio_sesion_agente.time + timezone.timedelta(minutes=15)
         t_unhold1 = self.inicio_sesion_agente.time + timezone.timedelta(minutes=30)
-        evento_hold = LlamadaLogFactory(
+        evento_hold = crear_llamada_log_y_resumen(
             time=t_hold1, event='HOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=t_unhold1, event='UNHOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente.id, callid=evento_hold.callid)
@@ -957,15 +956,15 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         t_unhold2 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=10)
         t_hold_2_1 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=30)
         t_unhold_2_2 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=40)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=t_unhold2, event='UNHOLD', campana_id=self.preview.id,
             numero_marcado='45683232', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id)
-        evento_hold_2 = LlamadaLogFactory(
+        evento_hold_2 = crear_llamada_log_y_resumen(
             time=t_hold_2_1, event='HOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=t_unhold_2_2, event='UNHOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id, callid=evento_hold_2.callid)
@@ -983,8 +982,8 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         # Evento de Hold terminando la llamada sin hacer UNHOLD
         t_hold1 = self.inicio_sesion_agente.time + timezone.timedelta(minutes=15)
         t_fin_conexion = self.inicio_sesion_agente.time + timezone.timedelta(minutes=30)
-        self.hold1 = LlamadaLogFactory(agente_id=self.agente.id, event='HOLD', time=t_hold1)
-        self.fin_conexion = LlamadaLogFactory(agente_id=self.agente.id, event="COMPLETEAGENT",
+        self.hold1 = crear_llamada_log_y_resumen(agente_id=self.agente.id, event='HOLD', time=t_hold1)
+        self.fin_conexion = crear_llamada_log_y_resumen(agente_id=self.agente.id, event="COMPLETEAGENT",
                                               time=t_fin_conexion, callid=self.hold1.callid)
         f_limite = datetime_hora_maxima_dia(t_fin_conexion.date())
         reportes_agente = ActividadAgente(self.agente, f_limite)
@@ -997,19 +996,19 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         t_unhold1 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=40)
         t_hold2 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=50)
         t_fin_conexion = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=60)
-        evento_hold_1 = LlamadaLogFactory(
+        evento_hold_1 = crear_llamada_log_y_resumen(
             time=t_hold1, event='HOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=t_unhold1, event='UNHOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id, callid=evento_hold_1.callid)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=t_hold2, event='HOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id, callid=evento_hold_1.callid)
-        self.fin_conexion = LlamadaLogFactory(agente_id=self.agente1.id, event="COMPLETEAGENT",
+        self.fin_conexion = crear_llamada_log_y_resumen(agente_id=self.agente1.id, event="COMPLETEAGENT",
                                               time=t_fin_conexion, callid=evento_hold_1.callid)
         f_limite = datetime_hora_maxima_dia(t_fin_conexion.date())
         reportes_agente = ActividadAgente(self.agente1, f_limite)
@@ -1022,11 +1021,11 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         fecha_superior = timezone.now() - timezone.timedelta(days=1)
         t_hold = fecha_inferior + timezone.timedelta(minutes=20)
         t_unhold = fecha_superior + timezone.timedelta(minutes=20)
-        evento_hold_2 = LlamadaLogFactory(
+        evento_hold_2 = crear_llamada_log_y_resumen(
             time=t_hold, event='HOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id)
-        LlamadaLogFactory(
+        crear_llamada_log_y_resumen(
             time=t_unhold, event='UNHOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id, callid=evento_hold_2.callid)

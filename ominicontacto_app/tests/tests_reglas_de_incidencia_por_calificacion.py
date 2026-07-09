@@ -39,6 +39,8 @@ from reportes_app.models import LlamadaLog
 
 class ReglaIncidenciaPorCalificacionTests(OMLBaseTest):
 
+    ejecutar_actualizar_permisos = True
+
     def setUp(self):
         super(ReglaIncidenciaPorCalificacionTests, self).setUp()
 
@@ -100,38 +102,26 @@ class ReglaIncidenciaPorCalificacionTests(OMLBaseTest):
             "maxAttempts": 5, "retryAfterS": 60, "mode": regla.get_en_modo_wombat()}
         self.assertEqual(file_data, expected_data)
 
-    @patch('ominicontacto_app.services.dialer.campana_wombat.CampanaService.reload_campana_wombat')
-    @patch('ominicontacto_app.services.dialer.wombat_api.WombatAPI.list_config_wombat')
-    @patch('ominicontacto_app.services.dialer.wombat_api.WombatAPI.post_json')
-    def test_borrar_regla_impacta_wombat(self, post_json, list_config_wombat, reload_campana):
+    @patch('ominicontacto_app.views_campana_dialer.get_dialer_service')
+    def test_borrar_regla_impacta_wombat(self, mock_get_dialer_service):
+        dialer_service = mock_get_dialer_service.return_value
+        dialer_service.eliminar_regla_de_incidencia.return_value = True
         regla = ReglaIncidenciaPorCalificacion(
             opcion_calificacion=self.opcion_calificacion_1, intento_max=5, reintentar_tarde=60,
             en_modo=ReglaIncidenciaPorCalificacion.FIXED)
         regla.save()
-        matching_rule = {'statusExt': regla.wombat_id, 'DATA': 'EXPECTED'}
-        list_config_wombat.return_value = {
-            "status": "OK",
-            "results": [
-                {'statusExt': regla.wombat_id + 'basura', 'DATA': 'IGNORED'},
-                matching_rule
-            ]
-        }
-        post_json.return_value = {'status': 'OK'}
 
         url = reverse('disposition_incidence_delete', kwargs={'pk': regla.id})
         response = self.client.post(url, follow=True)
         self.assertEqual(response.status_code, 200)
-        list_url = "api/edit/campaign/reschedule/?mode=L&parent={0}".format(
-            self.campana.campaign_id_wombat)
-        list_config_wombat.assert_called_with(list_url)
-        post_json.assert_called_with('api/edit/campaign/reschedule/?mode=D&parent={0}'.format(
-            self.campana.campaign_id_wombat), matching_rule)
+        dialer_service.eliminar_regla_de_incidencia.assert_called_with(
+            regla, es_de_calificacion=True)
         self.assertFalse(ReglaIncidenciaPorCalificacion.objects.filter(
             opcion_calificacion=self.opcion_calificacion_1).exists())
 
     @patch('ominicontacto_app.services.dialer.campana_wombat.CampanaService.reload_campana_wombat')
-    @patch('ominicontacto_app.services.dialer.wombat_api.WombatAPI.list_config_wombat')
-    @patch('ominicontacto_app.services.dialer.wombat_api.WombatAPI.post_json')
+    @patch('ominicontacto_app.services.dialer.campana_wombat.WombatAPI.list_config_wombat')
+    @patch('ominicontacto_app.services.dialer.campana_wombat.WombatAPI.post_json')
     def test_editar_regla_impacta_wombat(self, post_json, list_config_wombat, reload_campana):
         regla = ReglaIncidenciaPorCalificacion(
             opcion_calificacion=self.opcion_calificacion_1, intento_max=5, reintentar_tarde=60,

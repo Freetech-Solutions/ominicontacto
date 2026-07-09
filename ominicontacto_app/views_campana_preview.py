@@ -570,23 +570,20 @@ class ActualizarContactosBDResourceImport(resources.ModelResource):
     def before_import_row(self, row, **kwargs):
         row['id'] = row['contacto_id']
 
-    def import_obj(self, instance, row, dry_run, **kwargs):
-        """ Actualizar en "row" los nuevos datos a guardar en instance """
+    def import_instance(self, instance, row, **kwargs):
+        """ Actualizar en row los nuevos datos a guardar en instance """
         try:
             nombre_campo_telefono = kwargs.get('nombre_campo_telefono')
             index_campos_a_actualizar = kwargs.get('index_campos_a_actualizar')
             read_row = row
 
-            # Tomo los datos viejos de la instancia
             telefono = instance.telefono
             datos = json.loads(instance.datos)
 
             for campo in index_campos_a_actualizar:
                 if campo == nombre_campo_telefono:
-                    # Actualizo el campo telefónico si corresponde
                     telefono = read_row[nombre_campo_telefono]
                 else:
-                    # Actualizo los campos de datos correspondientes
                     pos = index_campos_a_actualizar[campo]
                     datos[pos] = read_row[campo]
 
@@ -599,36 +596,32 @@ class ActualizarContactosBDResourceImport(resources.ModelResource):
             logger.error(e)
             raise e
 
-        super(ActualizarContactosBDResourceImport, self).import_obj(
-            instance, row, dry_run, **kwargs)
+        super(ActualizarContactosBDResourceImport, self).import_instance(
+            instance, row, **kwargs)
 
     class Meta:
         model = Contacto
         fields = ('id', 'telefono', 'datos')
         export_order = ('id', 'telefono', 'datos')
-        use_bulk = True
+        use_bulk = False
 
 
 class ActualizarContactosResourceImport(resources.ModelResource):
 
-    def import_obj(self, instance, row, dry_run, **kwargs):
-        """ Actualizar en "row" los nuevos datos a guardar en instance """
+    def import_instance(self, instance, row, **kwargs):
+        """ Actualizar en row los nuevos datos a guardar en instance """
         try:
-
             campos_a_actualizar = kwargs.get('campos_a_actualizar')
             nombre_campo_telefono = kwargs.get('nombre_campo_telefono')
             read_row = row
 
-            # Tomo los datos viejos de la instancia
             telefono = instance.telefono_contacto
             datos_contacto = json.loads(instance.datos_contacto)
 
             for campo in campos_a_actualizar:
                 if campo == nombre_campo_telefono:
-                    # Actualizo el campo telefónico si corresponde
                     telefono = read_row[nombre_campo_telefono]
                 else:
-                    # Actualizo los campos de datos correspondientes
                     datos_contacto[campo] = read_row[campo]
 
             row = {
@@ -640,15 +633,15 @@ class ActualizarContactosResourceImport(resources.ModelResource):
             logger.error(e)
             raise e
 
-        super(ActualizarContactosResourceImport, self).import_obj(
-            instance, row, dry_run, **kwargs)
+        super(ActualizarContactosResourceImport, self).import_instance(
+            instance, row, **kwargs)
 
     class Meta:
         model = AgenteEnContacto
         fields = ('id', 'telefono_contacto', 'datos_contacto')
         export_order = (
             'id', 'telefono_contacto', 'datos_contacto')
-        use_bulk = True
+        use_bulk = False
 
 
 class ActualizarContactosView(FormView):

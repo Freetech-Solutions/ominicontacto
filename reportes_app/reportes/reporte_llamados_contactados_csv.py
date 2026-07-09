@@ -48,6 +48,21 @@ from reportes_app.models import LlamadaResumen
 
 logger = logging.getLogger(__name__)
 
+
+def _fecha_fin_llamada(llamada_log):
+    """LlamadaResumen usa fecha_fin; LlamadaLog usa time."""
+    fecha_fin = getattr(llamada_log, 'fecha_fin', None)
+    return fecha_fin if fecha_fin is not None else llamada_log.time
+
+
+def _duracion_segundos_llamada(llamada_log):
+    """LlamadaResumen usa duracion_segundos; LlamadaLog usa duracion_llamada."""
+    duracion = getattr(llamada_log, 'duracion_segundos', None)
+    if duracion is not None:
+        return duracion
+    return llamada_log.duracion_llamada
+
+
 NO_CONECTADO_DESCRIPCION = {
     'NOANSWER': _('No atiende'),
     'CANCEL': _('Se corta antes que atienda el cliente'),
@@ -211,8 +226,8 @@ class ReporteContactadosCSV(EstadisticasBaseCampana, ReporteCSV):
         tel_status, bd_contacto, datos_contacto = self.\
             _obtener_datos_contacto_contactados(llamada_log, calificacion, datos_contacto)
 
-        fecha_local_llamada = localtime(llamada_log.fecha_fin)
-        duracion_llamada = llamada_log.duracion_segundos
+        fecha_local_llamada = localtime(_fecha_fin_llamada(llamada_log))
+        duracion_llamada = _duracion_segundos_llamada(llamada_log)
         if duracion_llamada and float(duracion_llamada) > 0:
             duracion_llamada = timedelta(seconds=float(duracion_llamada))
         else:
@@ -443,7 +458,7 @@ class ReporteNoAtendidosCSV(EstadisticasBaseCampana, ReporteCSV):
     def _escribir_linea_log(self, log_no_contactado, contactos_dict, agentes_dict):
         lista_opciones = []
         # --- Buscamos datos
-        log_no_contactado_fecha_local = localtime(log_no_contactado.fecha_fin)
+        log_no_contactado_fecha_local = localtime(_fecha_fin_llamada(log_no_contactado))
         estado = NO_CONECTADO_DESCRIPCION.get(log_no_contactado.event, False)
         if estado:
             lista_opciones.append(log_no_contactado.numero_marcado)

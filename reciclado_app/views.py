@@ -46,17 +46,39 @@ class ReciclarCampanaMixin(object):
     form_class = RecicladoForm
     template_name = 'nuevo_reciclado.html'
 
+    def _get_campana(self):
+        if not hasattr(self, '_campana_cache'):
+            self._campana_cache = Campana.objects.get(pk=self.kwargs['pk_campana'])
+        return self._campana_cache
+
+    def _get_estadisticas_reciclado(self):
+        if not hasattr(self, '_estadisticas_reciclado_cache'):
+            campana = self._get_campana()
+            estadisticas = EstadisticasContactacion()
+            self._estadisticas_reciclado_cache = {
+                'estadisticas': estadisticas,
+                'campana': campana,
+                'calificaciones': estadisticas.obtener_cantidad_calificacion(campana),
+            }
+        return self._estadisticas_reciclado_cache
+
+    def _get_no_contactados_estadisticas(self):
+        cache = self._get_estadisticas_reciclado()
+        if 'no_contactados' not in cache:
+            cache['no_contactados'] = cache['estadisticas'].obtener_cantidad_no_contactados(
+                cache['campana'])
+        return cache['no_contactados']
+
     def get_form_kwargs(self):
         kwargs = super(ReciclarCampanaMixin, self).get_form_kwargs()
-        estadisticas = EstadisticasContactacion()
-        campana = Campana.objects.get(pk=self.kwargs['pk_campana'])
-
-        contactados = estadisticas.obtener_cantidad_calificacion(campana)
-        contactados_choice = [(contactacion.id, contactacion.label_checkbox)
-                              for contactacion in contactados]
+        cache = self._get_estadisticas_reciclado()
+        contactados_choice = [
+            (contactacion.id, contactacion.label_checkbox)
+            for contactacion in cache['calificaciones']
+        ]
         kwargs['reciclado_choice'] = contactados_choice
-        kwargs['no_contactados_choice'] = self._obtener_choices_no_contactados(estadisticas,
-                                                                               campana)
+        kwargs['no_contactados_choice'] = self._obtener_choices_no_contactados(
+            cache['estadisticas'], cache['campana'])
         return kwargs
 
     def form_valid(self, form):
@@ -113,15 +135,15 @@ class ReciclarCampanaMixin(object):
 
     def get_context_data(self, **kwargs):
         context = super(ReciclarCampanaMixin, self).get_context_data(**kwargs)
-        estadisticas = EstadisticasContactacion()
-        campana = Campana.objects.get(pk=self.kwargs['pk_campana'])
-        contactados = estadisticas.obtener_cantidad_calificacion(campana)
-        contactados_choice = [(contactacion.id, contactacion.nombre, contactacion.cantidad)
-                              for contactacion in contactados]
+        cache = self._get_estadisticas_reciclado()
+        contactados_choice = [
+            (contactacion.id, contactacion.nombre, contactacion.cantidad)
+            for contactacion in cache['calificaciones']
+        ]
         context['contactados'] = contactados_choice
-        no_contactados_con_cantidad = self._obtener_cantidad_no_contactados(estadisticas, campana)
-        context['no_contactados'] = no_contactados_con_cantidad
-        context['es_campana_preview'] = campana.es_preview
+        context['no_contactados'] = self._obtener_cantidad_no_contactados(
+            cache['estadisticas'], cache['campana'])
+        context['es_campana_preview'] = cache['campana'].es_preview
         return context
 
     def _obtener_choices_no_contactados(self, estadisticas: EstadisticasContactacion, campana):
@@ -140,10 +162,14 @@ class ReciclarCampanaDialerFormView(ReciclarCampanaMixin, FormView):
     dialer
     """
     def dispatch(self, request, *args, **kwargs):
-        form = self.get_form_kwargs()
-        contactados = form.get('reciclado_choice')
-        no_contactados = form.get('no_contactados_choice')
-        campana = Campana.objects.get(pk=self.kwargs['pk_campana'])
+        campana = self._get_campana()
+        cache = self._get_estadisticas_reciclado()
+        contactados = [
+            (contactacion.id, contactacion.label_checkbox)
+            for contactacion in cache['calificaciones']
+        ]
+        no_contactados = self._obtener_choices_no_contactados(
+            cache['estadisticas'], cache['campana'])
         if campana.estado not in [Campana.ESTADO_FINALIZADA, Campana.ESTADO_PAUSADA]:
             message = _(u'Solo se pueden reciclar campañas finalizadas y/o pausadas.')
             messages.add_message(self.request, messages.WARNING, message)
@@ -201,12 +227,12 @@ class ReciclarCampanaDialerFormView(ReciclarCampanaMixin, FormView):
         dialer_service.cambiar_bd_contactos(campana, params)
 
     def _obtener_choices_no_contactados(self, estadisticas: EstadisticasContactacion, campana):
-        no_contactados = estadisticas.obtener_cantidad_no_contactados(campana)
+        no_contactados = self._get_no_contactados_estadisticas()
         return [(value.id, value.label_checkbox)
                 for key, value in no_contactados.items()]
 
     def _obtener_cantidad_no_contactados(self, estadisticas: EstadisticasContactacion, campana):
-        no_contactados = estadisticas.obtener_cantidad_no_contactados(campana)
+        no_contactados = self._get_no_contactados_estadisticas()
         return [(value.id, value.nombre, value.cantidad) for key, value in no_contactados.items()]
 
     def _obtener_reciclador(self):

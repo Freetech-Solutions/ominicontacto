@@ -62,16 +62,16 @@ class TestWorkflowCreacionBdContactoDesdeCsv(OMLBaseTest):
 
         # ----- checks
 
-        self.assertEquals(BaseDatosContacto.objects.get(pk=bd_contacto.id).estado,
+        self.assertEqual(BaseDatosContacto.objects.get(pk=bd_contacto.id).estado,
                           BaseDatosContacto.ESTADO_DEFINIDA,
                           "La BD no ha quedado en estado ESTADO_DEFINIDA")
 
         nros_telefono = [contacto.telefono
                          for contacto in Contacto.objects.filter(bd_contacto=bd_contacto.id)]
 
-        self.assertEquals(len(nros_telefono), 3, "Deberia haber 3 contactos")
+        self.assertEqual(len(nros_telefono), 3, "Deberia haber 3 contactos")
 
-        self.assertEquals(set(nros_telefono),
+        self.assertEqual(set(nros_telefono),
                           set(['354303459865', '111534509230', '283453013491']),
                           "Deberia haber 3 contactos")
 
@@ -109,7 +109,7 @@ class TestWorkflowCreacionBdContactoDesdeCsv(OMLBaseTest):
 
             # ----- checks
 
-            self.assertEquals(BaseDatosContacto.objects.get(pk=bd_contacto.id).estado,
+            self.assertEqual(BaseDatosContacto.objects.get(pk=bd_contacto.id).estado,
                               BaseDatosContacto.ESTADO_DEFINIDA,
                               "La BD generada desde '{0}' NO ha quedado en estado ESTADO_DEFINIDA"
                               "".format(planilla))

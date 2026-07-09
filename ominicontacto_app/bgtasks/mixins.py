@@ -283,7 +283,7 @@ class SearchRecordingsMixin(object):
                     # - port of BusquedaGrabacionFormView._get_calificaciones
                     identificadores = [
                         (
-                            str(a['contacto_id']),
+                            a['contacto_id'],
                             a['campana_id'],
                             a['callid'],
                         )
@@ -292,9 +292,14 @@ class SearchRecordingsMixin(object):
                     _filtro = models.Q()
                     _callids = []
                     for contacto_id, campana_id, callid in identificadores:
-                        if contacto_id and campana_id and not contacto_id == '-1':
+                        if (
+                            contacto_id is not None
+                            and campana_id
+                            and str(contacto_id) not in ('-1', 'None')
+                        ):
                             _filtro = _filtro | models.Q(
-                                contacto_id=contacto_id, opcion_calificacion__campana_id=campana_id
+                                contacto_id=str(contacto_id),
+                                opcion_calificacion__campana_id=campana_id,
                             )
                         else:
                             _callids.append(callid)

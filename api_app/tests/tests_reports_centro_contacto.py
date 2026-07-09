@@ -834,6 +834,7 @@ class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
             self, mock_interactions_summary, mock_interaction_transfers, mock_campana):
         queryset = Mock()
         queryset.filter.return_value = queryset
+        queryset.annotate.return_value = queryset
         values_qs = Mock()
         annotate_qs = Mock()
         annotate_qs.order_by.return_value = [
@@ -851,17 +852,32 @@ class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
         ]
         values_qs.annotate.return_value = annotate_qs
         queryset.values.return_value = values_qs
-        queryset.values_list.side_effect = [
-            [('call-1', 1), ('call-2', 3)],
-            [('call-1', 1, 'EXIT_ANSWERED'), ('call-2', 3, 'EXIT_TIMEOUT')],
-        ]
+        def values_list_side_effect(*fields):
+            if len(fields) >= 4:
+                return [
+                    ('call-1', 1, 'EXIT_ANSWERED', {}),
+                    ('call-2', 3, 'EXIT_TIMEOUT', {}),
+                ]
+            return [('call-1', 1), ('call-2', 3)]
+
+        queryset.values_list.side_effect = values_list_side_effect
         mock_interactions_summary.objects.all.return_value = queryset
 
         transfer_queryset = Mock()
-        transfer_queryset.values_list.return_value = [
-            ('call-1', 2),
-            ('call-2', 2),
-        ]
+        transfer_queryset.filter.return_value = transfer_queryset
+        transfer_created_at = timezone.now()
+
+        def transfer_values_list_side_effect(*fields):
+            if fields == (
+                'interaction_id', 'destination_campaign_id', 'created_at', 'talk_time_after',
+            ):
+                return [
+                    ('call-1', 2, transfer_created_at, None),
+                    ('call-2', 2, transfer_created_at, None),
+                ]
+            return [('call-1', 2), ('call-2', 2)]
+
+        transfer_queryset.values_list.side_effect = transfer_values_list_side_effect
         mock_interaction_transfers.objects.filter.return_value = transfer_queryset
 
         campana_qs = Mock()
@@ -894,8 +910,15 @@ class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
         self.assertEqual(rows_by_campaign[2]['transfer_out_count'], 0)
 
         transfer_kwargs = mock_interaction_transfers.objects.filter.call_args[1]
-        self.assertEqual(transfer_kwargs['status__iexact'], 'OK')
-        self.assertEqual(transfer_kwargs['destination_campaign_id__isnull'], False)
+        self.assertIn('interaction_id__in', transfer_kwargs)
+        from reportes_app.models import q_interaction_transfers_campaign_blind_consult
+        expected_q = q_interaction_transfers_campaign_blind_consult()
+        q_filter_calls = [
+            call_args[0][0]
+            for call_args in transfer_queryset.filter.call_args_list
+            if call_args[0]
+        ]
+        self.assertIn(expected_q, q_filter_calls)
 
 
 class GetOmnichannelShareDataViewTest(OMLBaseTest):

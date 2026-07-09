@@ -42,6 +42,7 @@ from ominicontacto_app.services.campaign_redis_status import set_campaign_status
 from ominicontacto_app.forms.base import (
     UpdateBaseDatosForm, ReglaIncidenciaPorCalificacionForm, ReglasIncidenciaForm)
 from ominicontacto_app.views_campana import CampanaSupervisorUpdateView, CampanasDeleteMixin
+from ominicontacto_app.views.custom_delete_mixin import CustomDeleteViewMixin
 from requests.exceptions import RequestException
 
 from itertools import chain
@@ -491,7 +492,8 @@ class ReglasDeIncidenciaDeCalificacionesListView(ListView, VerificarPremisoEnCam
         return qs
 
 
-class ReglasDeIncidenciaDeCalificacionesDeleteView(DeleteView, VerificarPremisoEnCampanaMixin):
+class ReglasDeIncidenciaDeCalificacionesDeleteView(
+        CustomDeleteViewMixin, DeleteView, VerificarPremisoEnCampanaMixin):
     model = ReglaIncidenciaPorCalificacion
     template_name = 'campanas/campana_dialer/reglas_incidencia_calificacion_delete.html'
 
@@ -619,7 +621,7 @@ class ReglasDeIncidenciaDeCalificacionesUpdateView(UpdateView, VerificarPremisoE
         return super(ReglasDeIncidenciaDeCalificacionesUpdateView, self).form_valid(form)
 
 
-class ReglasDeIncidenciaDeleteView(DeleteView, VerificarPremisoEnCampanaMixin):
+class ReglasDeIncidenciaDeleteView(CustomDeleteViewMixin, DeleteView, VerificarPremisoEnCampanaMixin):
     model = ReglasIncidencia
     template_name = 'campanas/campana_dialer/reglas_incidencia_calificacion_delete.html'
 

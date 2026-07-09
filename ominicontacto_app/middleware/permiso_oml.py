@@ -20,6 +20,12 @@ from utiles_globales import request_url_name
 from django.core.exceptions import PermissionDenied
 
 
+# URLs accesibles con permisos alternativos (misma regla que en DRF permissions).
+URL_PERMISOS_ALTERNATIVOS = {
+    'api_interaction_transfers_centro_contacto': ('grabacion_buscar',),
+}
+
+
 class PermisoOMLMiddleware:
 
     def __init__(self, get_response):
@@ -41,5 +47,9 @@ class PermisoOMLMiddleware:
         # Si el agente no esta loggeado dejo que se encargue login_required
         if request.user.is_authenticated:
             url_name = request_url_name(request)
-            if not request.user.tiene_permiso_oml(url_name):
-                raise PermissionDenied
+            if request.user.tiene_permiso_oml(url_name):
+                return
+            permisos_alternativos = URL_PERMISOS_ALTERNATIVOS.get(url_name, ())
+            if any(request.user.tiene_permiso_oml(p) for p in permisos_alternativos):
+                return
+            raise PermissionDenied

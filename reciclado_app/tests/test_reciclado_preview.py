@@ -111,8 +111,9 @@ class RecicladoTest(OMLBaseTest):
         for contactado in calificados:
             contactados_dict.update({contactado.id: contactado.cantidad})
         for contactacion in calificaciones_query:
-            self.assertEquals(contactacion['opcion_calificacion__count'],
-                              contactados_dict[contactacion['opcion_calificacion__id']])
+            self.assertEqual(
+                contactacion['opcion_calificacion__count'],
+                contactados_dict[contactacion['opcion_calificacion__id']])
 
     def test_obtiene_contactos_reciclados_no_contactados(self):
         reciclador = RecicladorContactosCampanaDIALER()

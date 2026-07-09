@@ -21,7 +21,7 @@ from __future__ import unicode_literals
 from django.utils.translation import gettext as _
 from django.utils.timezone import now, timedelta
 from reportes_app.actividad_agente_log import AgenteTiemposReporte
-from reportes_app.models import ActividadAgenteLog, LlamadaResumen
+from reportes_app.models import ActividadAgenteLog, LlamadaLog, LlamadaResumen
 from ominicontacto_app.utiles import datetime_hora_maxima_dia, datetime_hora_minima_dia, fecha_local
 from ominicontacto_app.models import Pausa
 
@@ -343,43 +343,43 @@ class TiemposAgente(object):
         evento_hold = ['HOLD']
         evento_unhold = ['UNHOLD']
         tiempo_hold = timedelta(0)
-        hold_fecha = [hold for hold in LlamadaResumen.objects.obtener_evento_hold_fecha(
+        hold_fecha = [hold for hold in LlamadaLog.objects.obtener_evento_hold_fecha(
             evento_hold,
             fecha_inferior,
             fecha_superior,
             agente.id)]
 
-        primer_unhold = LlamadaResumen.objects.obtener_evento_hold_fecha(evento_unhold, fecha_inferior,
+        primer_unhold = LlamadaLog.objects.obtener_evento_hold_fecha(evento_unhold, fecha_inferior,
                                                                      fecha_superior, agente.id
                                                                      ).first()
         if hold_fecha:
             primer_hold = hold_fecha[0]
-            if primer_unhold and primer_unhold.fecha_fin < primer_hold.fecha_fin:
-                tiempo_hold += primer_unhold.fecha_fin - fecha_inferior
+            if primer_unhold and primer_unhold.time < primer_hold.time:
+                tiempo_hold += primer_unhold.time - fecha_inferior
 
         for log in hold_fecha:
-            fecha_actual = fecha_local(log.fecha_fin)
+            fecha_actual = fecha_local(log.time)
             agente_en_lista = list(filter(lambda x: x.agente == fecha_actual,
                                           agente_fecha))
-            inicio_hold = log.fecha_fin
+            inicio_hold = log.time
             callid = log.callid
             holdid = log.id
             fecha_hasta = datetime_hora_maxima_dia(fecha_actual)
-            unhold_fecha = LlamadaResumen.objects.using('replica')\
+            unhold_fecha = LlamadaLog.objects.using('replica')\
                 .filter(agente_id=agente.id, callid=callid,
-                        event='UNHOLD', fecha_fin__range=(log.fecha_fin, fecha_hasta))\
-                .order_by('fecha_fin').first()
+                        event='UNHOLD', time__range=(log.time, fecha_hasta))\
+                .order_by('time').first()
             if unhold_fecha:
                 # Si existen varios unhold dentro de una llamada se elige el primero
-                fin_hold = unhold_fecha.fecha_fin
+                fin_hold = unhold_fecha.time
             else:
                 # Si se corta la llamada sin haber podido hacer unhold o por otro motivo
-                log_llamada = LlamadaResumen.objects.using('replica')\
+                log_llamada = LlamadaLog.objects.using('replica')\
                     .filter(agente_id=agente.id, callid=callid,
-                            fecha_fin__range=(log.fecha_fin, fecha_hasta))\
-                    .exclude(id=holdid).order_by('fecha_fin').first()
+                            time__range=(log.time, fecha_hasta))\
+                    .exclude(id=holdid).order_by('time').first()
                 if log_llamada and log_llamada.event != 'HOLD':
-                    fin_hold = log_llamada.fecha_fin
+                    fin_hold = log_llamada.time
                 else:
                     fin_hold = now() \
                         if datetime_hora_maxima_dia(fecha_superior) >= now() else fecha_superior

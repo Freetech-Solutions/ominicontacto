@@ -200,126 +200,59 @@ class DestinoPersonalizadoFamilyTest(RedisDatabaseTest):
 
 class CampanaFamilyTest(RedisDatabaseTest):
 
-    def test_devuelve_diccionario_con_datos_correctos_entrante(self):
-        dict = {
-            'QNAME': self.campana_entrante.get_queue_id_name(),
-            'TYPE': self.campana_entrante.type,
-            'REC': str(self.campana_entrante.queue_campana.auto_grabacion),
-            'AMD': str(self.campana_entrante.queue_campana.detectar_contestadores),
-            'CALLAGENTACTION': self.campana_entrante.tipo_interaccion,
+    def _expected_campana_dict(self, campana):
+        return {
+            'QNAME': campana.get_queue_id_name(),
+            'TYPE': campana.type,
+            'REC': str(campana.queue_campana.auto_grabacion),
+            'AMD': str(campana.queue_campana.detectar_contestadores),
+            'CALLAGENTACTION': campana.tipo_interaccion,
             'RINGTIME': "",
-            'QUEUETIME': self.campana_entrante.queue_campana.wait,
-            'MAXQCALLS': self.campana_entrante.queue_campana.maxlen,
-            'SL': self.campana_entrante.queue_campana.servicelevel,
+            'QUEUETIME': campana.queue_campana.wait,
+            'MAXQCALLS': campana.queue_campana.maxlen,
+            'SL': campana.queue_campana.servicelevel,
             'OUTR': "",
             'OUTCID': "",
-            'IDEXTERNALURL': "",
-            'FAILOVER': "0",
-            'CUSTOMDIALERDST': "0",
-            'TC': "",  # a partir de esta variable no se usan las siguientes variables:
+            'TC': "",
             'IDJSON': "",
             'PERMITOCCULT': "",
             'MAXCALLS': "",
-            'VIDEOCALL': 'False',
-            'SHOWCAMPNAME': self.campana_entrante.nombre,
-            'SHOWDID': 'False',
-            'SHOWINROUTENAME': 'False',
-            'TRANSCRIPTION_PER': 100,
-            'RESUME_PER': 100,
+            'VIDEOCALL': str(campana.videocall_habilitada),
+            'SHOWDID': str(campana.mostrar_did),
+            'SHOWINROUTENAME': str(campana.mostrar_nombre_ruta_entrante),
+            'SHOWCAMPNAME': campana.nombre if campana.mostrar_nombre else "",
+            'TRANSCRIPTION_PER': campana.queue_campana.transcription_percentage,
+            'RESUME_PER': campana.queue_campana.summarize_percentage,
+            'IDEXTERNALURL': "",
+            'FAILOVER': "0",
+            'CUSTOMDIALERDST': "0",
+            'VOICEBOT': 'False',
         }
-        family = CampanaFamily()
 
-        self.assertEqual(dict, family._create_dict(self.campana_entrante))
+    def test_devuelve_diccionario_con_datos_correctos_entrante(self):
+        family = CampanaFamily()
+        self.assertEqual(
+            self._expected_campana_dict(self.campana_entrante),
+            family._create_dict(self.campana_entrante),
+        )
 
     def test_devuelve_diccionario_con_datos_correctos_dialer(self):
-        dict = {
-            'QNAME': self.campana_dialer.get_queue_id_name(),
-            'TYPE': self.campana_dialer.type,
-            'REC': str(self.campana_dialer.queue_campana.auto_grabacion),
-            'AMD': str(self.campana_dialer.queue_campana.detectar_contestadores),
-            'CALLAGENTACTION': self.campana_dialer.tipo_interaccion,
-            'RINGTIME': "",
-            'QUEUETIME': self.campana_dialer.queue_campana.wait,
-            'MAXQCALLS': self.campana_dialer.queue_campana.maxlen,
-            'SL': self.campana_dialer.queue_campana.servicelevel,
-            'OUTR': "",
-            'OUTCID': "",
-            'IDEXTERNALURL': "",
-            'FAILOVER': "0",
-            'CUSTOMDIALERDST': "0",
-            'TC': "",  # a partir de esta variable no se usan las siguientes variables:
-            'IDJSON': "",
-            'PERMITOCCULT': "",
-            'MAXCALLS': "",
-            'VIDEOCALL': 'False',
-            'SHOWCAMPNAME': self.campana_dialer.nombre,
-            'SHOWDID': 'False',
-            'SHOWINROUTENAME': 'False',
-            'TRANSCRIPTION_PER': 100,
-            'RESUME_PER': 100,
-        }
         family = CampanaFamily()
-
-        self.assertEqual(dict, family._create_dict(self.campana_dialer))
+        self.assertEqual(
+            self._expected_campana_dict(self.campana_dialer),
+            family._create_dict(self.campana_dialer),
+        )
 
     def test_devuelve_diccionario_con_datos_correctos_manual(self):
-        dict = {
-            'QNAME': self.campana_manual.get_queue_id_name(),
-            'TYPE': self.campana_manual.type,
-            'REC': str(self.campana_manual.queue_campana.auto_grabacion),
-            'AMD': str(self.campana_manual.queue_campana.detectar_contestadores),
-            'CALLAGENTACTION': self.campana_manual.tipo_interaccion,
-            'RINGTIME': "",
-            'QUEUETIME': self.campana_manual.queue_campana.wait,
-            'MAXQCALLS': self.campana_manual.queue_campana.maxlen,
-            'SL': self.campana_manual.queue_campana.servicelevel,
-            'OUTR': "",
-            'OUTCID': "",
-            'IDEXTERNALURL': "",
-            'FAILOVER': "0",
-            'CUSTOMDIALERDST': "0",
-            'TC': "",  # a partir de esta variable no se usan las siguientes variables:
-            'IDJSON': "",
-            'PERMITOCCULT': "",
-            'MAXCALLS': "",
-            'VIDEOCALL': 'False',
-            'SHOWCAMPNAME': self.campana_manual.nombre,
-            'SHOWDID': 'False',
-            'SHOWINROUTENAME': 'False',
-            'TRANSCRIPTION_PER': 100,
-            'RESUME_PER': 100,
-        }
         family = CampanaFamily()
-
-        self.assertEqual(dict, family._create_dict(self.campana_manual))
+        self.assertEqual(
+            self._expected_campana_dict(self.campana_manual),
+            family._create_dict(self.campana_manual),
+        )
 
     def test_devuelve_diccionario_con_datos_correctos_preview(self):
-        dict = {
-            'QNAME': self.campana_preview.get_queue_id_name(),
-            'TYPE': self.campana_preview.type,
-            'REC': str(self.campana_preview.queue_campana.auto_grabacion),
-            'AMD': str(self.campana_preview.queue_campana.detectar_contestadores),
-            'CALLAGENTACTION': self.campana_preview.tipo_interaccion,
-            'RINGTIME': "",
-            'QUEUETIME': self.campana_preview.queue_campana.wait,
-            'MAXQCALLS': self.campana_preview.queue_campana.maxlen,
-            'SL': self.campana_preview.queue_campana.servicelevel,
-            'OUTR': "",
-            'OUTCID': "",
-            'IDEXTERNALURL': "",
-            'FAILOVER': "0",
-            'CUSTOMDIALERDST': "0",
-            'TC': "",  # a partir de esta variable no se usan las siguientes variables:
-            'IDJSON': "",
-            'PERMITOCCULT': "",
-            'MAXCALLS': "",
-            'VIDEOCALL': 'False',
-            'SHOWCAMPNAME': self.campana_preview.nombre,
-            'SHOWDID': 'False',
-            'SHOWINROUTENAME': 'False',
-            'TRANSCRIPTION_PER': 100,
-            'RESUME_PER': 100,
-        }
         family = CampanaFamily()
-
-        self.assertEqual(dict, family._create_dict(self.campana_preview))
+        self.assertEqual(
+            self._expected_campana_dict(self.campana_preview),
+            family._create_dict(self.campana_preview),
+        )

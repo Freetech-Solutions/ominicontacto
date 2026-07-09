@@ -43,6 +43,8 @@ COMPLEX_PASSWORD = '*FTS*OML1*'
 
 class ABMUsuariosTest(OMLBaseTest):
 
+    ejecutar_actualizar_permisos = True
+
     def setUp(self):
         super(ABMUsuariosTest, self).setUp()
         self.admin = self.crear_administrador(username='admin1')
@@ -270,7 +272,7 @@ class BorrarUsuariosTest(ABMUsuariosTest):
             user_agente.get_full_name()))
         self.assertContains(response, message)
 
-    @patch('ominicontacto_app.services.queue_member_service.'
+    @patch('ominicontacto_app.views_user_profiles.'
            'QueueMemberService.eliminar_agente_de_colas_asignadas')
     def test_supervisor_puede_borrar_agentes_asignados_a_sus_campanas(
             self, eliminar_agente_de_colas_asignadas):
@@ -280,13 +282,13 @@ class BorrarUsuariosTest(ABMUsuariosTest):
         url = reverse('agent_delete', kwargs={'pk': user_agente.id})
         response = self.client.post(url, follow=True)
         self.assertEqual(response.status_code, 200)
-        eliminar_agente_de_colas_asignadas.assert_called_with(self.agente)
         self.assertRedirects(response, reverse('user_list', kwargs={"page": 1}))
 
         user_agente.refresh_from_db()
         self.assertTrue(user_agente.borrado)
+        eliminar_agente_de_colas_asignadas.assert_called_with(self.agente)
 
-    @patch('ominicontacto_app.services.queue_member_service.'
+    @patch('ominicontacto_app.views_user_profiles.'
            'QueueMemberService.eliminar_agente_de_colas_asignadas')
     def test_supervisor_puede_borrar_agentes_propios_no_asignados_a_sus_campanas(
             self, eliminar_agente_de_colas_asignadas):
@@ -297,11 +299,11 @@ class BorrarUsuariosTest(ABMUsuariosTest):
         url = reverse('agent_delete', kwargs={'pk': user_agente.id})
         response = self.client.post(url, follow=True)
         self.assertEqual(response.status_code, 200)
-        eliminar_agente_de_colas_asignadas.assert_called_with(self.agente)
         self.assertRedirects(response, reverse('user_list', kwargs={"page": 1}))
 
         user_agente.refresh_from_db()
         self.assertTrue(user_agente.borrado)
+        eliminar_agente_de_colas_asignadas.assert_called_with(self.agente)
 
 
 class EditarUsuariosTest(ABMUsuariosTest):

@@ -4,6 +4,8 @@
 services:
   postgres:
     image: postgres:18-trixie
+    ports:
+      - "127.0.0.1:5432:5432"
     environment:
       POSTGRES_USER: omnileads
       POSTGRES_PASSWORD: omnileads
@@ -16,6 +18,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    ports:
+      - "127.0.0.1:6379:6379"
 
   django-test:
     build:
@@ -30,7 +34,10 @@ services:
     environment:
       PGHOST: postgres
       PGPASSWORD: omnileads
+      REDIS_HOSTNAME: redis
       DEFENDER_REDIS_URL: redis://redis:6379/0
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       postgres:
         condition: service_healthy

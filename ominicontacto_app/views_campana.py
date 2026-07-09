@@ -50,6 +50,9 @@ class CampanasDeleteMixin(object):
     nodo_eliminado = _(u'<strong>Operación Exitosa!</strong>\
         Se llevó a cabo con éxito la eliminación de la campana.')
 
+    def post(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
+
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
 

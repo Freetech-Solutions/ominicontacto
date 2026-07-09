@@ -340,7 +340,7 @@ class ReporteDeLlamadasConLlamadasManualesTests(BaseReporteDeLlamadasTests):
         self.assertEqual(llamadas['total'], 5)
         self.assertEqual(llamadas['manuales'], 2)
         tipos = estadisticas['tipos_de_llamada_por_campana'][tipo]
-        self.assertEqual(tipos[campana.id]['t_espera_conexion'], 5.4)
+        self.assertEqual(float(tipos[campana.id]['t_espera_conexion']), 5.4)
         self.assertEqual(tipos[campana.id]['efectuadas'], 5)
         self.assertEqual(tipos[campana.id]['conectadas'], 3)
         self.assertEqual(tipos[campana.id]['no_conectadas'], 2)

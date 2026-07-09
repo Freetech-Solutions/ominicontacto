@@ -43,6 +43,7 @@ from django.db.utils import DEFAULT_DB_ALIAS
 
 from constance import config
 
+from ominicontacto_app.views.custom_delete_mixin import CustomDeleteViewMixin
 from ominicontacto_app.services.queue_member_service import QueueMemberService
 from ominicontacto_app.forms.base import (
     CustomUserCreationForm, SupervisorProfileForm, UserChangeForm, UserAgentUpdateForm,
@@ -442,7 +443,7 @@ class CustomerUserUpdateView(UpdateView):
         return reverse('index')
 
 
-class UserDeleteView(DeleteView):
+class UserDeleteView(CustomDeleteViewMixin, DeleteView):
     """
     Esta vista se encarga de la eliminación del
     objeto user

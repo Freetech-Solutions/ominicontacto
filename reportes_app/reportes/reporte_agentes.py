@@ -29,7 +29,7 @@ from django.conf import settings
 from ominicontacto_app.models import Campana, Pausa
 from ominicontacto_app.utiles import datetime_hora_maxima_dia, datetime_hora_minima_dia
 from reportes_app.services.agent_activity_session_source import get_agent_session_data_for_reports
-from reportes_app.models import ActividadAgenteLog, LlamadaResumen, TransferenciaAEncuestaLog
+from reportes_app.models import ActividadAgenteLog, LlamadaLog, LlamadaResumen, TransferenciaAEncuestaLog
 from reportes_app.actividad_agente_log import AgenteTiemposReporte
 from reportes_app.reportes.reporte_llamadas import LLAMADA_TRANSF_INTERNA
 from collections import OrderedDict
@@ -519,28 +519,28 @@ class ActividadAgente(object):
     def _procesa_tiempo_hold(self, fecha_inicio, fecha_fin):
         fecha_superior = datetime_hora_maxima_dia(fecha_fin)
         fecha_inferior = datetime_hora_minima_dia(fecha_inicio)
-        logs = [hold for hold in LlamadaResumen.objects.using('replica')
-                .filter(agente_id=self.agente.id, event='HOLD', fecha_fin__range=(fecha_inferior,
+        logs = [hold for hold in LlamadaLog.objects.using('replica')
+                .filter(agente_id=self.agente.id, event='HOLD', time__range=(fecha_inferior,
                                                                              fecha_superior))]
         for log in logs:
-            inicio_hold = log.fecha_fin
+            inicio_hold = log.time
             callid = log.callid
             holdid = log.id
-            unholds = LlamadaResumen.objects.using('replica')\
+            unholds = LlamadaLog.objects.using('replica')\
                 .filter(agente_id=self.agente.id, callid=callid,
                         event='UNHOLD',
-                        fecha_fin__range=(log.fecha_fin, fecha_superior)).order_by('fecha_fin').first()
+                        time__range=(log.time, fecha_superior)).order_by('time').first()
             if unholds:
                 # Si existen varios unhold dentro de una llamada se elige el primero
-                fin_hold = unholds.fecha_fin
+                fin_hold = unholds.time
             else:
                 # Si se corta la llamada sin haber podido hacer unhold o por otro motivo
-                log_llamada = LlamadaResumen.objects.using('replica')\
+                log_llamada = LlamadaLog.objects.using('replica')\
                     .filter(agente_id=self.agente.id, callid=callid,
-                            fecha_fin__range=(inicio_hold, fecha_superior))\
-                    .exclude(id=holdid).order_by('fecha_fin').first()
+                            time__range=(inicio_hold, fecha_superior))\
+                    .exclude(id=holdid).order_by('time').first()
                 if log_llamada and log_llamada.event != 'HOLD':
-                    fin_hold = log_llamada.fecha_fin
+                    fin_hold = log_llamada.time
                 else:
                     fin_hold = now() \
                         if datetime_hora_maxima_dia(fecha_superior) >= now() else fecha_superior

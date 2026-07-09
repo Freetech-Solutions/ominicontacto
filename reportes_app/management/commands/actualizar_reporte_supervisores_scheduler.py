@@ -22,6 +22,7 @@ import sys
 import time
 
 from django.core.management.base import BaseCommand
+from django.db import close_old_connections
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -40,6 +41,7 @@ def actualizar_reporte_supervisores():
     y los guarda en OML:SUPERVISOR:{supervisor_id}.
     Esta función se ejecuta cada 2 minutos mediante APScheduler.
     """
+    close_old_connections()
     try:
         logger.info("Iniciando actualización del reporte de supervisores")
         family = ReporteSupervisoresFamily()
@@ -55,7 +57,10 @@ def actualizar_reporte_supervisores():
 
 
 class Command(BaseCommand):
-    help = 'Ejecuta un scheduler con APScheduler para actualizar el reporte de supervisores cada 2 minutos'
+    help = (
+        'Ejecuta un scheduler con APScheduler para actualizar '
+        'el reporte de supervisores cada 2 minutos'
+    )
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
@@ -68,21 +73,21 @@ class Command(BaseCommand):
         executors = {
             'default': ThreadPoolExecutor(1)
         }
-        
+
         # Configurar defaults de jobs
         job_defaults = {
             'coalesce': True,  # Ejecutar solo una vez si hay múltiples ejecuciones pendientes
             'max_instances': 1,  # Solo una instancia del job puede ejecutarse a la vez
             'misfire_grace_time': 120  # 2 minutos de gracia si el contenedor estuvo caído
         }
-        
+
         # Crear scheduler
         self.scheduler = BackgroundScheduler(
             executors=executors,
             job_defaults=job_defaults,
             timezone=None  # Usar timezone del sistema/contenedor (TZ env var)
         )
-        
+
         # Agregar job cada 2 minutos
         self.scheduler.add_job(
             actualizar_reporte_supervisores,
@@ -91,8 +96,11 @@ class Command(BaseCommand):
             name='Actualización del reporte de supervisores',
             replace_existing=True
         )
-        
-        logger.info("Scheduler configurado: actualización del reporte de supervisores cada 2 minutos")
+
+        logger.info(
+            "Scheduler configurado: actualización del reporte "
+            "de supervisores cada 2 minutos"
+        )
 
     def signal_handler(self, signum, frame):
         """Maneja señales de terminación para cerrar el scheduler gracefully."""
@@ -108,14 +116,17 @@ class Command(BaseCommand):
             # Registrar handlers de señales
             signal.signal(signal.SIGINT, self.signal_handler)
             signal.signal(signal.SIGTERM, self.signal_handler)
-            
+
             # Configurar scheduler
             self.setup_scheduler()
-            
+
             # Iniciar scheduler
             self.scheduler.start()
-            logger.info("Scheduler iniciado. Ejecutando actualización del reporte de supervisores cada 2 minutos...")
-            
+            logger.info(
+                "Scheduler iniciado. Ejecutando actualización del "
+                "reporte de supervisores cada 2 minutos..."
+            )
+
             # Mantener el proceso corriendo
             try:
                 while not self.shutdown_requested:
@@ -123,9 +134,13 @@ class Command(BaseCommand):
             except KeyboardInterrupt:
                 logger.info("Interrupción de teclado recibida")
                 self.shutdown_requested = True
-            
+
         except Exception as e:
-            logger.error(f"Error en el comando actualizar_reporte_supervisores_scheduler: {e}", exc_info=True)
+            logger.error(
+                "Error en el comando actualizar_reporte_supervisores_scheduler: %s",
+                e,
+                exc_info=True,
+            )
             if self.scheduler and self.scheduler.running:
                 self.scheduler.shutdown(wait=False)
             sys.exit(1)

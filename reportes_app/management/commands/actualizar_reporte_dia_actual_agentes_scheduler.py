@@ -22,6 +22,7 @@ import sys
 import time
 
 from django.core.management.base import BaseCommand
+from django.db import close_old_connections
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -37,6 +38,7 @@ def actualizar_reporte_agentes():
     Actualiza el reporte diario de agentes en Redis.
     Esta función se ejecuta cada 1 minuto mediante APScheduler.
     """
+    close_old_connections()
     try:
         logger.info("Iniciando actualización del reporte diario de agentes")
         family = ReporteDiarioAgentesFamily()
@@ -47,7 +49,10 @@ def actualizar_reporte_agentes():
 
 
 class Command(BaseCommand):
-    help = 'Ejecuta un scheduler con APScheduler para actualizar el reporte diario de agentes cada 1 minuto'
+    help = (
+        'Ejecuta un scheduler con APScheduler para actualizar '
+        'el reporte diario de agentes cada 1 minuto'
+    )
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
@@ -60,21 +65,21 @@ class Command(BaseCommand):
         executors = {
             'default': ThreadPoolExecutor(1)
         }
-        
+
         # Configurar defaults de jobs
         job_defaults = {
             'coalesce': True,  # Ejecutar solo una vez si hay múltiples ejecuciones pendientes
             'max_instances': 1,  # Solo una instancia del job puede ejecutarse a la vez
             'misfire_grace_time': 60  # 1 minuto de gracia si el contenedor estuvo caído
         }
-        
+
         # Crear scheduler
         self.scheduler = BackgroundScheduler(
             executors=executors,
             job_defaults=job_defaults,
             timezone=None  # Usar timezone del sistema/contenedor (TZ env var)
         )
-        
+
         # Agregar job cada 1 minuto
         self.scheduler.add_job(
             actualizar_reporte_agentes,
@@ -83,8 +88,11 @@ class Command(BaseCommand):
             name='Actualización del reporte diario de agentes',
             replace_existing=True
         )
-        
-        logger.info("Scheduler configurado: actualización del reporte diario de agentes cada 1 minuto")
+
+        logger.info(
+            "Scheduler configurado: actualización del reporte "
+            "diario de agentes cada 1 minuto"
+        )
 
     def signal_handler(self, signum, frame):
         """Maneja señales de terminación para cerrar el scheduler gracefully."""
@@ -100,14 +108,17 @@ class Command(BaseCommand):
             # Registrar handlers de señales
             signal.signal(signal.SIGINT, self.signal_handler)
             signal.signal(signal.SIGTERM, self.signal_handler)
-            
+
             # Configurar scheduler
             self.setup_scheduler()
-            
+
             # Iniciar scheduler
             self.scheduler.start()
-            logger.info("Scheduler iniciado. Ejecutando actualización del reporte diario de agentes cada 1 minuto...")
-            
+            logger.info(
+                "Scheduler iniciado. Ejecutando actualización del "
+                "reporte diario de agentes cada 1 minuto..."
+            )
+
             # Mantener el proceso corriendo
             try:
                 while not self.shutdown_requested:
@@ -115,9 +126,14 @@ class Command(BaseCommand):
             except KeyboardInterrupt:
                 logger.info("Interrupción de teclado recibida")
                 self.shutdown_requested = True
-            
+
         except Exception as e:
-            logger.error(f"Error en el comando actualizar_reporte_dia_actual_agentes_scheduler: {e}", exc_info=True)
+            logger.error(
+                "Error en el comando "
+                "actualizar_reporte_dia_actual_agentes_scheduler: %s",
+                e,
+                exc_info=True,
+            )
             if self.scheduler and self.scheduler.running:
                 self.scheduler.shutdown(wait=False)
             sys.exit(1)

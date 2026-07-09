@@ -242,7 +242,7 @@ class TestMetadataBaseDatosContactoParseoDeDatos(OMLBaseTest):
     def test_obtener_telefono_de_dato_de_contacto(self):
         telefono = self.metadata.obtener_telefono_de_dato_de_contacto(
             self.datos_json_ok)
-        self.assertEquals(telefono, "01145679999")
+        self.assertEqual(telefono, "01145679999")
 
     def test_obtener_telefono__reporta_error_si_sobran_datos(self):
         with self.assertRaises(AssertionError):

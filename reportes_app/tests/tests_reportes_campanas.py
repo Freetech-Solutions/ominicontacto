@@ -30,6 +30,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from django.db import connections
+from django.test import override_settings
 
 from ominicontacto_app.models import Campana, CalificacionCliente, OpcionCalificacion
 from ominicontacto_app.services.estadisticas_campana import EstadisticasService
@@ -43,11 +44,16 @@ from ominicontacto_app.services.reporte_campana_csv import (
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
 from ominicontacto_app.tests.factories import ActividadAgenteLogFactory, AgenteProfileFactory, \
     CalificacionClienteFactory, CampanaFactory, ContactoFactory, LlamadaLogFactory, \
-    NombreCalificacionFactory, OpcionCalificacionFactory
+    NombreCalificacionFactory, OpcionCalificacionFactory, QueueFactory, QueueMemberFactory
 from ominicontacto_app.utiles import (fecha_hora_local,
                                       datetime_hora_minima_dia_utc, datetime_hora_maxima_dia_utc)
-from reportes_app.models import LlamadaLog
-from reportes_app.tests.utiles import GeneradorDeLlamadaLogs
+from reportes_app.models import InitiationMethod, LlamadaLog, LlamadaResumen
+from reportes_app.tests.utiles import (
+    GeneradorDeLlamadaLogs,
+    crear_interaction_summary,
+    crear_llamada_resumen_desde_log,
+    interactions_summary_table_exists,
+)
 
 
 class BaseTestDeReportes(OMLBaseTest):
@@ -112,6 +118,11 @@ class BaseTestDeReportes(OMLBaseTest):
             contacto=self.contacto_calificado_no_accion, callid=callid_no_accion)
         CalificacionCliente.history.all().update(history_change_reason='calificacion')
 
+        if interactions_summary_table_exists():
+            self._crear_interactions_summary_setUp(
+                callid_gestion, callid_no_accion)
+        self._crear_llamada_resumen_setUp()
+
         self.client.login(username=self.usuario_admin_supervisor.username, password=PASSWORD)
 
         connections['replica']._orig_cursor = connections['replica'].cursor
@@ -120,6 +131,68 @@ class BaseTestDeReportes(OMLBaseTest):
     def tearDown(self):
         connections['replica'].cursor = connections['replica']._orig_cursor
         super(OMLBaseTest, self).tearDown()
+
+    def _crear_interactions_summary_setUp(self, callid_gestion, callid_no_accion):
+        """Datos V2 equivalentes a los LlamadaLog del setUp (campaña preview)."""
+        agent_id = self.agente_profile.pk
+        campana_id = self.campana_activa.pk
+        now_ts = timezone.now()
+        common = dict(
+            campaign_id=campana_id,
+            start_time=now_ts,
+            end_time=now_ts,
+        )
+        crear_interaction_summary(
+            callid_gestion,
+            agent_id=agent_id,
+            customer_id=self.contacto_calificado_gestion.pk,
+            agent_duration=self.DURACION_LLAMADA,
+            total_duration=self.DURACION_LLAMADA,
+            initiation_method=InitiationMethod.DIALER,
+            **common,
+        )
+        crear_interaction_summary(
+            callid_no_accion,
+            agent_id=agent_id,
+            customer_id=self.contacto_calificado_no_accion.pk,
+            agent_duration=self.DURACION_LLAMADA,
+            total_duration=self.DURACION_LLAMADA,
+            initiation_method=InitiationMethod.DIALER,
+            **common,
+        )
+        callid_no_atendido = LlamadaLog.objects.get(
+            contacto_id=self.contacto_no_atendido.pk, event='NOANSWER').callid
+        crear_interaction_summary(
+            callid_no_atendido,
+            status='NOANSWER',
+            hangup_cause='NOANSWER',
+            agent_id=agent_id,
+            customer_id=self.contacto_no_atendido.pk,
+            agent_duration=0,
+            total_duration=0,
+            initiation_method=InitiationMethod.AGENT,
+            **common,
+        )
+        callid_sin_calificacion = LlamadaLog.objects.get(
+            contacto_id=self.contacto_no_calificado.pk, event='COMPLETEOUTNUM').callid
+        crear_interaction_summary(
+            callid_sin_calificacion,
+            agent_id=agent_id,
+            customer_id=self.contacto_no_calificado.pk,
+            agent_duration=0,
+            total_duration=60,
+            initiation_method=InitiationMethod.AGENT,
+            **common,
+        )
+
+    def _crear_llamada_resumen_setUp(self):
+        """LlamadaResumen para reporte por agente (devuelve_reporte_agente_campana)."""
+        eventos = set(LlamadaResumen.EVENTOS_FIN_CONEXION) | set(
+            LlamadaResumen.EVENTOS_NO_CONTACTACION
+        )
+        for log in LlamadaLog.objects.filter(
+                campana_id=self.campana_activa.pk, event__in=eventos):
+            crear_llamada_resumen_desde_log(log)
 
 
 class ReportesCampanasTests(BaseTestDeReportes):
@@ -216,6 +289,9 @@ class ReportesCampanasTests(BaseTestDeReportes):
     def test_datos_reporte_grafico_calificaciones_por_agente_coinciden_estadisticas_sistema(
             self, render_to_png, crea_reporte_pdf):
         agente_profile1, agente_profile2, agente_profile3 = AgenteProfileFactory.create_batch(3)
+        queue = QueueFactory(campana=self.campana_activa)
+        for agente in (agente_profile1, agente_profile2, agente_profile3):
+            QueueMemberFactory(member=agente, queue_name=queue)
         log1 = LlamadaLogFactory(campana_id=self.campana_activa.pk, agente_id=agente_profile1.pk)
         log2 = LlamadaLogFactory(campana_id=self.campana_activa.pk, agente_id=agente_profile2.pk)
         log3 = LlamadaLogFactory(campana_id=self.campana_activa.pk, agente_id=agente_profile3.pk)
@@ -416,6 +492,7 @@ class ReportesCampanasTests(BaseTestDeReportes):
         response = self.client.get(url, follow=True)
         self.assertTemplateUsed(response, 'registration/login.html')
 
+    @override_settings(REPORTE_AGENTES_USE_LEGACY_ACTIVITY_LOG=True)
     def test_datos_reporte_agente_calificaciones_coinciden_estadisticas_sistema(self):
         url = reverse(
             'campana_reporte_grafico_agente', args=[self.campana_activa.pk, self.agente_profile.pk])
@@ -428,6 +505,7 @@ class ReportesCampanasTests(BaseTestDeReportes):
         self.assertEqual(set(estadisticas['calificaciones_nombre']), set(calificaciones_list))
         self.assertEqual(estadisticas['calificaciones_cantidad'], [1, 1, 1])
 
+    @override_settings(REPORTE_AGENTES_USE_LEGACY_ACTIVITY_LOG=True)
     def test_datos_reporte_agente_detalle_llamadas_coinciden_estadisticas_sistema(self):
         url = reverse(
             'campana_reporte_grafico_agente', args=[self.campana_activa.pk, self.agente_profile.pk])
@@ -438,6 +516,7 @@ class ReportesCampanasTests(BaseTestDeReportes):
         self.assertEqual(agente_data.cantidad_intentos_fallidos, 1)
         self.assertEqual(agente_data.tiempo_llamada.total_seconds(), 2 * self.DURACION_LLAMADA)
 
+    @override_settings(REPORTE_AGENTES_USE_LEGACY_ACTIVITY_LOG=True)
     def test_datos_reporte_agente_detalle_actividad_coinciden_estadisticas_sistema(self):
         DURACION_AGENTE_SESION = 3600
         TIEMPO_AGENTE_ANTES_PAUSA = 120
@@ -613,7 +692,8 @@ class ReportesCampanasTests(BaseTestDeReportes):
     @patch.object(ExportacionCampanaCSV, 'obtener_url_reporte_csv_descargar')
     def test_exporta_reporte_interacciones_por_agente_redirige_a_archivo_csv(
             self, obtener_url_reporte_csv_descargar):
-        obtener_url_reporte_csv_descargar.return_value = '/media/reporte_campana/fake_interacciones.csv'
+        obtener_url_reporte_csv_descargar.return_value = (
+            '/media/reporte_campana/fake_interacciones.csv')
         url = reverse('exporta_reporte_interacciones_por_agente', args=[self.campana_activa.pk])
         response = self.client.get(url)
 

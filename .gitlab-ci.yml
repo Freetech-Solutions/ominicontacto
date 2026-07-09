@@ -1,18 +1,66 @@
 include:
   - template: Security/SAST.gitlab-ci.yml
+    rules:
+      - if: '$SAST == "true" || $FULL == "true"'
+  - project: 'omnileads/devsecops'
+    ref: 'main'
+    file: 'templates/security-scans.yml'
 
 variables:
   IMAGE_VERSION: ""
   # Valores válidos: omnileads | freetechsolutions. Vacío = según rama (master → omnileads).
   DOCKER_ORG: ""
+  FULL: ""
+  SAST: ""
+  DOCKER_HOST: tcp://docker:2375
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  TRIVY_SEVERITY: "CRITICAL"
+  # DefectDojo: nombre del Product (Asset) en DefectDojo.
+  # Para la estrategia "1 Repo = 1 Producto", mantén vacía la variable DEFECTDOJO_ENGAGEMENT_ID en GitLab
+  # y este script creará/resolverá el producto y el engagement "Continuous Security" automáticamente.
+  DEFECTDOJO_PRODUCT_NAME: "OMLApp"
+  # DefectDojo con certificado interno/auto-firmado (override en CI/CD si usan CA pública).
+  DEFECTDOJO_INSECURE: "true"
+  # Sin variables → solo build (container-image).
+  # SAST=true → análisis SonarQube (+ jobs del template Security/SAST).
+  # FULL=true → pipeline completo: tests, SonarQube, SAST y build.
 
 stages:
   - test
+  - sonarqube
   - build
+  - security_scan
+  - security_report
 
-.test-rules: &test-rules
+.full-pipeline-rules: &full-pipeline-rules
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
+
+.sonar-rules: &sonar-rules
+  rules:
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$SAST == "true" && $FULL != "true"'
+
+.build-rules: &build-rules
+  rules:
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL == "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master")'
+    - if: '$FULL != "true" && $SAST != "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL != "true" && $SAST != "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master")'
+    # Build previo al escaneo Trivy (MR y ramas protegidas develop/master).
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+
+.trivy-rules: &trivy-rules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == "master"'
+    - if: '$CI_COMMIT_BRANCH == "develop"'
 
 test:django:
   stage: test
@@ -27,16 +75,32 @@ test:django:
       run --rm django-test
   after_script:
     - docker compose -f docker-compose.test.ci.yml down -v --remove-orphans || true
-  <<: *test-rules
+  artifacts:
+    # Conservar el reporte de cobertura para SonarQube
+    paths:
+      - coverage.xml
+    expire_in: 1 week
+  <<: *full-pipeline-rules
 
 test:flake8:
   stage: test
   image: python:3.12-slim-trixie
+  variables:
+    GIT_DEPTH: "0"
   before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends git ca-certificates
+    - rm -rf /var/lib/apt/lists/*
     - pip install --no-cache-dir flake8
   script:
-    - flake8
-  <<: *test-rules
+    - |
+      if [ -n "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME:-}" ]; then
+        git fetch --no-tags origin \
+          "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}:refs/remotes/origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" \
+          || true
+      fi
+    - bash check-python.sh
+  <<: *full-pipeline-rules
 
 test:eslint:
   stage: test
@@ -51,57 +115,120 @@ test:eslint:
   script:
     - git fetch --no-tags origin "${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}:refs/remotes/origin/${CI_MERGE_REQUEST_TARGET_BRANCH_NAME}" || true
     - bash check-js.sh
-  <<: *test-rules
+  <<: *full-pipeline-rules
 
-container-image:
+sonarqube-check:
+  stage: sonarqube
+  image:
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    # Forzar caché dentro del workspace
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
+    GIT_DEPTH: "0"
+  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml
+  needs:
+    # Con FULL=true usa cobertura de django; con SAST=true solo el artefacto es opcional
+    - job: test:django
+      artifacts: true
+      optional: true
+  allow_failure: true
+  <<: *sonar-rules
+
+.build_template:
+  image: docker:27.5.1-alpine3.21
   services:
     - docker:27.5.1-dind-alpine3.21
-  image: docker:27.5.1-alpine3.21
-  stage: build
   before_script:
     - apk add --no-cache docker-cli-buildx git
   script:
-    - >-
-      docker buildx build
-      --file=Dockerfile
-      --tag=run
-      --target=run
-      --load
-      .
+    - echo "Building ${IMAGE_NAME}..."
+    - ls -l ${DOCKERFILE_PATH}
+    - docker buildx build --file=${DOCKERFILE_PATH} --tag=${IMAGE_NAME} --target=run --load ${BUILD_CONTEXT}
+    - docker save ${IMAGE_NAME} -o ${CI_PROJECT_DIR}/${IMAGE_NAME}.tar
     - |-
-      if [ -z "${DOCKER_USERNAME}" ] || [ -z "${DOCKER_SECRET}" ] || [ -z "${DOCKER_USER}" ] || [ -z "${DOCKER_PASSWORD}" ]; then
-        echo "Error: Una o más variables necesarias no están definidas."
-        exit 1
-      fi
-
-      if [ -z "$(cat .omnileads_version)" ]; then
-        echo "Error: El archivo .omnileads_version no existe o está vacío."
-        exit 1
-      fi
-
-      if [ -z "${IMAGE_VERSION}" ]; then
-        IMAGE_VERSION="$(date +%Y%m%d)-${CI_COMMIT_SHORT_SHA}"
-      fi
-
-      if [ -n "${DOCKER_ORG}" ]; then
-        if [[ "${DOCKER_ORG}" != "omnileads" && "${DOCKER_ORG}" != "freetechsolutions" ]]; then
-          echo "Error: DOCKER_ORG debe ser 'omnileads' o 'freetechsolutions'."
+      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
+        echo "Pipeline de Merge Request: omitiendo login y push a Docker Hub."
+      elif [ -z "${DOCKER_PASSWORD:-}" ] && [ -z "${DOCKER_SECRET:-}" ]; then
+        echo "Credenciales de Docker no configuradas: omitiendo login y push."
+      else
+        if [ -z "$(cat .omnileads_version 2>/dev/null)" ]; then
+          echo "Error: El archivo .omnileads_version no existe o está vacío."
           exit 1
         fi
-        PUSH_ORG="${DOCKER_ORG}"
-      elif [[ "${CI_COMMIT_BRANCH}" == "master" ]]; then
-        PUSH_ORG="omnileads"
-      else
-        PUSH_ORG="freetechsolutions"
-      fi
 
-      if [[ "${PUSH_ORG}" == "omnileads" ]]; then
-        echo "${DOCKER_SECRET}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
-      else
-        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USER}" --password-stdin
-      fi
+        if [ -z "${IMAGE_VERSION}" ]; then
+          IMAGE_VERSION="$(date +%Y%m%d)-${CI_COMMIT_SHORT_SHA}"
+        fi
 
-      docker tag run ${PUSH_ORG}/omlapp:$IMAGE_VERSION
-      docker push docker.io/${PUSH_ORG}/omlapp:$IMAGE_VERSION
-  only:
-    - web
+        echo "Pushing image ${IMAGE_NAME}..."
+
+        if [ -n "${DOCKER_ORG}" ]; then
+          if [[ "${DOCKER_ORG}" != "omnileads" && "${DOCKER_ORG}" != "freetechsolutions" ]]; then
+            echo "Error: DOCKER_ORG debe ser 'omnileads' o 'freetechsolutions'."
+            exit 1
+          fi
+          PUSH_ORG="${DOCKER_ORG}"
+        elif [[ "${CI_COMMIT_BRANCH}" == "master" ]]; then
+          PUSH_ORG="omnileads"
+        else
+          PUSH_ORG="freetechsolutions"
+        fi
+
+        if [[ "${PUSH_ORG}" == "omnileads" ]]; then
+          if [ -z "${DOCKER_SECRET:-}" ] || [ -z "${DOCKER_USERNAME:-}" ]; then
+            echo "Faltan credenciales para org omnileads: omitiendo push."
+          else
+            echo "${DOCKER_SECRET}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+            docker tag ${IMAGE_NAME} docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
+            docker push docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
+          fi
+        else
+          if [ -z "${DOCKER_PASSWORD:-}" ] || [ -z "${DOCKER_USER:-}" ]; then
+            echo "Faltan credenciales para org freetechsolutions: omitiendo push."
+          else
+            echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USER}" --password-stdin
+            docker tag ${IMAGE_NAME} docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
+            docker push docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
+          fi
+        fi
+      fi
+  <<: *build-rules
+
+container-image:
+  extends: .build_template
+  stage: build
+  variables:
+    IMAGE_NAME: omlapp
+    DOCKERFILE_PATH: Dockerfile
+    BUILD_CONTEXT: .
+  artifacts:
+    paths:
+      - omlapp.tar
+    expire_in: 90 days
+
+trivy_scan:
+  stage: security_scan
+  extends: .trivy-scan-template
+  variables:
+    IMAGE_NAME: omlapp
+  needs:
+    - job: container-image
+      artifacts: true
+  <<: *trivy-rules
+
+defectdojo_upload:
+  stage: security_report
+  extends: .defectdojo-upload-template
+  variables:
+    IMAGE_NAME: omlapp
+  needs:
+    - job: trivy_scan
+      artifacts: true
+  allow_failure: false
+  <<: *trivy-rules

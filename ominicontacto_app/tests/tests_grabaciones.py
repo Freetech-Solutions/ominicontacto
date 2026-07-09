@@ -44,7 +44,11 @@ from ominicontacto_app.tests.factories import CalificacionClienteFactory, Campan
 from ominicontacto_app.tests.utiles import OMLTestUtilsMixin
 
 from ominicontacto_app.utiles import fecha_hora_local
-from reportes_app.models import LlamadaLog
+from reportes_app.models import InteractionsSummary, LlamadaLog
+from reportes_app.tests.utiles import (
+    crear_interaction_summary_desde_llamada_log,
+    interactions_summary_table_exists,
+)
 
 from ominicontacto.asgi import application
 from channels.testing import WebsocketCommunicator
@@ -113,6 +117,19 @@ class BaseGrabacionesTests(TransactionTestCase, OMLTestUtilsMixin):
         (_, hace_mucho, ahora) = self._obtener_fechas()
         self.rango_hace_mucho = hace_mucho.date().strftime('%d/%m/%Y') + ' - ' + \
             ahora.date().strftime('%d/%m/%Y')
+
+        if interactions_summary_table_exists():
+            self._crear_interactions_summary_desde_logs()
+
+    def _crear_interactions_summary_desde_logs(self):
+        for log in (
+            self.llamada_log1,
+            self.llamada_log2,
+            self.llamada_log3,
+            self.llamada_log2_1,
+            self.llamada_log3_1,
+        ):
+            crear_interaction_summary_desde_llamada_log(log)
 
     def _obtener_fechas(self):
         hoy = fecha_hora_local(now())
@@ -187,7 +204,34 @@ class BaseGrabacionesTests(TransactionTestCase, OMLTestUtilsMixin):
     @staticmethod
     @database_sync_to_async
     def llamadalog_filter_update(filter_id, **update_attrs):
+        log = LlamadaLog.objects.get(id=filter_id)
+        old_callid = log.callid
         LlamadaLog.objects.filter(id=filter_id).update(**update_attrs)
+        if not interactions_summary_table_exists():
+            return
+        log.refresh_from_db()
+        is_field_map = {
+            'duracion_llamada': 'total_duration',
+            'numero_marcado': 'destination_address',
+            'time': 'end_time',
+            'callid': 'interaction_id',
+        }
+        is_updates = {}
+        for field, value in update_attrs.items():
+            mapped = is_field_map.get(field)
+            if mapped is None:
+                continue
+            if mapped in ('total_duration',):
+                is_updates[mapped] = value if value > 0 else 0
+                is_updates['agent_duration'] = value if value > 0 else 1
+            elif mapped == 'end_time':
+                is_updates['end_time'] = value
+                is_updates['start_time'] = value
+            else:
+                is_updates[mapped] = value
+        if not is_updates:
+            return
+        InteractionsSummary.objects.filter(interaction_id=str(old_callid)).update(**is_updates)
 
 
 class GrabacionesTests(BaseGrabacionesTests):

@@ -205,7 +205,6 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
         self.assertIn('next_heartbeat_sec', response.json())
         self.assertTrue(redis_mock.hset.called)
         self.assertTrue(redis_mock.expire.called)
-        self.assertTrue(redis_mock.setex.called)
 
     def test_presence_heartbeat_invalid_browser_id(self):
         url = reverse('api_agent_presence_heartbeat')

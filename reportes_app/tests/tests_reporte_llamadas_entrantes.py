@@ -24,7 +24,7 @@ from ominicontacto_app.tests.factories import (
     LlamadaLogFactory)
 
 from reportes_app.reportes.reporte_llamadas_entrantes import ReporteDeLLamadasEntrantesDeSupervision
-from reportes_app.tests.utiles import GeneradorDeLlamadaLogs
+from reportes_app.tests.utiles import GeneradorDeLlamadaLogs, crear_llamada_log_y_resumen
 from reportes_app.models import LlamadaLog
 
 
@@ -113,7 +113,7 @@ class ReporteDeLLamadasEntrantesDeSupervisionTest(OMLBaseTest):
         self.generador.generar_log(self.entrante1, False, 'ABANDON', '35100001111',
                                    agente=self.agente1, contacto=None, bridge_wait_time=5,
                                    duracion_llamada=10, archivo_grabacion='', time=None)
-        LlamadaLogFactory(tipo_campana=Campana.TYPE_ENTRANTE,
+        crear_llamada_log_y_resumen(tipo_campana=Campana.TYPE_ENTRANTE,
                           tipo_llamada=LlamadaLog.LLAMADA_ENTRANTE,
                           campana_id=self.entrante1.pk,
                           event='ABANDONWEL', bridge_wait_time=2)

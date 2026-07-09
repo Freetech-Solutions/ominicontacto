@@ -31,6 +31,7 @@ from django.utils.translation import gettext_lazy as _
 from django.views.generic import (
     View, ListView, CreateView, UpdateView,
     DeleteView, TemplateView)
+from ominicontacto_app.views.custom_delete_mixin import CustomDeleteViewMixin
 from configuracion_telefonia_app.forms import (
     TroncalSIPForm, IdentificadorClienteForm,
     OpcionDestinoValidacionFechaHoraFormset, OpcionDestinoPersonalizadoForm)
@@ -343,7 +344,7 @@ class ValidacionFechaHoraUpdateView(ValidacionFechaHoraMixin, UpdateView):
             {'form': form, 'validacion_fecha_hora_formset': validacion_fecha_hora_formset})
 
 
-class DeleteNodoDestinoMixin(object):
+class DeleteNodoDestinoMixin(CustomDeleteViewMixin):
     """
     Vista genérica para ser implementada por cada Nodo de Flujos de llamada
     """

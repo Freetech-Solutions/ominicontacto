@@ -30,6 +30,7 @@ from django.urls import reverse
 from django.conf import settings
 from django.db import connections
 from django.forms import ValidationError
+from django.test import Client
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
@@ -144,8 +145,9 @@ class CampanasThreadsTests(OMLTransaccionBaseTest):
 
         @test_concurrently([user1, user2])
         def obtener_contacto(user):
-            self.client.login(username=user.username, password=self.PWD)
-            response = self.client.post(url, follow=True)
+            client = Client()
+            client.login(username=user.username, password=self.PWD)
+            response = client.post(url, follow=True)
             responses_threads[user.username] = json.loads(response.content)
             connections.close_all()
 
