@@ -1,17 +1,21 @@
 include:
   - template: Security/SAST.gitlab-ci.yml
     rules:
-      - if: '$SAST == "true" || $FULL == "true"'
+      - if: '$FULL == "true"'
   - project: 'omnileads/devsecops'
-    ref: 'main'
-    file: 'templates/security-scans.yml'
+    ref: '70e3f8dac16b791b3ba28027d2ef6f547a6475e3'
+    file:
+      - 'templates/security-scans.yml'
+      - 'templates/gitleaks.yml'
+      - 'templates/owasp-dependency-check.yml'
 
 variables:
+  IMAGE_NAME: "omlapp"
   IMAGE_VERSION: ""
   # Valores válidos: omnileads | freetechsolutions. Vacío = según rama (master → omnileads).
   DOCKER_ORG: ""
   FULL: ""
-  SAST: ""
+  BUILD: ""
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
@@ -20,13 +24,19 @@ variables:
   # Para la estrategia "1 Repo = 1 Producto", mantén vacía la variable DEFECTDOJO_ENGAGEMENT_ID en GitLab
   # y este script creará/resolverá el producto y el engagement "Continuous Security" automáticamente.
   DEFECTDOJO_PRODUCT_NAME: "OMLApp"
+  OWASP_PROJECT_NAME: "OMLApp"
+  # SCA: solo manifiestos Python/Node (evita escanear JS estático del repo).
+  OWASP_SCAN_PATH: "requirements"
+  OWASP_ADDITIONAL_ARGS: "--scan omnileads_ui --disableNodeAudit --disableOssIndex"
+  OWASP_IMAGE_TAG: "12.2.2"
   # DefectDojo con certificado interno/auto-firmado (override en CI/CD si usan CA pública).
   DEFECTDOJO_INSECURE: "true"
-  # Sin variables → solo build (container-image).
-  # SAST=true → análisis SonarQube (+ jobs del template Security/SAST).
-  # FULL=true → pipeline completo: tests, SonarQube, SAST y build.
+  # Sin variables → sonarqube, build, security_scan y security_report.
+  # BUILD=true → solo build (container-image).
+  # FULL=true → pipeline completo: tests, SAST, gitleaks, sonarqube, build y escaneos de seguridad.
 
 stages:
+  - security
   - test
   - sonarqube
   - build
@@ -35,32 +45,50 @@ stages:
 
 .full-pipeline-rules: &full-pipeline-rules
   rules:
-    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
     - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
 
 .sonar-rules: &sonar-rules
   rules:
-    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
     - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
-    - if: '$SAST == "true" && $FULL != "true"'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL != "true" && $BUILD != "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^master-.*$/ || $CI_COMMIT_BRANCH =~ /^develop-.*$/)'
 
 .build-rules: &build-rules
   rules:
-    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master")'
+    - if: '$BUILD == "true" && $FULL != "true"'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
     - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
-    - if: '$FULL == "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master")'
-    - if: '$FULL != "true" && $SAST != "true" && $CI_PIPELINE_SOURCE == "web"'
-    - if: '$FULL != "true" && $SAST != "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master")'
-    # Build previo al escaneo Trivy (MR y ramas protegidas develop/master).
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "master"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$FULL == "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^master-.*$/ || $CI_COMMIT_BRANCH =~ /^develop-.*$/)'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$FULL != "true" && $BUILD != "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^master-.*$/ || $CI_COMMIT_BRANCH =~ /^develop-.*$/)'
 
-.trivy-rules: &trivy-rules
+# Las reglas de Trivy se heredan por defecto de la plantilla central
+
+.gitleaks-rules: &gitleaks-rules
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == "master"'
-    - if: '$CI_COMMIT_BRANCH == "develop"'
+    - if: '$BUILD == "true" && $FULL != "true"'
+      when: never
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL == "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^master-.*$/ || $CI_COMMIT_BRANCH =~ /^develop-.*$/)'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL != "true" && $BUILD != "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^master-.*$/ || $CI_COMMIT_BRANCH =~ /^develop-.*$/)'
+
+.owasp-rules: &owasp-rules
+  rules:
+    - if: '$BUILD == "true" && $FULL != "true"'
+      when: never
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
+    - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL == "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^master-.*$/ || $CI_COMMIT_BRANCH =~ /^develop-.*$/)'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
+    - if: '$FULL != "true" && $BUILD != "true" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$FULL != "true" && $BUILD != "true" && ($CI_COMMIT_BRANCH == "develop" || $CI_COMMIT_BRANCH == "master" || $CI_COMMIT_BRANCH =~ /^master-.*$/ || $CI_COMMIT_BRANCH =~ /^develop-.*$/)'
 
 test:django:
   stage: test
@@ -133,7 +161,7 @@ sonarqube-check:
   script:
     - sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml
   needs:
-    # Con FULL=true usa cobertura de django; con SAST=true solo el artefacto es opcional
+    # Con FULL=true usa cobertura de django; en pipeline default el artefacto es opcional
     - job: test:django
       artifacts: true
       optional: true
@@ -212,23 +240,14 @@ container-image:
       - omlapp.tar
     expire_in: 90 days
 
-trivy_scan:
-  stage: security_scan
-  extends: .trivy-scan-template
-  variables:
-    IMAGE_NAME: omlapp
-  needs:
-    - job: container-image
-      artifacts: true
-  <<: *trivy-rules
+# Los jobs trivy_scan, defectdojo_upload, gitleaks_defectdojo_upload y owasp_defectdojo_upload se heredan de devsecops.
 
-defectdojo_upload:
-  stage: security_report
-  extends: .defectdojo-upload-template
-  variables:
-    IMAGE_NAME: omlapp
-  needs:
-    - job: trivy_scan
-      artifacts: true
-  allow_failure: false
-  <<: *trivy-rules
+# GitLab no expande ${GITLEAKS_STAGE} del template incluido en el campo stage.
+gitleaks_scan:
+  stage: security
+  <<: *gitleaks-rules
+
+# GitLab no expande ${OWASP_SCAN_STAGE} del template incluido en el campo stage.
+owasp_dependency_scan:
+  stage: security
+  <<: *owasp-rules
