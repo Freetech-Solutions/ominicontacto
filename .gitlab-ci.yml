@@ -3,7 +3,7 @@ include:
     rules:
       - if: '$FULL == "true"'
   - project: 'omnileads/devsecops'
-    ref: '70e3f8dac16b791b3ba28027d2ef6f547a6475e3'
+    ref: 'main'
     file:
       - 'templates/security-scans.yml'
       - 'templates/gitleaks.yml'
