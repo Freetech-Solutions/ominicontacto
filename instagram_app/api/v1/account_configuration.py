@@ -23,7 +23,6 @@ from rest_framework import serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 
-from api_app.authentication import ExpiringTokenAuthentication
 from configuracion_telefonia_app.models import DestinoEntrante, GrupoHorario, OpcionDestino
 from instagram_app.api.permissions import TienePermisoCanalInstagramAgente
 from instagram_app.api.utils import HttpResponseStatus, get_response_data
@@ -364,7 +363,7 @@ class InstagramScheduleSerializer(serializers.Serializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalInstagramAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     @staticmethod
     def _ensure_account_destination(account, destino):
@@ -555,7 +554,7 @@ class ViewSet(viewsets.ViewSet):
 
 class CampaignViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalInstagramAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     def list(self, request):
         estados = [Campana.ESTADO_ACTIVA, Campana.ESTADO_PAUSADA, Campana.ESTADO_INACTIVA]
@@ -580,7 +579,7 @@ class CampaignViewSet(viewsets.ViewSet):
 
 class ScheduleViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalInstagramAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     def list(self, request):
         queryset = GrupoHorario.objects.all().order_by('id')
