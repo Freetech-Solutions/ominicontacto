@@ -20,7 +20,6 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import response, serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from instagram_app.api.utils import HttpResponseStatus, get_response_data
 from instagram_app.models import PlantillaInstagram
@@ -71,7 +70,7 @@ class UpdateSerializer(CreateSerializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     def list(self, request):
         queryset = PlantillaInstagram.objects.filter(is_active=True)

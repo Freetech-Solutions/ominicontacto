@@ -21,7 +21,6 @@ from rest_framework import decorators, response, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework import serializers
 
-from api_app.authentication import ExpiringTokenAuthentication
 from facebook_meta_app.api.v1.campaign import ListSerializer as CampaignSerializer
 from facebook_meta_app.api.v1.disposition import (
     AgentSerializer,
@@ -122,7 +121,7 @@ class RetrieveSerializer(serializers.Serializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalInstagramAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     def _finalize_conversation(self, conversation_id, calificacion, timestamp, send_goodbye=True):
         conversation = ConversationInstagramApp.objects.get(id=conversation_id)

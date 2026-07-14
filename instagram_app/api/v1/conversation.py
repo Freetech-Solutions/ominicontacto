@@ -31,7 +31,6 @@ from rest_framework import decorators, response, serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView
 
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.services.media_url import build_public_media_url
 from api_app.views.permissions import TienePermisoOML
 from facebook_meta_app.models import PlantillaMessenger
@@ -318,7 +317,7 @@ class ConversacionInstagramFilterSerializer(serializers.Serializer):
 
 class ReportConversationAPIView(APIView):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (ExpiringTokenAuthentication, SessionAuthentication)
+    authentication_classes = (SessionAuthentication, )
 
     def post(self, request, campaing_id):
         try:
@@ -350,7 +349,7 @@ class ReportConversationAPIView(APIView):
 
 class ReportConversationDetailAPIView(APIView):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (ExpiringTokenAuthentication, SessionAuthentication)
+    authentication_classes = (SessionAuthentication, )
 
     def get(self, request, pk):
         try:
@@ -374,7 +373,7 @@ class ReportConversationDetailAPIView(APIView):
 class ViewSet(viewsets.ModelViewSet):
     queryset = ConversationInstagramApp.objects.all()
     serializer_class = ConversacionInstagramSerializer
-    authentication_classes = (ExpiringTokenAuthentication, SessionAuthentication)
+    authentication_classes = (SessionAuthentication, )
     permission_classes = (TienePermisoCanalInstagramAgente,)
 
     def get_queryset(self):

@@ -23,7 +23,6 @@ from django.utils.translation import ugettext as _
 from rest_framework import decorators, response, serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 
-from api_app.authentication import ExpiringTokenAuthentication
 from instagram_app.api.permissions import TienePermisoCanalInstagramAgente
 from instagram_app.api.utils import HttpResponseStatus, get_response_data
 from instagram_app.models import ConversationInstagramApp
@@ -163,7 +162,7 @@ class UpdateSerializer(ContactDataMixin, serializers.ModelSerializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalInstagramAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     def _contact_queryset(self, campana):
         return Contacto.objects.filter(

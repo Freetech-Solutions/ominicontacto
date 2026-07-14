@@ -19,7 +19,6 @@ from django.utils.translation import ugettext as _
 from rest_framework import decorators, response, serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 
-from api_app.authentication import ExpiringTokenAuthentication
 from instagram_app.api.permissions import TienePermisoCanalInstagramAgente
 from instagram_app.api.utils import HttpResponseStatus, get_response_data
 from instagram_app.models import ConversationInstagramApp
@@ -35,7 +34,7 @@ class AgenteListSerializer(serializers.Serializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalInstagramAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     @decorators.action(detail=False, methods=['get'], url_path='(?P<campana_pk>[^/.]+)/agents')
     def agents(self, request, campana_pk):

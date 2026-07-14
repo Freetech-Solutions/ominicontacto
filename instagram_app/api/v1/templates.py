@@ -20,7 +20,6 @@ from django.utils.translation import ugettext as _
 from rest_framework import response, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 
-from api_app.authentication import ExpiringTokenAuthentication
 from facebook_meta_app.api.v1.templates_messenger import ListSerializer as PlantillaSerializer
 from instagram_app.api.permissions import TienePermisoCanalInstagramAgente
 from instagram_app.api.utils import HttpResponseStatus, get_response_data
@@ -29,7 +28,7 @@ from ominicontacto_app.models import Campana
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoCanalInstagramAgente]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
+    authentication_classes = (SessionAuthentication, )
 
     def _get_template_group(self, campana):
         try:
