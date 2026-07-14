@@ -113,14 +113,14 @@ def elimina_coma(cadena):
     """
     Elimina coma
     """
-    return re.sub(r"\,?", "", cadena)
+    return cadena.replace(',', '')
 
 
 def elimina_comillas(cadena):
     """
     Elimina comillas
     """
-    return re.sub('"', "", cadena)
+    return cadena.replace('"', '')
 
 
 def crear_archivo_en_media_root(dirname_template, prefix, suffix=""):

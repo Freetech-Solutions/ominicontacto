@@ -71,7 +71,7 @@ if apps.is_installed("enterprise_app"):
 
 class ObtenerCredencialesSIPAgenteView(APIView):
     permission_classes = (TienePermisoOML, )
-    # authentication_classes = (BasicAuthentication, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get', ]
 
@@ -99,6 +99,7 @@ class OpcionesCalificacionViewSet(viewsets.ModelViewSet):
     """
     serializer_class = OpcionCalificacionSerializer
     permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     http_method_names = ['get']
 
     def _validar_parametros(self, pk_campana, pk_sistema_externo):
@@ -139,6 +140,7 @@ class ApiCalificacionClienteView(viewsets.ModelViewSet):
     """Vista que permite gestionar calificaciones """
 
     permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     serializer_class = CalificacionClienteSerializer
     http_method_names = ['get', 'post', 'put']
 
@@ -171,6 +173,7 @@ class ApiCalificacionClienteView(viewsets.ModelViewSet):
 class ApiCalificacionClienteCreateView(viewsets.ModelViewSet):
     """Vista que permite crear una calificación"""
     permission_classes = (TienePermisoOML, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     serializer_class = CalificacionClienteNuevoContactoSerializer
     http_method_names = ['post']
     
@@ -188,8 +191,7 @@ class ApiCalificacionClienteCreateView(viewsets.ModelViewSet):
 class API_ObtenerContactosCampanaView(APIView):
 
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication)
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
 
     def _get_qualified_contacts(self, campana):
         return list(
@@ -695,7 +697,7 @@ class NotifyEndTransferredCall(APIView):
 class SetEstadoRevisionAuditoria(APIView):
     """ Vista para marcar si una auditoria fue revisada """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -727,7 +729,7 @@ class SetEstadoRevisionAuditoria(APIView):
 
 class ApiStatusCalificacionLlamada(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -814,7 +816,7 @@ class ApiAgentesParaTransferencia(viewsets.ModelViewSet):
 
 class ApiConsultativeConferHold(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 

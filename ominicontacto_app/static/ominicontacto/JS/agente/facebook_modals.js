@@ -53,6 +53,13 @@ const onFacebookCloseContainerEvent = ($event) => {
     facebookWrapper.addClass('hidden');
 };
 
+const closeAgentChannelWrappersFromFacebook = () => {
+    $('#wrapperWebphone').removeClass('active');
+    $('#wrapperWhatsapp').addClass('hidden');
+    $('#wrapperInstagram').addClass('hidden');
+    $('#wrapperEmail').addClass('hidden');
+};
+
 const setEventListenersFacebook = () => {
     window.document.addEventListener('onFacebookCloseContainerEvent', onFacebookCloseContainerEvent, false);
     window.document.addEventListener('onFacebookTransferChatEvent', onFacebookTransferChatEvent, false);
@@ -62,9 +69,9 @@ const setEventListenersFacebook = () => {
     window.document.addEventListener('onFacebookContactFormEvent', onFacebookContactFormEvent, false);
     window.document.addEventListener('onFacebookConversationNewEvent', onFacebookConversationNewEvent, false);
     $('#facebookChat').on('click', function () {
-        $('#wrapperFacebook').toggleClass('hidden');
-        $('#wrapperWhatsapp').addClass('hidden');
-        $('#wrapperWebphone').removeClass('active');
+        const shouldOpen = facebookWrapper.hasClass('hidden');
+        closeAgentChannelWrappersFromFacebook();
+        facebookWrapper.toggleClass('hidden', !shouldOpen);
         $('#newFacebookChat').addClass('invisible');
     });
 };

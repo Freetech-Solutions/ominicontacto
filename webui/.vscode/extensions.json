@@ -1,0 +1,9 @@
+{
+  "recommendations": [
+    "antfu.iconify",
+    "bradlc.vscode-tailwindcss",
+    "editorconfig.editorconfig",
+    "oxc.oxc-vscode",
+    "vue.volar"
+  ]
+}

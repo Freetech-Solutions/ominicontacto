@@ -36,7 +36,6 @@ from rest_framework import status
 
 from api_app.services.storage_service import StorageService
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from ominicontacto_app.services.grabaciones.generacion_zip_grabaciones \
     import GeneracionZipGrabaciones
 from ominicontacto_app.services.grabaciones.speech_analysis import SpeechAnalysisService
@@ -46,7 +45,7 @@ class ObtenerArchivoGrabacionView(APIView):
     """Servicio que devuelve un archivo de grabación según su nombre
     """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     http_method_names = ['get']
 
     def get(self, request):
@@ -64,7 +63,7 @@ class ObtenerArchivoGrabacionView(APIView):
 class ObtenerArchivosGrabacionView(APIView):
     # Servicio que genera Zip con grabaciones seleccionadas
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     http_method_names = ['post']
 
     def _generar_zip(self, listado_archivos, username, key_task, mostrar_datos_contacto):
@@ -98,7 +97,7 @@ class ObtenerArchivosGrabacionView(APIView):
 
 class ObtenerUrlGrabacionView(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     http_method_names = ['get']
     renderer_classes = (JSONRenderer, )
 

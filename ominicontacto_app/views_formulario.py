@@ -16,53 +16,11 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-"""Aca se encuentran las vistas con la creacion de los formularios dinamico en la
-caso de que califica como gestion(que generalmente vulgarmente llamada venta)"""
+""" Vista para mostrar UI de Formulario """
 
-from __future__ import unicode_literals
-from django.contrib import messages
-from django.urls import reverse
-from django.shortcuts import redirect
-from django.views.generic import (
-    FormView, TemplateView
-)
-from django.utils.translation import gettext as _
-from ominicontacto_app.models import Formulario
-from ominicontacto_app.forms.base import (FormularioCRMForm)
-import logging as logging_
-
-logger = logging_.getLogger(__name__)
+from django.views.generic import TemplateView
 
 
 class FormularioListView(TemplateView):
     """Vista para listar los formularios"""
     template_name = 'formulario/formulario_list.html'
-
-
-class FormularioPreviewFormView(FormView):
-    """Vista para ver el formulario una vez finalizado"""
-    form_class = FormularioCRMForm
-    template_name = 'formulario/formulario_preview.html'
-
-    def dispatch(self, *args, **kwargs):
-        formulario = Formulario.objects.get(pk=self.kwargs['pk_formulario'])
-        campos = formulario.campos.all()
-
-        if not campos.exists():
-            message = _("No está permitido crear un formulario vacio.")
-            messages.error(self.request, message)
-            return redirect(reverse('formulario_field',
-                                    kwargs={"pk_formulario": self.kwargs['pk_formulario']}))
-        return super(FormularioPreviewFormView, self).dispatch(*args, **kwargs)
-
-    def get_form(self):
-        self.form_class = self.get_form_class()
-        formulario = Formulario.objects.get(pk=self.kwargs['pk_formulario'])
-        campos = formulario.campos.all()
-        return self.form_class(campos=campos, **self.get_form_kwargs())
-
-    def get_context_data(self, **kwargs):
-        context = super(
-            FormularioPreviewFormView, self).get_context_data(**kwargs)
-        context['pk_formulario'] = self.kwargs['pk_formulario']
-        return context

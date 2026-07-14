@@ -177,15 +177,19 @@ COLUMNAS_DB_DEFAULT = [
     _('_telefono2'),
     # Translators: _ usado para identificar estos nombres de campos de base de datos
     _('_telefono3'),
+    # Translators: _ usado para identificar estos nombres de campos de base de datos
+    _('_email'),
 ]
 
 COLUMNAS_DB_DEFAULT_TELEFONO = [0, 4, 5]
 
 COLUMNAS_DB_DEFAULT_ID_EXTERNO = 3
 
-DEFAULT_DB_METADATA = '{"prim_fila_enc": false, "cant_col": 6, "nombres_de_columnas": '\
+COLUMNAS_DB_DEFAULT_EMAIL = 6
+
+DEFAULT_DB_METADATA = '{"prim_fila_enc": false, "cant_col": 7, "nombres_de_columnas": '\
                       '["' + '", "'.join([str(x) for x in COLUMNAS_DB_DEFAULT]) + '"],' + \
-                      ' "cols_telefono": [0, 4, 5]}'
+                      ' "cols_telefono": [0, 4, 5], "col_email": 6}'
 
 
 class BaseDatosContactoFactory(DjangoModelFactory):
@@ -210,6 +214,7 @@ class ContactoFactory(DjangoModelFactory):
         model = Contacto
 
     telefono = lazy_attribute(lambda a: '1234567' + str(faker.random_number(2, fix_len=True)))
+    email = ""
     id_externo = None
     datos = lazy_attribute(
         lambda a: '["{0}", "{1}", "{2}", "{3}", "{4}"]'.format(

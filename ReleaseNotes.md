@@ -1,33 +1,31 @@
 # Release Notes
-260406.01
+260601.01
 
 ## Added
 
-- oml-3158 New Channel: Messenger Meta
-- oml-3175 Added new Whatsapp template type support.
-- oml-3243 Bulk Messages: Added several Whatsapp template types support.
-- oml-3042 UI Improvements: Sidebar, Dark mode, Icons, Vue transitions, Supervision.
+- oml-3291 Whatsapp interactive Menu Flow.
+- oml-3320 Whatsapp Webhook Signature Validation.
+- oml-3323 Recording search task status notification.
 
 ## Changed
 
-- oml-3169 Edit Interactive menues from Line Options.
-- oml-3280 Change IdentificadorCliente url field max_length=512
-- oml-3294 Add inbound/outbound tags to agents conversations.
+- oml-3303 Adds indexes in model definition to avoid problems migration.
+- oml-3312 New "Out of time" policies for Whatsapp.
+- oml-3313 Support campaign transfer events in reports.
+- oml-3321 Signature Validation for Whatsapp outbound attachment media.
+- oml-3278 Supervisor's message to agent notification window improved.
+- oml-3328 Quick Whatsapp Interactive Menu conversations expiry. 
+- oml-3322 Premium Reports: optimizations, task status notification and logging.
+- oml-3330 New Registration Server.
 
 ## Fixed
 
-- oml-2972 Fix agent blocked dispositioning with force unpause.
-- oml-3171 Fix: Do not show hidden disposition options in Whatsapp disposition menu.
-- oml-3275 Fix slow load time for new Whatsapp conversations.
-- oml-3269 Fix add asterisk queue member with correct pause state.
-- oml-3047 Fix do not show "contact not saved" on identified inbound contacts transfers.
-- oml-3279 Fix Consultative transfer for campaigns with survey error.
-- oml-3286 Fix External Site Authentication form validation.
-- oml-3287 Improved Whatsapp usability and fixes attachments and transfers problems.
-- oml-3288 Handle Whatsapp fowarded messages safely.
-- oml-3289 Fix Whatsapp time validation logic.
-- oml-3294 Fix Whatsapp conversation and transfers issues.
-- oml-3293 Fix Whatsapp attachment files uploading issues. 
+- oml-3296 Fix Whatsapp stream log too long.
+- oml-3317 Fix Race conditions between Requests in Conversation UI.
+- oml-3311 Avoid regenerar_asterisk command error for inconsistent campaign database data. 
+- oml-3314 Optimize preview contact update and fix distribution algorithm.
+- oml-3327 Fix Campaign Wizard: Show configured form name in disabled option.
+- oml-3334 Premium Reports: Fix Agent on Hold time. 
 
 ## Removed
 
@@ -42,3 +40,4 @@
 2.6.4 ominicontacto_app: 0117
       facebook_meta_app: 0001
       configuracion_telefonia_app: 0024, 0025
+2.6.5 whatsapp_app: 0017

@@ -335,7 +335,6 @@ class CalificacionTests(OMLBaseTest):
             f'contacto_form-{nombre_campo_dato}': 'Nuevo Contacto'
         }
 
-        get_call_contact_id
         call_data = self.get_call_data()
         call_data['id_contacto'] = '-1'
         call_data['telefono'] = telefono
@@ -422,6 +421,7 @@ class CalificacionTests(OMLBaseTest):
         datos_contacto_form = set(contacto_form.initial.values())
         datos_contacto_model = set(json.loads(self.contacto.datos) + [str(telefono)])
         datos_contacto_model.add(self.contacto.id_externo)
+        datos_contacto_model.add(self.contacto.email)
         self.assertEqual(datos_contacto_form, datos_contacto_model)
 
     def test_muestra_nombre_campana(self):
@@ -451,7 +451,7 @@ class CalificacionTests(OMLBaseTest):
 
     def test_muestra_link_sitio_externo(self):
         self.campana.type = Campana.TYPE_PREVIEW
-        self.campana.tipo_interaccion = Campana.SITIO_EXTERNO
+        self.campana.tipo_interaccion = Campana.TIPO_SITIO_EXTERNO
         sitio_externo = SitioExternoFactory()
         self.campana.sitio_externo = sitio_externo
         self.campana.save()
@@ -465,7 +465,7 @@ class CalificacionTests(OMLBaseTest):
 
     def test_redirecciona_a_sitio_externo(self):
         self.campana.type = Campana.TYPE_PREVIEW
-        self.campana.tipo_interaccion = Campana.SITIO_EXTERNO
+        self.campana.tipo_interaccion = Campana.TIPO_SITIO_EXTERNO
         sitio_externo = SitioExternoFactory(disparador=SitioExterno.AUTOMATICO,
                                             metodo=SitioExterno.GET,
                                             objetivo=SitioExterno.EMBEBIDO)
@@ -485,7 +485,7 @@ class CalificacionTests(OMLBaseTest):
     @patch('requests.get')
     def test_hace_peticion_sitio_externo_en_servidor(self, request_get):
         self.campana.type = Campana.TYPE_PREVIEW
-        self.campana.tipo_interaccion = Campana.SITIO_EXTERNO
+        self.campana.tipo_interaccion = Campana.TIPO_SITIO_EXTERNO
         sitio_externo = SitioExternoFactory(disparador=SitioExterno.SERVER,
                                             metodo=SitioExterno.GET,
                                             objetivo=None, formato=None)

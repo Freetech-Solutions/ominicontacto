@@ -10,23 +10,33 @@ import {
     AgentFacebookState,
     AgentFacebookGetters
 } from './facebook';
+import {
+    AgentInstagramActions,
+    AgentInstagramMutations,
+    AgentInstagramState,
+    AgentInstagramGetters
+} from './instagram';
 
 export const agentState = {
     ...AgentWhatsappState,
-    ...AgentFacebookState
+    ...AgentFacebookState,
+    ...AgentInstagramState
 };
 
 export const agentMutations = {
     ...AgentWhatsappMutations,
-    ...AgentFacebookMutations
+    ...AgentFacebookMutations,
+    ...AgentInstagramMutations
 };
 
 export const agentActions = {
     ...AgentWhatsappActions,
-    ...AgentFacebookActions
+    ...AgentFacebookActions,
+    ...AgentInstagramActions
 };
 
 export const agentGetters = {
     ...AgentWhatsappGetters,
-    ...AgentFacebookGetters
+    ...AgentFacebookGetters,
+    ...AgentInstagramGetters
 };

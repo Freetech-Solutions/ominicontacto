@@ -198,6 +198,7 @@ class CalificacionClienteFormView(FormView):
             elif len_contacto_info == 1:
                 notificar_contacto_existente = True
                 self.contacto = contacto_info[0]
+                id_contacto = self.contacto.id
             else:
                 return HttpResponseRedirect(
                     reverse('campana_contactos_telefono_repetido',
@@ -560,7 +561,7 @@ class CalificacionClienteFormView(FormView):
                                                                      self.contacto.id)
 
         if self.object_calificacion.es_gestion() and \
-                not self.campana.tipo_interaccion == Campana.SITIO_EXTERNO:
+                not self.campana.tipo_interaccion == Campana.TIPO_SITIO_EXTERNO:
             if self.agente.grupo.obligar_calificacion:
                 calificacion_llamada = CalificacionLLamada()
                 call_data_json = self.kwargs['call_data_json'] \

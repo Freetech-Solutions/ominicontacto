@@ -23,12 +23,12 @@ Servicio para generar reporte csv para todas las calificaciones de una campana
 from __future__ import unicode_literals
 
 import logging
-import json
 
 from django.utils.encoding import force_str
 from django.utils.timezone import localtime
 from django.utils.translation import gettext_lazy as _
 
+from reportes_app.models import LlamadaLog
 from ominicontacto_app.services.reporte_campana_csv import ReporteCSV
 
 logger = logging.getLogger(__name__)
@@ -72,13 +72,39 @@ class ReporteCalificacionesCampanaCSV(ReporteCampanaService, ReporteCSV):
                 self._escribir_linea_calificacion(calificacion, calificacion)
                 calificaciones_analizadas.add(calificacion.pk)
 
+    def _get_contacto_telefono(self, calificacion):
+        if calificacion is None:
+            return ""
+
+        contacto = getattr(calificacion, "contacto", None)
+        callid = getattr(calificacion, "callid", None)
+
+        if callid and contacto and getattr(contacto, "id", None):
+            llamada = (
+                LlamadaLog.objects
+                .filter(callid=callid, contacto_id=contacto.id)
+                .only("numero_marcado")
+                .first()
+            )
+            numero = getattr(llamada, "numero_marcado", None)
+            if isinstance(numero, str):
+                numero = numero.strip()
+            if numero:
+                return numero
+
+        telefono = getattr(contacto, "telefono", "")
+        if isinstance(telefono, str):
+            telefono = telefono.strip()
+
+        return telefono or ""
+
     def _escribir_encabezado(self):
         encabezado = []
         encabezado.append(_("Fecha-Hora Contacto"))
         encabezado.append(_("Agente"))
         encabezado.append(_("Tel status"))
         encabezado.append(_("Tel contactado"))
-        nombres = self.campana.bd_contacto.get_metadata().nombres_de_columnas_de_datos
+        nombres = self.campana.bd_contacto.get_metadata().nombres_de_columnas
         for nombre in nombres:
             encabezado.append(nombre)
         encabezado.append(_("Calificado"))
@@ -94,8 +120,8 @@ class ReporteCalificacionesCampanaCSV(ReporteCampanaService, ReporteCSV):
         lista_opciones.append(calificacion_fecha_local.strftime("%Y/%m/%d %H:%M:%S"))
         lista_opciones.append(calificacion.agente)
         lista_opciones.append(_("Contactado"))
-        lista_opciones.append(calificacion.contacto.telefono)
-        datos = json.loads(calificacion.contacto.datos)
+        lista_opciones.append(self._get_contacto_telefono(calificacion))
+        datos = calificacion.contacto.lista_de_datos_completa()
         for dato in datos:
             lista_opciones.append(dato)
         opcion_calificacion_nombre = calificacion.opcion_calificacion.nombre

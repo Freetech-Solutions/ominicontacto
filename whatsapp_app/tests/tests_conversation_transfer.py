@@ -2,10 +2,21 @@
 
 from django.test import TestCase
 from django.utils import timezone
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from ominicontacto_app.models import Campana
-from ominicontacto_app.tests.factories import AgenteProfileFactory, CampanaFactory, UserFactory
-from whatsapp_app.api.v1.conversacion import ConversacionSerializer
+from ominicontacto_app.tests.factories import (
+    AgenteProfileFactory,
+    CampanaFactory,
+    QueueFactory,
+    QueueMemberFactory,
+    UserFactory,
+)
+from whatsapp_app.api.v1.conversacion import (
+    ConversacionSerializer,
+    ViewSet as ConversationViewSet,
+)
 from whatsapp_app.api.v1.transfer import ViewSet as TransferViewSet
 from whatsapp_app.models import ConfiguracionWhatsappCampana, MensajeWhatsapp
 from whatsapp_app.tests.factories import ConversacionFactory, LineaFactory
@@ -186,3 +197,70 @@ class ConversationTransferEventTest(TestCase):
 
         self.assertSetEqual(inbound_ids, expected_ids)
         self.assertSetEqual(outbound_ids, expected_ids)
+
+    def test_transfer_to_campaign_notifies_only_target_campaign_agents(self):
+        user = UserFactory()
+        current_campaign = self._set_active_whatsapp_campaign(CampanaFactory())
+        target_campaign = self._set_active_whatsapp_campaign(CampanaFactory())
+        line = LineaFactory()
+        transfer_by = AgenteProfileFactory()
+        target_agent = AgenteProfileFactory()
+        unrelated_agent = AgenteProfileFactory()
+        target_queue = QueueFactory(campana=target_campaign)
+        QueueMemberFactory(member=target_agent, queue_name=target_queue)
+        self._create_campaign_config(current_campaign, line, user)
+        self._create_campaign_config(target_campaign, line, user)
+        conversation = ConversacionFactory(
+            line=line,
+            campana=current_campaign,
+            agent=transfer_by,
+            destination='5493519999999',
+            is_active=True,
+            atendida=True,
+        )
+        notified_user_ids = []
+
+        class FakeNotifier:
+            async def notify_whatsapp_new_chat(self, user_id, **kwargs):
+                notified_user_ids.append(user_id)
+
+        request = SimpleNamespace(
+            data={
+                'conversationId': conversation.id,
+                'to': target_campaign.id,
+            },
+            user=transfer_by.user,
+        )
+
+        with patch('whatsapp_app.api.v1.transfer.AgentNotifier', return_value=FakeNotifier()):
+            response = TransferViewSet().to_campaign(request)
+
+        conversation.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(conversation.campana_id, target_campaign.id)
+        self.assertIsNone(conversation.agent_id)
+        self.assertEqual(notified_user_ids, [target_agent.user_id])
+        self.assertNotIn(unrelated_agent.user_id, notified_user_ids)
+
+    def test_attend_chat_rejects_agent_outside_conversation_campaign(self):
+        campaign = self._set_active_whatsapp_campaign(CampanaFactory())
+        line = LineaFactory()
+        campaign_agent = AgenteProfileFactory()
+        unrelated_agent = AgenteProfileFactory()
+        queue = QueueFactory(campana=campaign)
+        QueueMemberFactory(member=campaign_agent, queue_name=queue)
+        conversation = ConversacionFactory(
+            line=line,
+            campana=campaign,
+            agent=None,
+            destination='5493519999999',
+            is_active=True,
+            atendida=False,
+        )
+        request = SimpleNamespace(user=unrelated_agent.user)
+
+        response = ConversationViewSet().attend_chat(request, conversation.id)
+
+        conversation.refresh_from_db()
+        self.assertEqual(response.status_code, 401)
+        self.assertIsNone(conversation.agent_id)

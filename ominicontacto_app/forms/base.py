@@ -57,6 +57,8 @@ from ominicontacto_app.utiles import (convertir_ascii_string, validar_nombres_ca
 from configuracion_telefonia_app.models import DestinoEntrante, Playlist, RutaSaliente, TroncalSIP
 from whatsapp_app.models import ConfiguracionWhatsappCampana
 from facebook_meta_app.models import ConfiguracionMetaFacebookCampana
+from instagram_app.models import ConfiguracionInstagramCampana
+from email_app.models import CampaignAccount as CampaignEmailAccount
 
 from ominicontacto_app.utiles import convert_fecha_datetime
 from reportes_app.models import LlamadaLog
@@ -725,6 +727,10 @@ class CamposDeBaseDeDatosForm(forms.Form):
         widget=forms.CheckboxSelectMultiple())
     id_externo = forms.ChoiceField(required=False,
                                    widget=forms.Select(attrs={'class': 'form-control'}))
+    email = forms.ChoiceField(
+        required=False,
+        widget=forms.Select(attrs={"class": "form-control"})
+    )
 
     def __init__(self, nombres_campos, *args, **kwargs):
         super(CamposDeBaseDeDatosForm, self).__init__(*args, **kwargs)
@@ -733,13 +739,22 @@ class CamposDeBaseDeDatosForm(forms.Form):
         id_externo_choices = [EMPTY_CHOICE]
         id_externo_choices.extend(tuple([(x, x) for x in nombres_campos]))
         self.fields['id_externo'].choices = id_externo_choices
+        self.fields['email'].choices = [EMPTY_CHOICE] + [(x, x) for x in nombres_campos]
 
     def clean(self):
         campos_telefonicos = self.cleaned_data.get('campos_telefonicos', [])
-        if len(campos_telefonicos) > 0:
-            id_externo = self.cleaned_data.get('id_externo')
+        id_externo = self.cleaned_data.get('id_externo')
+        if id_externo:
             if id_externo in campos_telefonicos:
                 msg = _('No se puede elegir un campo telefónico como id_externo')
+                raise forms.ValidationError(msg)
+        email = self.cleaned_data.get('email')
+        if email:
+            if email in campos_telefonicos:
+                msg = _('No se puede elegir un campo telefónico como email')
+                raise forms.ValidationError(msg)
+            if email == id_externo:
+                msg = _('No pueden coincidir el campo email con el de id_externo')
                 raise forms.ValidationError(msg)
         return super(CamposDeBaseDeDatosForm, self).clean()
 
@@ -753,6 +768,13 @@ class CamposDeBaseDeDatosForm(forms.Form):
     def columna_id_externo(self):
         # Devuelvo el indice del nombre de la columnas del id externo
         seleccionado = self.cleaned_data.get('id_externo', '')
+        if seleccionado in self.nombres_campos:
+            return self.nombres_campos.index(seleccionado)
+        return None
+
+    @property
+    def columna_email(self):
+        seleccionado = self.cleaned_data.get('email', '')
         if seleccionado in self.nombres_campos:
             return self.nombres_campos.index(seleccionado)
         return None
@@ -989,7 +1011,7 @@ class CampanaMixinForm(object):
         (Campana.FORMULARIO_Y_SITIO_EXTERNO, Campana.TIPO_FORMULARIO_Y_SITIO_EXTERNO)
     )
     INTERACCION_SITIO_EXTERNO = (
-        (Campana.SITIO_EXTERNO, Campana.TIPO_SITIO_EXTERNO_DISPLAY),
+        (Campana.TIPO_SITIO_EXTERNO, Campana.TIPO_SITIO_EXTERNO_DISPLAY),
     )
 
     ERROR_WHATSAPP_DESTINO = _("Debe mantener la canalidad Whatsapp habilitada ya que la "
@@ -1002,7 +1024,7 @@ class CampanaMixinForm(object):
             self.fields['bd_contacto'].queryset = BaseDatosContacto.objects.obtener_definidas()
         instance = getattr(self, 'instance', None)
         if instance.pk is not None:
-            if instance.tipo_interaccion == Campana.SITIO_EXTERNO:
+            if instance.tipo_interaccion == Campana.TIPO_SITIO_EXTERNO:
                 self.fields['tipo_interaccion'].disabled = True
                 self.fields['tipo_interaccion'].required = False
                 self.fields['tipo_interaccion'].choices = self.INTERACCION_SITIO_EXTERNO
@@ -1028,7 +1050,7 @@ class CampanaMixinForm(object):
             self.add_error('bd_contacto', message)
             raise forms.ValidationError(message, code='invalid')
         if self.cleaned_data.get('tipo_interaccion') in \
-            [Campana.SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO] and \
+            [Campana.TIPO_SITIO_EXTERNO, Campana.FORMULARIO_Y_SITIO_EXTERNO] and \
                 not self.cleaned_data.get('sitio_externo'):
             message = _("Debe seleccionar un sitio externo")
             raise forms.ValidationError(message, code='invalid')
@@ -1119,6 +1141,38 @@ class CampanaMixinForm(object):
                     is_active=True, campana=instance).update(is_active=False)
         return meta_facebook_habilitado
 
+    def clean_instagram_habilitado(self):
+        instance = getattr(self, 'instance', None)
+        instagram_habilitado = self.cleaned_data.get('instagram_habilitado')
+        if instance is not None:
+            if instance.instagram_habilitado and not instagram_habilitado:
+                cuentas_antecesoras = []
+                try:
+                    nodo = DestinoEntrante.get_nodo_ruta_entrante(instance)
+                    cuentas_antecesoras = nodo.cuentas_instagram_antecesoras()
+                except Exception:
+                    pass
+                if cuentas_antecesoras:
+                    nombres_cuentas = cuentas_antecesoras.values_list('name', flat=True)
+                    nombres_cuentas = ', '.join(nombres_cuentas)
+                    msg = _("Debe mantener la canalidad Instagram habilitada ya que la "
+                            "campaña es destino de las siguientes cuentas de Instagram: {0}")
+                    raise forms.ValidationError(msg.format(nombres_cuentas))
+                ConfiguracionInstagramCampana.objects.filter(
+                    is_active=True, campana=instance).update(is_active=False)
+        return instagram_habilitado
+
+    def clean_email_habilitado(self):
+        email_habilitado = self.cleaned_data.get('email_habilitado')
+        bd_contacto = self.cleaned_data.get('bd_contacto')
+        if email_habilitado and bd_contacto:
+            if not bd_contacto.get_metadata().columna_email:
+                raise forms.ValidationError(_(
+                    "La canalidad email "
+                    "require que la Base de Datos de Contactos tenga campo email."
+                ))
+        return email_habilitado
+
 
 class CampanaEntranteForm(CampanaMixinForm, forms.ModelForm):
 
@@ -1158,6 +1212,7 @@ class CampanaEntranteForm(CampanaMixinForm, forms.ModelForm):
                   'tipo_interaccion', 'sitio_externo', 'objetivo', 'mostrar_nombre',
                   'mostrar_did', 'mostrar_nombre_ruta_entrante', 'outcid', 'outr',
                   'videocall_habilitada', 'whatsapp_habilitado', 'meta_facebook_habilitado',
+                  'instagram_habilitado', 'email_habilitado',
                   'speech', 'control_de_duplicados', 'mostrar_callid',
                   'permitir_calificar_telefonos')
         labels = {
@@ -1468,42 +1523,6 @@ class ReporteForm(forms.Form):
         choices=((TODOS_RESULTADOS, _('Todas')), ) + AuditoriaCalificacion.RESULTADO_CHOICES)
 
 
-class FormularioCRMForm(forms.Form):
-
-    def __init__(self, campos, *args, **kwargs):
-        super(FormularioCRMForm, self).__init__(*args, **kwargs)
-
-        for campo in campos:
-            if campo.tipo is FieldFormulario.TIPO_TEXTO:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.TextInput(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_FECHA:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.TextInput(
-                        attrs={'class': 'class-fecha form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_LISTA:
-                choices = [(option, option)
-                           for option in json.loads(campo.values_select)]
-                self.fields[campo.nombre_campo] = forms.ChoiceField(
-                    choices=choices,
-                    label=campo.nombre_campo, widget=forms.Select(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_TEXTO_AREA:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.Textarea(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_NUMERO:
-                self.fields[campo.nombre_campo] = forms.CharField(
-                    label=campo.nombre_campo, widget=forms.TextInput(
-                        attrs={'class': 'form-control'}),
-                    required=campo.is_required)
-
-
 class SincronizaDialerForm(forms.Form):
     evitar_duplicados = forms.BooleanField(required=False)
     if wombat_habilitado():
@@ -1520,9 +1539,10 @@ class FormularioNuevoContacto(forms.ModelForm):
 
     class Meta:
         model = Contacto
-        fields = ('telefono', 'id_externo', 'confirmar_duplicado')
+        fields = ('telefono', 'email', 'id_externo', 'confirmar_duplicado')
         widgets = {
             "telefono": forms.TextInput(attrs={'class': 'form-control'}),
+            "email": forms.TextInput(attrs={'class': 'form-control'}),
             "id_externo": forms.TextInput(attrs={'class': 'form-control'}),
         }
 
@@ -1555,6 +1575,7 @@ class FormularioNuevoContacto(forms.ModelForm):
             self.fields['telefono'].required = False
         nombre_campo_telefono = bd_metadata.nombre_campo_telefono
         nombre_campo_id_externo = bd_metadata.nombre_campo_id_externo
+        nombre_campo_email = bd_metadata.nombre_campo_email
         for campo in bd_metadata.nombres_de_columnas:
             bloquear_campo = campo in campos_a_bloquear
             ocultar_campo = campo in campos_a_ocultar
@@ -1576,6 +1597,15 @@ class FormularioNuevoContacto(forms.ModelForm):
                     self.fields['id_externo'].required = False
                     if bloquear_campo:
                         self.fields['id_externo'].disabled = True
+            elif campo == nombre_campo_email:
+                if ocultar_campo:
+                    self.fields.pop('email')
+                else:
+                    nombre_campo = convertir_ascii_string(campo)
+                    self.fields['email'].label = nombre_campo
+                    self.fields['email'].required = False
+                    if bloquear_campo:
+                        self.fields['email'].disabled = True
             elif not ocultar_campo:
                 nombre_campo = self.get_nombre_input(campo)
                 self.fields[nombre_campo] = forms.CharField(
@@ -1589,6 +1619,9 @@ class FormularioNuevoContacto(forms.ModelForm):
 
         if nombre_campo_id_externo is None:
             self.fields.pop('id_externo')
+
+        if nombre_campo_email is None:
+            self.fields.pop('email')
 
         self.bd_metadata = bd_metadata
 
@@ -1935,7 +1968,8 @@ class CampanaDialerForm(CampanaMixinForm, forms.ModelForm):
                   'tipo_interaccion', 'sitio_externo', 'objetivo', 'mostrar_nombre',
                   'outcid', 'outr', 'speech', 'prioridad', 'whatsapp_habilitado',
                   'mostrar_callid', 'permitir_calificar_telefonos',
-                  'meta_facebook_habilitado', 'mostrar_callid')
+                  'meta_facebook_habilitado', 'instagram_habilitado', 'email_habilitado',
+                  'mostrar_callid')
         labels = {
             'bd_contacto': 'Base de Datos de Contactos',
         }
@@ -2345,7 +2379,8 @@ class CampanaManualForm(CampanaMixinForm, forms.ModelForm):
         fields = ('nombre', 'bd_contacto', 'control_de_duplicados', 'campo_direccion',
                   'sistema_externo', 'id_externo', 'tipo_interaccion', 'sitio_externo',
                   'objetivo', 'outcid', 'outr', 'speech', 'whatsapp_habilitado',
-                  'meta_facebook_habilitado', 'mostrar_callid', 'permitir_calificar_telefonos')
+                  'meta_facebook_habilitado', 'instagram_habilitado', 'email_habilitado',
+                  'mostrar_callid', 'permitir_calificar_telefonos')
 
         widgets = {
             'sistema_externo': forms.Select(attrs={'class': 'form-control'}),
@@ -2410,7 +2445,8 @@ class CampanaPreviewForm(CampanaMixinForm, forms.ModelForm):
         fields = ('nombre', 'sistema_externo', 'id_externo', 'control_de_duplicados',
                   'tipo_interaccion', 'sitio_externo', 'objetivo', 'bd_contacto',
                   'campo_direccion', 'tiempo_desconexion', 'outr', 'outcid', 'speech',
-                  'whatsapp_habilitado', 'meta_facebook_habilitado',
+                  'whatsapp_habilitado', 'meta_facebook_habilitado', 'instagram_habilitado',
+                  'email_habilitado',
                   'mostrar_callid', 'permitir_calificar_telefonos')
 
         widgets = {
@@ -2463,7 +2499,7 @@ class GrupoForm(forms.ModelForm):
 
     class Meta:
         model = Grupo
-        fields = ('nombre', 'auto_unpause', 'auto_attend_inbound',
+        fields = ('nombre', 'auto_unpause', 'pause_on_first_login', 'auto_attend_inbound',
                   'auto_attend_dialer', 'obligar_calificacion', 'call_off_camp',
                   'acceso_grabaciones_agente', 'acceso_dashboard_agente',
                   'on_hold', 'limitar_agendas_personales', 'cantidad_agendas_personales',
@@ -2473,6 +2509,7 @@ class GrupoForm(forms.ModelForm):
                   'acceso_campanas_preview_agente', 'conjunto_de_pausa',
                   'acceso_cambiar_contrasena_agente',
                   'obligar_despausa', 'whatsapp_habilitado', 'meta_facebook_habilitado',
+                  'instagram_habilitado', 'email_habilitado',
                   'restringir_tipo_llamadas_manuales', 'permitir_llamadas_manuales_a_manuales',
                   'permitir_llamadas_manuales_a_dialer', 'permitir_llamadas_manuales_a_entrante',
                   'permitir_llamadas_manuales_a_preview', 'call_another_agent')
@@ -2490,6 +2527,7 @@ class GrupoForm(forms.ModelForm):
             'tiempo_maximo_para_agendar': _('Cantidad máxima de días para agendar'),
             'obligar_despausa': _('Forzar Despausa'),
             'conjunto_de_pausa': _('Conjunto de Pausas'),
+            'pause_on_first_login': _('Pausar al iniciar sesión')
         }
         labels = {
             'acceso_grabaciones_agente': _('Permitir el acceso a las grabaciones'),
@@ -2871,6 +2909,27 @@ class CampanaConfiguracionMetaFacebookForm(forms.ModelForm):
         }
 
 
+class CampanaConfiguracionInstagramForm(forms.ModelForm):
+    class Meta:
+        model = ConfiguracionInstagramCampana
+        fields = ('cuenta', 'nivel_servicio', 'grupo_plantilla_facebook')
+        widgets = {
+            'cuenta': forms.Select(attrs={'class': 'form-control'}),
+            'nivel_servicio': forms.NumberInput(attrs={'class': 'form-control'}),
+            'grupo_plantilla_facebook': forms.Select(attrs={'class': 'form-control'})
+        }
+
+
+class CampaignEmailAccountForm(forms.ModelForm):
+    class Meta:
+        model = CampaignEmailAccount
+        fields = ('account', 'service_level',)
+        widgets = {
+            'account': forms.Select(attrs={'class': 'form-control'}),
+            'service_level': forms.NumberInput(attrs={'class': 'form-control'}),
+        }
+
+
 class CustomBaseDatosContactoForm(forms.ModelForm):
 
     metadata_schema = {
@@ -2901,6 +2960,9 @@ class CustomBaseDatosContactoForm(forms.ModelForm):
             "col_id_externo": {
                 "type": ["integer", "null"],
             },
+            "col_email": {
+                "type": ["integer", "null"],
+            },
         },
         "required": [
             "prim_fila_enc",
@@ -2908,6 +2970,7 @@ class CustomBaseDatosContactoForm(forms.ModelForm):
             "nombres_de_columnas",
             "cols_telefono",
             "col_id_externo",
+            "col_email",
         ],
     }
 
@@ -2921,15 +2984,19 @@ class CustomBaseDatosContactoForm(forms.ModelForm):
             "metadata": forms.HiddenInput,
         }
 
+    def __init__(self, **kwargs):
+        self.email_habilitado = kwargs.pop('email_habilitado', False)
+        super().__init__(**kwargs)
+
     def clean_metadata(self):
         value = self.cleaned_data["metadata"]
         metadata = json.loads(value)
         try:
             jsonschema.validate(metadata, self.metadata_schema)
         except jsonschema.ValidationError as error:
-            if error.path[0] == "cant_col" and error.validator == "minimum":
+            if error.path and error.path[0] == "cant_col" and error.validator == "minimum":
                 raise forms.ValidationError(_("Es requerido al menos un campo."))
-            if error.path[0] == "cols_telefono" and error.validator == "minItems":
+            if error.path and error.path[0] == "cols_telefono" and error.validator == "minItems":
                 raise forms.ValidationError(_("Es requerido al menos un campo telefónico."))
             raise forms.ValidationError(error)
         if metadata["cant_col"] != len(metadata["nombres_de_columnas"]):
@@ -2938,6 +3005,22 @@ class CustomBaseDatosContactoForm(forms.ModelForm):
             raise forms.ValidationError(_("El valor de {0} es incorrecto".format('cols_telefono')))
         if metadata["col_id_externo"] and metadata["col_id_externo"] >= metadata["cant_col"]:
             raise forms.ValidationError(_("El valor de {0} es incorrecto".format('col_id_externo')))
+        if metadata.get("col_email") and metadata["col_email"] >= metadata["cant_col"]:
+            raise forms.ValidationError(_("El valor de {0} es incorrecto".format('col_email')))
+        if metadata["col_id_externo"]:
+            if metadata["col_id_externo"] in metadata["cols_telefono"]:
+                msg = _('No se puede elegir un campo telefónico como id_externo')
+                raise forms.ValidationError(msg)
+        if metadata.get("col_email"):
+            if metadata["col_email"] in metadata["cols_telefono"]:
+                msg = _('No se puede elegir un campo telefónico como email')
+                raise forms.ValidationError(msg)
+            if metadata["col_email"] == metadata["col_id_externo"]:
+                msg = _('No pueden coincidir el campo email con el de id_externo')
+                raise forms.ValidationError(msg)
+        if metadata['col_email'] is None and self.email_habilitado:
+            msg = _('El campo email es requerido.')
+            raise forms.ValidationError(msg)
         return value
 
 

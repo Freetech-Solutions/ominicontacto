@@ -28,7 +28,6 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from api_app.serializers.ivr import (
     AudioOptionsSerializer, DestinationTypesSerializer,
@@ -40,8 +39,7 @@ EMPTY_CHOICE = (None, '---------')
 
 class IVRList(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -64,8 +62,7 @@ class IVRList(APIView):
 class IVRCreate(APIView):
     permission_classes = (TienePermisoOML, )
     parser_classes = (MultiPartParser, FormParser, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -105,8 +102,7 @@ class IVRCreate(APIView):
 class IVRUpdate(APIView):
     permission_classes = (TienePermisoOML, )
     parser_classes = (MultiPartParser, FormParser, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['put']
 
@@ -154,8 +150,7 @@ class IVRUpdate(APIView):
 
 class IVRDetail(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -182,8 +177,7 @@ class IVRDetail(APIView):
 
 class IVRDelete(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['delete']
 
@@ -233,8 +227,7 @@ class IVRDelete(APIView):
 
 class IVRAudioOptions(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -258,8 +251,7 @@ class IVRAudioOptions(APIView):
 
 class IVRDestinationTypes(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 

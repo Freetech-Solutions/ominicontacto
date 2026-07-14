@@ -181,7 +181,7 @@ handlers = {
 
 def create(name, schema_sample=None, schema_validate=True, **kwargs):
     if name not in handlers:
-        raise Exception(name)
+        raise ValueError(name)
     schema, schema_samples = safe_load_all(
         render_to_string("message/emsg/{}/schema.yaml.j2".format(name))
     )

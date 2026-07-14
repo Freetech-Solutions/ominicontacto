@@ -330,7 +330,7 @@ class OminicontactoAppConfig(AppConfig):
                 'label': _('Auditoría'),
                 'url': reverse('seguridad_auditoria'),
             })
-        if 'security_external_authentication':
+        if 'security_external_authentication' in permissions:
             seguridad.append({
                 'label': _('Autenticación'),
                 'url': reverse('security_external_authentication'),
@@ -499,8 +499,6 @@ class OminicontactoAppConfig(AppConfig):
             {'nombre': 'calificacion_list',
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'formulario_list',
-             'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
-            {'nombre': 'formulario_vista_previa',
              'roles': ['Administrador', 'Gerente', 'Supervisor', ]},
             {'nombre': 'calificar_llamada',
              'roles': ['Agente', ]},
@@ -920,8 +918,6 @@ class OminicontactoAppConfig(AppConfig):
             {'descripcion': _('Ver lista de opciones de Calificación'), 'version': '1.7.0'},
         'formulario_list':
             {'descripcion': _('Ver lista de Formularios de gestión'), 'version': '1.7.0'},
-        'formulario_vista_previa':
-            {'descripcion': _('Vista previa de un Formulario de gestión'), 'version': '1.7.0'},
         'calificar_llamada':
             {'descripcion': _('Calificar una llamada (Agente)'), 'version': '1.7.0'},
         'calificar_llamada_con_contacto':

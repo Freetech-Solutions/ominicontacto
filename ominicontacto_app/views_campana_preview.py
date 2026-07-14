@@ -43,8 +43,10 @@ from ominicontacto_app.forms.base import (CampanaConfiguracionMetaFacebookForm, 
                                           CampanaSupervisorUpdateForm,
                                           QueueMemberFormset, AsignacionContactosForm,
                                           OrdenarAsignacionContactosForm,
+                                          CampaignEmailAccountForm,
                                           CampanaPreviewCampoDesactivacion,
                                           CampanaConfiguracionWhatsappForm,
+                                          CampanaConfiguracionInstagramForm,
                                           ActualizarContactosPreviewForm)
 from ominicontacto_app.models import AgenteEnContacto, Campana, AgenteProfile, Contacto
 from ominicontacto_app.services.campaign_redis_status import set_campaign_status_redis
@@ -66,6 +68,8 @@ class CampanaPreviewMixin(CampanaWizardMixin):
     COLA = None
     CONFIGURACION_WHATSAPP = '1'
     CONFIGURACION_META_FACEBOOK = '2'
+    CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '3'
     PARAMETROS_CRM = '4'
     ADICION_SUPERVISORES = '5'
@@ -75,6 +79,8 @@ class CampanaPreviewMixin(CampanaWizardMixin):
     FORMS = [(INICIAL, CampanaPreviewForm),
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
+             (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet),
              (ADICION_SUPERVISORES, CampanaSupervisorUpdateForm),
@@ -85,6 +91,9 @@ class CampanaPreviewMixin(CampanaWizardMixin):
                  CONFIGURACION_WHATSAPP: "campanas/campana_preview/configuracion_whatsapp.html",
                  CONFIGURACION_META_FACEBOOK:
                  "campanas/campana_preview/configuracion_meta_facebook.html",
+                 CONFIGURACION_INSTAGRAM:
+                 "campanas/campana_preview/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_preview/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_preview/opcion_calificacion.html",
                  PARAMETROS_CRM: "campanas/campana_preview/parametros_crm_sitio_externo.html",
                  ADICION_SUPERVISORES: "campanas/campana_preview/adicionar_supervisores.html",
@@ -111,14 +120,14 @@ class CampanaPreviewCreateView(CampanaPreviewMixin, CampanaManualCreateView):
         return context
 
     def done(self, form_list, form_dict, **kwargs):
-        queue = self._save_forms(form_list, form_dict, Campana.ESTADO_ACTIVA, Campana.TYPE_PREVIEW)
+        queue = self._save_forms(form_dict, Campana.ESTADO_ACTIVA, Campana.TYPE_PREVIEW)
         self._insert_queue_asterisk(queue)
         set_campaign_status_redis(queue.campana.id, 'active')
         # salvamos los supervisores y agentes asignados a la campaña
-        self.save_supervisores(form_list, -3)
-        self.save_agentes(form_list, -2)
+        self.save_supervisores(form_dict)
+        self.save_agentes(form_dict)
         # rellenar la tabla que relación agentes y contactos con los valores iniciales
-        asignar_contactos_form = list(form_list)[-1]
+        asignar_contactos_form = form_dict[self.ASIGNACION_CONTACTOS]
         asignacion_proporcional = asignar_contactos_form.cleaned_data.get(
             'proporcionalmente', False)
         asignacion_aleatoria = asignar_contactos_form.cleaned_data.get('aleatorio', False)
@@ -150,12 +159,16 @@ class CampanaPreviewUpdateView(CampanaPreviewMixin, CampanaManualUpdateView):
     COLA = None
     CONFIGURACION_WHATSAPP = '1'
     CONFIGURACION_META_FACEBOOK = '2'
+    CONFIGURACION_INSTAGRAM = 'instagram'
+    CONFIGURACION_EMAIL = 'email-channel'
     OPCIONES_CALIFICACION = '3'
     PARAMETROS_CRM = '4'
 
     FORMS = [(INICIAL, CampanaPreviewForm),
              (CONFIGURACION_WHATSAPP, CampanaConfiguracionWhatsappForm),
              (CONFIGURACION_META_FACEBOOK, CampanaConfiguracionMetaFacebookForm),
+             (CONFIGURACION_INSTAGRAM, CampanaConfiguracionInstagramForm),
+             (CONFIGURACION_EMAIL, CampaignEmailAccountForm),
              (OPCIONES_CALIFICACION, OpcionCalificacionFormSet),
              (PARAMETROS_CRM, ParametrosCrmFormSet)]
 
@@ -163,13 +176,16 @@ class CampanaPreviewUpdateView(CampanaPreviewMixin, CampanaManualUpdateView):
                  CONFIGURACION_WHATSAPP: "campanas/campana_manual/configuracion_whatsapp.html",
                  CONFIGURACION_META_FACEBOOK:
                  "campanas/campana_manual/configuracion_meta_facebook.html",
+                 CONFIGURACION_INSTAGRAM:
+                 "campanas/campana_manual/configuracion_instagram.html",
+                 CONFIGURACION_EMAIL: "campanas/campana_preview/configuracion_email.html",
                  OPCIONES_CALIFICACION: "campanas/campana_preview/opcion_calificacion.html",
                  PARAMETROS_CRM: "campanas/campana_preview/parametros_crm_sitio_externo.html"}
 
     form_list = FORMS
 
-    def done(self, form_list, **kwargs):
-        queue = self._save_forms(form_list, **kwargs)
+    def done(self, form_list, form_dict, **kwargs):
+        queue = self._save_forms(form_dict, **kwargs)
         self._insert_queue_asterisk(queue)
         self.alertas_por_sistema_externo(queue.campana)
         return HttpResponseRedirect(reverse('campana_preview_list'))
@@ -198,7 +214,7 @@ class CampanaPreviewTemplateCreateView(CampanaTemplateCreateMixin, CampanaPrevie
     form_list = FORMS
 
     def done(self, form_list, form_dict, **kwargs):
-        self._save_forms(form_list, form_dict, Campana.ESTADO_TEMPLATE_ACTIVO, Campana.TYPE_PREVIEW)
+        self._save_forms(form_dict, Campana.ESTADO_TEMPLATE_ACTIVO, Campana.TYPE_PREVIEW)
         return HttpResponseRedirect(reverse('campana_preview_template_list'))
 
 
@@ -219,7 +235,7 @@ class CampanaPreviewTemplateCreateCampanaView(
             initial['transcription_percentage'] = qc.transcription_percentage
         return initial
 
-    def done(self, form_list, *args, **kwargs):
+    def done(self, form_list, **kwargs):
         borrar_template = bool(int(kwargs.get('borrar_template')))
         if borrar_template:
             # para el caso de cuando se usa la vista en el reciclado y se hace necesario
@@ -227,7 +243,7 @@ class CampanaPreviewTemplateCreateCampanaView(
             pk = self.kwargs.get('pk_campana_template', None)
             campana_template = get_object_or_404(Campana, pk=pk)
             campana_template.delete()
-        return super(CampanaPreviewTemplateCreateCampanaView, self).done(form_list, *args, **kwargs)
+        return super(CampanaPreviewTemplateCreateCampanaView, self).done(form_list, **kwargs)
 
 
 class CampanaPreviewTemplateDetailView(DetailView):

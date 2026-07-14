@@ -66,7 +66,7 @@ class AgentesActivosGrupoViewSet(viewsets.ModelViewSet):
 class CrearRolView(APIView):
     """Crea un nuevo Rol"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -95,7 +95,7 @@ class CrearRolView(APIView):
 class ActualizarPermisosDeRolView(APIView):
     """Actualiza los permisos de un Rol"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -128,7 +128,7 @@ class ActualizarPermisosDeRolView(APIView):
 class EliminarRolView(APIView):
     """Elimina un rol"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -173,8 +173,11 @@ class SubirBaseContactosView(APIView):
             campos_telefono = self._procesa_campos_telefono(campos_telefono_str)
             id_externo = self._comprueba_campo_id_externo(id_externo)
 
+            columna_email = self._comprueba_campo_columna_email(
+                self._obtiene_parametro(request, 'columna_email', True)
+            )
             self.base_datos_contacto_service.importa_contactos_desde_api(id, campos_telefono,
-                                                                         id_externo)
+                                                                         id_externo, columna_email)
             error = False
         except ValidationError:
             return Response(
@@ -235,6 +238,13 @@ class SubirBaseContactosView(APIView):
             raise OmlError(_('campo de id externo no coincide con nombre de columna'))
         return id_externo
 
+    def _comprueba_campo_columna_email(self, columna_email):
+        columna_email = self._sanear_nombre_de_columna(columna_email)
+        if columna_email is not None and \
+                columna_email not in self.base_datos_contacto_service.parser.columnas:
+            raise OmlError(_('campo de email no coincide con nombre de columna'))
+        return columna_email
+
     def _sanear_nombre_de_columna(self, nombre):
         """Realiza saneamiento básico del nombre de la columna. Con basico
         se refiere a:
@@ -261,7 +271,7 @@ class EnviarKeyRegistro(APIView):
     registrada
     """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 

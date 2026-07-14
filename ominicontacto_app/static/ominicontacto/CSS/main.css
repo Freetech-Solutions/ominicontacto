@@ -635,6 +635,42 @@ body>h1 {
   background-color: transparent;
 }
 
+/* Email reading modal: promote the inline email panel to a large centered
+   overlay when the agent opens/takes a conversation (see email_modals.js). */
+#emailReadingBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 1090;
+}
+#wrapperEmail.reading {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1095;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+#wrapperEmail.reading .whatsapp_panel_view {
+  width: 92vw;
+  max-width: 1080px;
+  height: 88vh;
+}
+#wrapperEmail.reading.fullscreen {
+  top: 0;
+  left: 0;
+  transform: none;
+  border-radius: 0;
+}
+#wrapperEmail.reading.fullscreen .whatsapp_panel_view {
+  width: 100vw;
+  max-width: none;
+  height: 100vh;
+}
+
 .facebook_iframe_container {
   margin: 0;
   padding: 0;
@@ -644,6 +680,14 @@ body>h1 {
 }
 
 .whatsapp_iframe_container {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  display: block;
+  border: none;
+}
+
+.instagram_iframe_container {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -1047,9 +1091,14 @@ body>h1 {
   color: #6A716A;
 }
 
+#bottomBar #instagramChat {
+  color: #6A716A;
+}
+
 #bottomBar #emailMessages {
   color: #6A716A;
 }
+
 
 #bottomBar>div {
   display: inline-block;
@@ -1409,4 +1458,72 @@ html.dark-mode textarea:focus {
   color: var(--text-heading) !important;
   border-color: #5865F2 !important;
   box-shadow: 0 0 0 0.2rem rgba(88, 101, 242, 0.25) !important;
+}
+
+.last-conversation-dialog {
+  max-width: 1040px;
+  width: 94vw;
+  margin: 1.75rem auto;
+}
+
+.last-conversation-modal {
+  border-radius: 12px;
+  overflow: hidden;
+  border: none;
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.last-conversation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.8rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f8fafc;
+  cursor: move;
+  user-select: none;
+}
+
+.last-conversation-header__title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.last-conversation-header__subtitle {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.last-conversation-header__close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s ease;
+}
+
+.last-conversation-header__close:hover {
+  color: #0f172a;
+  transform: scale(1.08);
+}
+
+.last-conversation-body {
+  padding: 0;
+  height: min(760px, 80vh);
+  display: flex;
+  overflow: hidden;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef4fb 100%);
+}
+
+.whatsapp_iframe_container {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: #fff;
 }

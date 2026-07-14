@@ -24,7 +24,6 @@ from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
 from rest_framework import serializers
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 from ominicontacto_app.models import Campana, CalificacionCliente
 from ominicontacto_app.utiles import datetime_hora_minima_dia, datetime_hora_maxima_dia
@@ -119,7 +118,7 @@ class ReporteCampanaWhatsappSerializer(serializers.Serializer):
 
 class ReportAPIView(APIView):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     def post(self, request):
         try:

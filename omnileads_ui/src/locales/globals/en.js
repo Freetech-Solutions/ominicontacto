@@ -57,6 +57,9 @@ export default {
     time_validation: 'Time validation | Time validations',
     ivr: 'IVR | IVRs',
     phone: 'Phone | Phones',
+    messages: 'Messages | Messages',
+    line: 'Line | Lines',
+    last_conversation: 'Previous conversation | Previous conversations',
     whatsapp: {
         title: 'Whatsapp',
         provider: 'Whatsapp provider | Whatsapp providers',
@@ -143,6 +146,8 @@ export default {
     activate: 'Activate',
     deactivate: 'Deactivate',
     use: 'Use',
+    disposition: 'Disposition | Dispositions',
+    was_closed_by_system: 'Was closed by system',
     // ----------------
     // --- weekdays ---
     // ----------------

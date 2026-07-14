@@ -37,8 +37,6 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-# SECRET_KEY = 's1+*bfrvb@=k@c&9=pm!0sijjewneu5p5rojil#q+!a2y&as-4'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
@@ -74,6 +72,8 @@ INSTALLED_APPS = [
     'whatsapp_app.apps.WhatsappAppConfig',
     'orquestador_app.apps.OrquestadorAppConfig',
     'facebook_meta_app.apps.FacebookMetaAppConfig',
+    'instagram_app.apps.InstagramAppConfig',
+    'email_app.apps.AppConfig',
     'constance',
     'django_js_reverse',
     'import_export',
@@ -209,6 +209,7 @@ ORCHESTRATOR_SLAVE_STREAM_FROMID = '$'
 
 STATICFILES_DIRS = [
     ("omnileads-frontend", os.path.join(BASE_DIR, "omnileads_ui/dist")),
+    ("webui-app", os.path.join(BASE_DIR, "webui/dist")),
 ]
 
 # Nota Django 6: El valor por defecto de DEFAULT_AUTO_FIELD cambió a 'django.db.models.BigAutoField'
@@ -403,7 +404,6 @@ CALIFICACION_REAGENDA = None
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication',
-        'api_app.authentication.ExpiringTokenAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
@@ -413,12 +413,14 @@ REST_FRAMEWORK = {
 LOCALE_PATHS = (
     os.path.join(BASE_DIR, 'api_app/locale'),
     os.path.join(BASE_DIR, 'configuracion_telefonia_app/locale'),
+    os.path.join(BASE_DIR, 'email_app/locale'),
     os.path.join(BASE_DIR, 'notification_app/locale'),
     os.path.join(BASE_DIR, 'ominicontacto_app/locale'),
     os.path.join(BASE_DIR, 'reportes_app/locale'),
     os.path.join(BASE_DIR, 'reciclado_app/locale'),
     os.path.join(BASE_DIR, 'supervision_app/locale'),
     os.path.join(BASE_DIR, 'whatsapp_app/locale'),
+    os.path.join(BASE_DIR, 'instagram_app/locale'),
 )
 
 LANGUAGES = (

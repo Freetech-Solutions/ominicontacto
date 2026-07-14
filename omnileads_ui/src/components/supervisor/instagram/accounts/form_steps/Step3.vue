@@ -1,0 +1,940 @@
+<template>
+  <div class="card">
+    <div class="grid mt-4">
+      <div class="sm:col-12 md:col-8 lg:col-6 xl:col-6">
+        <Fieldset>
+          <template #legend>
+            {{ $t("views.facebook.page.step3.time_group")}}
+          </template>
+          <div class="grid formgrid">
+            <div class="field col-12">
+              <label
+                :class="{
+                  'p-error': v$.form.schedule.$invalid && submitted,
+                }"
+                >{{ $t("models.facebook.page.schedule") }}*</label
+              >
+              <div class="p-inputgroup mt-2">
+                <Button
+                icon="pi pi-clock"
+                :label="$t('globals.create')"
+                severity="secondary"
+                @click="createGroupOfHours"
+                />
+              </div>
+              <div class="p-inputgroup mt-2">
+                <span class="p-inputgroup-addon">
+                  <i class="pi pi-clock"></i>
+                </span>
+                <Dropdown
+                  v-model="v$.form.schedule.$model"
+                  class="w-full"
+                  :class="{
+                    'p-invalid': v$.form.schedule.$invalid && submitted,
+                  }"
+                  :filter="true"
+                  :showClear="true"
+                  :options="groupOfHours"
+                  placeholder="-----"
+                  optionLabel="nombre"
+                  optionValue="id"
+                  :emptyFilterMessage="$t('globals.without_data')"
+                />
+              </div>
+              <small
+                v-if="
+                  (v$.form.schedule.$invalid && submitted) ||
+                  v$.form.schedule.$pending.$response
+                "
+                class="p-error"
+                >{{
+                  v$.form.schedule.required.$message.replace(
+                    "Value",
+                    $t("models.whatsapp.line.schedule")
+                  )
+                }}</small
+              >
+            </div>
+          </div>
+        </Fieldset>
+      </div>
+    </div>
+    <div class="grid mt-4">
+      <div class="col-12">
+        <Fieldset :toggleable="true" :collapsed="false">
+          <template #legend>
+            {{ $t("views.whatsapp.line.step3.message") }}
+          </template>
+          <div class="grid">
+            <div class="field sm:col-12 md:col-6 lg:col-4 xl:col-4">
+              <div class="grid">
+                <div class="field col-12">
+                  <div>
+                    <label
+                      >{{ $tc("globals.whatsapp.message_template") }}*</label
+                    >
+                    <div class="p-inputgroup mt-2">
+                      <span class="p-inputgroup-addon">
+                        <i class="pi pi-file"></i>
+                      </span>
+                      <Dropdown
+                        v-model="v$.form.welcome_message.$model"
+                        class="w-full"
+                        :options="messageTemplates"
+                        @change="msgBienvenidaChange"
+                        :filter="true"
+                        :resetFilterOnHide="true"
+                        :showClear="true"
+                        placeholder="-----"
+                        optionLabel="name"
+                        optionValue="id"
+                        optionGroupLabel="label"
+                        optionGroupChildren="items"
+                        :emptyFilterMessage="$t('globals.without_data')"
+                      />
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <label>{{
+                      $t("models.facebook.page.welcome_message")
+                    }}</label>
+                    <div class="p-inputgroup mt-2">
+                      <Button
+                      icon="pi pi-comment"
+                      :label="$t('globals.new')"
+                      severity="secondary"
+                      @click="createNewMessageBienvenida"
+                      />
+                    </div>
+                    <div class="p-inputgroup mt-2">
+                      <span class="p-inputgroup-addon">
+                        <i class="pi pi-comment"></i>
+                      </span>
+                      <Textarea
+                        v-model="msgBienvenidaContent"
+                        :disabled="true"
+                        :autoResize="true"
+                        rows="15"
+                        cols="30"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="field sm:col-12 md:col-6 lg:col-4 xl:col-4">
+              <div class="grid">
+                <div class="field col-12">
+                  <div>
+                    <label
+                      >{{ $tc("globals.whatsapp.message_template") }}*</label
+                    >
+                    <div class="p-inputgroup mt-2">
+                      <span class="p-inputgroup-addon">
+                        <i class="pi pi-file"></i>
+                      </span>
+                      <Dropdown
+                        v-model="v$.form.out_of_hours_message.$model"
+                        class="w-full"
+                        :options="messageTemplates"
+                        @change="msgFueraHoraChange"
+                        :filter="true"
+                        :resetFilterOnHide="true"
+                        :showClear="true"
+                        placeholder="-----"
+                        optionLabel="name"
+                        optionValue="id"
+                        optionGroupLabel="label"
+                        optionGroupChildren="items"
+                        :emptyFilterMessage="$t('globals.without_data')"
+                      />
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <label>{{
+                      $t("models.facebook.page.out_of_hours_message")
+                    }}</label>
+                    <div class="p-inputgroup mt-2">
+                      <Button
+                      icon="pi pi-comment"
+                      :label="$t('globals.new')"
+                      severity="secondary"
+                      @click="createNewMessageFueraHora"
+                      />
+                    </div>
+                    <div class="p-inputgroup mt-2">
+                      <span class="p-inputgroup-addon">
+                        <i class="pi pi-comment"></i>
+                      </span>
+                      <Textarea
+                        v-model="msgFueraHoraContent"
+                        :disabled="true"
+                        :autoResize="true"
+                        rows="15"
+                        cols="30"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="field sm:col-12 md:col-6 lg:col-4 xl:col-4">
+              <div class="grid">
+                <div class="field col-12">
+                  <div>
+                    <label
+                      >{{ $tc("globals.whatsapp.message_template") }}*</label
+                    >
+                    <div class="p-inputgroup mt-2">
+                      <span class="p-inputgroup-addon">
+                        <i class="pi pi-file"></i>
+                      </span>
+                      <Dropdown
+                        v-model="v$.form.goodbye_message.$model"
+                        class="w-full"
+                        :options="messageTemplates"
+                        @change="msgDespedidaChange"
+                        :filter="true"
+                        :resetFilterOnHide="true"
+                        :showClear="true"
+                        placeholder="-----"
+                        optionLabel="name"
+                        optionValue="id"
+                        optionGroupLabel="label"
+                        optionGroupChildren="items"
+                        :emptyFilterMessage="$t('globals.without_data')"
+                      />
+                    </div>
+                  </div>
+                  <div class="mt-4">
+                    <label>{{
+                      $t("models.facebook.page.goodbye_message")
+                    }}</label>
+                    <div class="p-inputgroup mt-2">
+                      <Button
+                      icon="pi pi-comment"
+                      :label="$t('globals.new')"
+                      severity="secondary"
+                      @click="createNewMessageDespedida"
+                      />
+                    </div>
+                    <div class="p-inputgroup mt-2">
+                      <span class="p-inputgroup-addon">
+                        <i class="pi pi-comment"></i>
+                      </span>
+                      <Textarea
+                        v-model="msgDespedidaContent"
+                        :disabled="true"
+                        :autoResize="true"
+                        rows="15"
+                        cols="30"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Fieldset>
+      </div>
+    </div>
+    <div class="grid mt-4">
+      <div class="sm:col-12 md:col-12 lg:col-12 xl:col-12">
+        <Fieldset :toggleable="true" :collapsed="false">
+          <template #legend>
+            {{ $t("views.whatsapp.line.step3.destination") }}
+          </template>
+          <div class="grid formgrid">
+            <div class="field col-4">
+              <label
+                :class="{
+                  'p-error':
+                    v$.form.destination_type.$invalid && submitted,
+                }"
+                >{{ $t("models.whatsapp.line.tipo_de_destino") }}*</label
+              >
+              <div class="field-radiobutton">
+                <RadioButton
+                  :value="destinationType.CAMPAIGN"
+                  v-model="form.destination_type"
+                  @change="campaignOption()"
+                />
+                <label>{{
+                  $t("views.whatsapp.line.tipos_de_destino.campana")
+                }}</label>
+              </div>
+              <div class="field-radiobutton">
+                <RadioButton
+                  :value="destinationType.INTERACTIVE"
+                  v-model="form.destination_type"
+                  @change="interactiveOption()"
+                />
+                <label>{{
+                  $t("views.whatsapp.line.tipos_de_destino.interactivo")
+                }}</label>
+              </div>
+              <small
+                v-if="
+                  (v$.form.destination_type.$invalid &&
+                    submitted) ||
+                  v$.form.destination_type.$pending.$response
+                "
+                class="p-error"
+                >{{
+                  v$.form.destination_type.required.$message.replace(
+                    "Value",
+                    $t("models.whatsapp.line.destination_type")
+                  )
+                }}</small
+              >
+            </div>
+            <div
+              class="field col-8"
+              v-if="
+                form.destination_type === destinationType.CAMPAIGN
+              "
+            >
+              <label
+                :class="{
+                  'p-error':
+                    v$.form.destination.$invalid && submitted,
+                }"
+                >{{ $t("models.whatsapp.line.destino") }}*</label
+              >
+              <div class="p-inputgroup">
+                <Checkbox v-model="only_instagram_habilitado" binary @change="onlyInstagramAccountHabilitadoChange"/>
+                <label> Solo campañas con Instagram habilitado</label>
+              </div>
+              <div class="p-inputgroup">
+                <span class="p-inputgroup-addon">
+                  <i class="pi pi-sign-in"></i>
+                </span>
+                <Dropdown
+                  v-model="v$.form.destination.$model"
+                  class="w-full"
+                  :class="{
+                    'p-invalid':
+                      v$.form.destination.$invalid && submitted,
+                  }"
+                  :options="campaings"
+                  :filter="true"
+                  :showClear="true"
+                  @change="ckeckingCampaign()"
+                  placeholder="-----"
+                  optionLabel="name"
+                  optionValue="id"
+                  optionGroupLabel="label"
+                  optionGroupChildren="items"
+                  :emptyFilterMessage="$t('globals.without_data')"
+                />
+              </div>
+              <small
+                v-if="
+                  (v$.form.destination.$invalid && submitted) ||
+                  v$.form.destination.$pending.$response
+                "
+                class="p-error"
+                >{{
+                  v$.form.destination.required.$message.replace(
+                    "Value",
+                    $t("models.whatsapp.line.destino")
+                  )
+                }}</small
+              >
+            </div>
+                        <div
+              class="field col-12"
+              v-if="
+                form.destination_type === destinationType.INTERACTIVE
+              "
+            >
+            <div class="flex justify-content-between flex-wrap mt-4">
+              <div class="flex align-items-center justify-content-center">
+              </div>
+              <div class="flex align-items-center justify-content-center">
+              <Button
+                :label="$t('globals.new')"
+                icon="pi pi-plus"
+                @click="addInteractiveMenuItem"
+              />
+              </div>
+            </div>
+              <FormMenuInteractivo :data="menu" :submitted="submitted" v-for="menu in supInstagramAccount.destination.data" :key="menu.id"></FormMenuInteractivo>
+            </div>
+          </div>
+        </Fieldset>
+      </div>
+    </div>
+    <div class="flex justify-content-between flex-wrap mt-4">
+      <div class="flex align-items-center justify-content-center">
+        <Button
+          :label="$t('globals.back')"
+          icon="pi pi-angle-left"
+          icon-pos="right"
+          class="p-button-secondary"
+          @click="prevAccount"
+        />
+      </div>
+      <div class="flex align-items-center justify-content-center">
+        <Button
+          :label="$t('globals.save')"
+          icon="pi pi-save"
+          @click="save(!v$.$invalid)"
+        />
+      </div>
+    </div>
+    <ModalNewGroupOfHour
+    :showModal="showModalNewGroupOfHour"
+    @handleModalEvent="handleModalNewGroupOfHour"
+    />
+    <ModalNewMessageTemplate
+    :showModal="showModalNewMessage"
+    @handleModalEvent="handleModalNewMessage"
+    />
+  </div>
+</template>
+
+<script>
+import { mapActions, mapState } from 'vuex';
+import { required } from '@vuelidate/validators';
+import { useVuelidate } from '@vuelidate/core';
+import { TEMPLATE_TYPES } from '@/globals/supervisor/instagram/message_template';
+import {
+    DESTINATION_TYPES_BACK,
+    DESTINATION_FORM_TYPES
+} from '@/globals/supervisor/instagram/account';
+import { CAMPAIGN_TYPES } from '@/globals/supervisor/campaign';
+import { HTTP_STATUS } from '@/globals';
+import ModalToHandleOption from '@/components/supervisor/instagram/accounts/options_form/ModalToHandleOption';
+import ModalNewGroupOfHour from '@/components/supervisor/instagram/accounts/options_form/ModalNewGroupOfHour';
+import ModalNewMessageTemplate from '@/components/supervisor/instagram/accounts/options_form/ModalNewMessageTemplate';
+import FormMenuInteractivo from '@/components/supervisor/instagram/accounts/options_form/FormMenuInteractivo';
+
+export default {
+    inject: ['$helpers'],
+    setup: () => ({ v$: useVuelidate() }),
+    validations () {
+        return {
+            form: {
+                destination: { required },
+                destination_type: { required },
+                schedule: { required },
+                welcome_message: { required },
+                goodbye_message: { required },
+                out_of_hours_message: { required }
+            }
+        };
+    },
+    components: {
+        FormMenuInteractivo,
+        ModalToHandleOption,
+        ModalNewGroupOfHour,
+        ModalNewMessageTemplate
+    },
+    data () {
+        return {
+            invalidInteractiveForm: false,
+            interactiveForm: {
+                text: '',
+                wrongAnswer: '',
+                successAnswer: '',
+                timeout: 0,
+                options: []
+            },
+            form: {
+                destination: null,
+                destination_type: null,
+                schedule: null,
+                welcome_message: null,
+                goodbye_message: null,
+                out_of_hours_message: null
+            },
+            showModal: false,
+            formToCreate: false,
+            destinationType: {
+                CAMPAIGN: DESTINATION_FORM_TYPES.CAMPAIGN,
+                INTERACTIVE: DESTINATION_FORM_TYPES.INTERACTIVE
+            },
+            only_instagram_habilitado: false,
+            campaings: [
+                {
+                    type: CAMPAIGN_TYPES.INBOUND,
+                    label: this.$t('models.campaign.types.inbound'),
+                    items: []
+                },
+                {
+                    type: CAMPAIGN_TYPES.MANUAL,
+                    label: this.$t('models.campaign.types.manual'),
+                    items: []
+                },
+                {
+                    type: CAMPAIGN_TYPES.PREVIEW,
+                    label: this.$t('models.campaign.types.preview'),
+                    items: []
+                },
+                {
+                    type: CAMPAIGN_TYPES.DIALER,
+                    label: this.$t('models.campaign.types.dialer'),
+                    items: []
+                }
+            ],
+            messageTemplates: [
+                {
+                    type: TEMPLATE_TYPES.TEXT,
+                    label: this.$t('forms.whatsapp.message_template.types.text'),
+                    items: []
+                }
+            ],
+            formErrors: [],
+            submitted: false,
+            msgBienvenidaContent: '',
+            msgFueraHoraContent: '',
+            msgDespedidaContent: '',
+            msgBienvenidaRequired: false,
+            msgFueraHoraRequired: false,
+            isEmptyOptions: false,
+            showModalNewGroupOfHour: false,
+            showModalNewMessage: false,
+            cratedNewmsgBienvenida: false,
+            cratedNewmsgFueraHora: false,
+            cratedNewmsgDespedida: false
+        };
+    },
+    mounted () {
+        this.initFormBase();
+    },
+    computed: {
+        ...mapState([
+            'supInstagramAccount',
+            'groupOfHours',
+            'groupOfHour',
+            'isFormToCreate',
+            'supInstagramAccountTemplates',
+            'supInstagramAccountCampaigns',
+            'supInstagramAccountOptions',
+            'supInstagramAccountIteractiveForm'
+        ])
+    },
+    methods: {
+        ...mapActions([
+            'createInstagramAccount',
+            'updateInstagramAccount',
+            'initInstagramAccounts',
+            'initInstagramAccountOptionForm'
+        ]),
+        isEmptyField (field = null) {
+            return field === null || field === undefined || field === '';
+        },
+        initFormBase () {
+            this.form.schedule = this.supInstagramAccount.schedule;
+            this.form.welcome_message = this.supInstagramAccount.welcome_message;
+            this.form.goodbye_message = this.supInstagramAccount.goodbye_message;
+            this.form.out_of_hours_message = this.supInstagramAccount.out_of_hours_message;
+            this.form.destination_type = this.supInstagramAccount.destination
+                ? this.supInstagramAccount.destination.type
+                : null;
+            this.form.destination = this.supInstagramAccount.destination
+                ? this.supInstagramAccount.destination.data
+                : null;
+            this.msgBienvenidaChange();
+            this.msgDespedidaChange();
+            this.msgFueraHoraChange();
+        },
+        addInteractiveMenuItem () {
+            this.supInstagramAccount.destination.data.push({ options: [], id_tmp: +new Date(), is_main: false });
+        },
+        handleModal ({ showModal = false, formToCreate = false, option = null }) {
+            this.showModal = showModal;
+            this.formToCreate = formToCreate;
+            this.initInstagramAccountOptionForm(option);
+        },
+        prevAccount () {
+            this.$emit('prev-page', { pageIndex: 2 });
+        },
+        msgBienvenidaChange () {
+            const messageTemplate = this.supInstagramAccountTemplates.find(
+                (mt) => mt.id === this.form.welcome_message
+            );
+            if (messageTemplate) {
+                this.msgBienvenidaContent = JSON.stringify(
+                    messageTemplate.configuration
+                );
+            } else {
+                this.msgBienvenidaContent = '';
+            }
+        },
+        msgFueraHoraChange () {
+            const messageTemplate = this.supInstagramAccountTemplates.find(
+                (mt) => mt.id === this.form.out_of_hours_message
+            );
+            if (messageTemplate) {
+                this.msgFueraHoraContent = JSON.stringify(
+                    messageTemplate.configuration
+                );
+            } else {
+                this.msgFueraHoraContent = '';
+            }
+        },
+        msgDespedidaChange () {
+            const messageTemplate = this.supInstagramAccountTemplates.find(
+                (mt) => mt.id === this.form.goodbye_message
+            );
+            if (messageTemplate) {
+                this.msgDespedidaContent = JSON.stringify(
+                    messageTemplate.configuration
+                );
+            } else {
+                this.msgDespedidaContent = '';
+            }
+        },
+        validateFormData () {
+            this.formErrors = [];
+            const requiredFields = [
+                ['name', this.$t('models.whatsapp.line.name')],
+                ['description', this.$t('models.facebook.page.description')],
+                ['access_token', this.$t('models.facebook.page.access_token')],
+                ['verify_token', this.$t('models.facebook.page.verify_token')],
+                ['app_id', this.$t('models.facebook.page.app_id')],
+                ['page_id', this.$t('models.facebook.page.page_id')],
+                ['ig_user_id', 'Instagram User ID']
+            ];
+            requiredFields.forEach(([field, label]) => {
+                if (this.isEmptyField(this.supInstagramAccount[field])) {
+                    this.formErrors.push(
+                        this.$tc('forms.facebook.page.validations.field_is_required', {
+                            field: label
+                        })
+                    );
+                }
+            });
+        },
+        interactiveOption () {
+            this.supInstagramAccount.destination.type = this.destinationType.INTERACTIVE;
+            if (this.supInstagramAccount.destination.data === null || typeof (this.supInstagramAccount.destination.data) === 'number') {
+                this.supInstagramAccount.destination.data = [this.supInstagramAccountIteractiveForm];
+            }
+        },
+        campaignOption () {
+            this.supInstagramAccount.destination.type = this.destinationType.CAMPAIGN;
+        },
+        getDestinationData () {
+            if (this.form.destination_type === this.destinationType.CAMPAIGN) {
+                return {
+                    type: DESTINATION_TYPES_BACK.CAMPAIGN,
+                    data: this.form.destination
+                };
+            } else if (this.form.destination_type === this.destinationType.INTERACTIVE) {
+                return {
+                    type: DESTINATION_TYPES_BACK.INTERACTIVE,
+                    data: this.supInstagramAccount.destination.data,
+                    id_tmp: this.supInstagramAccount.destination.id_tmp
+                };
+            }
+        },
+        async save (isFormValid) {
+            this.submitted = true;
+            this.validateFormData();
+            if (!isFormValid) {
+                return null;
+            }
+            if (this.formErrors.length > 0) {
+                var errors = '';
+                this.formErrors.forEach((e) => {
+                    errors += `<li>${e}</li>`;
+                });
+                this.$swal(
+                    this.$helpers.getToasConfig(
+                        this.$t('globals.warning_notification'),
+                        null,
+                        this.$t('globals.icon_warning'),
+                        null,
+                        `<ul>${errors}</ul>`
+                    )
+                );
+                return null;
+            }
+            let response = null;
+            var form = null;
+            form = {
+                name: this.supInstagramAccount.name,
+                description: this.supInstagramAccount.description,
+                access_token: this.supInstagramAccount.access_token,
+                verify_token: this.supInstagramAccount.verify_token,
+                app_id: this.supInstagramAccount.app_id,
+                page_id: this.supInstagramAccount.page_id,
+                ig_user_id: this.supInstagramAccount.ig_user_id,
+                username: this.supInstagramAccount.username,
+                destination: this.getDestinationData(),
+                schedule: this.form.schedule,
+                welcome_message: this.form.welcome_message,
+                goodbye_message: this.form.goodbye_message,
+                out_of_hours_message: this.form.out_of_hours_message
+            };
+
+            if (this.isFormToCreate) {
+                response = await this.createInstagramAccount(form);
+            } else {
+                response = await this.updateInstagramAccount({
+                    id: this.supInstagramAccount.id,
+                    data: form
+                });
+            }
+            const { status, message } = response;
+            if (status === HTTP_STATUS.SUCCESS) {
+                await this.initInstagramAccounts();
+                this.$router.push({ name: 'supervisor_instagram_accounts' });
+                this.$swal(
+                    this.$helpers.getToasConfig(
+                        this.$t('globals.success_notification'),
+                        message,
+                        this.$t('globals.icon_success')
+                    )
+                );
+            } else {
+                this.$swal(
+                    this.$helpers.getToasConfig(
+                        this.$t('globals.error_notification'),
+                        message,
+                        this.$t('globals.icon_error')
+                    )
+                );
+            }
+        },
+        handleModalNewGroupOfHour ({ showModal = false }) {
+            this.showModalNewGroupOfHour = showModal;
+        },
+        createGroupOfHours () {
+            this.showModalNewGroupOfHour = true;
+            this.handleModalNewGroupOfHour({
+                showModal: true
+            });
+        },
+        handleModalNewMessage ({ showModal = false }) {
+            this.showModalNewMessage = showModal;
+        },
+        createNewMessageBienvenida () {
+            this.cratedNewmsgBienvenida = true;
+            this.showModalNewMessage = true;
+            this.handleModalNewMessage({
+                showModal: true
+            });
+        },
+        createNewMessageFueraHora () {
+            this.cratedNewmsgFueraHora = true;
+            this.showModalNewMessage = true;
+            this.handleModalNewMessage({
+                showModal: true
+            });
+        },
+        createNewMessageDespedida () {
+            this.cratedNewmsgDespedida = true;
+            this.showModalNewMessage = true;
+            this.handleModalNewMessage({
+                showModal: true
+            });
+        },
+        onlyInstagramAccountHabilitadoChange () {
+            if (this.supInstagramAccountCampaigns.length > 0) {
+                if (this.only_instagram_habilitado) {
+                    const manualCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.MANUAL && c.instagram_habilitado
+                  ) || [];
+                    const inboundCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.INBOUND && c.instagram_habilitado
+                  ) || [];
+                    const previewCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.PREVIEW && c.instagram_habilitado
+                  ) || [];
+                    const dialerCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.DIALER && c.instagram_habilitado
+                  ) || [];
+                    this.campaings.find((c) => c.type === CAMPAIGN_TYPES.INBOUND).items = inboundCampaigns;
+                    this.campaings.find((c) => c.type === CAMPAIGN_TYPES.MANUAL).items = manualCampaigns;
+                    this.campaings.find((c) => c.type === CAMPAIGN_TYPES.PREVIEW).items = previewCampaigns;
+                    this.campaings.find((c) => c.type === CAMPAIGN_TYPES.DIALER).items = dialerCampaigns;
+                } else {
+                    const manualCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.MANUAL
+                  ) || [];
+                    const inboundCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.INBOUND
+                  ) || [];
+                    const previewCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.PREVIEW
+                  ) || [];
+                    const dialerCampaigns =
+                  this.supInstagramAccountCampaigns.filter(
+                      (c) => c.type === CAMPAIGN_TYPES.DIALER
+                  ) || [];
+                    if (inboundCampaigns.length > 0) {
+                        this.campaings.find(
+                            (c) => c.type === CAMPAIGN_TYPES.INBOUND
+                        ).items = inboundCampaigns;
+                    }
+                    if (manualCampaigns.length > 0) {
+                        this.campaings.find((c) => c.type === CAMPAIGN_TYPES.MANUAL
+                        ).items = manualCampaigns;
+                    }
+                    if (previewCampaigns.length > 0) {
+                        this.campaings.find((c) => c.type === CAMPAIGN_TYPES.PREVIEW
+                        ).items = previewCampaigns;
+                    }
+                    if (dialerCampaigns.length > 0) {
+                        this.campaings.find((c) => c.type === CAMPAIGN_TYPES.DIALER
+                        ).items = dialerCampaigns;
+                    }
+                }
+            }
+        },
+        ckeckingCampaign () {
+            if (this.form.destination) {
+                const campaign_selected = this.supInstagramAccountCampaigns.find((c) => c.id === this.form.destination);
+                if (campaign_selected && campaign_selected.instagram_habilitado === false) {
+                    this.$swal(
+                        this.$helpers.getToasConfig(
+                            this.$t('globals.warning_notification'),
+                            this.$t(
+                                'forms.whatsapp.line.validations.whatsapp_habilitado'
+                            ),
+                            this.$t('globals.icon_warning')
+                        )
+                    );
+                }
+            }
+        }
+    },
+    watch: {
+        supInstagramAccountTemplates: {
+            handler () {
+                if (this.supInstagramAccountTemplates.length > 0) {
+                    this.messageTemplates.find(
+                        (mt) => mt.type === TEMPLATE_TYPES.TEXT
+                    ).items = this.supInstagramAccountTemplates.filter(
+                        (mt) => mt.type === TEMPLATE_TYPES.TEXT
+                    );
+                    this.msgBienvenidaChange();
+                    this.msgDespedidaChange();
+                    this.msgFueraHoraChange();
+                }
+            },
+            deep: true,
+            immediate: true
+        },
+        isFormToCreate: {
+            handler () {},
+            deep: true,
+            immediate: true
+        },
+        groupOfHours: {
+            handler () {
+                if (this.groupOfHours.length > 0 && this.groupOfHour.nombre !== '') {
+                    this.form.schedule = this.groupOfHours[this.groupOfHours.length - 1].id;
+                }
+            },
+            deep: true,
+            immediate: true
+        },
+        messageTemplates: {
+            handler () {
+                if (this.messageTemplates[0].items.length > 0) {
+                    if (this.cratedNewmsgBienvenida) {
+                        this.form.welcome_message = this.messageTemplates[0].items[this.messageTemplates[0].items.length - 1].id;
+                        this.cratedNewmsgBienvenida = false;
+                        this.msgBienvenidaChange();
+                    } else if (this.cratedNewmsgFueraHora) {
+                        this.form.out_of_hours_message = this.messageTemplates[0].items[this.messageTemplates[0].items.length - 1].id;
+                        this.cratedNewmsgFueraHora = false;
+                        this.msgFueraHoraChange();
+                    } else if (this.cratedNewmsgDespedida) {
+                        this.form.goodbye_message = this.messageTemplates[0].items[this.messageTemplates[0].items.length - 1].id;
+                        this.cratedNewmsgDespedida = false;
+                        this.msgDespedidaChange();
+                    }
+                }
+            },
+            deep: true,
+            immediate: true
+        },
+        supInstagramAccountOptions: {
+            handler () {
+                if (
+                    this.form.destination_type ===
+            this.destinationType.INTERACTIVE &&
+          this.supInstagramAccountOptions.length === 0
+                ) {
+                    this.isEmptyOptions = true;
+                } else {
+                    this.isEmptyOptions = false;
+                }
+            },
+            deep: true,
+            immediate: true
+        },
+        supInstagramAccountCampaigns: {
+            handler () {
+                if (this.supInstagramAccountCampaigns.length > 0) {
+                    const manualCampaigns =
+            this.supInstagramAccountCampaigns.filter(
+                (c) => c.type === CAMPAIGN_TYPES.MANUAL
+            ) || [];
+                    const inboundCampaigns =
+            this.supInstagramAccountCampaigns.filter(
+                (c) => c.type === CAMPAIGN_TYPES.INBOUND
+            ) || [];
+                    const previewCampaigns =
+            this.supInstagramAccountCampaigns.filter(
+                (c) => c.type === CAMPAIGN_TYPES.PREVIEW
+            ) || [];
+                    const dialerCampaigns =
+            this.supInstagramAccountCampaigns.filter(
+                (c) => c.type === CAMPAIGN_TYPES.DIALER
+            ) || [];
+                    if (inboundCampaigns.length > 0) {
+                        this.campaings.find(
+                            (c) => c.type === CAMPAIGN_TYPES.INBOUND
+                        ).items = inboundCampaigns;
+                    } else {
+                        this.campaings = this.campaings.filter(
+                            (c) => c.type !== CAMPAIGN_TYPES.INBOUND
+                        );
+                    }
+                    if (manualCampaigns.length > 0) {
+                        this.campaings.find((c) => c.type === CAMPAIGN_TYPES.MANUAL).items =
+              manualCampaigns;
+                    } else {
+                        this.campaings = this.campaings.filter(
+                            (c) => c.type !== CAMPAIGN_TYPES.MANUAL
+                        );
+                    }
+                    if (previewCampaigns.length > 0) {
+                        this.campaings.find(
+                            (c) => c.type === CAMPAIGN_TYPES.PREVIEW
+                        ).items = previewCampaigns;
+                    } else {
+                        this.campaings = this.campaings.filter(
+                            (c) => c.type !== CAMPAIGN_TYPES.PREVIEW
+                        );
+                    }
+                    if (dialerCampaigns.length > 0) {
+                        this.campaings.find((c) => c.type === CAMPAIGN_TYPES.DIALER).items =
+              dialerCampaigns;
+                    } else {
+                        this.campaings = this.campaings.filter(
+                            (c) => c.type !== CAMPAIGN_TYPES.DIALER
+                        );
+                    }
+                }
+            },
+            deep: true,
+            immediate: true
+        }
+    }
+};
+</script>

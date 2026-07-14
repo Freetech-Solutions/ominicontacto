@@ -15,6 +15,11 @@ export const COLORS = {
         Blue: '#1877F2',
         DarkBlue: '#0E4DA4',
         LightBlue: '#4C8BF5'
+    },
+    INSTAGRAM: {
+        Pink: '#E1306C',
+        Purple: '#833AB4',
+        Orange: '#F77737'
     }
 };
 

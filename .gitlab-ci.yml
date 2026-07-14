@@ -215,6 +215,7 @@ sonarqube-check:
             echo "${DOCKER_SECRET}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
             docker tag ${IMAGE_NAME} docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
             docker push docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
+            echo "${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION"
           fi
         else
           if [ -z "${DOCKER_PASSWORD:-}" ] || [ -z "${DOCKER_USER:-}" ]; then
@@ -223,6 +224,7 @@ sonarqube-check:
             echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USER}" --password-stdin
             docker tag ${IMAGE_NAME} docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
             docker push docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
+            echo "${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION"
           fi
         fi
       fi

@@ -57,7 +57,7 @@ class APITest(OMLBaseTest):
     # Destination Types
     CAMPAIGN = 1
     VALIDATION_DATE = 2
-    IVR = 3
+    IVR_DEST_TYPE = 3
     HANGUP = 5
     ID_CLIENT = 9
     CUSTOM_DST = 7

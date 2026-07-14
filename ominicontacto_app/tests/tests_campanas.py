@@ -92,8 +92,10 @@ def test_concurrently(args_list):
             for t in threads:
                 t.join()
             if exceptions:
-                raise Exception('test_concurrently intercepted %s exceptions: %s' %
-                                (len(exceptions), exceptions))
+                raise AssertionError(
+                    'test_concurrently intercepted %s exceptions: %s' %
+                    (len(exceptions), exceptions)
+                )
         return wrapper
     return test_concurrently_decorator
 
@@ -727,6 +729,7 @@ class SupervisorCampanaTests(CampanasTests):
             'campana_entrante_create_view-current_step': 0,
             '0-whatsapp_habilitado': False,
             '0-meta_facebook_habilitado': False,
+            '0-email_habilitado': False,
         }
         post_step1_data = {
             '1-timeout': 1,
@@ -762,6 +765,7 @@ class SupervisorCampanaTests(CampanasTests):
                 "cant_col": 4,
                 "nombres_de_columnas": ["telefono", "nombre", "apellido", "dni"],
                 "col_id_externo": 3,
+                "col_email": None,
                 "cols_telefono": [0]
             })
         }
@@ -830,6 +834,7 @@ class SupervisorCampanaTests(CampanasTests):
             '0-fecha_fin': fecha_fin.date().strftime("%d/%m/%Y"),
             '0-whatsapp_habilitado': False,
             '0-meta_facebook_habilitado': False,
+            '0-email_habilitado': False,
             'campana_dialer_create_view-current_step': 0,
         }
         post_step1_data = {
@@ -852,7 +857,6 @@ class SupervisorCampanaTests(CampanasTests):
             '1-detectar_contestadores': 'on',
             '1-initial_predictive_model': 'on',
             '1-initial_boost_factor': 1.0,
-            '1-name': nombre_campana,
             '1-audio_para_contestadores': audio_ingreso.pk,
             '1-dial_timeout': 25,
             '1-tipo_destino_failover': destino_failover.tipo,
@@ -1012,7 +1016,9 @@ class SupervisorCampanaTests(CampanasTests):
             '0-transcription_percentage': 50,
             'campana_manual_create_view-current_step': 0,
             '0-whatsapp_habilitado': False,
-            '0-meta_facebook_habilitado': False
+            '0-meta_facebook_habilitado': False,
+            '0-instagram_habilitado': False,
+            '0-email_habilitado': False,
         }
         post_step1_data = {
             'campana_manual_create_view-current_step': 1,
@@ -1040,6 +1046,7 @@ class SupervisorCampanaTests(CampanasTests):
                 "cant_col": 4,
                 "nombres_de_columnas": ["telefono", "nombre", "apellido", "dni"],
                 "col_id_externo": 3,
+                "col_email": None,
                 "cols_telefono": [0]
             })
         }
@@ -2182,7 +2189,7 @@ class SupervisorCampanaTests(CampanasTests):
          post_step4_data, post_step5_data,
          post_step6_data, post_step7_data) =\
             self._obtener_post_data_wizard_creacion_campana_preview(nombre_campana)
-        post_step0_data['0-tipo_interaccion'] = Campana.SITIO_EXTERNO
+        post_step0_data['0-tipo_interaccion'] = Campana.TIPO_SITIO_EXTERNO
         sitio_externo = SitioExternoFactory()
         post_step0_data['0-sitio_externo'] = sitio_externo.id
         response = self.client.post(url, post_step0_data, follow=True)

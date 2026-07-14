@@ -438,8 +438,8 @@ class GeneradorDeLlamadaLogs():
                               archivo_grabacion=archivo_grabacion, time=time, callid=callid)
 
         else:
-            assert finalizacion in ['ABANDON', 'EXITWITHTIMEOUT'], 'Finalizacion '
-            'incorrecta: %s' % finalizacion
+            assert finalizacion in ['ABANDON', 'EXITWITHTIMEOUT'], (
+                'Finalizacion incorrecta: %s' % finalizacion)
             LlamadaLogFactory(event='CAMPT-FAIL',
                               campana_id=campana_orig.id, tipo_campana=campana_orig.type,
                               tipo_llamada=tipo_llamada,

@@ -70,6 +70,7 @@ module.exports = {
         agent_whatsapp_image_uploader: getPageConfig('agent_whatsapp_image_uploader'),
         agent_whatsapp_file_uploader: getPageConfig('agent_whatsapp_file_uploader'),
         agent_whatsapp_contact_form: getPageConfig('agent_whatsapp_contact_form'),
+        agent_whatsapp_last_conversation: getPageConfig('agent_whatsapp_last_conversation'),
         // Supervisor Facebook Pages
         supervisor_facebook_pages: getPageConfig('supervisor_facebook_pages'),
         supervisor_facebook_message_templates: getPageConfig('supervisor_facebook_message_templates'),
@@ -77,6 +78,10 @@ module.exports = {
         supervisor_facebook_group_of_message_templates: getPageConfig('supervisor_facebook_group_of_message_templates'),
         supervisor_facebook_report_campaign_conversations: getPageConfig('supervisor_facebook_report_campaign_conversations'),
         supervisor_facebook_report_general: getPageConfig('supervisor_facebook_report_general'),
+        // Supervisor Instagram Pages
+        supervisor_instagram_accounts: getPageConfig('supervisor_instagram_accounts'),
+        supervisor_instagram_report_campaign_conversations: getPageConfig('supervisor_instagram_report_campaign_conversations'),
+        supervisor_instagram_report_general: getPageConfig('supervisor_instagram_report_general'),
         // Agent Facebook Pages
         agent_facebook_index: getPageConfig('agent_facebook_index'),
         agent_facebook_conversation: getPageConfig('agent_facebook_conversation'),
@@ -86,7 +91,18 @@ module.exports = {
         agent_facebook_message_transfer: getPageConfig('agent_facebook_message_transfer'),
         agent_facebook_image_uploader: getPageConfig('agent_facebook_image_uploader'),
         agent_facebook_file_uploader: getPageConfig('agent_facebook_file_uploader'),
-        agent_facebook_contact_form: getPageConfig('agent_facebook_contact_form')
+        agent_facebook_contact_form: getPageConfig('agent_facebook_contact_form'),
+        // Agent Instagram Pages
+        agent_instagram_index: getPageConfig('agent_instagram_index'),
+        agent_instagram_conversation: getPageConfig('agent_instagram_conversation'),
+        agent_instagram_templates: getPageConfig('agent_instagram_templates'),
+        agent_instagram_disposition_chat: getPageConfig('agent_instagram_disposition_chat'),
+        agent_instagram_message_transfer: getPageConfig('agent_instagram_message_transfer'),
+        agent_instagram_image_uploader: getPageConfig('agent_instagram_image_uploader'),
+        agent_instagram_file_uploader: getPageConfig('agent_instagram_file_uploader'),
+        agent_instagram_contact_form: getPageConfig('agent_instagram_contact_form'),
+        // Agent Email Page (single SPA: inbox tabs + thread-on-click + reply/disposition/contact)
+        agent_email_index: getPageConfig('agent_email_index')
     },
     devServer: {
         historyApiFallback,

@@ -33,6 +33,7 @@ from django.core import paginator as django_paginator
 from ominicontacto_app.forms.base import ReporteCampanaForm
 
 from ominicontacto_app.models import AgenteProfile, Campana, RespuestaFormularioGestion
+from reportes_app.models import LlamadaLog
 
 from ominicontacto_app.services.estadisticas_campana_v2 import EstadisticasServiceV2
 
@@ -242,6 +243,32 @@ class CampanaReporteCalificacionListView(FormView):
         context['historico_calificaciones'] = qs
         return context
 
+    def _get_contacto_telefono(self, calificacion):
+        if calificacion is None:
+            return ""
+
+        contacto = getattr(calificacion, "contacto", None)
+        callid = getattr(calificacion, "callid", None)
+
+        if callid and contacto and getattr(contacto, "id", None):
+            llamada = (
+                LlamadaLog.objects
+                .filter(callid=callid, contacto_id=contacto.id)
+                .only("numero_marcado")
+                .first()
+            )
+            numero = getattr(llamada, "numero_marcado", None)
+            if isinstance(numero, str):
+                numero = numero.strip()
+            if numero:
+                return numero
+
+        telefono = getattr(contacto, "telefono", "")
+        if isinstance(telefono, str):
+            telefono = telefono.strip()
+
+        return telefono or ""
+
     def _procesa_historico_calificaciones(
             self, historico_calificaciones_qs, fecha_desde, fecha_hasta):
         res = {}
@@ -249,7 +276,7 @@ class CampanaReporteCalificacionListView(FormView):
             if hc.id not in res:
                 res[hc.id] = {}
                 res[hc.id]['id'] = hc.id
-                res[hc.id]['telefono'] = hc.contacto.telefono
+                res[hc.id]['telefono'] = self._get_contacto_telefono(hc)
                 res[hc.id]['datos'] = hc.contacto.datos
                 res[hc.id]['cals'] = {}
                 res[hc.id]['calif_actual'] = {}

@@ -21,6 +21,7 @@ from datetime import datetime
 import json
 import operator
 import mimetypes
+import logging
 from functools import reduce
 from django.db.models import F, Func, OuterRef, Prefetch, Q, Subquery
 from django.utils import timezone
@@ -32,7 +33,6 @@ from rest_framework import viewsets
 from rest_framework import decorators
 from rest_framework.authentication import SessionAuthentication
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.services.media_url import (
     build_signed_whatsapp_attachment_url,
     get_canonical_media_reference,
@@ -53,6 +53,7 @@ from orquestador_app.core.whatsapp.send_message import (
 from orquestador_app.core.whatsapp.gupshup_code_error import GUPSHUP_CODE_ERROR
 from whatsapp_app.api.v1.linea import ListSerializer as LineSerializer
 
+logger = logging.getLogger(__name__)
 redis_2 = create_redis_connection(db=2)
 
 
@@ -393,6 +394,7 @@ class ConversacionSerializer(serializers.Serializer):
     destination = serializers.CharField()
     client = serializers.SerializerMethodField()
     agent = serializers.PrimaryKeyRelatedField(queryset=AgenteProfile.objects.all())
+    agent_name = serializers.SerializerMethodField()
     is_active = serializers.BooleanField(default=True)
     is_disposition = serializers.BooleanField()
     expire = serializers.DateTimeField()
@@ -409,6 +411,9 @@ class ConversacionSerializer(serializers.Serializer):
     error = serializers.BooleanField(default=False)
     error_ex = serializers.JSONField()
     client_alias = serializers.CharField(default="")
+    conversacion_previa = serializers.SerializerMethodField()
+    was_closed_by_system = serializers.SerializerMethodField()
+    disposition = serializers.SerializerMethodField()
 
     def get_line(self, obj):
         serializer = LineSerializer(instance=obj.line)
@@ -441,6 +446,44 @@ class ConversacionSerializer(serializers.Serializer):
 
     def get_transferred_campaign(self, obj):
         return _extract_transfer_summary(obj)['transferred_campaign']
+
+    def get_conversacion_previa(self, obj):
+        if obj.client_id and obj.line and obj.campana_id:
+            # Obtener la conversación previa en la misma campaña
+            conversacion_previa = ConversacionWhatsapp.objects.filter(
+                campana__id=obj.campana_id,
+                client__id=obj.client_id,
+                line__id=obj.line_id).exclude(id=obj.id).order_by('-date_last_interaction').first()
+            if not conversacion_previa:
+                # Si no hay conversación previa en la misma campaña, buscar en otras campañas
+                conversacion_previa = ConversacionWhatsapp.objects.filter(
+                    client__id=obj.client_id,
+                    line__id=obj.line_id)\
+                    .exclude(id=obj.id).order_by('-date_last_interaction').first()
+            return conversacion_previa.id if conversacion_previa else None
+        return None
+
+    def get_was_closed_by_system(self, obj):
+        return obj.is_disposition and not obj.conversation_disposition
+
+    def get_disposition(self, obj):
+        try:
+            if obj.is_disposition and obj.conversation_disposition:
+                serializer = OpcionCalificacionSerializer(
+                    obj.conversation_disposition.opcion_calificacion)
+                return serializer.data
+            return {}
+        except Exception as e:
+            print(e)
+
+    def get_agent_name(self, obj):
+        if not obj.agent:
+            return None
+
+        if not getattr(obj.agent, "user", None):
+            return None
+
+        return obj.agent.user.get_full_name() or obj.agent.user.username
 
 
 class ConversacionFilterSerializer(serializers.Serializer):
@@ -533,7 +576,7 @@ class ConversacionEnCursoSerializer(ConversacionSerializer):
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     def list(self, request):
         try:
@@ -693,6 +736,13 @@ class ViewSet(viewsets.ViewSet):
         try:
             conversacion = ConversacionWhatsapp.objects.get(pk=pk)
             agente = request.user.get_agente_profile()
+            if not conversacion.agent and not agente.get_campanas_activas_miembro().filter(
+                    queue_name__campana_id=conversacion.campana_id).exists():
+                return response.Response(
+                    data=get_response_data(
+                        message=_('No puede asignarse una conversación de una campaña no asignada')
+                    ),
+                    status=status.HTTP_401_UNAUTHORIZED)
             if not conversacion.agent or conversacion.agent == agente:
                 conversation_granted = conversacion.otorgar_conversacion(agente),
                 mensajes = conversacion.mensajes.all()
@@ -818,12 +868,11 @@ class ViewSet(viewsets.ViewSet):
                         destination = conversation.destination
                         sender = request.user.get_agente_profile()
                         if not conversation.agent or conversation.agent != sender:
-                            raise Exception(
+                            raise serializers.ValidationError(
                                 _('Esta conversación ya está siendo atendida por otro agente'))
                         data = request.data.copy()
                         line = conversation.line
                         message = {"text": data['message'], "type": "text"}
-                        print('>>> send_message_text')
                         message_id = send_text_message(
                             line, destination, message)  # orquestador
                         if message_id:
@@ -845,7 +894,7 @@ class ViewSet(viewsets.ViewSet):
                                     data=serializer.data),
                                 status=status.HTTP_200_OK)
                         else:
-                            raise Exception(
+                            raise serializers.ValidationError(
                                 _('Este mensaje no se pudo enviar'))
                     return response.Response(
                         data=get_response_data(
@@ -860,7 +909,7 @@ class ViewSet(viewsets.ViewSet):
                     message=_('Conversacion es erronea')),
                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(
                     status=HttpResponseStatus.ERROR, data={},
@@ -878,7 +927,7 @@ class ViewSet(viewsets.ViewSet):
                         destination = conversation.destination
                         sender = request.user.get_agente_profile()
                         if not conversation.agent or conversation.agent != sender:
-                            raise Exception(
+                            raise serializers.ValidationError(
                                 _('Esta conversación ya está siendo atendida por otro agente'))
                         line = conversation.line
                         data = request.data.copy()
@@ -927,7 +976,7 @@ class ViewSet(viewsets.ViewSet):
                             )
                         else:
                             mensaje.delete()
-                            raise Exception(
+                            raise serializers.ValidationError(
                                 _('Este mensaje no se pudo enviar'))
                         return response.Response(
                             data=get_response_data(
@@ -947,7 +996,7 @@ class ViewSet(viewsets.ViewSet):
                     message=_('Conversacion es erronea')),
                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print(">>>>>>>>", e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(
                     status=HttpResponseStatus.ERROR, data={},
@@ -965,7 +1014,7 @@ class ViewSet(viewsets.ViewSet):
                         destination = conversation.destination
                         sender = request.user.get_agente_profile()
                         if not conversation.agent or conversation.agent != sender:
-                            raise Exception(
+                            raise serializers.ValidationError(
                                 _('Esta conversación ya está siendo atendida por otro agente'))
                         data = request.data.copy()  # template_id
                         line = conversation.line
@@ -1005,7 +1054,7 @@ class ViewSet(viewsets.ViewSet):
                     message=_('Conversacion erronea')),
                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print("Error al enviar el mensaje>>>", e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(message=_('Error al enviar el mensaje'),
                                        status=HttpResponseStatus.ERROR, data={}, errors=str(e)),
@@ -1015,7 +1064,6 @@ class ViewSet(viewsets.ViewSet):
     def send_message_whatsapp_template(self, request, pk):
         try:
             conversation = ConversacionWhatsapp.objects.get(pk=pk)
-            print("conversation>>>>", conversation)
             if not conversation.error or conversation.error_ex['code'] not in GUPSHUP_CODE_ERROR:
                 destination = conversation.destination
                 data = request.data.copy()  # Id Template
@@ -1023,7 +1071,8 @@ class ViewSet(viewsets.ViewSet):
                 template_tipo = template.tipo
                 sender = request.user.get_agente_profile()
                 if not conversation.agent or conversation.agent != sender:
-                    raise Exception(_('Esta conversación ya está siendo atendida por otro agente'))
+                    raise serializers.ValidationError(
+                        _('Esta conversación ya está siendo atendida por otro agente'))
                 timestamp = timezone.now().astimezone(timezone.get_current_timezone())
                 if conversation.expire and conversation.expire >= timestamp:
                     if conversation.is_active:
@@ -1084,7 +1133,7 @@ class ViewSet(viewsets.ViewSet):
                     message=_('Conversacion erronea')),
                 status=status.HTTP_401_UNAUTHORIZED)
         except Exception as e:
-            print(">>>>>>>.", e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(message=_('Error al enviar el mensaje'),
                                        status=HttpResponseStatus.ERROR, data={}, errors=str(e)),
@@ -1093,7 +1142,6 @@ class ViewSet(viewsets.ViewSet):
     @decorators.action(detail=True, methods=["post"])
     def reactive_expired_conversation(self, request, pk):
         try:
-            print('reactive_expired_conversation >>>>', request.data)
             data = request.data.copy()  # Id Template
             conversation = ConversacionWhatsapp.objects.get(pk=pk)
             or_filter = Q(destination=conversation.destination)

@@ -1,0 +1,28 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "bracketSameLine": true,
+  "ignorePatterns": ["node_modules/**/*", "shadcn/**/*", "auto-imports.d.ts", "components.d.ts"],
+  "printWidth": 100,
+  "semi": false,
+  "sortImports": {
+    "newlinesBetween": false
+  },
+  "sortPackageJson": true,
+  "sortTailwindcss": {
+    "functions": ["cn"]
+  },
+  "overrides": [
+    {
+      "files": ["src/**/*.vue"],
+      "options": {
+        "printWidth": 140
+      }
+    },
+    {
+      "files": ["src/routes/index.ts"],
+      "options": {
+        "printWidth": 160
+      }
+    }
+  ]
+}

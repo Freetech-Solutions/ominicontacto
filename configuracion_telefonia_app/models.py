@@ -30,6 +30,7 @@ from django.utils.translation import gettext_lazy as _
 from ominicontacto_app.models import ArchivoDeAudio, Campana
 from whatsapp_app.models import MenuInteractivoWhatsapp, Linea, PlantillaMensaje
 from facebook_meta_app.models import MenuInteractivoMessengerMetaApp, PaginaMetaFacebook
+from instagram_app.models import MenuInteractivoInstagram, CuentaInstagram, PlantillaInstagram
 
 import os
 import re
@@ -350,8 +351,9 @@ class DestinoEntrante(models.Model):
     MENU_INTERACTIVO_WHATSAPP = 10
     AGENTE = 11
     CLOSING_MESSAGE = 12
-    REMOTE_AGENT = 13
-    MENU_INTERACTIVO_MESSENGER_META_APP = 14
+    MENU_INTERACTIVO_MESSENGER_META_APP = 13
+    MENU_INTERACTIVO_INSTAGRAM = 14
+    REMOTE_AGENT = 15
 
     CAMPANA_STR = _('Campaña entrante')
     VALIDACION_FECHA_HORA_STR = _('Validación de fecha/hora')
@@ -367,6 +369,7 @@ class DestinoEntrante(models.Model):
     CLOSING_MESSAGE_STR = _('Mensaje de Cierre')
     REMOTE_AGENT_STR = _('Agente Remoto')
     MENU_INTERACTIVO_MESSENGER_META_APP_STR = _('Menú Interactivo de Messenger Meta App')
+    MENU_INTERACTIVO_INSTAGRAM_STR = _('Menú Interactivo de Instagram')
 
     TIPOS_DESTINOS = (
         (CAMPANA, CAMPANA_STR),
@@ -379,8 +382,9 @@ class DestinoEntrante(models.Model):
         (AGENTE, AGENTE_STR),
         (SURVEY, SURVEY_STR),
         (CLOSING_MESSAGE, CLOSING_MESSAGE_STR),
-        (REMOTE_AGENT, REMOTE_AGENT_STR),
         (MENU_INTERACTIVO_MESSENGER_META_APP, MENU_INTERACTIVO_MESSENGER_META_APP_STR),
+        (MENU_INTERACTIVO_INSTAGRAM, MENU_INTERACTIVO_INSTAGRAM_STR),
+        (REMOTE_AGENT, REMOTE_AGENT_STR),
     )
     nombre = models.CharField(max_length=128)
     tipo = models.PositiveIntegerField(choices=TIPOS_DESTINOS)
@@ -422,6 +426,10 @@ class DestinoEntrante(models.Model):
             tipo = cls.REMOTE_AGENT
         elif isinstance(info_nodo_entrante, MenuInteractivoMessengerMetaApp):
             tipo = cls.MENU_INTERACTIVO_MESSENGER_META_APP
+        elif isinstance(info_nodo_entrante, MenuInteractivoInstagram):
+            tipo = cls.MENU_INTERACTIVO_INSTAGRAM
+        elif isinstance(info_nodo_entrante, PlantillaInstagram):
+            tipo = cls.CLOSING_MESSAGE
         kwargs = {
             'nombre': info_nodo_entrante.nombre,
             'tipo': tipo,
@@ -489,6 +497,11 @@ class DestinoEntrante(models.Model):
         q_paginas_directo = Q(destino_id=self.id)
 
         return PaginaMetaFacebook.objects.filter(q_paginas_directo)
+
+    def cuentas_instagram_antecesoras(self):
+        """Devuelve las cuentas Instagram de las que este nodo es destino directo."""
+        q_cuentas_directo = Q(destination_id=self.id)
+        return CuentaInstagram.objects.filter(q_cuentas_directo)
 
 
 class OpcionDestino(models.Model):

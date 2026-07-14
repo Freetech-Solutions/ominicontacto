@@ -40,7 +40,7 @@ class APITest(OMLBaseTest):
         self.sitio_externo2 = SitioExternoFactory()
         self.campana = CampanaFactory(
             type=Campana.TYPE_ENTRANTE,
-            tipo_interaccion=Campana.SITIO_EXTERNO,
+            tipo_interaccion=Campana.TIPO_SITIO_EXTERNO,
             sitio_externo=self.sitio_externo)
 
         self.urls_api = {

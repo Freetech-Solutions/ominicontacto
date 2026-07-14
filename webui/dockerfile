@@ -1,0 +1,10 @@
+FROM node:lts-alpine AS dev
+RUN corepack enable
+WORKDIR /opt/webui-app
+COPY package.json .
+COPY pnpm-lock.yaml .
+COPY pnpm-workspace.yaml .
+COPY patches patches
+RUN pnpm install --frozen-lockfile
+COPY . .
+CMD ["pnpm", "dev", "--base=/webui-app/", "--host", "--port=80", "--strictPort"]

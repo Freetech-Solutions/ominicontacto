@@ -53,21 +53,21 @@ class AudioTests(unittest.TestCase):
         pass
 
     @classmethod
-    def setUp(self):
+    def setUp(cls):
         chrome_options = Options()
         chrome_options.add_argument('--use-fake-ui-for-media-stream')
         chrome_options.add_argument('--use-fake-device-for-media-stream')
         chrome_options.add_experimental_option('prefs', {'intl.accept_languages': 'en,en'})
         chrome_options.add_argument('--ignore-certificate-errors')
         # si se pone visible=1 se muestra el browser en medio de los tests
-        self.display = Display(visible=0, size=(1366, 768))
-        self.display.start()
-        self.browser = webdriver.Chrome(options=chrome_options)
+        cls.display = Display(visible=0, size=(1366, 768))
+        cls.display.start()
+        cls.browser = webdriver.Chrome(options=chrome_options)
 
     @classmethod
-    def tearDown(self):
-        self.browser.close()
-        self.display.stop()
+    def tearDown(cls):
+        cls.browser.close()
+        cls.display.stop()
 
     def test_crear_modificar_eliminar_audio(self):
         try:

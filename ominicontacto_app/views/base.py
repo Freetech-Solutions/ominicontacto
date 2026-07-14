@@ -68,7 +68,7 @@ def index_view(request):
         showRegisterPopUp = False
         if 'showRegisterPopUp' not in request.session.keys():
             if not admin_registered:
-                showRegisterPopUp = True and config_constance.SUGGEST_REGISTER
+                showRegisterPopUp = config_constance.SUGGEST_REGISTER
             request.session['showRegisterPopUp'] = showRegisterPopUp
         else:
             showRegisterPopUp = False
@@ -176,7 +176,7 @@ def login_view(request):
             if request.user.is_agente and request.user.get_agente_profile().is_inactive:
                 form = AuthenticationForm(request)
                 presence_manager = AgentPresenceManager()
-                presence_manager.logout(user.get_agente_profile())
+                presence_manager.logout(request.user.get_agente_profile())
                 logout(request)
             elif 'next' in request.GET:
                 return redirect(request.GET.get('next'))
@@ -189,7 +189,7 @@ def login_view(request):
             if request.user.is_authenticated:
                 if request.user.is_agente:
                     presence_manager = AgentPresenceManager()
-                    presence_manager.logout(user.get_agente_profile())
+                    presence_manager.logout(request.user.get_agente_profile())
                 logout(request)
     context = {
         'form': form,
@@ -295,6 +295,8 @@ class ConsolaAgenteView(AddSettingsContextMixin, TemplateView):
         context['agente_profile'] = agente_profile
         context['tiene_whatsapp'] = agente_profile.grupo.whatsapp_habilitado
         context['tiene_facebook'] = agente_profile.grupo.meta_facebook_habilitado
+        context['tiene_instagram'] = agente_profile.grupo.instagram_habilitado
+        context['tiene_email'] = agente_profile.grupo.email_habilitado
         context['sip_usuario'] = sip_usuario
         context['sip_password'] = sip_password
         context['agentes'] = AgenteProfile.objects.obtener_activos().exclude(id=agente_profile.id)

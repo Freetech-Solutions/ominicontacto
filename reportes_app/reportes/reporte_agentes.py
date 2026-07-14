@@ -502,15 +502,15 @@ class ActividadAgente(object):
     def _procesa_pausa_log(self, event, time, pausa_id):
         if (event == ActividadAgenteLog.UNPAUSE or event in ActividadAgenteLog.EVENTOS_LOGOUT
                 or event in ActividadAgenteLog.EVENTOS_LOGIN) and self.pausas != []:
-            if not self.pausas[-1].establecer_finalizacion(time, pausa_id):
+            if not self.pausas[-1].establecer_finalizacion(time):
                 self.pausas.append(PausaAgente(
                     pausa_id, self.pausas_por_id[str(pausa_id)],
                     fecha_inicio=self.pausas[-1].fecha_inicio))
-                self.pausas[-1].establecer_finalizacion(time, pausa_id)
+                self.pausas[-1].establecer_finalizacion(time)
             self.tiempo_pausa += self.pausas[-1].calcular_duracion()
         elif event == ActividadAgenteLog.PAUSE:
             if self.pausas != []:
-                self.pausas[-1].establecer_finalizacion(time, pausa_id)
+                self.pausas[-1].establecer_finalizacion(time)
                 self.tiempo_pausa += self.pausas[-1].calcular_duracion()
 
             self.pausas.append(PausaAgente(
@@ -576,6 +576,6 @@ class PausaAgente(BaseActividadAgente):
         self.pausa_id = pausa_id
         self.nombre = nombre
 
-    def establecer_finalizacion(self, fecha_fin, pausa_id):
+    def establecer_finalizacion(self, fecha_fin):
         super(PausaAgente, self).establecer_finalizacion(fecha_fin)
         return True

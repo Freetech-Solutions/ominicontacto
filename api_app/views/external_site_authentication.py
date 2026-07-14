@@ -23,7 +23,6 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.authentication import SessionAuthentication
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from api_app.serializers.external_site_authentication import AutenticacionSitioExternoSerializer
 from api_app.serializers.external_site_authentication import AutenticacionSitioExternoTestSerializer
@@ -35,8 +34,7 @@ from ominicontacto_app.services.sistema_externo.interaccion_sistema_externo impo
 
 class ExternalSiteAuthenticationList(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -60,8 +58,7 @@ class ExternalSiteAuthenticationList(APIView):
 
 class ExternalSiteAuthenticationCreate(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -92,10 +89,7 @@ class ExternalSiteAuthenticationCreate(APIView):
 
 
 class ExternalSiteAuthenticationTest(APIView):
-    authentication_classes = (
-        SessionAuthentication,
-        ExpiringTokenAuthentication,
-    )
+    authentication_classes = (SessionAuthentication, )
 
     http_method_names = ['post']
 
@@ -130,8 +124,7 @@ class ExternalSiteAuthenticationTest(APIView):
 
 class ExternalSiteAuthenticationUpdate(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['put']
 
@@ -171,8 +164,7 @@ class ExternalSiteAuthenticationUpdate(APIView):
 
 class ExternalSiteAuthenticationDetail(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -197,8 +189,7 @@ class ExternalSiteAuthenticationDetail(APIView):
 
 class ExternalSiteAuthenticationDelete(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (
-        SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['delete']
 

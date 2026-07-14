@@ -162,32 +162,6 @@ export default {
                 if (template.type === TEMPLATE_TYPES.WHATSAPP) {
                     this.setParamsToTemplate(template);
                     return;
-                    if (template.configuration.numParams_text > 0 || template.configuration.numParams_header > 0) {
-                        this.setParamsToTemplate(template);
-                        return;
-                    } else {
-                        this.$helpers.openLoader(this.$t);
-                        const reqData = {
-                            conversationId: this.agtWhatsCoversationInfo.id,
-                            templateId: template.id,
-                            phoneLine: this.agtWhatsCoversationInfo.line.number,
-                            params_header: [],
-                            params: [],
-                            messages,
-                            $t: this.$t
-                        };
-                        if (this.onlyWhatsappTemplates) {
-                            result =
-                await this.agtWhatsCoversationReactiveExpiredConversation(
-                    reqData
-                );
-                        } else {
-                            result =
-                await this.agtWhatsCoversationSendWhatsappTemplateMessage(
-                    reqData
-                );
-                        }
-                    }
                 } else {
                     this.$helpers.openLoader(this.$t);
                     result = await this.agtWhatsCoversationSendTemplateMessage({

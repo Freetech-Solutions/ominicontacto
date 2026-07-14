@@ -29,7 +29,6 @@ from rest_framework import status
 
 from constance import config as config_constance
 
-from api_app.authentication import ExpiringTokenAuthentication
 from api_app.views.permissions import TienePermisoOML
 from ominicontacto_app.services.dialer.wombat_api import WombatReloader
 from ominicontacto_app.services.dialer import wombat_habilitado, get_dialer_service
@@ -41,7 +40,7 @@ from supervision_app.services.data_management import DialerDataManager
 class ReiniciarWombat(APIView):
     """Reinicia el servicio de Wombat"""
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -75,7 +74,7 @@ class ReiniciarWombat(APIView):
 class WombatState(APIView):
     """ Informa el estado del servicio de Wombat """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['get']
 
@@ -101,7 +100,7 @@ class WombatState(APIView):
 class WombatStart(APIView):
     """ Envía orden de Start a Wombat """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 
@@ -121,7 +120,7 @@ class WombatStart(APIView):
 class WombatStop(APIView):
     """ Informa el estado del servicio de Wombat """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post']
 

@@ -55,7 +55,11 @@ ALLOWED_HOSTS = [
 ]
 
 # SECURITY WARNING: keep the secret key used in production secret!
+SALT_KEY = "0123456789abcdefghijklmnopqrstuvwxyz"
+SALT_KEY_FALLBACKS = []
+
 SECRET_KEY = 's1+*bfrvb@=k@c&9=pm!0sijjewneu5p5rojil#q+!a2y&as-4'
+SECRET_KEY_FALLBACKS = []
 
 DATABASES = {
     'default': {

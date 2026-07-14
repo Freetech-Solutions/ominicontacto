@@ -15,13 +15,14 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+import logging
+
 from django.utils.translation import gettext as _
 from rest_framework import response
 from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authentication import SessionAuthentication
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from configuracion_telefonia_app.models import DestinoEntrante, OpcionDestino
 from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 from whatsapp_app.services.redis.linea import StreamDeLineas
@@ -31,10 +32,51 @@ from whatsapp_app.api.v1.linea_serializers import (
     DestinoDeLineaCreateSerializer, )
 from ominicontacto_app.models import Campana
 
+logger = logging.getLogger(__name__)
+
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
+
+    @staticmethod
+    def _remap_flow_builder_layout(serializer, serializer_destino):
+        """Reasigna las claves de configuration.flow_builder_layout desde el id
+        temporal que envia el front (id_tmp) al id real de cada
+        MenuInteractivoWhatsapp recien persistido.
+
+        El editor Flow guarda la posicion de cada bloque en un diccionario
+        keyeado por id_tmp. En cada guardado el backend borra y recrea los menus
+        asignandoles PKs nuevos, y la representacion de lectura devuelve
+        id_tmp == id (PK), por lo que sin este remapeo las claves nunca coinciden
+        al reabrir el Flow y los bloques aparecen desordenados.
+
+        Es puramente visual: ante cualquier inconveniente se ignora el remapeo
+        sin afectar el guardado de la linea.
+        """
+        try:
+            configuracion = serializer.validated_data.get('configuracion')
+            if not isinstance(configuracion, dict):
+                return
+            layout = configuracion.get('flow_builder_layout')
+            if not isinstance(layout, dict) or not layout:
+                return
+            destino_data = serializer_destino.data.get('data')
+            if not isinstance(destino_data, list):
+                return
+            id_map = {
+                str(menu['id_tmp']): menu['id']
+                for menu in destino_data
+                if isinstance(menu, dict) and 'id_tmp' in menu and 'id' in menu
+            }
+            if not id_map:
+                return
+            configuracion['flow_builder_layout'] = {
+                str(id_map.get(str(key), key)): value
+                for key, value in layout.items()
+            }
+        except Exception as e:
+            logger.error('No se pudo remapear flow_builder_layout: %s', str(e))
 
     def list(self, request):
         try:
@@ -67,6 +109,7 @@ class ViewSet(viewsets.ViewSet):
                 if serializer_destino.is_valid():
                     serializer_destino.save()
                     destino = serializer_destino.destino
+                    self._remap_flow_builder_layout(serializer, serializer_destino)
                     line = serializer.save(
                         destino=destino,
                         created_by=request.user,
@@ -179,6 +222,7 @@ class ViewSet(viewsets.ViewSet):
                             menu_old.delete()
                     serializer_destino.save()
                     destino = serializer_destino.destino
+                    self._remap_flow_builder_layout(serializer, serializer_destino)
                     line = serializer.save(
                         destino=destino,
                         created_by=request.user,

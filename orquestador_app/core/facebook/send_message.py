@@ -256,9 +256,11 @@ def upload_media_to_meta(page, type_file, file_path):
         if attachment_id:
             return attachment_id
         else:
-            raise Exception(f"No se obtuvo attachment_id: {resp_json}")
+            raise RuntimeError(
+                f"No se obtuvo attachment_id: {resp_json}")
     else:
-        raise Exception(f"Error al subir archivo a Meta: {response.status_code} {response.text}")
+        raise RuntimeError(
+            f"Error al subir archivo a Meta: {response.status_code} {response.text}")
 
 
 def send_media_message(page, recipient_id, type_file, attachment_id):
@@ -285,4 +287,4 @@ def send_media_message(page, recipient_id, type_file, attachment_id):
     if response.ok:
         return response.json().get("message_id")
     else:
-        raise Exception(f"Error enviando mensaje: {response.status_code} {response.text}")
+        raise RuntimeError(f"Error enviando mensaje: {response.status_code} {response.text}")

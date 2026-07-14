@@ -6,7 +6,11 @@
     </span>
     <span class="transfer-event-line"></span>
   </div>
-  <Card v-else class="border-round-xl" :class="getClasses(message?.itsMine)" style="max-width:65%">
+  <Card v-else
+    class="border-round-xl wa-message-card"
+    :class="[getClasses(message?.itsMine), { 'wa-message-card--history': isHistoryVariant }]"
+    :style="cardStyle"
+  >
     <template #content>
       <div class="py-0 my-0">
         <div v-if="isForwarded(message?.message)" class="mb-2">
@@ -53,18 +57,27 @@
               <p>{{ message?.message.name }}</p>
             </div>
           </a>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='file'">
           <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
             <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
             {{ message?.message.name }}
           </a>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='document' || message.type==='application'">
           <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
             <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
             {{ message?.message.name }}
           </a>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='audio'">
           <audio controls>
@@ -75,6 +88,9 @@
           <video width="320" height="240" controls>
             <source :src="message?.message.url" type="video/mp4">
           </video>
+          <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+            {{ getAttachmentCaption(message) }}
+          </p>
         </div>
         <div v-if="message.type==='contact'">
           <pre>{{message?.message.contacts}}</pre>
@@ -242,6 +258,9 @@
                 <p>{{ message?.message.name }}</p>
               </div>
             </a>
+            <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+              {{ getAttachmentCaption(message) }}
+            </p>
           </div>
         </div>
         <div v-if="message.type === 'reply_document'" class="wa-message">
@@ -309,6 +328,9 @@
               <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
               {{ message?.message.name }}
             </a>
+            <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+              {{ getAttachmentCaption(message) }}
+            </p>
           </div>
         </div>
         <div v-if="message.type === 'reply_video'" class="wa-message">
@@ -377,16 +399,18 @@
                 <source :src="message?.message.url" type="video/mp4">
               </video>
             </a>
+            <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
+              {{ getAttachmentCaption(message) }}
+            </p>
           </div>
         </div>
         <div v-if="message?.fail_reason" class="flex justify-content-end flex-wrap">
           <Tag severity="danger" :value="message?.fail_reason"></Tag>
         </div>
-        <div class="flex justify-content-end flex-wrap" style="
-          margin-top: 10px;">
-          <div class="flex align-items-center justify-content-center">
-            <small class="font-italic">
-              {{ message?.date?.toLocaleString() }}
+        <div class="message-footer">
+          <div class="message-footer__meta">
+            <small class="font-italic message-footer__date">
+              {{ formatMessageDate(message?.date) }}
             </small>
             <i v-if="message?.itsMine" class="ml-2" :class="getIconMessageStatus(message?.status)" :style="{color: getIconStatusColor(message?.status)}" ></i>
           </div>
@@ -404,20 +428,49 @@ export default {
         message: {
             type: Object,
             default: () => {}
+        },
+        variant: {
+            type: String,
+            default: 'default'
         }
     },
     components: {
         Image
     },
+    computed: {
+        isHistoryVariant () {
+            return this.variant === 'history';
+        },
+        cardStyle () {
+            return {
+                maxWidth: this.isHistoryVariant ? '100%' : '65%'
+            };
+        }
+    },
     methods: {
         getClasses (itsMine) {
+            const baseClasses = {
+                'message-r': !!itsMine,
+                'message-l': !itsMine
+            };
+
+            if (this.isHistoryVariant) {
+                return {
+                    ...baseClasses,
+                    'wa-message-card--mine': !!itsMine,
+                    'wa-message-card--their': !itsMine
+                };
+            }
+
             if (itsMine) {
                 return {
+                    ...baseClasses,
                     'bg-green-200': true,
                     'message-r': true
                 };
             } else {
                 return {
+                    ...baseClasses,
                     'bg-gray-200': true,
                     'message-l': true
                 };
@@ -452,38 +505,88 @@ export default {
         showAgentSender (message) {
             return Boolean(message?.itsMine && message?.senderName);
         },
+        getAttachmentCaption (message) {
+            return message?.message?.caption || message?.message?.text || '';
+        },
+        hasAttachmentCaption (message) {
+            return Boolean(this.getAttachmentCaption(message));
+        },
         getTransferEventLabel (content) {
-            if (content?.event_type === 'agent_transfer') {
-                const agent = content?.to_agent?.username || content?.to_agent?.name;
-                if (agent) {
-                    return this.$t(
-                        'views.whatsapp.reports.campaign.conversation.transfer_to_agent',
-                        { agent }
-                    );
-                }
+          if (content?.event_type === 'agent_transfer') {
+            const agent = content?.to_agent?.username || content?.to_agent?.name;
+            if (agent) {
+              return this.$t(
+                'views.whatsapp.reports.campaign.conversation.transfer_to_agent',
+                { agent }
+              );
             }
-            if (content?.event_type === 'campaign_transfer') {
-                const campaign = content?.to_campaign?.name;
-                if (campaign) {
-                    return this.$t(
-                        'views.whatsapp.reports.campaign.conversation.transfer_to_campaign',
-                        { campaign }
-                    );
-                }
+          }
+          if (content?.event_type === 'campaign_transfer') {
+            const campaign = content?.to_campaign?.name;
+            if (campaign) {
+              return this.$t(
+                'views.whatsapp.reports.campaign.conversation.transfer_to_campaign',
+                { campaign }
+              );
             }
-            return this.$t('views.whatsapp.reports.campaign.conversation.transfer_event');
+          }
+          return this.$t('views.whatsapp.reports.campaign.conversation.transfer_event');
+        },
+        formatMessageDate (value) {
+            if (!value) return '';
+
+            const date = value instanceof Date ? value : new Date(value);
+
+            if (Number.isNaN(date.getTime())) return '';
+
+            const options = this.isHistoryVariant
+                ? {
+                    day: '2-digit',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                }
+                : {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                };
+
+            return date.toLocaleString('es-AR', options);
         }
     }
 };
 </script>
 
 <style scoped>
+.wa-message-card {
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
 .message-r {
   float: right;
 }
 .message-l {
   float: left;
 }
+
+.wa-message-card--history {
+  width: min(100%, 44rem);
+  border: 1px solid #dce7f3;
+  border-radius: 20px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.10);
+}
+
+.wa-message-card--mine {
+  background: linear-gradient(135deg, #dcfce7 0%, #c7f2d4 100%);
+}
+
+.wa-message-card--their {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+}
+
 .message-text {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -493,6 +596,9 @@ export default {
   display: inline-block;
   margin-bottom: 0.5rem;
   font-weight: 700;
+}
+.attachment-caption {
+  color: #1f2937;
 }
 .transfer-event {
   display: flex;
@@ -562,5 +668,41 @@ export default {
   font-size: 13px;
   margin-top: 4px;
   color: #555;
+}
+
+.message-footer {
+  margin-top: 10px;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.message-footer__meta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.message-footer__date {
+  color: #475569;
+}
+
+.wa-message-card--history .message-footer {
+  margin-top: 12px;
+}
+
+.wa-message-card--history .message-footer__date {
+  font-size: 0.74rem;
+  color: #334155;
+}
+
+.wa-message-card--history .wa-bubble {
+  background: rgba(255, 255, 255, 0.44);
+  border-radius: 14px;
+}
+
+.wa-message-card--history .wa-reply-preview {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(148, 163, 184, 0.18);
 }
 </style>

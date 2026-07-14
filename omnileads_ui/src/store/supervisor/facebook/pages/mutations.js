@@ -4,6 +4,8 @@ export default {
     },
     initFacebookPage(state, page = null) {
         if (page) {
+            const MENU_INTERACTIVO_MESSENGER_META_APP = 13;
+
             state.supFacebookPage = {
                 id: page.id,
                 name: page.name,
@@ -15,7 +17,7 @@ export default {
                 destination: {
                     data: page.destination ? page.destination.data : null,
                     type: page.destination ? page.destination.type : null,
-                    id_tmp: page.destination && page.destination.type === 13 ? page.destination.id : 0
+                    id_tmp: page.destination && page.destination.type === MENU_INTERACTIVO_MESSENGER_META_APP ? page.destination.id : 0
                 },
                 schedule: page.horario,
                 welcome_message: page.welcome_message,

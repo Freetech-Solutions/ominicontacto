@@ -93,10 +93,15 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 'children': whatsapp
             })
         messenger = []
-        if 'messager_pages_configuration' in permissions or True:  # TEMPORAL
+        if 'messenger_meta_configuration' in permissions:
             messenger.append({
                 'label': _('Páginas'),
                 'url': reverse('messenger_meta_configuration')
+            })
+        if 'instagram_accounts_configuration' in permissions or True:  # TEMPORAL
+            messenger.append({
+                'label': _('Instagram'),
+                'url': reverse('instagram_accounts_configuration')
             })
         if messenger:
             conexiones.append({
@@ -106,6 +111,26 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 'id': 'menuMessenger',
                 'children': messenger
             })
+
+        email = []
+        if "email:api:v1:account-list" in permissions:
+            email.append(
+                {
+                    "label": _("Cuentas"),
+                    "url": reverse("webui", kwargs={"name": "app", "path": "embed/email/accounts"}),
+                }
+            )
+
+        if email:
+            conexiones.append(
+                {
+                    "label": _("Email"),
+                    "class": "",
+                    "id": "menuEmail",
+                    "children": email,
+                }
+            )
+
         recursos = []
         audios = []
         if 'adicionar_audios_asterisk' in permissions:
@@ -158,12 +183,12 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 'url': reverse('whatsapp_message_template_groups')
             })
 
-        if 'facebook_message_templates_configuration' in permissions or True:  # TEMPORAL
+        if 'facebook_message_templates_configuration' in permissions:
             recursos.append({
                 'label': _('Plantillas de mensajes Facebook'),
                 'url': reverse('facebook_message_templates_configuration')
             })
-        if 'facebook_message_template_groups' in permissions or True:  # TEMPORAL
+        if 'facebook_message_template_groups' in permissions:
             recursos.append({
                 'label': _('Grupos de plantillas de mensaje Facebook'),
                 'url': reverse('facebook_message_template_groups')

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Movernos al directorio que contiene manage.py para que Python cargue bien las apps
-cd "${INSTALL_PREFIX}ominicontacto"
+cd "${INSTALL_PREFIX}/ominicontacto"
 
 # Ahora podemos invocar manage.py directamente
 COMMAND="python3 manage.py"

@@ -24,6 +24,15 @@ def _extract_forward_flags(*candidates):
     return flags
 
 
+def _copy_meta_media_caption(content, media_payload):
+    if not isinstance(content, dict) or not isinstance(media_payload, dict):
+        return content
+    caption = media_payload.get("caption")
+    if caption:
+        content["caption"] = caption
+    return content
+
+
 async def handle_gupshup_message(line: Line, event: dict):
     try:
         event_timestamp = datetime.fromtimestamp(
@@ -92,8 +101,8 @@ async def handle_gupshup_message(line: Line, event: dict):
 async def handle_meta_messages(line: Line, event: dict):
     try:
         if event.get("object") != "whatsapp_business_account":
-            logger.error("Not whatsapp_business_account by line:", line.id)
-            logger.error("Event:", event)
+            logger.error("Not whatsapp_business_account by line: %s", line.id)
+            logger.error("Event: %s", event)
         value_object = event["entry"][0]["changes"][0]["value"]
         if "statuses" in value_object:
             status_object = value_object["statuses"][0]
@@ -142,6 +151,7 @@ async def handle_meta_messages(line: Line, event: dict):
 
             if type in ["video", "image", "document"]:
                 content = meta_get_media_content(line, type, message)
+                _copy_meta_media_caption(content, message.get(type))
                 content.update(forward_flags)
                 if 'context' in message:
                     context = message["context"]

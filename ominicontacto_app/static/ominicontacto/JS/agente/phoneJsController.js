@@ -865,6 +865,11 @@ class PhoneJSController {
             $('#newChat').removeClass('invisible');
         });
 
+        this.notification_agent_whatsapp.eventsCallbacks.onNotificationNewInstagramChat.add(function(args){
+            console.log('===================================> NEW INSTAGRAM CHAT');
+            $('#newInstagramChat').removeClass('invisible');
+        });
+
         this.notification_agent.eventsCallbacks.onNotificationEndTransferredCall.add(function(args){
             console.log('===================================> End Transferred Call');
             if(self.transfer.is_consultative){
@@ -933,6 +938,17 @@ class PhoneJSController {
         });
     }
 
+    syncLoginPause() {
+        this.phone_fsm.startPause();
+        this.pause_manager.setPause(ACW_PAUSE_ID, ACW_PAUSE_NAME, 0);
+        this.timers.toEndPause.hide_element();
+        this.timers.toEndPause.reset();
+        this.timers.pausa.start();
+        this.timers.operacion.stop();
+        this.phone_fsm.pauseSet();
+        this.view.setCallStatus(gettext('Agente en pausa'), 'orange');
+    }
+
     goToReadyAfterLogin() {
         // If state is not LoggingToAsterisk I assume agent already went to ready
         if (this.phone_fsm.state == 'LoggingToAsterisk') {
@@ -940,6 +956,10 @@ class PhoneJSController {
             this.phone_fsm.logToAsteriskOk();
             this.view.setCallStatus(gettext('Agente conectado'), 'yellowgreen');
             this.phone.Sounds('Welcome', 'play');
+
+            if (this.agent_config.pause_on_first_login) {
+                this.syncLoginPause();
+            }
         }
     }
 
@@ -2172,6 +2192,7 @@ class AgentConfig {
         this.call_another_agent = $('#call_another_agent').val() == 'False';
         this.on_hold = $('#on_hold').val() == 'False';
         this.force_unpause = $('#force_unpause').val() == 'True';
+        this.pause_on_first_login = $('#pause_on_first_login').val() == 'True';
     }
 }
 

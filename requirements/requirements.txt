@@ -1,3 +1,8 @@
+aioconsole==0.8.2
+aioimaplib==2.0.1
+aiomonitor==0.7.1
+babel==2.18.0
+mail-parser==4.2.1
 boto3==1.42.32
 botocore==1.42.32
 bcrypt==4.0.1

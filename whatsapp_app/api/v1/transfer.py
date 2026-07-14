@@ -17,6 +17,7 @@
 #
 
 # APIs para visualizar destinos
+import logging
 import uuid
 from asgiref.sync import async_to_sync
 from django.db import transaction
@@ -29,11 +30,12 @@ from rest_framework import viewsets
 from rest_framework import decorators
 from rest_framework.authentication import SessionAuthentication
 from api_app.views.permissions import TienePermisoOML
-from api_app.authentication import ExpiringTokenAuthentication
 from whatsapp_app.api.utils import HttpResponseStatus, get_response_data
 from ominicontacto_app.models import Campana, AgenteProfile
 from whatsapp_app.models import ConfiguracionWhatsappCampana, ConversacionWhatsapp, MensajeWhatsapp
 from notification_app.notification import AgentNotifier
+
+logger = logging.getLogger(__name__)
 
 
 class ListSerializer(serializers.Serializer):
@@ -103,7 +105,7 @@ def _create_transfer_event_message(conversation, event_type, by_agent=None, to_a
 
 class ViewSet(viewsets.ViewSet):
     permission_classes = [TienePermisoOML]
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
 
     def _eligible_campaigns_for_conversation(self, conversation):
         eligible_campaign_ids = ConfiguracionWhatsappCampana.objects.filter(
@@ -187,7 +189,7 @@ class ViewSet(viewsets.ViewSet):
                 )
                 success = conversacion.otorgar_conversacion(agent, attended=False)
                 if not success:
-                    raise Exception(_('Error al tranferir conversacion'))
+                    raise serializers.ValidationError(_('Error al tranferir conversacion'))
             if success:
                 AgentNotifier().notify_whatsapp_chat_transfered(
                     request.user.username, agent_id, conversacion)
@@ -200,7 +202,7 @@ class ViewSet(viewsets.ViewSet):
                     message=_('Error al tranferir conversacion')),
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         except Exception as e:
-            print(e)
+            logger.error(str(e))
             return response.Response(
                 data=get_response_data(
                     message=_('Error al tranferir conversacion')),
@@ -236,8 +238,9 @@ class ViewSet(viewsets.ViewSet):
                     telefono=conversation.destination,
                 ).last()
                 conversation.save()
-            for agent in AgenteProfile.objects.all():
-                async_to_sync(AgentNotifier().notify_whatsapp_new_chat)(
+            notifier = AgentNotifier()
+            for agent in conversation.campana.obtener_agentes().select_related('user').distinct():
+                async_to_sync(notifier.notify_whatsapp_new_chat)(
                     agent.user_id,
                     conversation=conversation,
                 )

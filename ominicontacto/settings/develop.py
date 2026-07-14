@@ -16,6 +16,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+from django.core.exceptions import ImproperlyConfigured
 from .addons import *
 from .defaults import *
 from .checks import (check_settings_variables, process_middleware_settings,
@@ -49,8 +50,10 @@ DEBUG_TOOLBAR_CONFIG = {
 
 try:
     from .oml_settings_local import *
-except ImportError:
-    raise Exception("No se pudo importar oml_settings_local")
+except ImportError as e:
+    raise ImproperlyConfigured(
+        "No se pudo importar oml_settings_local"
+    ) from e
 
 (MIDDLEWARE_PREPPEND, MIDDLEWARE_APPEND, MIDDLEWARE,
  TEMPLATES_CONTEXT_PROCESORS_APPEND, TEMPLATES) = process_middleware_settings(

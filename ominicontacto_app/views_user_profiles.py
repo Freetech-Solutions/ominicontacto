@@ -247,12 +247,9 @@ class CustomUserWizard(SessionWizardView):
                 message,
             )
 
-    def done(self, form_list, **kwargs):
+    def done(self, form_list, form_dict, **kwargs):
         # Ver el tipo de Usuario que se crea.
-        # TODO: ver como convertir de forma mas elegante un odict_values a lista
-        # en python3
-        form_list = [i for i in form_list]
-        user_form = form_list[int(self.USER)]
+        user_form = form_dict[self.USER]
         rol = user_form.cleaned_data.get('rol')
         grupo = user_form.cleaned_data.get('grupo')
         user = user_form.save(commit=False)
@@ -264,7 +261,7 @@ class CustomUserWizard(SessionWizardView):
 
         if rol.name == User.AGENTE:
             if self.agente_a_clonar is None:
-                form_campaigns = form_list[int(self.AGENTE)]
+                form_campaigns = form_dict[self.AGENTE]
                 campaigns_pks = form_campaigns.cleaned_data.get('campaigns_by_type')
                 sip_remote = user_form.cleaned_data.get('sip_remote', False)
                 voicebot = user_form.cleaned_data.get('voicebot', False)

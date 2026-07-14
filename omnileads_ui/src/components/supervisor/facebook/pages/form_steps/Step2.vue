@@ -257,13 +257,8 @@ export default {
         },
         nextPage (isFormValid) {
             this.submitted = true;
-            if (isFormValid) {
-                if (this.validFields()) {
-                    this.$emit('next-page', { pageIndex: 1 });
-                }
-                return null;
-            } else {
-                return null;
+            if (isFormValid && this.validFields()) {
+                this.$emit('next-page', { pageIndex: 1 });
             }
         },
         prevPage () {

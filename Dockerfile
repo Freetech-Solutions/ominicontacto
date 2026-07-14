@@ -76,6 +76,22 @@ RUN --mount=type=cache,target=/root/.npm \
 COPY omnileads_ui/ ./
 RUN npm run build
 
+########################################################################
+# 2.1) Stage build WebUI
+FROM node:22-alpine as webuibuilder
+
+RUN corepack enable
+
+WORKDIR /webui-app
+COPY webui/package.json webui/pnpm-lock.yaml webui/pnpm-workspace.yaml ./
+COPY webui/patches patches
+RUN pnpm install --frozen-lockfile
+COPY webui/ ./
+RUN pnpm build-only --base=/webui-app/
+
+########################################################################
+# Build omlapp image with binaries
+FROM python:3.9-alpine as run
 
 #############################
 # 3) Runtime
@@ -119,7 +135,6 @@ RUN set -eux; \
     mkdir -p "${INSTALL_PREFIX}" \
     && curl -kL https://keys-server.freetech.com.ar:20852/cert -o "${INSTALL_PREFIX}/cert"
 
-
 COPY --from=pybuilder ${VENV_PATH} ${VENV_PATH}
 
 RUN set -eux; \
@@ -141,6 +156,7 @@ COPY test "${INSTALL_PREFIX}/ominicontacto/test"
 COPY tests "${INSTALL_PREFIX}/ominicontacto/tests"
 COPY api_app "${INSTALL_PREFIX}/ominicontacto/api_app"
 COPY configuracion_telefonia_app "${INSTALL_PREFIX}/ominicontacto/configuracion_telefonia_app"
+COPY email_app "$INSTALL_PREFIX/ominicontacto/email_app"
 COPY ominicontacto_app "${INSTALL_PREFIX}/ominicontacto/ominicontacto_app"
 COPY reciclado_app "${INSTALL_PREFIX}/ominicontacto/reciclado_app"
 COPY reportes_app "${INSTALL_PREFIX}/ominicontacto/reportes_app"
@@ -149,16 +165,20 @@ COPY notification_app "${INSTALL_PREFIX}/ominicontacto/notification_app"
 COPY orquestador_app "${INSTALL_PREFIX}/ominicontacto/orquestador_app"
 COPY whatsapp_app "${INSTALL_PREFIX}/ominicontacto/whatsapp_app"
 COPY facebook_meta_app "${INSTALL_PREFIX}/ominicontacto/facebook_meta_app"
+COPY instagram_app "$INSTALL_PREFIX/ominicontacto/instagram_app"
 COPY utiles_globales.py "${INSTALL_PREFIX}/ominicontacto/"
 COPY manage.py "${INSTALL_PREFIX}/ominicontacto/"
 
 # Si no necesitás el código fuente del frontend en runtime, podés eliminar esta línea:
 COPY omnileads_ui "${INSTALL_PREFIX}/ominicontacto/omnileads_ui"
+COPY webui "$INSTALL_PREFIX/ominicontacto/webui"
 
 COPY build/oml_uwsgi.ini "${INSTALL_PREFIX}/run/oml_uwsgi.ini"
 COPY build/scripts/* "${INSTALL_PREFIX}/bin/"
 
 COPY --from=vuebuilder /omnileads_ui/dist/ "${INSTALL_PREFIX}/ominicontacto/omnileads_ui/dist"
+
+COPY --from=webuibuilder /webui-app/dist/ "$INSTALL_PREFIX/ominicontacto/webui/dist"
 
 RUN set -eux; \
     chmod +x "${INSTALL_PREFIX}/bin/"*; \

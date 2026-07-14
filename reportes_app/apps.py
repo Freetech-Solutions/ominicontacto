@@ -189,6 +189,10 @@ class ReportesAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'agente_reporte_grafico',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'campaign_instagram_report_conversations',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'campaign_instagram_report_general',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
         ]
 
     informacion_de_permisos = {
@@ -367,4 +371,16 @@ class ReportesAppConfig(AppConfig):
         'agente_reporte_grafico':
             {'descripcion': _('Vista gráfica de KPIs por agente en rango de tiempo'),
              'version': '1.19.0'},
+        'campaign_facebook_report_conversations':
+            {'descripcion': _('Vista de reporte de conversaciones de Meta/Facebook para Campaña'),
+             'version': '1.26.0'},
+        'campaign_facebook_report_general':
+            {'descripcion': _('Vista de reporte general de Meta/Facebook para una Campaña'),
+             'version': '1.26.0'},
+        'campaign_instagram_report_conversations':
+            {'descripcion': _('Vista de reporte de conversaciones de Instagram para Campaña'),
+             'version': '1.27.0'},
+        'campaign_instagram_report_general':
+            {'descripcion': _('Vista de reporte general de Instagram para una Campaña'),
+             'version': '1.27.0'},
     }

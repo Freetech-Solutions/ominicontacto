@@ -16,6 +16,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 import os
+from django.core.exceptions import ImproperlyConfigured
 
 AMI_USER = os.getenv('AMI_USER')
 AMI_PASSWORD = os.getenv('AMI_PASSWORD')
@@ -77,14 +78,22 @@ else:
         if host not in ('127.0.0.1', 'localhost') and not host[0].isdigit()
     ]
 
+SALT_KEY = os.getenv("SALT_KEY", "0123456789abcdefghijklmnopqrstuvwxyz")
+if SALT_KEY_FALLBACKS := os.getenv("SALT_KEY_FALLBACKS", []):
+    SALT_KEY_FALLBACKS = SALT_KEY_FALLBACKS.split(",")
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY')
+if SECRET_KEY_FALLBACKS := os.getenv("SECRET_KEY_FALLBACKS", []):
+    SECRET_KEY_FALLBACKS = SECRET_KEY_FALLBACKS.split(",")
+
 SIP_SECRET_KEY = os.getenv('SIP_SECRET_KEY')
 
 DATABASE_REPLICA_ENABLED = os.getenv("PGHOSTHA") == "True"
 DATABASE_REPLICA_HOST = os.getenv("PGHOSTRO")
 if DATABASE_REPLICA_ENABLED and DATABASE_REPLICA_HOST is None:
-    raise Exception("DATABASE_REPLICA_HOST is required when DATABASE_REPLICA_ENABLED is True")
+    raise ImproperlyConfigured(
+        "DATABASE_REPLICA_HOST is required when DATABASE_REPLICA_ENABLED is True")
 
 # Datos de conexión de base db postgresql
 DATABASES = {
