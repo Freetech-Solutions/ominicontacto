@@ -24,7 +24,7 @@
 import logging
 
 from django.db.models import Count, Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import response
 from rest_framework import serializers
 from rest_framework import status

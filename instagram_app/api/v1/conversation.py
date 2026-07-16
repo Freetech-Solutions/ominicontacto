@@ -26,7 +26,7 @@ from django.db.models import (
 )
 from django.db.models.functions import Coalesce
 from django.utils import timezone
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import decorators, response, serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.views import APIView

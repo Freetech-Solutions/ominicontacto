@@ -6,7 +6,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('configuracion_telefonia_app', '0023_alter_destinoentrante_tipo'),
+        ('configuracion_telefonia_app', '0026_instagram_destinoentrante_tipo'),
     ]
 
     operations = [
@@ -22,8 +22,11 @@ class Migration(migrations.Migration):
                 (7, 'Destino personalizado'),
                 (10, 'Menú Interactivo de Whatsapp'),
                 (11, 'Agente'),
+                (6, 'CX Survey'),
                 (12, 'Mensaje de Cierre'),
-                (13, 'Agente Remoto'),
+                (13, 'Menú Interactivo de Messenger Meta App'),
+                (14, 'Menú Interactivo de Instagram'),
+                (15, 'Agente Remoto'),
             ]),
         ),
     ]

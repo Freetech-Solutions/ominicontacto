@@ -19,7 +19,7 @@ import json
 
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import decorators, response, serializers, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 

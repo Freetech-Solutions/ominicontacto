@@ -119,7 +119,7 @@ class ObtenerUrlGrabacionView(APIView):
 
 class ProcessSpeechAnalisisTaskView(APIView):
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
+    authentication_classes = (SessionAuthentication, )
     http_method_names = ['post']
     renderer_classes = (JSONRenderer, )
 

@@ -21,7 +21,7 @@ import re
 from django.core.files.storage import default_storage
 from django.db.models import F, Func, IntegerField, OuterRef, Subquery
 from django.db.models.functions import Coalesce
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import decorators
 from rest_framework import exceptions
 from rest_framework import permissions

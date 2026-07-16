@@ -21,7 +21,7 @@ from django.contrib.auth import login
 from django.contrib.auth import logout
 from django.contrib.staticfiles.storage import staticfiles_storage
 from django.core.files.storage import default_storage
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import decorators
 from rest_framework import response
 from rest_framework import serializers

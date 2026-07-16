@@ -16,7 +16,7 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 from django.core.exceptions import ObjectDoesNotExist
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import response, status, viewsets
 from rest_framework.authentication import SessionAuthentication
 

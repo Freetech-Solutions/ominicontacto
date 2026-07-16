@@ -32,19 +32,21 @@ from instagram_app.api import ViewSetRouter
 router = ViewSetRouter(trailing_slash=False)
 
 routes = (
-    (r"account", instagram_app.api.v1.account_configuration.ViewSet),
-    (r"campaigns", instagram_app.api.v1.account_configuration.CampaignViewSet),
-    (r"schedules", instagram_app.api.v1.account_configuration.ScheduleViewSet),
-    (r"chat", instagram_app.api.v1.conversation.ViewSet),
-    (r"contact/(?P<campana_pk>[^/.]+)", instagram_app.api.v1.contact.ViewSet),
-    (r"disposition_chat", instagram_app.api.v1.disposition.ViewSet),
-    (r"transfer", instagram_app.api.v1.transfer.ViewSet),
-    (r"templates/(?P<campana_pk>[^/.]+)", instagram_app.api.v1.templates.ViewSet),
-    (r"templates_instagram", instagram_app.api.v1.templates_instagram.ViewSet),
+    (r"account", instagram_app.api.v1.account_configuration.ViewSet, None),
+    (r"campaigns", instagram_app.api.v1.account_configuration.CampaignViewSet,
+     "account-campaigns"),
+    (r"schedules", instagram_app.api.v1.account_configuration.ScheduleViewSet,
+     "account-schedules",),
+    (r"chat", instagram_app.api.v1.conversation.ViewSet, None),
+    (r"contact/(?P<campana_pk>[^/.]+)", instagram_app.api.v1.contact.ViewSet, None),
+    (r"disposition_chat", instagram_app.api.v1.disposition.ViewSet, None),
+    (r"transfer", instagram_app.api.v1.transfer.ViewSet, None),
+    (r"templates/(?P<campana_pk>[^/.]+)", instagram_app.api.v1.templates.ViewSet, None),
+    (r"templates_instagram", instagram_app.api.v1.templates_instagram.ViewSet, None),
 )
 
-for prefix, viewset in routes:
-    router.register(prefix, viewset)
+for prefix, viewset, base_name in routes:
+    router.register(prefix, viewset, base_name)
 
 urlpatterns = [
     path(

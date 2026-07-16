@@ -9,10 +9,20 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('configuracion_telefonia_app', '0001_initial'),
-        ('ominicontacto_app', '0118_add_voicebot_agente_profile'),
+        ('ominicontacto_app', '0120_canalidad_email'),
     ]
 
     operations = [
+        migrations.AddField(
+            model_name='agenteprofile',
+            name='sip_remote',
+            field=models.BooleanField(default=False, verbose_name='SIP remote'),
+        ),
+        migrations.AddField(
+            model_name='agenteprofile',
+            name='voicebot',
+            field=models.BooleanField(default=False, verbose_name='Voicebot'),
+        ),
         migrations.AddField(
             model_name='agenteprofile',
             name='voicebot_trunk',
@@ -39,3 +49,4 @@ class Migration(migrations.Migration):
             ),
         ),
     ]
+

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.postgres',
     'channels',
     'configuracion_telefonia_app.apps.ConfiguracionTelefoniaAppConfig',
     'crispy_forms',
