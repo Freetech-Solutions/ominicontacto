@@ -15,3 +15,4 @@ install/docker/devenv/media_root
 atom-sftp-sync.json
 deployment-config.json
 django.log
+CLAUDE.md
