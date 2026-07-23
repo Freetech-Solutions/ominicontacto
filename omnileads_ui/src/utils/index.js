@@ -33,6 +33,20 @@ export function listenerStoreDataByAction (action, callback) {
     });
 }
 
+const SAFE_URL_PROTOCOLS = new Set(['http:', 'https:']);
+
+export function getSafeMediaUrl (url) {
+    if (typeof url !== 'string' || !url) {
+        return '';
+    }
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return SAFE_URL_PROTOCOLS.has(parsed.protocol) ? url : '';
+    } catch {
+        return '';
+    }
+}
+
 export function removeInPlace (array, item) {
     var foundIndex, fromIndex;
 
