@@ -75,7 +75,6 @@ class GeneradorTTS(object):
     def generar_archivo(self, servicio, descripcion, texto, voz):
         """ Genera un archivo .wav para ArchivoDeAudio usando servicios de TTS """
 
-        descripcion = descripcion
         # Calculo filename y paths de audio original a partir de descripción
         filename = descripcion + '.wav'
         path_relativo = upload_to_audio_original(None, '') + filename

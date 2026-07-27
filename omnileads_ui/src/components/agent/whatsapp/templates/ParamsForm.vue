@@ -247,7 +247,7 @@ export default {
         initFilters () {
             this.filters = {
                 global: { value: null, matchMode: FilterMatchMode.CONTAINS }
-            }; template.configuration.text.replace;
+            };
         },
         isEmptyField (field = null) {
             return field === null || field === undefined || field === '';
@@ -330,7 +330,7 @@ export default {
                 } else {
                     await notificationEvent(
                         NOTIFICATION.TITLES.ERROR,
-                        message, template.configuration.text.replace,
+                        message,
                         NOTIFICATION.ICONS.ERROR
                     );
                 }
