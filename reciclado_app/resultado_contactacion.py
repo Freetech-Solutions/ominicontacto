@@ -84,9 +84,6 @@ class EstadisticasContactacion():
         contactos_ids = set(ids_contactos_base_actual).difference(set(contactados))
         if len(contactos_ids) == 0:
             return
-        filtro_contactos = "AND contacto_id in ('"
-        filtro_contactos += "','".join([str(x) for x in contactos_ids])
-        filtro_contactos += "')"
         if campana.type == Campana.TYPE_DIALER:
             campana_tipo = Campana.TYPE_DIALER
         if campana.type == Campana.TYPE_PREVIEW:
@@ -95,25 +92,26 @@ class EstadisticasContactacion():
         params = {'campana_id': campana.id,
                   'fecha_alta': campana.bd_contacto.fecha_alta,
                   'tipo_campana': campana_tipo,
-                  'filtro_contactos': filtro_contactos, }
+                  'contactos_ids': list(contactos_ids), }
         sql = """
         SELECT r1.event, COUNT(r1.event)
             FROM "reportes_app_llamadalog" r1
             INNER JOIN (
                 SELECT contacto_id, MAX(id) AS id__max
                 FROM "reportes_app_llamadalog"
-                WHERE campana_id = {campana_id} AND
-                      time >= '{fecha_alta}' AND
-                      tipo_llamada = {tipo_campana} AND
-                      tipo_campana = {tipo_campana} {filtro_contactos}
+                WHERE campana_id = %(campana_id)s AND
+                      time >= %(fecha_alta)s AND
+                      tipo_llamada = %(tipo_campana)s AND
+                      tipo_campana = %(tipo_campana)s AND
+                      contacto_id = ANY(%(contactos_ids)s)
                 GROUP BY contacto_id
             ) r2
             ON r1.id = r2.id__max
             GROUP BY r1.event
-        """.format(**params)
+        """
 
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, params)
         values = cursor.fetchall()
         for evento, cantidad in values:
             # Me interesan solo los contactos cuya ultima conexion ha fallado.
@@ -269,16 +267,13 @@ class RecicladorContactosCampanaDIALER():
         ids_contactos_base_actual = campana.bd_contacto.contactos.values_list('id', flat=True)
         id_contactos = []
         filtrar_no_calificados = False
-        filtro_eventos = ''
+        eventos_no_contactados = []
         for evento_id in reciclado_no_contactacion:
             evento_id = int(evento_id)
             if evento_id == EstadisticasContactacion.AGENTE_NO_CALIFICO:
                 filtrar_no_calificados = True
             else:
-                evento = EstadisticasContactacion.MAP_ID_ESTADO[evento_id]
-                if filtro_eventos:
-                    filtro_eventos += ","
-                filtro_eventos += "'%s'" % evento
+                eventos_no_contactados.append(EstadisticasContactacion.MAP_ID_ESTADO[evento_id])
 
         if campana.type == Campana.TYPE_DIALER:
             campana_tipo = Campana.TYPE_DIALER
@@ -302,37 +297,35 @@ class RecicladorContactosCampanaDIALER():
             id_contactos += no_calificados
 
         # Filtrar los llamados no contactados (solo contactos de la base actual)
-        if filtro_eventos:
+        if eventos_no_contactados:
             contactos_no_contactados = set(ids_contactos_base_actual).difference(set(contactados))
             if len(contactos_no_contactados) < 1:
                 return []
-            filtro_contactos = "AND contacto_id IN ('"
-            filtro_contactos += "','".join([str(x) for x in contactos_no_contactados])
-            filtro_contactos += "')"
 
             params = {'campana_id': campana.id,
                       'fecha_alta': campana.bd_contacto.fecha_alta,
                       'tipo_campana': campana_tipo,
-                      'filtro_contactos': filtro_contactos,
-                      'filtro_eventos': filtro_eventos}
+                      'contactos_ids': list(contactos_no_contactados),
+                      'eventos': eventos_no_contactados}
             sql = """
             SELECT r1.contacto_id
                 FROM "reportes_app_llamadalog" r1
                 INNER JOIN (
                     SELECT contacto_id, MAX(id) AS id__max
                     FROM "reportes_app_llamadalog"
-                    WHERE campana_id = {campana_id} AND
-                          time > '{fecha_alta}' AND
-                          tipo_llamada = {tipo_campana} AND
-                          tipo_campana = {tipo_campana} {filtro_contactos}
+                    WHERE campana_id = %(campana_id)s AND
+                          time > %(fecha_alta)s AND
+                          tipo_llamada = %(tipo_campana)s AND
+                          tipo_campana = %(tipo_campana)s AND
+                          contacto_id = ANY(%(contactos_ids)s)
                     GROUP BY contacto_id
                 ) r2
                 ON r1.id = r2.id__max
-                WHERE event IN ({filtro_eventos})
-            """.format(**params)
+                WHERE event = ANY(%(eventos)s)
+            """
 
             cursor = connection.cursor()
-            cursor.execute(sql)
+            cursor.execute(sql, params)
             values = cursor.fetchall()
             id_contactos += [x[0] for x in values]
 

@@ -304,26 +304,28 @@ class ReporteDeLLamadasDialerDeSupervision(ReporteDeLlamadasDeSupervision):
             self.estadisticas[campana_id]['pendientes'] = pendientes
 
     def _contabilizar_llamadas_en_curso(self):
-        campanas_ids = []
-        for campana_id, campana in self.campanas.items():
-            if campana.estado == Campana.ESTADO_ACTIVA:
-                campanas_ids.append(str(campana_id))
+        campanas_ids = [campana_id for campana_id, campana in self.campanas.items()
+                        if campana.estado == Campana.ESTADO_ACTIVA]
         if not campanas_ids:
             return
-        campanas_ids = ','.join(campanas_ids)
 
         # Busco llamadas cuyo ultimo evento sea de llamada en curso
         sql = """
             SELECT l1.campana_id, COUNT(*) from reportes_app_llamadalog l1
             WHERE l1.event IN ('DIAL', 'ANSWER', 'CONNECT', 'ENTERQUEUE') AND l1.id IN (
                 SELECT MAX(l2.id) FROM reportes_app_llamadalog l2
-                WHERE l2.campana_id in ({0}) AND l2.tipo_llamada = '{1}' AND
-                l2.time BETWEEN %(fecha_desde)s AND %(fecha_hasta)s
+                WHERE l2.campana_id = ANY(%(campanas_ids)s) AND l2.tipo_llamada = %(tipo_campana)s
+                AND l2.time BETWEEN %(fecha_desde)s AND %(fecha_hasta)s
                 GROUP BY l2.callid
               )
             GROUP BY l1.campana_id;
-        """.format(campanas_ids, str(Campana.TYPE_DIALER))
-        params = {'fecha_desde': self.desde, 'fecha_hasta': self.hasta}
+        """
+        params = {
+            'campanas_ids': campanas_ids,
+            'tipo_campana': Campana.TYPE_DIALER,
+            'fecha_desde': self.desde,
+            'fecha_hasta': self.hasta,
+        }
         cursor = connection.cursor()
         cursor.execute(sql, params)
         values = cursor.fetchall()

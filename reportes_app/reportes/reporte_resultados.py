@@ -91,23 +91,11 @@ class ReporteDeResultadosDeCampana(object):
 
     def _registrar_no_calificados(self, contactos_ids, calificados_ids):
         # Ver como fue la contactacion. Si fue o no contactado.
-        filtro_contactos = " AND contacto_id IN ('"
-        filtro_contactos += "','".join([str(x) for x in contactos_ids])
-        filtro_contactos += "')"
-        filtro_calificados = ''
-        if len(calificados_ids) > 0:
-            filtro_calificados = " AND contacto_id NOT IN ('"
-            filtro_calificados += "','".join([str(x) for x in calificados_ids])
-            filtro_calificados += "')"
-        filtro_eventos = " AND event IN ('"
-        filtro_eventos += "','".join(LlamadaLog.EVENTOS_NO_CONEXION)
-        filtro_eventos += "','"
-        filtro_eventos += "','".join(LlamadaLog.EVENTOS_FIN_CONEXION)
-        filtro_eventos += "')"
+        eventos = list(LlamadaLog.EVENTOS_NO_CONEXION) + list(LlamadaLog.EVENTOS_FIN_CONEXION)
         params = {'campana_id': self.campana.id,
-                  'filtro_contactos': filtro_contactos,
-                  'filtro_calificados': filtro_calificados,
-                  'filtro_eventos': filtro_eventos}
+                  'contactos_ids': list(contactos_ids),
+                  'calificados_ids': list(calificados_ids),
+                  'eventos': eventos}
         # TODO: Filtrar eventos de LLamada log q indiquen finalizacion de llamada o intento
         sql = """
             SELECT contacto_id, event
@@ -115,13 +103,15 @@ class ReporteDeResultadosDeCampana(object):
                 SELECT id, campana_id, event, numero_marcado, contacto_id, "time",
                        max("time") OVER (PARTITION BY contacto_id) max_my_date
                 FROM public.reportes_app_llamadalog
-                WHERE campana_id = {campana_id} AND contacto_id != -1
-                {filtro_contactos}{filtro_calificados}{filtro_eventos}
+                WHERE campana_id = %(campana_id)s AND contacto_id != -1
+                AND contacto_id = ANY(%(contactos_ids)s)
+                AND NOT (contacto_id = ANY(%(calificados_ids)s))
+                AND event = ANY(%(eventos)s)
             ) sub_query
-            WHERE "time" = max_my_date """.format(**params)
+            WHERE "time" = max_my_date """
 
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, params)
         values = cursor.fetchall()
         for contacto_id, evento in values:
             descripcion = self._get_descripcion_evento(evento)

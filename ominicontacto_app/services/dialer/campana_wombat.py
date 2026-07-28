@@ -319,7 +319,11 @@ class CampanaService():
             if 'OK' not in r.text:
                 raise WombatDialerError(r.text)
         else:
-            raise WombatDialerError(r.raise_for_status())
+            try:
+                r.raise_for_status()
+            except requests.exceptions.RequestException as e:
+                raise WombatDialerError(str(e))
+            raise WombatDialerError(r.text)
 
     def start_campana_wombat(self, campana):
         """

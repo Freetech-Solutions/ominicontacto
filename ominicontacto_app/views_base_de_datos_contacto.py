@@ -501,8 +501,19 @@ class DefineBaseDatosContactoView(UpdateView):
                 message,
             )
 
-        except OmlError as e:
+        except OmlParserMaxRowError:
+            message = _('<strong>Operación Errónea!</strong> ') +\
+                _('El archivo que seleccionó posee más registros de los '
+                  'permitidos para ser importados.')
 
+            messages.add_message(
+                self.request,
+                messages.ERROR,
+                message,
+            )
+            return redirect(reverse('lista_base_datos_contacto', kwargs={"page": 1}))
+
+        except OmlError as e:
             message = _('<strong>Operación Errónea!</strong> ') +\
                 _('El archivo que seleccionó posee registros inválidos.<br> '
                   'ERROR: {0}.').format(e)
@@ -517,18 +528,6 @@ class DefineBaseDatosContactoView(UpdateView):
                 estructura_archivo=estructura_archivo,
                 form_primer_linea_encabezado=form_primer_linea_encabezado,
                 form_campos_telefonicos=form_campos_telefonicos))
-
-        except OmlParserMaxRowError:
-            message = _('<strong>Operación Errónea!</strong> ') +\
-                _('El archivo que seleccionó posee más registros de los '
-                  'permitidos para ser importados.')
-
-            messages.add_message(
-                self.request,
-                messages.ERROR,
-                message,
-            )
-            return redirect(reverse('lista_base_datos_contacto', kwargs={"page": 1}))
         else:
             message = _('<strong>Operación Exitosa!</strong> ') +\
                 _('Se llevó a cabo con éxito la creación de '
