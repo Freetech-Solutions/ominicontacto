@@ -15,28 +15,28 @@
         </div>
 
         <div v-if="message.type==='image'">
-          <a :href="message.message.image.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-            <Image :src="message.message.image.url" width="250" />
+          <a :href="getSafeMediaUrl(message.message.image.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+            <Image :src="getSafeMediaUrl(message.message.image.url)" width="250" />
           </a>
         </div>
         <div v-if="message.type==='file'">
-          <a :href="message.message.file.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-            <iframe :src="message.message.file.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+          <a :href="getSafeMediaUrl(message.message.file.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+            <iframe :src="getSafeMediaUrl(message.message.file.url)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
           </a>
         </div>
         <div v-if="message.type==='document' || message.type==='application'">
-          <a :href="message.message.document.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-            <iframe :src="message.message.document.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+          <a :href="getSafeMediaUrl(message.message.document.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+            <iframe :src="getSafeMediaUrl(message.message.document.url)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
           </a>
         </div>
         <div v-if="message.type==='audio'">
           <audio controls>
-            <source :src="message.message.audio.url" type="audio/ogg">
+            <source :src="getSafeMediaUrl(message.message.audio.url)" type="audio/ogg">
           </audio>
         </div>
         <div v-if="message.type==='video'">
           <video width="320" height="240" controls>
-            <source :src="message.message.video.url" type="video/mp4">
+            <source :src="getSafeMediaUrl(message.message.video.url)" type="video/mp4">
           </video>
         </div>
         <div v-if="message.type==='list'">
@@ -68,6 +68,7 @@
 
 <script>
 import { FACEBOOK_MESSAGE } from '@/globals/agent/facebook';
+import { getSafeMediaUrl } from '@/utils';
 import Image from 'primevue/image';
 export default {
     props: {
@@ -80,6 +81,7 @@ export default {
         Image
     },
     methods: {
+        getSafeMediaUrl,
         getClasses (itsMine) {
             if (itsMine) {
                 return {

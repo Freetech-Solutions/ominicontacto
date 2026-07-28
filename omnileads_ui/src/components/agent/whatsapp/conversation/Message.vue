@@ -51,8 +51,8 @@
           </p>
         </div>
         <div v-if="message.type==='image'">
-          <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-            <Image :src=message?.message.url :alt=message?.message.name width="250" />
+          <a :href="getSafeMediaUrl(message?.message.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+            <Image :src="getSafeMediaUrl(message?.message.url)" :alt=message?.message.name width="250" />
             <div class="display-middle">
               <p>{{ message?.message.name }}</p>
             </div>
@@ -62,8 +62,8 @@
           </p>
         </div>
         <div v-if="message.type==='file'">
-          <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-            <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+          <a :href="getSafeMediaUrl(message?.message.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+            <iframe :src="getSafeMediaUrl(message?.message.url)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
             {{ message?.message.name }}
           </a>
           <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
@@ -71,8 +71,8 @@
           </p>
         </div>
         <div v-if="message.type==='document' || message.type==='application'">
-          <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-            <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+          <a :href="getSafeMediaUrl(message?.message.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+            <iframe :src="getSafeMediaUrl(message?.message.url)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
             {{ message?.message.name }}
           </a>
           <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
@@ -81,12 +81,12 @@
         </div>
         <div v-if="message.type==='audio'">
           <audio controls>
-            <source :src="message?.message.url" type="audio/ogg">
+            <source :src="getSafeMediaUrl(message?.message.url)" type="audio/ogg">
           </audio>
         </div>
         <div v-if="message.type==='video'">
           <video width="320" height="240" controls>
-            <source :src="message?.message.url" type="video/mp4">
+            <source :src="getSafeMediaUrl(message?.message.url)" type="video/mp4">
           </video>
           <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
             {{ getAttachmentCaption(message) }}
@@ -152,14 +152,14 @@
               <!-- ===== IMAGE ===== -->
               <img
                 v-else-if="message.message.context?.type === 'image'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
               />
 
               <!-- ===== VIDEO ===== -->
               <video
                 v-else-if="message.message.context?.type === 'video'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
                 muted
               ></video>
@@ -170,7 +170,7 @@
                 class="wa-reply-document"
               >
                 <i class="pi pi-file"></i>
-                <iframe :src="message?.message.previewUrl" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+                <iframe :src="getSafeMediaUrl(message?.message.previewUrl)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
               </div>
 
               <!-- ===== AUDIO ===== -->
@@ -218,14 +218,14 @@
               <!-- ===== IMAGE ===== -->
               <img
                 v-else-if="message.message.context?.type === 'image'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
               />
 
               <!-- ===== VIDEO ===== -->
               <video
                 v-else-if="message.message.context?.type === 'video'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
                 muted
               ></video>
@@ -236,7 +236,7 @@
                 class="wa-reply-document"
               >
                 <i class="pi pi-file"></i>
-                <iframe :src="message?.message.previewUrl" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+                <iframe :src="getSafeMediaUrl(message?.message.previewUrl)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
               </div>
 
               <!-- ===== AUDIO ===== -->
@@ -252,8 +252,8 @@
           </div>
           <!-- MENSAJE ACTUAL -->
           <div class="wa-bubble">
-            <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-              <Image :src=message?.message.url :alt=message?.message.name width="250" />
+            <a :href="getSafeMediaUrl(message?.message.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+              <Image :src="getSafeMediaUrl(message?.message.url)" :alt=message?.message.name width="250" />
               <div class="display-middle">
                 <p>{{ message?.message.name }}</p>
               </div>
@@ -290,14 +290,14 @@
               <!-- ===== IMAGE ===== -->
               <img
                 v-else-if="message.message.context?.type === 'image'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
               />
 
               <!-- ===== VIDEO ===== -->
               <video
                 v-else-if="message.message.context?.type === 'video'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
                 muted
               ></video>
@@ -308,7 +308,7 @@
                 class="wa-reply-document"
               >
                 <i class="pi pi-file"></i>
-                <iframe :src="message?.message.previewUrl" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+                <iframe :src="getSafeMediaUrl(message?.message.previewUrl)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
               </div>
 
               <!-- ===== AUDIO ===== -->
@@ -324,8 +324,8 @@
           </div>
           <!-- MENSAJE ACTUAL -->
           <div class="wa-bubble">
-            <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
-              <iframe :src="message?.message.url" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+            <a :href="getSafeMediaUrl(message?.message.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+              <iframe :src="getSafeMediaUrl(message?.message.url)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
               {{ message?.message.name }}
             </a>
             <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
@@ -360,14 +360,14 @@
               <!-- ===== IMAGE ===== -->
               <img
                 v-else-if="message.message.context?.type === 'image'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
               />
 
               <!-- ===== VIDEO ===== -->
               <video
                 v-else-if="message.message.context?.type === 'video'"
-                :src="message.message.context.previewUrl"
+                :src="getSafeMediaUrl(message.message.context.previewUrl)"
                 class="wa-reply-media"
                 muted
               ></video>
@@ -378,7 +378,7 @@
                 class="wa-reply-document"
               >
                 <i class="pi pi-file"></i>
-                <iframe :src="message?.message.previewUrl" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+                <iframe :src="getSafeMediaUrl(message?.message.previewUrl)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
               </div>
 
               <!-- ===== AUDIO ===== -->
@@ -394,9 +394,9 @@
           </div>
           <!-- MENSAJE ACTUAL -->
           <div class="wa-bubble">
-            <a :href="message?.message.url" style="text-decoration: none; color: inherit;" target="_blank" download>
+            <a :href="getSafeMediaUrl(message?.message.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
               <video width="320" height="240" controls>
-                <source :src="message?.message.url" type="video/mp4">
+                <source :src="getSafeMediaUrl(message?.message.url)" type="video/mp4">
               </video>
             </a>
             <p v-if="hasAttachmentCaption(message)" class="mt-2 mb-0 message-text attachment-caption">
@@ -422,6 +422,7 @@
 
 <script>
 import { WHATSAPP_MESSAGE } from '@/globals/agent/whatsapp';
+import { getSafeMediaUrl } from '@/utils';
 import Image from 'primevue/image';
 export default {
     props: {
@@ -448,6 +449,7 @@ export default {
         }
     },
     methods: {
+        getSafeMediaUrl,
         getClasses (itsMine) {
             const baseClasses = {
                 'message-r': !!itsMine,

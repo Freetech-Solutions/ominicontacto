@@ -32,13 +32,13 @@
             <!-- HEADER -->
             <!-- HEADER MEDIA -->
             <div v-if="template.configuration.type==='IMAGE'">
-                <a :href="template.configuration.link_media" style="text-decoration: none; color: inherit;" target="_blank" download>
-                <Image :src="template.configuration.link_media" width="250" />
+                <a :href="getSafeMediaUrl(template.configuration.link_media)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
+                <Image :src="getSafeMediaUrl(template.configuration.link_media)" width="250" />
                 </a>
             </div>
             <div v-if="template.configuration.type==='DOCUMENT'">
                 <embed
-                    :src="template.configuration.link_media"
+                    :src="getSafeMediaUrl(template.configuration.link_media)"
                     frameBorder="0"
                     scrolling="auto"
                     height="100%"
@@ -47,7 +47,7 @@
             </div>
             <div v-if="template.configuration.type==='VIDEO'">
                 <video width="320" height="240" controls>
-                <source :src="template.configuration.link_media" type="video/mp4">
+                <source :src="getSafeMediaUrl(template.configuration.link_media)" type="video/mp4">
                 </video>
             </div>
             <!-- HEADER TEXTO -->
@@ -109,6 +109,7 @@ import { FilterMatchMode } from 'primevue/api';
 import { mapActions, mapState } from 'vuex';
 import { HTTP_STATUS } from '@/globals';
 import { notificationEvent, NOTIFICATION } from '@/globals/agent/whatsapp';
+import { getSafeMediaUrl } from '@/utils';
 
 export default {
     inject: ['$helpers'],
@@ -208,6 +209,7 @@ export default {
             'agtWhatsCoversationSendWhatsappTemplateMessage',
             'agtWhatsCoversationReactiveExpiredConversation'
         ]),
+        getSafeMediaUrl,
         initializeData () {
             this.initFormData();
             this.submitted = false;
