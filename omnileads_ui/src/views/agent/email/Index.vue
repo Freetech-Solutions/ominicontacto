@@ -119,7 +119,7 @@
               <span class="bubble-date">{{ fmtDate(m.date) }}</span>
             </div>
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="bubble-body" v-html="m.body_html || m.body_text"></div>
+            <div class="bubble-body" v-html="sanitizedBody(m)"></div>
             <div v-if="m.attachments && m.attachments.length" class="bubble-attachments">
               <a v-for="a in m.attachments" :key="a.cid || a.name" :href="a.url" target="_blank" class="attachment">
                 <i class="pi pi-paperclip"></i> {{ a.name }}
@@ -260,6 +260,7 @@
 <script>
 import Editor from 'primevue/editor';
 import 'quill/dist/quill.snow.css';
+import DOMPurify from 'dompurify';
 import EmailConversationService from '@/services/agent/email/conversation_service';
 import { EmailConsumer } from '@/web_sockets/email_consumer';
 import ConversationInfo from '@/components/agent/email/shared/ConversationInfo';
@@ -356,6 +357,10 @@ export default {
             } catch (error) {
                 return value;
             }
+        },
+        // inbound email bodies are attacker-controlled; sanitize before v-html
+        sanitizedBody (m) {
+            return DOMPurify.sanitize(m.body_html || m.body_text || '');
         },
         totalUnread () {
             const lists = [
