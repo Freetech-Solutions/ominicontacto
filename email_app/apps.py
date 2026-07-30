@@ -23,7 +23,7 @@ class AppConfig(apps.AppConfig):
 
     informacion_de_permisos = {
         "email:api:v1:account-detail": {
-            "descripcion": _("Optiene los detalles de la cuenta de correo"),
+            "descripcion": _("Obtiene los detalles de la cuenta de correo"),
             "version": "0.0.0",
         },
         "email:api:v1:account-list": {

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 00:43-0300\n"
+"POT-Creation-Date: 2026-07-30 17:25-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -624,7 +624,7 @@ msgstr "The agent is not related to external system."
 msgid "No tiene settings de conexion configurados"
 msgstr "Missing connection settings configuration"
 
-#: api_app/serializers/register_server.py:44 api_app/views/administrador.py:278
+#: api_app/serializers/register_server.py:44 api_app/views/administrador.py:288
 #, python-brace-format
 msgid "Error en el intento de conexion con el servidor de llaves debido {0}"
 msgstr "Error in connection attempt with the keys server due {0}"
@@ -654,15 +654,15 @@ msgstr "The file specified to import contacts is not valid"
 
 #: api_app/services/base_datos_contacto_service.py:53
 #: api_app/tests/tests_api_subir_base_contactos.py:208
-#: api_app/views/administrador.py:193
+#: api_app/views/administrador.py:196
 msgid "El archivo a procesar tiene nombres de columnas repetidos."
 msgstr "The file to be processed has repeated column names."
 
-#: api_app/services/base_datos_contacto_service.py:131
+#: api_app/services/base_datos_contacto_service.py:134
 msgid "Archivo excede máximo de filas permitidas"
 msgstr "File exceeds maximum rows allowed"
 
-#: api_app/services/base_datos_contacto_service.py:135
+#: api_app/services/base_datos_contacto_service.py:138
 msgid "Error al parsear el archivo csv"
 msgstr "Error parsing csv file"
 
@@ -670,7 +670,7 @@ msgstr "Error parsing csv file"
 #: api_app/tests/campaign/agents/tests_add_agents_to_campaign.py:107
 #: api_app/views/campaigns/add_agents_to_campaign.py:46
 #: api_app/views/campaigns/add_agents_to_campaign.py:221
-#: api_app/views/external_system.py:173
+#: api_app/views/external_system.py:167
 msgid "Se obtuvieron los agentes de forma exitosa"
 msgstr "Agents fetched successfully"
 
@@ -680,94 +680,90 @@ msgid "Se agregaron los agentes de forma exitosa a la campaña"
 msgstr "Agents to campaign added successfully"
 
 #: api_app/tests/pause_sets/tests_configuraciones_de_pausas.py:69
-#: api_app/views/pause_set.py:232
+#: api_app/views/pause_set.py:224
 msgid "Se creo la configuracion de pausa de forma exitosa"
 msgstr "Pause configuration created successfully"
 
 #: api_app/tests/pause_sets/tests_configuraciones_de_pausas.py:87
-#: api_app/views/pause_set.py:312
+#: api_app/views/pause_set.py:302
 msgid "Se actualizo la configuracion de pausa de forma exitosa"
 msgstr "Pause configuration updated successfully"
 
 #: api_app/tests/pause_sets/tests_configuraciones_de_pausas.py:105
-#: api_app/views/pause_set.py:279
+#: api_app/views/pause_set.py:270
 msgid "Se elimino la configuracion de pausa de forma exitosa"
 msgstr "Pause configuration deleted successfully"
 
 #: api_app/tests/pause_sets/tests_configuraciones_de_pausas.py:124
-#: api_app/views/pause_set.py:239
+#: api_app/views/pause_set.py:231
 msgid "El timeout debe ser mayor a cero"
 msgstr "Timeout must be greater than zero"
 
 #: api_app/tests/pause_sets/tests_configuraciones_de_pausas.py:136
-#: api_app/views/pause_set.py:287
+#: api_app/views/pause_set.py:278
 msgid "No puedes dejar a un Conjunto de Pausas vacio"
 msgstr "Pause set can't be empty"
 
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:66
-#: api_app/views/pause_set.py:69
+#: api_app/views/pause_set.py:66
 msgid "Se obtuvieron los conjuntos de pausas de forma exitosa"
 msgstr "Pause Sets fetched successfully"
 
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:88
-#: api_app/views/pause_set.py:128
+#: api_app/views/pause_set.py:123
 msgid "Se creo el conjunto de pausa de forma exitosa"
 msgstr "Pause set created successfully"
 
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:109
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:160
-#: api_app/views/pause_set.py:133 api_app/views/pause_set.py:169
+#: api_app/views/pause_set.py:128 api_app/views/pause_set.py:163
 msgid "El nombre del conjunto es requerido"
 msgstr "Set name required"
 
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:125
-#: api_app/views/pause_set.py:137
+#: api_app/views/pause_set.py:132
 msgid "Debe existir al menos una pausa en el conjunto"
 msgstr "Pause Set requires at least une Pause"
 
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:143
-#: api_app/views/pause_set.py:165
+#: api_app/views/pause_set.py:159
 msgid "Se actualizo el conjunto de pausa de forma exitosa"
 msgstr "Pause set updated successfully"
 
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:172
-#: api_app/views/pause_set.py:198
+#: api_app/views/pause_set.py:191
 msgid "Se elimino el conjunto de pausa de forma exitosa"
 msgstr "Pause set deleted successfully"
 
 #: api_app/tests/pause_sets/tests_conjuntos_de_pausa.py:186
-#: api_app/views/pause_set.py:205
+#: api_app/views/pause_set.py:198
 msgid ""
 "No puedes borrar un conjunto de pausas que esta asignado a un grupo de "
 "agentes"
 msgstr "Can't delete pause set already assigned to agent group"
 
 #: api_app/tests/tests_api_call_dispositions.py:57
-#: api_app/views/call_disposition.py:43
+#: api_app/views/call_disposition.py:41
 msgid "Se obtuvieron las calificaciones de forma exitosa"
 msgstr "Call disposition fetched successfully"
 
 #: api_app/tests/tests_api_call_dispositions.py:76
-#: api_app/views/call_disposition.py:112
-#: facebook_meta_app/api/v1/disposition.py:427
-#: facebook_meta_app/api/v1/disposition.py:439
+#: api_app/views/call_disposition.py:108
 msgid "Se creo la calificacion de forma exitosa"
 msgstr "Call disposition created successfully"
 
 #: api_app/tests/tests_api_call_dispositions.py:92
-#: api_app/views/call_disposition.py:120 api_app/views/call_disposition.py:164
+#: api_app/views/call_disposition.py:116 api_app/views/call_disposition.py:159
 msgid "Error al hacer la peticion"
 msgstr "Error making request"
 
 #: api_app/tests/tests_api_call_dispositions.py:112
-#: api_app/views/call_disposition.py:155
-#: facebook_meta_app/api/v1/disposition.py:396
-#: facebook_meta_app/api/v1/disposition.py:481
+#: api_app/views/call_disposition.py:150
 msgid "Se actualizo la calificacion de forma exitosa"
 msgstr "Call disposition updated successfully"
 
 #: api_app/tests/tests_api_call_dispositions.py:128
-#: api_app/views/call_disposition.py:195
+#: api_app/views/call_disposition.py:189
 msgid "Se elimino la calificacion de forma exitosa"
 msgstr "Call disposition deleted successfully"
 
@@ -780,7 +776,7 @@ msgstr "Choose a valid option. That option is not available."
 
 #: api_app/tests/tests_api_click2call.py:157
 #: api_app/tests/tests_api_contactos.py:169
-#: api_app/tests/tests_api_contactos.py:261 api_app/views/agente.py:234
+#: api_app/tests/tests_api_contactos.py:261 api_app/views/agente.py:236
 #: api_app/views/base_de_contactos.py:91 api_app/views/base_de_contactos.py:223
 msgid "Sistema externo inexistente."
 msgstr "Unkown external system"
@@ -830,84 +826,84 @@ msgid "Se recibieron campos incorrectos"
 msgstr "Incorrect fields were received"
 
 #: api_app/tests/tests_api_external_site_authentications.py:60
-#: api_app/views/external_site_authentication.py:46
+#: api_app/views/external_site_authentication.py:44
 msgid "Se obtuvieron las autenticaciones para sitios externos de forma exitosa"
 msgstr "External sites authentications fetched successfully"
 
 #: api_app/tests/tests_api_external_site_authentications.py:73
-#: api_app/views/external_site_authentication.py:182
+#: api_app/views/external_site_authentication.py:174
 msgid ""
 "Se obtuvo la informacion de la autenticacion para sitio externo de forma "
 "exitosa"
 msgstr "External site authentication information fetched successfully "
 
 #: api_app/tests/tests_api_external_site_authentications.py:104
-#: api_app/views/external_site_authentication.py:208
+#: api_app/views/external_site_authentication.py:199
 msgid "Se elimino la autenticacion para sitio externo de forma exitosa"
 msgstr "External site authentication deleted successfully"
 
 #: api_app/tests/tests_api_external_site_authentications.py:120
-#: api_app/views/external_site_authentication.py:214
+#: api_app/views/external_site_authentication.py:205
 msgid "No está permitido eliminar una autenticacion que tiene sitios externos"
 msgstr "Authentications assigned to external sites can not be deleted"
 
 #: api_app/tests/tests_api_external_site_authentications.py:147
-#: api_app/views/external_site_authentication.py:73
+#: api_app/views/external_site_authentication.py:70
 msgid "Se creo la autenticacion para sitio externo de forma exitosa"
 msgstr "External sites created successfully"
 
 #: api_app/tests/tests_api_external_sites.py:66
-#: api_app/views/external_site.py:43
+#: api_app/views/external_site.py:41
 msgid "Se obtuvieron los sitios externos de forma exitosa"
 msgstr "External sites fetched successfully"
 
 #: api_app/tests/tests_api_external_sites.py:79
-#: api_app/views/external_site.py:140
+#: api_app/views/external_site.py:135
 msgid "Se obtuvo la informacion del sitio externo de forma exitosa"
 msgstr "External site information fetched successfully "
 
 #: api_app/tests/tests_api_external_sites.py:108
-#: api_app/views/external_site.py:165
+#: api_app/views/external_site.py:159
 msgid "Se elimino el sitio externo de forma exitosa"
 msgstr "External site deleted successfully"
 
 #: api_app/tests/tests_api_external_sites.py:124
-#: api_app/views/external_site.py:171
+#: api_app/views/external_site.py:165
 msgid "No está permitido eliminar un sitio externo asociado a una campaña"
 msgstr "External sites assigned to campaigns can not be deleted"
 
 #: api_app/tests/tests_api_external_sites.py:140
-#: api_app/views/external_site.py:199
+#: api_app/views/external_site.py:192
 msgid "Se oculto el sitio externo de forma exitosa"
 msgstr "External site hidden successfully"
 
 #: api_app/tests/tests_api_external_sites.py:156
-#: api_app/views/external_site.py:222
+#: api_app/views/external_site.py:214
 msgid "Se desoculto el sitio externo de forma exitosa"
 msgstr "External sites successfully unhidden"
 
 #: api_app/tests/tests_api_external_sites.py:181
-#: api_app/views/external_site.py:70
+#: api_app/views/external_site.py:67
 msgid "Se creo el sitio externo de forma exitosa"
 msgstr "External sites created successfully"
 
 #: api_app/tests/tests_api_external_systems.py:58
-#: api_app/views/external_system.py:44
+#: api_app/views/external_system.py:42
 msgid "Se obtuvieron los sistemas externos de forma exitosa"
 msgstr "External systems fetched successfully"
 
 #: api_app/tests/tests_api_external_systems.py:76
-#: api_app/views/external_system.py:142
+#: api_app/views/external_system.py:137
 msgid "Se obtuvo la informacion del sistema externo de forma exitosa"
 msgstr "External system information fetched successfully "
 
 #: api_app/tests/tests_api_external_systems.py:105
-#: api_app/views/external_system.py:72
+#: api_app/views/external_system.py:69
 msgid "Se creo el sistema externo de forma exitosa"
 msgstr "External system created successfully"
 
 #: api_app/tests/tests_api_external_systems.py:136
-#: api_app/views/external_system.py:103
+#: api_app/views/external_system.py:99
 msgid "Se actualizo el sistema externo de forma exitosa"
 msgstr "External system updated successfully"
 
@@ -915,167 +911,167 @@ msgstr "External system updated successfully"
 msgid "Se obtuvieron los formularios de forma exitosa"
 msgstr "Call disposition form fetched successfully"
 
-#: api_app/tests/tests_api_forms.py:130 api_app/views/form.py:146
+#: api_app/tests/tests_api_forms.py:130 api_app/views/form.py:144
 msgid "Se obtuvo la informacion del formulario de forma exitosa"
 msgstr "Call disposition form information fetched successfully "
 
-#: api_app/tests/tests_api_forms.py:146 api_app/views/form.py:70
+#: api_app/tests/tests_api_forms.py:146 api_app/views/form.py:69
 msgid "Se creo el formulario de forma exitosa"
 msgstr "Call disposition form created successfully"
 
-#: api_app/tests/tests_api_forms.py:162 api_app/views/form.py:177
+#: api_app/tests/tests_api_forms.py:162 api_app/views/form.py:174
 msgid "Se elimino el formulario de forma exitosa"
 msgstr "Call disposition form deleted successfully"
 
-#: api_app/tests/tests_api_forms.py:176 api_app/views/form.py:183
+#: api_app/tests/tests_api_forms.py:176 api_app/views/form.py:180
 msgid "No está permitido eliminar un formulario con calificaciones"
 msgstr "Call dispositions forms with dispositions can not be deleted"
 
-#: api_app/tests/tests_api_forms.py:192 api_app/views/form.py:211
+#: api_app/tests/tests_api_forms.py:192 api_app/views/form.py:207
 msgid "Se oculto el formulario de forma exitosa"
 msgstr "Call dispositions form hidden successfully"
 
-#: api_app/tests/tests_api_forms.py:208 api_app/views/form.py:234
+#: api_app/tests/tests_api_forms.py:208 api_app/views/form.py:229
 msgid "Se desoculto el formulario de forma exitosa"
 msgstr "Call dispositions form successfully unhidden"
 
-#: api_app/tests/tests_api_forms.py:234 api_app/views/form.py:101
+#: api_app/tests/tests_api_forms.py:234 api_app/views/form.py:99
 msgid "Se actualizo el formulario de forma exitosa"
 msgstr "Call disposition form updated successfully"
 
-#: api_app/tests/tests_api_forms.py:256 api_app/views/form.py:107
+#: api_app/tests/tests_api_forms.py:256 api_app/views/form.py:105
 msgid "No está permitido actualizar un formulario con calificaciones"
 msgstr "Call dispositions forms with dispositions can not be updated"
 
 #: api_app/tests/tests_api_group_of_hour.py:79
-#: api_app/views/group_of_hour.py:47
+#: api_app/views/group_of_hour.py:45
 msgid "Se obtuvieron los grupos horarios de forma exitosa"
 msgstr "Group of hours fetched successfully"
 
 #: api_app/tests/tests_api_group_of_hour.py:97
-#: api_app/views/group_of_hour.py:151
+#: api_app/views/group_of_hour.py:146
 msgid "Se obtuvo la informacion el grupo horario de forma exitosa"
 msgstr "Group of hours information fetched successfully "
 
 #: api_app/tests/tests_api_group_of_hour.py:116
-#: api_app/views/group_of_hour.py:74
+#: api_app/views/group_of_hour.py:71
 msgid "Se creo el grupo horario de forma exitosa"
 msgstr "Group of hours created successfully"
 
 #: api_app/tests/tests_api_group_of_hour.py:134
-#: api_app/views/group_of_hour.py:181
+#: api_app/views/group_of_hour.py:175
 msgid "Se elimino el grupo horario de forma exitosa"
 msgstr "Group of hours deleted successfully"
 
 #: api_app/tests/tests_api_group_of_hour.py:145
-#: api_app/views/group_of_hour.py:187
+#: api_app/views/group_of_hour.py:181
 msgid ""
 "No está permitido eliminar un grupo horario asociado a Validacion Fecha Hora"
 msgstr "Group of hours with associated to Time conditions can not be deleted"
 
 #: api_app/tests/tests_api_group_of_hour.py:188
-#: api_app/views/group_of_hour.py:109
+#: api_app/views/group_of_hour.py:105
 msgid "Se actualizo el grupo horario de forma exitosa"
 msgstr "Group of hours updated successfully"
 
 #: api_app/tests/tests_api_inbound_route.py:78
 #: api_app/tests/tests_api_outbound_route.py:114
-#: api_app/views/inbound_route.py:46 api_app/views/outbound_route.py:49
+#: api_app/views/inbound_route.py:44 api_app/views/outbound_route.py:47
 msgid "Se obtuvieron las rutas entrantes de forma exitosa"
 msgstr "Inbound Routes fetched successfully"
 
 #: api_app/tests/tests_api_inbound_route.py:105
-#: api_app/views/inbound_route.py:151
+#: api_app/views/inbound_route.py:146
 msgid "Se obtuvo la informacion de la ruta entrante de forma exitosa"
 msgstr "Inbound Route information fetched successfully "
 
 #: api_app/tests/tests_api_inbound_route.py:128
-#: api_app/views/inbound_route.py:73
+#: api_app/views/inbound_route.py:70
 msgid "Se creo la ruta entrante de forma exitosa"
 msgstr "Inbound Route created successfully"
 
 #: api_app/tests/tests_api_inbound_route.py:147
-#: api_app/views/inbound_route.py:182
+#: api_app/views/inbound_route.py:176
 msgid "Se elimino la ruta entrante de forma exitosa"
 msgstr "Inbound Route deleted successfully"
 
 #: api_app/tests/tests_api_inbound_route.py:193
-#: api_app/views/inbound_route.py:107
+#: api_app/views/inbound_route.py:103
 msgid "Se actualizo la ruta entrante de forma exitosa"
 msgstr "Inbound Route updated successfully"
 
-#: api_app/tests/tests_api_ivr.py:223 api_app/views/ivr.py:54
+#: api_app/tests/tests_api_ivr.py:223 api_app/views/ivr.py:52
 msgid "Se obtuvieron los IVRs de forma exitosa"
 msgstr "IVRs fetched successfully"
 
-#: api_app/tests/tests_api_ivr.py:241 api_app/views/ivr.py:168
+#: api_app/tests/tests_api_ivr.py:241 api_app/views/ivr.py:163
 msgid "Se obtuvo la informacion del IVR de forma exitosa"
 msgstr "IVR information fetched successfully "
 
-#: api_app/tests/tests_api_ivr.py:261 api_app/views/ivr.py:82
+#: api_app/tests/tests_api_ivr.py:261 api_app/views/ivr.py:79
 msgid "Se creo el IVR de forma exitosa"
 msgstr "IVR created successfully"
 
-#: api_app/tests/tests_api_ivr.py:294 api_app/views/ivr.py:211
+#: api_app/tests/tests_api_ivr.py:294 api_app/views/ivr.py:205
 msgid "Se elimino el IVR de forma exitosa"
 msgstr "IVR deleted successfully"
 
 #: api_app/tests/tests_api_ivr.py:306 api_app/tests/tests_api_ivr.py:326
-#: api_app/views/ivr.py:197
+#: api_app/views/ivr.py:191
 msgid "No se puede eliminar un objeto que es destino en un flujo de llamada."
 msgstr "Can not delete an object that is a destination in a call flow."
 
 #: api_app/tests/tests_api_outbound_route.py:138
-#: api_app/views/outbound_route.py:152
+#: api_app/views/outbound_route.py:147
 msgid "Se obtuvo la informacion de la ruta saliente de forma exitosa"
 msgstr "Outbound Route information fetched successfully "
 
 #: api_app/tests/tests_api_outbound_route.py:160
-#: api_app/views/outbound_route.py:76
+#: api_app/views/outbound_route.py:73
 msgid "Se creo la ruta saliente de forma exitosa"
 msgstr "Outbound Route created successfully"
 
 #: api_app/tests/tests_api_outbound_route.py:181
-#: api_app/views/outbound_route.py:184
+#: api_app/views/outbound_route.py:178
 msgid "Se elimino la ruta saliente de forma exitosa"
 msgstr "Outbound Route deleted successfully"
 
 #: api_app/tests/tests_api_outbound_route.py:195
-#: api_app/views/outbound_route.py:190
+#: api_app/views/outbound_route.py:184
 msgid "No está permitido eliminar una ruta saliente asociada a una campaña"
 msgstr "Outbound Route assigned to campaigns can not be deleted"
 
 #: api_app/tests/tests_api_outbound_route.py:357
-#: api_app/views/outbound_route.py:110
+#: api_app/views/outbound_route.py:106
 msgid "Se actualizo la ruta saliente de forma exitosa"
 msgstr "Outbound Route updated successfully"
 
-#: api_app/tests/tests_api_pauses.py:65 api_app/views/pause.py:66
-#: api_app/views/pause_set.py:44
+#: api_app/tests/tests_api_pauses.py:65 api_app/views/pause.py:64
+#: api_app/views/pause_set.py:42
 msgid "Se obtuvieron las pausas de forma exitosa"
 msgstr "Pauses fetched successfully"
 
-#: api_app/tests/tests_api_pauses.py:83 api_app/views/pause.py:276
+#: api_app/tests/tests_api_pauses.py:83 api_app/views/pause.py:269
 msgid "Se obtuvo la informacion de la pausa de forma exitosa"
 msgstr "Pause information fetched successfully "
 
-#: api_app/tests/tests_api_pauses.py:103 api_app/views/pause.py:92
+#: api_app/tests/tests_api_pauses.py:103 api_app/views/pause.py:89
 msgid "Se creo la pausa de forma exitosa"
 msgstr "Pause created successfully"
 
-#: api_app/tests/tests_api_pauses.py:124 api_app/views/pause.py:197
+#: api_app/tests/tests_api_pauses.py:124 api_app/views/pause.py:192
 msgid "Se elimino la pausa de forma exitosa"
 msgstr "Pause deleted successfully"
 
-#: api_app/tests/tests_api_pauses.py:138 api_app/views/pause.py:203
+#: api_app/tests/tests_api_pauses.py:138 api_app/views/pause.py:198
 msgid "No está permitido eliminar un pausa con configuraciones creadas"
 msgstr "Pauses with configurations can not be deleted"
 
-#: api_app/tests/tests_api_pauses.py:164 api_app/views/pause.py:140
+#: api_app/tests/tests_api_pauses.py:164 api_app/views/pause.py:136
 msgid "Se actualizo la pausa de forma exitosa"
 msgstr "Pause updated successfully"
 
-#: api_app/tests/tests_api_pauses.py:202 api_app/views/pause.py:240
+#: api_app/tests/tests_api_pauses.py:202 api_app/views/pause.py:234
 msgid "Se reactivo la pausa de forma exitosa"
 msgstr "Pause reactivated successfully"
 
@@ -1112,56 +1108,60 @@ msgid "No se puede borrar un rol asignado a usuarios."
 msgstr "Deleting a Role assigned to a User is forbidden"
 
 #: api_app/tests/tests_api_register_server.py:55
-#: api_app/views/register_server.py:42
+#: api_app/views/register_server.py:40
 msgid "Se obtuvo el registro del servidor forma exitosa"
 msgstr "Instance registration data fetched successfully"
 
 #: api_app/tests/tests_api_register_server.py:82
-#: api_app/views/register_server.py:77
+#: api_app/views/register_server.py:74
 msgid "Se creo el registro al servidor de forma exitosa"
 msgstr "Instance registration created successfully"
 
 #: api_app/tests/tests_api_subir_base_contactos.py:105
-#: api_app/views/administrador.py:190
+#: api_app/views/administrador.py:193
 msgid "falta parámetro filename en request"
 msgstr "Filename parameter missing in request"
 
 #: api_app/tests/tests_api_subir_base_contactos.py:117
 #: api_app/tests/tests_api_subir_base_contactos.py:129
-#: api_app/views/administrador.py:212
+#: api_app/views/administrador.py:215
 msgid "falta parámetro:"
 msgstr "Missing parameter"
 
 #: api_app/tests/tests_api_subir_base_contactos.py:142
-#: api_app/views/administrador.py:227
+#: api_app/views/administrador.py:230
 msgid "campo de teléfono no coincide con nombre de columna"
 msgstr "Phone field does not match column name"
 
 #: api_app/tests/tests_api_subir_base_contactos.py:155
-#: api_app/views/administrador.py:235
+#: api_app/views/administrador.py:238
 msgid "campo de id externo no coincide con nombre de columna"
 msgstr "External id field does not match column name"
 
 #: api_app/tests/tests_api_subir_base_contactos.py:167
-#: api_app/views/administrador.py:187
+#: api_app/views/administrador.py:190
 msgid "la extensión del archivo no es .CSV"
 msgstr "The file extension is not .CSV"
 
 #: api_app/tests/tests_api_subir_base_contactos.py:181
-#: api_app/views/administrador.py:183
+#: api_app/views/administrador.py:186
 #, python-brace-format
 msgid "La longitud del nombre no debe exceder los {0} caracteres"
 msgstr "The length of the name should not exceed {0} characters"
 
-#: api_app/views/administrador.py:200
+#: api_app/views/administrador.py:203
 msgid "no se pudo crear la base de datos de contacto"
 msgstr "Contact Database could not be created"
 
-#: api_app/views/administrador.py:224
+#: api_app/views/administrador.py:227
 msgid "lista de campos teléfono vacia"
 msgstr "List of fields phone empty"
 
-#: api_app/views/administrador.py:284
+#: api_app/views/administrador.py:245
+msgid "campo de email no coincide con nombre de columna"
+msgstr "email field does not match column name"
+
+#: api_app/views/administrador.py:294
 msgid "Error en el servidor externo"
 msgstr "Error on the external server"
 
@@ -1169,99 +1169,99 @@ msgstr "Error on the external server"
 msgid "Error al generar sip password"
 msgstr "Error creating sip password"
 
-#: api_app/views/agente.py:233 api_app/views/agente.py:268
+#: api_app/views/agente.py:235 api_app/views/agente.py:270
 #: api_app/views/base_de_contactos.py:80 api_app/views/base_de_contactos.py:212
 msgid "Hubo errores en los datos recibidos"
 msgstr "There were errors on received data"
 
-#: api_app/views/agente.py:259
+#: api_app/views/agente.py:261
 msgid "Error al ejecutar la llamada"
 msgstr "Error when executing the call"
 
-#: api_app/views/agente.py:289
+#: api_app/views/agente.py:291
 msgid "Usted no tiene permiso para realizar esta acción"
 msgstr "You don't have permission to perform this action"
 
-#: api_app/views/agente.py:302
+#: api_app/views/agente.py:304
 msgid "Valor de destination inválido"
 msgstr "Invalid destination value"
 
-#: api_app/views/agente.py:312
+#: api_app/views/agente.py:314
 msgid "Valor de destination_type inválido"
 msgstr "Invalid destination_type value"
 
-#: api_app/views/agente.py:316
+#: api_app/views/agente.py:318
 msgid "Llamada fuera de campaña iniciada"
 msgstr "Out of campaign call started"
 
-#: api_app/views/agente.py:556
+#: api_app/views/agente.py:558
 msgid "Auditoría inexistente"
 msgstr "Audit not found"
 
-#: api_app/views/agente.py:561
+#: api_app/views/agente.py:563
 msgid "No tiene permiso para modificar la auditoría"
 msgstr "You don't have permission to edit the audit"
 
-#: api_app/views/agente.py:664 api_app/views/agente.py:668
-#: api_app/views/agente.py:676
+#: api_app/views/agente.py:669 api_app/views/agente.py:673
+#: api_app/views/agente.py:681
 #, python-brace-format
 msgid "Campo requerido: \"{0}\""
 msgstr "Required field: \"{0}\""
 
-#: api_app/views/agente.py:671 api_app/views/agente.py:679
+#: api_app/views/agente.py:676 api_app/views/agente.py:684
 #, python-brace-format
 msgid "Valor inválido para el campo: \"{0}\""
 msgstr "Invalid value for field: \"{0}\""
 
-#: api_app/views/agente.py:683 api_app/views/agente.py:691
+#: api_app/views/agente.py:688 api_app/views/agente.py:696
 msgid "Permiso denegado"
 msgstr "Permission denied"
 
-#: api_app/views/audios_asterisk.py:42
+#: api_app/views/audios_asterisk.py:40
 msgid "Se obtuvieron los lenguajes de forma exitosa"
 msgstr "Languages fetched successfully"
 
-#: api_app/views/audios_asterisk.py:50
+#: api_app/views/audios_asterisk.py:48
 msgid "Error al obtener los lenguajes"
 msgstr "Error fetching languages"
 
-#: api_app/views/auditoria.py:80
+#: api_app/views/auditoria.py:79
 msgid "Fecha-Hora"
 msgstr "Datetime"
 
-#: api_app/views/auditoria.py:81
+#: api_app/views/auditoria.py:80
 msgid "Agente"
 msgstr "Agent"
 
-#: api_app/views/auditoria.py:82
+#: api_app/views/auditoria.py:81
 msgid "Contacto ID"
 msgstr "Contact ID"
 
-#: api_app/views/auditoria.py:83
+#: api_app/views/auditoria.py:82
 msgid "Telefono"
 msgstr "Phone"
 
-#: api_app/views/auditoria.py:84
+#: api_app/views/auditoria.py:83
 msgid "Status"
 msgstr "Status"
 
-#: api_app/views/auditoria.py:86
+#: api_app/views/auditoria.py:85
 msgid "Calificado"
 msgstr "Dispositioned"
 
-#: api_app/views/auditoria.py:87
+#: api_app/views/auditoria.py:86
 msgid "Subcalificación"
 msgstr "Subdisposition"
 
-#: api_app/views/auditoria.py:88
+#: api_app/views/auditoria.py:87
 msgid "Observaciones"
 msgstr "Observations"
 
-#: api_app/views/auditoria.py:103
+#: api_app/views/auditoria.py:102
 msgid "Pendiente"
 msgstr "Pending"
 
-#: api_app/views/auditoria.py:149
+#: api_app/views/auditoria.py:148
 msgid "Exportación de auditoria a .csv en proceso"
 msgstr "Exportation of audits to a .csv file in process"
 
@@ -1292,21 +1292,6 @@ msgstr "Contact DB created successfully"
 
 #: api_app/views/base_de_contactos.py:391
 #: api_app/views/base_de_contactos.py:494
-#: facebook_meta_app/api/v1/contact.py:288
-#: facebook_meta_app/api/v1/contact.py:315
-#: facebook_meta_app/api/v1/contact.py:344
-#: facebook_meta_app/api/v1/disposition.py:367
-#: facebook_meta_app/api/v1/disposition.py:445
-#: facebook_meta_app/api/v1/disposition.py:487
-#: facebook_meta_app/api/v1/page_configuration.py:409
-#: facebook_meta_app/api/v1/page_configuration.py:437
-#: facebook_meta_app/api/v1/page_configuration.py:461
-#: facebook_meta_app/api/v1/page_configuration.py:518
-#: facebook_meta_app/api/v1/page_configuration.py:524
-#: facebook_meta_app/api/v1/templates_group.py:112
-#: facebook_meta_app/api/v1/templates_group.py:156
-#: facebook_meta_app/api/v1/templates_messenger.py:141
-#: facebook_meta_app/api/v1/templates_messenger.py:185
 msgid "Error en los datos"
 msgstr "There were errors on the data"
 
@@ -1315,8 +1300,6 @@ msgid "El id externo debe ser único en la base de datos - {}"
 msgstr "The external id must be onique in the database- {}"
 
 #: api_app/views/base_de_contactos.py:441
-#: facebook_meta_app/api/v1/contact.py:102
-#: facebook_meta_app/api/v1/contact.py:179
 msgid "campo requerido"
 msgstr "required field"
 
@@ -1334,46 +1317,42 @@ msgid "Se crearon los contactos de forma exitosa"
 msgstr "Contacts created successfully"
 
 #: api_app/views/base_de_contactos.py:505
-#: facebook_meta_app/api/v1/contact.py:254
-#: facebook_meta_app/api/v1/contact.py:457
-#: facebook_meta_app/api/v1/contact.py:477
 msgid "Se obtuvieron los contactos de forma exitosa"
 msgstr "Contacts fetched successfully"
 
-#: api_app/views/call_disposition.py:54
-#: facebook_meta_app/api/v1/disposition.py:338
+#: api_app/views/call_disposition.py:52
 msgid "Error al obtener las calificaciones"
 msgstr "Error fetching call dispositions"
 
-#: api_app/views/call_disposition.py:69
+#: api_app/views/call_disposition.py:66
 msgid "Se obtuvo el detalle de la calificacion de forma exitosa"
 msgstr "Call disposition detail fetched successfully"
 
-#: api_app/views/call_disposition.py:79 api_app/views/call_disposition.py:211
+#: api_app/views/call_disposition.py:76 api_app/views/call_disposition.py:205
 msgid "No existe la calificacion"
 msgstr "Call disposition does not exist"
 
-#: api_app/views/call_disposition.py:84
+#: api_app/views/call_disposition.py:81
 msgid "Error al obtener el detalle de la calificacion"
 msgstr "Error fetching call disposition detail"
 
-#: api_app/views/call_disposition.py:127
+#: api_app/views/call_disposition.py:123
 msgid "Error al crear la calificacion"
 msgstr "Error creating call disposition"
 
-#: api_app/views/call_disposition.py:173
+#: api_app/views/call_disposition.py:168
 msgid "No existe la calificacion que se quiere actualizar"
 msgstr "call disposition does not exist"
 
-#: api_app/views/call_disposition.py:179
+#: api_app/views/call_disposition.py:174
 msgid "Error al actualizar la calificacion"
 msgstr "Error updating call disposition"
 
-#: api_app/views/call_disposition.py:203
+#: api_app/views/call_disposition.py:197
 msgid "No está permitido eliminar una calificacion reservada del sistema"
 msgstr "System reserved call dispositions can not be deleted"
 
-#: api_app/views/call_disposition.py:216
+#: api_app/views/call_disposition.py:210
 msgid "Error al eliminar la calificacion"
 msgstr "Error deleting call disposition"
 
@@ -1427,111 +1406,111 @@ msgstr "Error assigning campaigns. Could not confirm dialplan creation"
 msgid "Error al obtener los agentes activos"
 msgstr "Error fetching active agents"
 
-#: api_app/views/external_site.py:53
+#: api_app/views/external_site.py:51
 msgid "Error al obtener los sitios externos"
 msgstr "Error fetching external sites"
 
-#: api_app/views/external_site.py:84
+#: api_app/views/external_site.py:81
 msgid "Error al crear el sitio externo"
 msgstr "Error creating external site"
 
-#: api_app/views/external_site.py:101
+#: api_app/views/external_site.py:97
 msgid "Se actualizo el sitio externo de forma exitosa"
 msgstr "External site updated successfully"
 
-#: api_app/views/external_site.py:118
+#: api_app/views/external_site.py:114
 msgid "No existe el sitio externo que se quiere actualizar"
 msgstr "External site does not exist"
 
-#: api_app/views/external_site.py:124
+#: api_app/views/external_site.py:120
 msgid "Error al actualizar el sitio externo"
 msgstr "Error updating external site"
 
-#: api_app/views/external_site.py:149
+#: api_app/views/external_site.py:144
 msgid "Error al obtener el detalle del sitio externo"
 msgstr "Error fetching external site detail"
 
-#: api_app/views/external_site.py:179
+#: api_app/views/external_site.py:173
 msgid "No existe el sitio externo"
 msgstr "External site does not exist"
 
-#: api_app/views/external_site.py:184
+#: api_app/views/external_site.py:178
 msgid "Error al eliminar el sitio externo"
 msgstr "Error deleting external site"
 
-#: api_app/views/external_site.py:207
+#: api_app/views/external_site.py:200
 msgid "Error al ocultar el sitio externo"
 msgstr "Error hiding external site"
 
-#: api_app/views/external_site.py:230
+#: api_app/views/external_site.py:222
 msgid "Error al desocultar el sitio externo"
 msgstr "Error unhiding external site"
 
-#: api_app/views/external_site_authentication.py:56
+#: api_app/views/external_site_authentication.py:54
 msgid "Error al obtener las autenticaciones para sitios externos"
 msgstr "Error fetching external sites authentication"
 
-#: api_app/views/external_site_authentication.py:88
+#: api_app/views/external_site_authentication.py:85
 msgid "Error al crear la autenticacion para sitio externo"
 msgstr "Error creating external site authentication"
 
-#: api_app/views/external_site_authentication.py:111
+#: api_app/views/external_site_authentication.py:105
 msgid "Autenticación Satisfactoria a CRM"
 msgstr "Successfull Authentication with CRM"
 
-#: api_app/views/external_site_authentication.py:127
+#: api_app/views/external_site_authentication.py:121
 msgid "Autenticación Fallida a CRM: <{}>"
 msgstr "Failed Authentication to CRM: <{}>"
 
-#: api_app/views/external_site_authentication.py:142
+#: api_app/views/external_site_authentication.py:135
 msgid "Se actualizo la autenticacion para sitio externo de forma exitosa"
 msgstr "External site authentication updated successfully"
 
-#: api_app/views/external_site_authentication.py:160
+#: api_app/views/external_site_authentication.py:153
 msgid "No existe la autenticacion para sitio externo que se quiere actualizar"
 msgstr "External site authentication does not exist"
 
-#: api_app/views/external_site_authentication.py:166
+#: api_app/views/external_site_authentication.py:159
 msgid "Error al actualizar la autenticacion para sitio externo"
 msgstr "Error updating external site authentication"
 
-#: api_app/views/external_site_authentication.py:192
+#: api_app/views/external_site_authentication.py:184
 msgid "Error al obtener el detalle de la autenticacion para sitio externo"
 msgstr "Error fetching external site authentication detail"
 
-#: api_app/views/external_site_authentication.py:222
+#: api_app/views/external_site_authentication.py:213
 msgid "No existe la autenticacion para sitio externo"
 msgstr "External site authentication does not exist"
 
-#: api_app/views/external_site_authentication.py:227
+#: api_app/views/external_site_authentication.py:218
 msgid "Error al eliminar la autenticacion para sitio externo"
 msgstr "Error deleting external site authentication"
 
-#: api_app/views/external_system.py:55
+#: api_app/views/external_system.py:53
 msgid "Error al obtener los sistemas externos"
 msgstr "Error fetching external systems"
 
-#: api_app/views/external_system.py:86
+#: api_app/views/external_system.py:83
 msgid "Error al crear el sistema externo"
 msgstr "Error creating external system"
 
-#: api_app/views/external_system.py:120
+#: api_app/views/external_system.py:116
 msgid "No existe el sistema externo que se quiere actualizar"
 msgstr "External system does not exist"
 
-#: api_app/views/external_system.py:126
+#: api_app/views/external_system.py:122
 msgid "Error al actualizar el sistema externo"
 msgstr "Error updating external system"
 
-#: api_app/views/external_system.py:151
+#: api_app/views/external_system.py:146
 msgid "No existe el sistema externo para obtener el detalle"
 msgstr "External system does not exist"
 
-#: api_app/views/external_system.py:157
+#: api_app/views/external_system.py:152
 msgid "Error al obtener el detalle del sistema externo"
 msgstr "Error fetching external system detail"
 
-#: api_app/views/external_system.py:183 facebook_meta_app/api/v1/transfer.py:67
+#: api_app/views/external_system.py:177
 msgid "Error al obtener los agentes"
 msgstr "Error fetching agents"
 
@@ -1539,185 +1518,184 @@ msgstr "Error fetching agents"
 msgid "Error al obtener los formularios"
 msgstr "Error fetching call disposition forms"
 
-#: api_app/views/form.py:84
+#: api_app/views/form.py:83
 msgid "Error al crear el formulario"
 msgstr "Error creating call disposition form"
 
-#: api_app/views/form.py:124
+#: api_app/views/form.py:122
 msgid "No existe el formulario que se quiere actualizar"
 msgstr "Call disposition form does not exist"
 
-#: api_app/views/form.py:130
+#: api_app/views/form.py:128
 msgid "Error al actualizar el formulario"
 msgstr "Error updating call disposition form"
 
-#: api_app/views/form.py:155
+#: api_app/views/form.py:153
 msgid "No existe el formulario para obtener el detalle"
 msgstr "Call disposition form does not exist"
 
-#: api_app/views/form.py:161
+#: api_app/views/form.py:159
 msgid "Error al obtener el detalle del formulario"
 msgstr "Error fetching call disposition form detail"
 
-#: api_app/views/form.py:191
+#: api_app/views/form.py:188
 msgid "No existe el formulario"
 msgstr "Call disposition form does not exist"
 
-#: api_app/views/form.py:196
+#: api_app/views/form.py:193
 msgid "Error al eliminar el formulario"
 msgstr "Error deleting call disposition form"
 
-#: api_app/views/form.py:219
+#: api_app/views/form.py:215
 msgid "Error al ocultar el formulario"
 msgstr "Error hiding call disposition form"
 
-#: api_app/views/form.py:242
+#: api_app/views/form.py:237
 msgid "Error al desocultar el formulario"
 msgstr "Error unhiding call disposition form"
 
-#: api_app/views/grabaciones.py:94
+#: api_app/views/grabaciones.py:93
 msgid "Exportación de grabaciones Zip en proceso"
 msgstr "Exportation of recordings to a .Zip file in process"
 
-#: api_app/views/group_of_hour.py:57
+#: api_app/views/group_of_hour.py:55
 msgid "Error al obtener los grupos horarios"
 msgstr "Error fetching Group of hours"
 
-#: api_app/views/group_of_hour.py:80
+#: api_app/views/group_of_hour.py:77
 msgid ""
 "Se creo el grupo horario pero no se pudo cargar la configuración telefónica"
 msgstr "Group of hours created, but configuration was not loaded properly"
 
-#: api_app/views/group_of_hour.py:92
+#: api_app/views/group_of_hour.py:89
 msgid "Error al crear el grupo horario"
 msgstr "Error creating Group of hours"
 
-#: api_app/views/group_of_hour.py:118
+#: api_app/views/group_of_hour.py:114
 msgid ""
 "Se actualizo el grupo horario pero no se pudo cargar la configuración "
 "telefónica"
 msgstr "Group of hours updated, but configuration was not loaded properly"
 
-#: api_app/views/group_of_hour.py:135
+#: api_app/views/group_of_hour.py:131
 msgid "Error al actualizar el grupo horario"
 msgstr "Error updating Group of hours"
 
-#: api_app/views/group_of_hour.py:165
+#: api_app/views/group_of_hour.py:160
 msgid "Error al obtener el detalle del grupo horario"
 msgstr "Error fetching Group of hours detail"
 
-#: api_app/views/group_of_hour.py:192
+#: api_app/views/group_of_hour.py:186
 msgid ""
 "Se elimino el grupo horario pero no se pudo cargar la configuración "
 "telefónica"
 msgstr "Group of hours deleted, but configuration was not loaded properly"
 
-#: api_app/views/group_of_hour.py:208
+#: api_app/views/group_of_hour.py:202
 msgid "Grupo Horario"
 msgstr "Group of hours"
 
-#: api_app/views/group_of_hour.py:206
-#: facebook_meta_app/api/v1/templates_messenger.py:215
+#: api_app/views/group_of_hour.py:200
 #, python-brace-format
 msgid ""
 "No está permitido eliminar el '{modelo}' porque está siendo usado por "
 "{related}."
 msgstr "Can not delete '{modelo}', it's being used by {related}."
 
-#: api_app/views/inbound_route.py:56
+#: api_app/views/inbound_route.py:54
 msgid "Error al obtener las rutas entrantes"
 msgstr "Error fetching Inbound routes"
 
-#: api_app/views/inbound_route.py:79
+#: api_app/views/inbound_route.py:76
 msgid ""
 "Se creo la ruta entrante pero no se pudo cargar la configuración telefónica"
 msgstr "Inbound route created, but configuration was not loaded properly"
 
-#: api_app/views/inbound_route.py:90
+#: api_app/views/inbound_route.py:87
 msgid "Error al crear la ruta entrante"
 msgstr "Error creating inbound route"
 
-#: api_app/views/inbound_route.py:118 api_app/views/inbound_route.py:195
+#: api_app/views/inbound_route.py:114 api_app/views/inbound_route.py:189
 msgid ""
 "Se actualizo la ruta entrante pero no se pudo cargar la configuración "
 "telefónica"
 msgstr "Inbound route updated, but configuration was not loaded properly"
 
-#: api_app/views/inbound_route.py:129
+#: api_app/views/inbound_route.py:125
 msgid "No existe la ruta entrante que se quiere actualizar"
 msgstr "Inbound Route does not exist"
 
-#: api_app/views/inbound_route.py:135
+#: api_app/views/inbound_route.py:131
 msgid "Error al actualizar la ruta entrante"
 msgstr "Error updating inbound route"
 
-#: api_app/views/inbound_route.py:160
+#: api_app/views/inbound_route.py:155
 msgid "No existe la ruta entrante para obtener el detalle"
 msgstr "Inbound route does not exist"
 
-#: api_app/views/inbound_route.py:166
+#: api_app/views/inbound_route.py:161
 msgid "Error al obtener el detalle de la ruta entrante"
 msgstr "Error fetching inbound route detail"
 
-#: api_app/views/inbound_route.py:189
+#: api_app/views/inbound_route.py:183
 msgid ""
 "No está permitido eliminar una Ruta Entrante asociada con una campaña que "
 "tiene una Ruta Saliente."
 msgstr "Inbound routes assigned to campaigns can not be deleted"
 
-#: api_app/views/inbound_route.py:201
+#: api_app/views/inbound_route.py:195
 msgid "No existe la ruta entrante"
 msgstr "Inbound route does not exist"
 
-#: api_app/views/inbound_route.py:206
+#: api_app/views/inbound_route.py:200
 msgid "Error al eliminar la ruta entrante"
 msgstr "Error deleting Inbound route"
 
-#: api_app/views/inbound_route.py:221
+#: api_app/views/inbound_route.py:214
 msgid "Se obtuvo la informacion de los destinos de forma exitosa"
 msgstr "Destinations information fetched successfully "
 
-#: api_app/views/inbound_route.py:241
+#: api_app/views/inbound_route.py:234
 msgid "Error al obtener los destinos de las rutas entrantes"
 msgstr "Error fetching Inbound routes destinations"
 
-#: api_app/views/ivr.py:60
+#: api_app/views/ivr.py:58
 msgid "Error al obtener los ivrs"
 msgstr "Error fetching IVRs"
 
-#: api_app/views/ivr.py:84
+#: api_app/views/ivr.py:81
 msgid "Se creo el IVR pero no se pudo cargar la configuración telefónica"
 msgstr "IVR created, but configuration was not loaded properly"
 
-#: api_app/views/ivr.py:95 api_app/views/ivr.py:140 api_app/views/ivr.py:208
+#: api_app/views/ivr.py:92 api_app/views/ivr.py:136 api_app/views/ivr.py:202
 msgid "Error en los datos enviados"
 msgstr "There were errors on sent data"
 
-#: api_app/views/ivr.py:101
+#: api_app/views/ivr.py:98
 msgid "Error al crear el IVR"
 msgstr "Error creating IVR"
 
-#: api_app/views/ivr.py:124
+#: api_app/views/ivr.py:120
 msgid "Se actualizo el IVR de forma exitosa"
 msgstr "IVR updated successfully"
 
-#: api_app/views/ivr.py:129
+#: api_app/views/ivr.py:125
 msgid "Se actualizo el IVR pero no se pudo cargar la configuración telefónica"
 msgstr "IVR updated, but configuration was not loaded properly"
 
-#: api_app/views/ivr.py:146 api_app/views/ivr.py:174 api_app/views/ivr.py:225
+#: api_app/views/ivr.py:142 api_app/views/ivr.py:169 api_app/views/ivr.py:219
 msgid "No existe el IVR"
 msgstr "IVR does not exist"
 
-#: api_app/views/ivr.py:151
+#: api_app/views/ivr.py:147
 msgid "Error al actualizar el IVR"
 msgstr "Error updating IVR"
 
-#: api_app/views/ivr.py:179
+#: api_app/views/ivr.py:174
 msgid "Error al obtener el detalle del IVR"
 msgstr "Error fetching IVR detail"
 
-#: api_app/views/ivr.py:202
+#: api_app/views/ivr.py:196
 #, python-brace-format
 msgid ""
 "No se puede eliminar la campaña.Es usada como destino failover de las "
@@ -1726,214 +1704,213 @@ msgstr ""
 "Can't delete campaign. It's being used as a failover destination in "
 "campaigns: {0}"
 
-#: api_app/views/ivr.py:213
+#: api_app/views/ivr.py:207
 msgid "Se elimino el IVR pero no se pudo cargar la configuración telefónica"
 msgstr "IVR deleted, but configuration was not loaded properly"
 
-#: api_app/views/ivr.py:230
+#: api_app/views/ivr.py:224
 msgid "Error al eliminar el IVR"
 msgstr "Error deleting IVR"
 
-#: api_app/views/ivr.py:249
+#: api_app/views/ivr.py:242
 msgid "Se obtuvieron los archivos de audio de forma exitosa"
 msgstr "Audio files fetched successfully"
 
-#: api_app/views/ivr.py:255
+#: api_app/views/ivr.py:248
 msgid "Error al obtener los archivos de audio"
 msgstr "Error fetching audio files"
 
-#: api_app/views/ivr.py:284 facebook_meta_app/api/v1/destination.py:51
+#: api_app/views/ivr.py:276
 msgid "Se obtuvieron los destinos de forma exitosa"
 msgstr "Destinations fetched successfully"
 
-#: api_app/views/ivr.py:290 facebook_meta_app/api/v1/destination.py:57
-#: facebook_meta_app/api/v1/templates_group.py:95
+#: api_app/views/ivr.py:282
 msgid "Error al obtener los destinos"
 msgstr "Error fetching destinations"
 
-#: api_app/views/logging.py:44
+#: api_app/views/logging.py:42
 msgid "Se creo el Log de transferencia a Encuesta"
 msgstr "Transfer to survey log created successfully"
 
-#: api_app/views/logging.py:63
+#: api_app/views/logging.py:61
 msgid "Error al crear el Log de transferencia"
 msgstr "Error creating transfer log"
 
-#: api_app/views/outbound_route.py:59
+#: api_app/views/outbound_route.py:57
 msgid "Error al obtener las rutas salientes"
 msgstr "Error fetching Outbound routes"
 
-#: api_app/views/outbound_route.py:82
+#: api_app/views/outbound_route.py:79
 msgid ""
 "Se creo la ruta saliente pero no se pudo cargar la configuración telefónica"
 msgstr "Outbound route created, but configuration was not loaded properly"
 
-#: api_app/views/outbound_route.py:93
+#: api_app/views/outbound_route.py:90
 msgid "Error al crear la ruta saliente"
 msgstr "Error creating Outbound route"
 
-#: api_app/views/outbound_route.py:119
+#: api_app/views/outbound_route.py:115
 msgid ""
 "Se actualizo la ruta saliente pero no se pudo cargar la configuración "
 "telefónica"
 msgstr "Outbound route updated, but configuration was not loaded properly"
 
-#: api_app/views/outbound_route.py:130
+#: api_app/views/outbound_route.py:126
 msgid "No existe la ruta saliente que se quiere actualizar"
 msgstr "Outbound route does not exist"
 
-#: api_app/views/outbound_route.py:136
+#: api_app/views/outbound_route.py:132
 msgid "Error al actualizar la ruta saliente"
 msgstr "Error updating Outbound route"
 
-#: api_app/views/outbound_route.py:162
+#: api_app/views/outbound_route.py:157
 msgid "No existe la ruta saliente para obtener el detalle"
 msgstr "Outbound route does not exist"
 
-#: api_app/views/outbound_route.py:168
+#: api_app/views/outbound_route.py:163
 msgid "Error al obtener el detalle de la ruta saliente"
 msgstr "Error fetching Outbound route detail"
 
-#: api_app/views/outbound_route.py:195
+#: api_app/views/outbound_route.py:189
 msgid "Se elimino la ruta pero no se pudo cargar la configuración telefónica"
 msgstr "Outbound route deleted, but configuration was not loaded properly"
 
-#: api_app/views/outbound_route.py:201 api_app/views/outbound_route.py:261
+#: api_app/views/outbound_route.py:195 api_app/views/outbound_route.py:253
 msgid "No existe la ruta saliente"
 msgstr "Outbound route does not exist"
 
-#: api_app/views/outbound_route.py:206
+#: api_app/views/outbound_route.py:200
 msgid "Error al eliminar la ruta saliente"
 msgstr "Error deleting Outbound route"
 
-#: api_app/views/outbound_route.py:221
+#: api_app/views/outbound_route.py:214
 msgid "Se obtuvieron las troncales sip de forma exitosa"
 msgstr "SIP Trunks fetched successfully"
 
-#: api_app/views/outbound_route.py:231
+#: api_app/views/outbound_route.py:224
 msgid "Error al obtener las troncales"
 msgstr "Error fetching SIP Trunks"
 
-#: api_app/views/outbound_route.py:246
+#: api_app/views/outbound_route.py:238
 msgid ""
 "Se obtuvieron las troncales huerfanas de la ruta saliente de forma exitosa"
 msgstr "Outbound route's Orphan trunks fetched successfully"
 
-#: api_app/views/outbound_route.py:266
+#: api_app/views/outbound_route.py:258
 msgid "Error al obtener las troncales huerfanas de la ruta saliente"
 msgstr "Error fetching Outbound route's Orphan trunks"
 
-#: api_app/views/outbound_route.py:281
+#: api_app/views/outbound_route.py:272
 msgid "El orden de las rutas salientes se actualizo de forma exitosa"
 msgstr "Outbound routes order updated successfully"
 
-#: api_app/views/outbound_route.py:287
+#: api_app/views/outbound_route.py:278
 msgid "El orden es un campo requerido"
 msgstr "Order is a required field"
 
-#: api_app/views/outbound_route.py:292 api_app/views/outbound_route.py:297
+#: api_app/views/outbound_route.py:283 api_app/views/outbound_route.py:288
 msgid "El orden debe ser una lista de numeros enteros"
 msgstr "Order must be an integer list"
 
-#: api_app/views/outbound_route.py:302
+#: api_app/views/outbound_route.py:293
 msgid "El nuevo orden no coincide con la cantidad de rutas saliente"
 msgstr "Order does not match the number of outboud routes"
 
-#: api_app/views/outbound_route.py:309
+#: api_app/views/outbound_route.py:300
 msgid "No puede haber orden repetido en las rutas salientes"
 msgstr "Outbound route's order can not repeat'"
 
-#: api_app/views/outbound_route.py:331
+#: api_app/views/outbound_route.py:322
 msgid "Error al actualizar el orden de las rutas salientes"
 msgstr "Error updating Outbound routes order"
 
-#: api_app/views/pause.py:76 api_app/views/pause_set.py:54
+#: api_app/views/pause.py:74 api_app/views/pause_set.py:52
 msgid "Error al obtener las pausas"
 msgstr "Error fetching pauses"
 
-#: api_app/views/pause.py:106 api_app/views/pause.py:157
-#: api_app/views/pause.py:214 api_app/views/pause.py:250
+#: api_app/views/pause.py:103 api_app/views/pause.py:153
+#: api_app/views/pause.py:209 api_app/views/pause.py:244
 msgid "Error al sincronizar la pausa con asterisk"
 msgstr "Error sinchronizing pauses with Asterisk"
 
-#: api_app/views/pause.py:123
+#: api_app/views/pause.py:120
 msgid "Error al crear la pausa"
 msgstr "Error creating pauses"
 
-#: api_app/views/pause.py:181
+#: api_app/views/pause.py:177
 msgid "Error al actualizar la pausa"
 msgstr "Error updating pause"
 
-#: api_app/views/pause.py:225
+#: api_app/views/pause.py:220
 msgid "Error al eliminar la pausa"
 msgstr "Error deleting pause"
 
-#: api_app/views/pause.py:261
+#: api_app/views/pause.py:255
 msgid "Error al reactivar la pausa"
 msgstr "Error reactivating pause"
 
-#: api_app/views/pause.py:291
+#: api_app/views/pause.py:284
 msgid "Error al obtener el detalle de la pausa"
 msgstr "Error fetching pause detail"
 
-#: api_app/views/pause_set.py:80
+#: api_app/views/pause_set.py:77
 msgid "Error al obtener los conjuntos de pausas"
 msgstr "Error fetching pause sets"
 
-#: api_app/views/pause_set.py:95
+#: api_app/views/pause_set.py:91
 msgid "Se obtuvo la informacion del conjunto de pausa de forma exitosa"
 msgstr "Pause set information fetched successfully "
 
-#: api_app/views/pause_set.py:112
+#: api_app/views/pause_set.py:108
 msgid "Error al obtener el detalle del conjunto de pausa"
 msgstr "Error fetching pause set detail"
 
-#: api_app/views/pause_set.py:150
+#: api_app/views/pause_set.py:145
 msgid "Error al crear el conjunto de pausa"
 msgstr "Error creating pause set"
 
-#: api_app/views/pause_set.py:178 api_app/views/pause_set.py:212
-#: api_app/views/pause_set.py:254
+#: api_app/views/pause_set.py:172 api_app/views/pause_set.py:205
+#: api_app/views/pause_set.py:246
 msgid "No existe el conjunto de pausa"
 msgstr "Pause set does not exist"
 
-#: api_app/views/pause_set.py:183
+#: api_app/views/pause_set.py:177
 msgid "Error al actualizar el conjunto de pausa"
 msgstr "Error updating pause set"
 
-#: api_app/views/pause_set.py:217
+#: api_app/views/pause_set.py:210
 msgid "Error al eliminar el conjunto de pausa"
 msgstr "Error deleting pause set"
 
-#: api_app/views/pause_set.py:246
+#: api_app/views/pause_set.py:238
 msgid "No existe la pausa"
 msgstr "Pause does not exist"
 
-#: api_app/views/pause_set.py:264
+#: api_app/views/pause_set.py:256
 msgid "Error al crear la configuracion de pausa"
 msgstr "Error creating pause configuration"
 
-#: api_app/views/pause_set.py:292 api_app/views/pause_set.py:322
+#: api_app/views/pause_set.py:283 api_app/views/pause_set.py:312
 msgid "No existe la configuracion de pausa"
 msgstr "Pause configuration does not exist"
 
-#: api_app/views/pause_set.py:297
+#: api_app/views/pause_set.py:288
 msgid "Error al eliminar la configuracion de pausa"
 msgstr "Error deleting pause configuration"
 
-#: api_app/views/pause_set.py:327
+#: api_app/views/pause_set.py:317
 msgid "Error al actualizar la configuracion de pausa"
 msgstr "Error updating pause configuration"
 
-#: api_app/views/register_server.py:61
+#: api_app/views/register_server.py:59
 msgid "Error al obtener el registro al servidor"
 msgstr "Error fetching instance registration"
 
-#: api_app/views/register_server.py:91
+#: api_app/views/register_server.py:88
 msgid "Falta informacion para completar el registro"
 msgstr "Missing information to complete registration"
 
-#: api_app/views/register_server.py:97
+#: api_app/views/register_server.py:94
 msgid "Error al crear el registro al servidor"
 msgstr "Error creating instance registration"
 
@@ -2059,505 +2036,364 @@ msgstr "Exportation of dispositioned campaign calls to a .csv file in process"
 msgid "Exportación de Formularios de Gestiones a .csv en proceso"
 msgstr "Exportation of Disposition Forms to a .csv file in process"
 
-#: api_app/views/wombat_dialer.py:48 api_app/views/wombat_dialer.py:91
+#: api_app/views/wombat_dialer.py:47 api_app/views/wombat_dialer.py:90
 msgid "Refrescando. Espere al menos 15 segundos mientras finaliza el proceso."
 msgstr "Refreshing. Wait at least 15 seconds while the process ends."
-
-#: facebook_meta_app/api/permissions.py:7
-msgid "No tiene permiso para usar la canalidad Meta Facebook."
-msgstr "You don't have permission to use Meta Facebook"
-
-#: facebook_meta_app/api/v1/campaign.py:75
-msgid "Se obtuvieron las campanas de forma exitosa"
-msgstr "Campaigns fetched successfully"
-
-#: facebook_meta_app/api/v1/campaign.py:81
-msgid "Error al obtener campanas"
-msgstr "Error fetching campaigns"
-
-#: facebook_meta_app/api/v1/contact.py:140
-msgid "Faltan campos requeridos"
-msgstr "Missing required fields"
-
-#: facebook_meta_app/api/v1/contact.py:142
-#: facebook_meta_app/api/v1/contact.py:218
-msgid "Error en los campos de contacto"
-msgstr "There were errors on contact fields"
-
-#: facebook_meta_app/api/v1/contact.py:216
-msgid "No puede editar campos ocultos o bloqueados"
-msgstr "Can't edit hidden or blocked fields"
-
-#: facebook_meta_app/api/v1/contact.py:281
-#: facebook_meta_app/api/v1/contact.py:310
-msgid "Se creo el nuevo contacto de forma exitosa"
-msgstr "Contact created successfully"
-
-#: facebook_meta_app/api/v1/contact.py:293
-#: facebook_meta_app/api/v1/contact.py:320
-msgid "Error al crear el contacto"
-msgstr "Error creating contact"
-
-#: facebook_meta_app/api/v1/contact.py:338
-msgid "Se actualizo el nuevo contacto de forma exitosa"
-msgstr "Contact updated successfully"
-
-#: facebook_meta_app/api/v1/contact.py:348
-msgid "Contacto no encontrado"
-msgstr "Contact not found"
-
-#: facebook_meta_app/api/v1/contact.py:354
-msgid "Error al actualizar el contacto"
-msgstr "Error updating contact"
-
-#: facebook_meta_app/api/v1/contact.py:380
-msgid "Error al obtener los campos de contacto"
-msgstr "Error fetching contact fields"
-
-#: facebook_meta_app/api/v1/contact.py:391
-msgid "Conversación requerida"
-msgstr "Required conversation"
-
-#: facebook_meta_app/api/v1/contact.py:400
-msgid "Sin coincidencia sugerida"
-msgstr "No match suggested"
-
-#: facebook_meta_app/api/v1/contact.py:416
-msgid "Se obtuvo la coincidencia sugerida"
-msgstr "Suggested match fetched"
-
-#: facebook_meta_app/api/v1/contact.py:422
-msgid "Conversación no encontrada"
-msgstr "Conversation not found"
-
-#: facebook_meta_app/api/v1/contact.py:428
-msgid "Error al obtener coincidencia sugerida"
-msgstr "Error fetching suggested match"
-
-#: facebook_meta_app/api/v1/contact.py:484
-msgid "Error al obtener contactos"
-msgstr "Error fetching contacts"
-
-#: facebook_meta_app/api/v1/conversation.py:79
-msgid "Debe indicar fecha desde y fecha hasta para aplicar el filtro."
-msgstr "You must provide from and to dates to apply the filter."
-
-#: facebook_meta_app/api/v1/conversation.py:457
-msgid "Se obtuvieron las conversaciones de forma exitosa"
-msgstr "Conversations fetched successfully"
-
-#: facebook_meta_app/api/v1/conversation.py:466
-msgid "Error al obtener las conversaciones"
-msgstr "Error fetching conversations"
-
-#: facebook_meta_app/api/v1/conversation.py:479
-msgid "Se obtuvo la conversacion de forma exitosa"
-msgstr "Conversation fetched successfully"
-
-#: facebook_meta_app/api/v1/conversation.py:483
-msgid "Conversacion no encontrada"
-msgstr "Conversation not found"
-
-#: facebook_meta_app/api/v1/conversation.py:488
-msgid "Error al obtener la conversacion"
-msgstr "Error fetching conversation"
-
-#: facebook_meta_app/api/v1/conversation.py:532
-msgid "Se asignó la conversación de forma exitosa"
-msgstr "Conversation deleted successfully"
-
-#: facebook_meta_app/api/v1/conversation.py:537
-#: facebook_meta_app/api/v1/conversation.py:633
-#: facebook_meta_app/api/v1/conversation.py:706
-#: facebook_meta_app/api/v1/conversation.py:761
-msgid "Esta conversación ya está siendo atendida por otro agente"
-msgstr "This conversation is already attended by another agent"
-
-#: facebook_meta_app/api/v1/conversation.py:542
-#: facebook_meta_app/api/v1/conversation.py:588
-msgid "No se puede asignar una conversación que no existe"
-msgstr "Can't assign an inexistent conversation"
-
-#: facebook_meta_app/api/v1/conversation.py:547
-msgid "Error al asignar la conversación"
-msgstr "Error assigning conversation"
-
-#: facebook_meta_app/api/v1/conversation.py:559
-msgid "El contacto no pertenece a la base de datos de la campaña"
-msgstr "Contact does not belong to campaign's database"
-
-#: facebook_meta_app/api/v1/conversation.py:565
-msgid "El contacto ya está asociado a otro identificador de Facebook"
-msgstr "The contact is already associated to another Facebook id"
-
-#: facebook_meta_app/api/v1/conversation.py:573
-msgid "El contacto ya tiene una conversación activa"
-msgstr "Contact already has an active conversation"
-
-#: facebook_meta_app/api/v1/conversation.py:583
-msgid "Se asigno el contacto a la conversacion de forma satisfactoria"
-msgstr "Contact successfully assigned to conversation"
-
-#: facebook_meta_app/api/v1/conversation.py:593
-msgid "No existe el contacto que se quiere asignar"
-msgstr "Contact to assign does not exist"
-
-#: facebook_meta_app/api/v1/conversation.py:599
-msgid "Error al asignar el contacto a la conversación"
-msgstr "Error assigning contact to conversation"
-
-#: facebook_meta_app/api/v1/conversation.py:660
-#: facebook_meta_app/api/v1/conversation.py:734
-#: facebook_meta_app/api/v1/conversation.py:800
-msgid "Este mensaje no se pudo enviar"
-msgstr "This message could not be sent"
-
-#: facebook_meta_app/api/v1/conversation.py:664
-#: facebook_meta_app/api/v1/conversation.py:738
-#: facebook_meta_app/api/v1/conversation.py:809
-msgid "La conversacion esta inactiva hasta que el cliente responda"
-msgstr "Conversation remains inactive until client response"
-
-#: facebook_meta_app/api/v1/conversation.py:668
-#: facebook_meta_app/api/v1/conversation.py:742
-#: facebook_meta_app/api/v1/conversation.py:813
-msgid "Conversacion es erronea"
-msgstr "Wrong conversation"
-
-#: facebook_meta_app/api/v1/conversation.py:675
-#: facebook_meta_app/api/v1/conversation.py:748
-#: facebook_meta_app/api/v1/conversation.py:820
-msgid "Error al enviar el mensaje"
-msgstr "Error sending message"
-
-#: facebook_meta_app/api/v1/conversation.py:777
-msgid "No se pudo subir el archivo a Meta"
-msgstr "Could not upload file to Meta"
-
-#: facebook_meta_app/api/v1/disposition.py:236
-msgid "respuestaFormularioGestion es obligatorio"
-msgstr "respuestaFormularioGestion is mandatory"
-
-#: facebook_meta_app/api/v1/disposition.py:249
-#: facebook_meta_app/api/v1/disposition.py:280
-msgid "error en los campos del formulario"
-msgstr "Error in form fields"
-
-#: facebook_meta_app/api/v1/disposition.py:326
-msgid "Se obtuvo la calificacion de forma exitosa"
-msgstr "Call disposition fetched successfully"
-
-#: facebook_meta_app/api/v1/disposition.py:332
-#: facebook_meta_app/api/v1/disposition.py:515
-msgid "Calificacion no encontrada"
-msgstr "Call Disposition not found"
-
-#: facebook_meta_app/api/v1/disposition.py:383
-#: facebook_meta_app/api/v1/disposition.py:419
-#: facebook_meta_app/api/v1/disposition.py:474
-msgid "Error en los datos del formulario"
-msgstr "Error in form data"
-
-#: facebook_meta_app/api/v1/disposition.py:492
-msgid "CalificacionCliente no encontrada"
-msgstr "Call Disposition not found"
-
-#: facebook_meta_app/api/v1/disposition.py:498
-msgid "Error al actualizar la CalificacionCliente"
-msgstr "Error updating call disposition"
-
-#: facebook_meta_app/api/v1/disposition.py:521
-msgid "Error al obtener el historial de calificacion"
-msgstr "Error fetching call disposition history"
-
-#: facebook_meta_app/api/v1/disposition.py:534
-msgid "Se obtuvieron las opciones de calificacion de forma exitosa"
-msgstr "Call disposition options fetched successfully"
-
-#: facebook_meta_app/api/v1/disposition.py:541
-msgid "Error al obtener opciones de calificacion"
-msgstr "Error fetching call disposition options"
-
-#: facebook_meta_app/api/v1/message.py:110
-msgid "Se obtuvieron los mensajes de forma exitosa"
-msgstr "Messages fetched successfully"
-
-#: facebook_meta_app/api/v1/message.py:116
-msgid "Error al obtener los mensajes"
-msgstr "Error fetching messages"
-
-#: facebook_meta_app/api/v1/page_configuration.py:92
-msgid "El valor de las opciones no puede repetirse"
-msgstr "Option values can not be repeated"
-
-#: facebook_meta_app/api/v1/page_configuration.py:95
-msgid "No pueden definirse más de 10 opciones"
-msgstr "Cannot define more than 10 options"
-
-#: facebook_meta_app/api/v1/page_configuration.py:101
-msgid "Campana"
-msgstr "Campaign"
-
-#: facebook_meta_app/api/v1/page_configuration.py:102
-msgid "Menu Interactivo"
-msgstr "Interactive Menu"
-
-#: facebook_meta_app/api/v1/page_configuration.py:119
-msgid "Valor incorrecto. Debe ser un id"
-msgstr "Wrong value. Must be a valid id"
-
-#: facebook_meta_app/api/v1/page_configuration.py:129
-msgid "Valor incorrecto. Esta campaña esta siendo usada por otra página"
-msgstr "Wrong value. This campaign is being used by another page"
-
-#: facebook_meta_app/api/v1/page_configuration.py:134
-msgid "No existe destino con ese id de Campaña"
-msgstr "A destination does not exist for this Campaign id"
-
-#: facebook_meta_app/api/v1/page_configuration.py:141
-msgid "Valor incorrecto."
-msgstr "Wrong value"
-
-#: facebook_meta_app/api/v1/page_configuration.py:378
-#: facebook_meta_app/api/v1/page_configuration.py:397
-msgid "Se obtuvieron las páginas de forma exitosa"
-msgstr "Pages fetched successfully"
-
-#: facebook_meta_app/api/v1/page_configuration.py:389
-msgid "No se pudo obtener la página"
-msgstr "Could not fetch page"
-
-#: facebook_meta_app/api/v1/page_configuration.py:390
-#: facebook_meta_app/api/v1/page_configuration.py:541
-msgid "No existe una página con este id"
-msgstr "A page with that id already exists"
-
-#: facebook_meta_app/api/v1/page_configuration.py:410
-#: facebook_meta_app/api/v1/page_configuration.py:462
-msgid "Este campo es requerido."
-msgstr "Required field."
-
-#: facebook_meta_app/api/v1/page_configuration.py:432
-msgid "Se creó la página de forma exitosa"
-msgstr "Page created successfully"
-
-#: facebook_meta_app/api/v1/page_configuration.py:443
-msgid "No se pudo crear la página"
-msgstr "Could create page"
-
-#: facebook_meta_app/api/v1/page_configuration.py:449
-#: facebook_meta_app/api/v1/page_configuration.py:530
-msgid "Error al crear la página >>>"
-msgstr "Error creating page >>>"
-
-#: facebook_meta_app/api/v1/page_configuration.py:512
-msgid "Se creo la página de forma exitosa"
-msgstr "Page created successfully"
-
-#: facebook_meta_app/api/v1/page_configuration.py:540
-msgid "No se pudo eliminar la página"
-msgstr "Could not delete page"
-
-#: facebook_meta_app/api/v1/page_configuration.py:549
-msgid "Se elimino la página de forma exitosa"
-msgstr "Page deleted successfully"
-
-#: facebook_meta_app/api/v1/reporte.py:141
-msgid "Error al obtener el reporte"
-msgstr "Error fetching report"
-
-#: facebook_meta_app/api/v1/reporte.py:148
-msgid "Reporte obtenido exitosamente"
-msgstr "Report fetched successfully"
-
-#: facebook_meta_app/api/v1/templates.py:51
-msgid "Se obtuvieron los templates de forma exitosa"
-msgstr "Templates fetched successfully"
-
-#: facebook_meta_app/api/v1/templates_group.py:89
-msgid "Se obtuvieron los grupo plantilla mensaje de forma exitosa"
-msgstr "Group of message templates fetched successfully"
-
-#: facebook_meta_app/api/v1/templates_group.py:106
-msgid "Se creo grupo plantilla mensaje de forma exitosa"
-msgstr "Message template created successfully"
-
-#: facebook_meta_app/api/v1/templates_group.py:116
-msgid "Error al crear el grupo plantilla mensaje"
-msgstr "Error creating Group of message templates"
-
-#: facebook_meta_app/api/v1/templates_group.py:128
-msgid "Se obtuvo grupo plantilla mensaje de forma exitosa"
-msgstr "Group of message templates fetched successfully"
-
-#: facebook_meta_app/api/v1/templates_group.py:132
-#: facebook_meta_app/api/v1/templates_group.py:160
-msgid "Grupo plantilla mensaje no encontrada"
-msgstr "Group of message templates not found"
-
-#: facebook_meta_app/api/v1/templates_group.py:137
-msgid "Error al obtener grupo plantilla mensaje"
-msgstr "Error fetching Group of message templates"
-
-#: facebook_meta_app/api/v1/templates_group.py:151
-msgid "Se actualizó grupo plantilla mensaje de forma exitosa"
-msgstr "Group of message templates updated successfully"
-
-#: facebook_meta_app/api/v1/templates_group.py:165
-msgid "Error al actualizar grupo plantilla mensaje"
-msgstr "Error updating Group of message templates"
-
-#: facebook_meta_app/api/v1/templates_group.py:177
-msgid "Se elimino grupo plantilla mensaje de forma exitosa"
-msgstr "Group of message templates deleted successfully"
-
-#: facebook_meta_app/api/v1/templates_group.py:182
-msgid "Grupo plantilla está siendo usado por alguna campaña activa"
-msgstr "Group of message templates is being used by an active campaign"
-
-#: facebook_meta_app/api/v1/templates_group.py:186
-msgid "Grupo plantilla mensaje no encontrado"
-msgstr "Group of message templates not found"
-
-#: facebook_meta_app/api/v1/templates_group.py:191
-msgid "Error al eliminar Grupo plantilla mensaje"
-msgstr "Error deleting Group of message templates"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:58
-#: facebook_meta_app/api/v1/templates_messenger.py:96
-msgid "No soportado por el momento"
-msgstr "Not supported at the moment"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:65
-#: facebook_meta_app/api/v1/templates_messenger.py:103
-msgid "Configuración incorrecta para el tipo de mensaje"
-msgstr "Wrong config for this message type"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:118
-msgid "Se obtuvieron las plantillas de forma exitosa"
-msgstr "Templates fetched successfully"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:124
-msgid "Error al obtener las plantillas"
-msgstr "Error fetching templates"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:135
-msgid "Se creo la platilla de forma exitosa"
-msgstr "Template created successfully"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:145
-msgid "Error al crear la plantilla"
-msgstr "Error creating template"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:157
-msgid "Se obtuvo la plantilla de forma exitosa"
-msgstr "Template fetched successfully"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:161
-#: facebook_meta_app/api/v1/templates_messenger.py:189
-msgid "Plantilla no encontrada"
-msgstr "Template not found"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:166
-msgid "Error al obtener la plantilla"
-msgstr "Error fetching template"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:180
-msgid "Se actualizó la plantilla de forma exitosa"
-msgstr "Template updated successfully"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:194
-msgid "Error al actualizar la plantilla"
-msgstr "Error updating template"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:205
-msgid "Se elimino la plantilla de forma exitosa"
-msgstr "Template deleted successfully"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:209
-msgid "Plantilla no encontrado"
-msgstr "Template not found"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:217
-msgid "Mensaje Plantilla"
-msgstr "MEssage Template"
-
-#: facebook_meta_app/api/v1/templates_messenger.py:227
-msgid "Error al eliminar la Plantilla"
-msgstr "Error deleting template"
-
-#: facebook_meta_app/api/v1/transfer.py:89
-#: facebook_meta_app/api/v1/transfer.py:95
-msgid "Error al tranferir conversacion"
-msgstr "Error transferring conversation"
-
-#: facebook_meta_app/apps.py:69
-msgid "Configuración general de Messenger"
-msgstr "Messanger general configuration"
-
-#: facebook_meta_app/apps.py:73
-msgid "Configuración de plantillas de mensajes"
-msgstr "Message templates configuration"
-
-#: facebook_meta_app/apps.py:77
-msgid "Grupos de plantillas de mensajes"
-msgstr "Message templates groups"
-
-#: facebook_meta_app/apps.py:80
-msgid "Configuración de página"
-msgstr "Page configuration"
-
-#: facebook_meta_app/apps.py:81
-msgid "Destinos"
-msgstr "Destinations"
-
-#: facebook_meta_app/apps.py:82
-msgid "Campañas"
-msgstr "Campaigns"
-
-#: facebook_meta_app/apps.py:83
-msgid "Reportes Meta/Facebook"
-msgstr "Meta/Facebook reports"
-
-#: facebook_meta_app/apps.py:85
-msgid "Reportes Conversaciones Meta/Facebook"
-msgstr "Meta/facebook Conversations Reports"
-
-#: facebook_meta_app/apps.py:87
-msgid "Conversaciones / Chat"
-msgstr "Conversations / Chat"
-
-#: facebook_meta_app/apps.py:88
-msgid "Contactos"
-msgstr "Contacts"
-
-#: facebook_meta_app/apps.py:89
-msgid "Disposición de chat"
-msgstr "Chat disposition"
-
-#: facebook_meta_app/apps.py:90
-msgid "Transferencia de agentes"
-msgstr "Agent's transfer"
-
-#: facebook_meta_app/apps.py:91
-msgid "Plantillas Messenger"
-msgstr "Messenger templates"
-
-#: facebook_meta_app/apps.py:93
-msgid "Grupos de plantillas Messenger"
-msgstr "Messenger templates groups"
-
-#: facebook_meta_app/apps.py:94
-msgid "Templates por campaña"
-msgstr "Templates by Campaigns"
-
-#: facebook_meta_app/models.py:18
-msgid "Texto"
-msgstr "Text"
 
 #: utiles_globales.py:35
 msgid "Archivos permitidos: .wav"
 msgstr "Allowed files: .wav"
+
+#~ msgid "No tiene permiso para usar la canalidad Meta Facebook."
+#~ msgstr "You don't have permission to use Meta Facebook"
+
+#~ msgid "Se obtuvieron las campanas de forma exitosa"
+#~ msgstr "Campaigns fetched successfully"
+
+#~ msgid "Error al obtener campanas"
+#~ msgstr "Error fetching campaigns"
+
+#~ msgid "Faltan campos requeridos"
+#~ msgstr "Missing required fields"
+
+#~ msgid "Error en los campos de contacto"
+#~ msgstr "There were errors on contact fields"
+
+#~ msgid "No puede editar campos ocultos o bloqueados"
+#~ msgstr "Can't edit hidden or blocked fields"
+
+#~ msgid "Se creo el nuevo contacto de forma exitosa"
+#~ msgstr "Contact created successfully"
+
+#~ msgid "Error al crear el contacto"
+#~ msgstr "Error creating contact"
+
+#~ msgid "Se actualizo el nuevo contacto de forma exitosa"
+#~ msgstr "Contact updated successfully"
+
+#~ msgid "Contacto no encontrado"
+#~ msgstr "Contact not found"
+
+#~ msgid "Error al actualizar el contacto"
+#~ msgstr "Error updating contact"
+
+#~ msgid "Error al obtener los campos de contacto"
+#~ msgstr "Error fetching contact fields"
+
+#~ msgid "Conversación requerida"
+#~ msgstr "Required conversation"
+
+#~ msgid "Sin coincidencia sugerida"
+#~ msgstr "No match suggested"
+
+#~ msgid "Se obtuvo la coincidencia sugerida"
+#~ msgstr "Suggested match fetched"
+
+#~ msgid "Conversación no encontrada"
+#~ msgstr "Conversation not found"
+
+#~ msgid "Error al obtener coincidencia sugerida"
+#~ msgstr "Error fetching suggested match"
+
+#~ msgid "Error al obtener contactos"
+#~ msgstr "Error fetching contacts"
+
+#~ msgid "Debe indicar fecha desde y fecha hasta para aplicar el filtro."
+#~ msgstr "You must provide from and to dates to apply the filter."
+
+#~ msgid "Se obtuvieron las conversaciones de forma exitosa"
+#~ msgstr "Conversations fetched successfully"
+
+#~ msgid "Error al obtener las conversaciones"
+#~ msgstr "Error fetching conversations"
+
+#~ msgid "Se obtuvo la conversacion de forma exitosa"
+#~ msgstr "Conversation fetched successfully"
+
+#~ msgid "Conversacion no encontrada"
+#~ msgstr "Conversation not found"
+
+#~ msgid "Error al obtener la conversacion"
+#~ msgstr "Error fetching conversation"
+
+#~ msgid "Se asignó la conversación de forma exitosa"
+#~ msgstr "Conversation deleted successfully"
+
+#~ msgid "Esta conversación ya está siendo atendida por otro agente"
+#~ msgstr "This conversation is already attended by another agent"
+
+#~ msgid "No se puede asignar una conversación que no existe"
+#~ msgstr "Can't assign an inexistent conversation"
+
+#~ msgid "Error al asignar la conversación"
+#~ msgstr "Error assigning conversation"
+
+#~ msgid "El contacto no pertenece a la base de datos de la campaña"
+#~ msgstr "Contact does not belong to campaign's database"
+
+#~ msgid "El contacto ya está asociado a otro identificador de Facebook"
+#~ msgstr "The contact is already associated to another Facebook id"
+
+#~ msgid "El contacto ya tiene una conversación activa"
+#~ msgstr "Contact already has an active conversation"
+
+#~ msgid "Se asigno el contacto a la conversacion de forma satisfactoria"
+#~ msgstr "Contact successfully assigned to conversation"
+
+#~ msgid "No existe el contacto que se quiere asignar"
+#~ msgstr "Contact to assign does not exist"
+
+#~ msgid "Error al asignar el contacto a la conversación"
+#~ msgstr "Error assigning contact to conversation"
+
+#~ msgid "Este mensaje no se pudo enviar"
+#~ msgstr "This message could not be sent"
+
+#~ msgid "La conversacion esta inactiva hasta que el cliente responda"
+#~ msgstr "Conversation remains inactive until client response"
+
+#~ msgid "Conversacion es erronea"
+#~ msgstr "Wrong conversation"
+
+#~ msgid "Error al enviar el mensaje"
+#~ msgstr "Error sending message"
+
+#~ msgid "No se pudo subir el archivo a Meta"
+#~ msgstr "Could not upload file to Meta"
+
+#~ msgid "respuestaFormularioGestion es obligatorio"
+#~ msgstr "respuestaFormularioGestion is mandatory"
+
+#~ msgid "error en los campos del formulario"
+#~ msgstr "Error in form fields"
+
+#~ msgid "Se obtuvo la calificacion de forma exitosa"
+#~ msgstr "Call disposition fetched successfully"
+
+#~ msgid "Calificacion no encontrada"
+#~ msgstr "Call Disposition not found"
+
+#~ msgid "Error en los datos del formulario"
+#~ msgstr "Error in form data"
+
+#~ msgid "CalificacionCliente no encontrada"
+#~ msgstr "Call Disposition not found"
+
+#~ msgid "Error al actualizar la CalificacionCliente"
+#~ msgstr "Error updating call disposition"
+
+#~ msgid "Error al obtener el historial de calificacion"
+#~ msgstr "Error fetching call disposition history"
+
+#~ msgid "Se obtuvieron las opciones de calificacion de forma exitosa"
+#~ msgstr "Call disposition options fetched successfully"
+
+#~ msgid "Error al obtener opciones de calificacion"
+#~ msgstr "Error fetching call disposition options"
+
+#~ msgid "Se obtuvieron los mensajes de forma exitosa"
+#~ msgstr "Messages fetched successfully"
+
+#~ msgid "Error al obtener los mensajes"
+#~ msgstr "Error fetching messages"
+
+#~ msgid "El valor de las opciones no puede repetirse"
+#~ msgstr "Option values can not be repeated"
+
+#~ msgid "No pueden definirse más de 10 opciones"
+#~ msgstr "Cannot define more than 10 options"
+
+#~ msgid "Campana"
+#~ msgstr "Campaign"
+
+#~ msgid "Menu Interactivo"
+#~ msgstr "Interactive Menu"
+
+#~ msgid "Valor incorrecto. Debe ser un id"
+#~ msgstr "Wrong value. Must be a valid id"
+
+#~ msgid "Valor incorrecto. Esta campaña esta siendo usada por otra página"
+#~ msgstr "Wrong value. This campaign is being used by another page"
+
+#~ msgid "No existe destino con ese id de Campaña"
+#~ msgstr "A destination does not exist for this Campaign id"
+
+#~ msgid "Valor incorrecto."
+#~ msgstr "Wrong value"
+
+#~ msgid "Tipo de destino incorrecto"
+#~ msgstr "Wrong destination type"
+
+#~ msgid "Se obtuvieron las páginas de forma exitosa"
+#~ msgstr "Pages fetched successfully"
+
+#~ msgid "No se pudo obtener la página"
+#~ msgstr "Could not fetch page"
+
+#~ msgid "No existe una página con este id"
+#~ msgstr "A page with that id already exists"
+
+#~ msgid "Este campo es requerido."
+#~ msgstr "Required field."
+
+#~ msgid "Se creó la página de forma exitosa"
+#~ msgstr "Page created successfully"
+
+#~ msgid "No se pudo crear la página"
+#~ msgstr "Could create page"
+
+#~ msgid "Error al crear la página >>>"
+#~ msgstr "Error creating page >>>"
+
+#~ msgid "Se creo la página de forma exitosa"
+#~ msgstr "Page created successfully"
+
+#~ msgid "No se pudo eliminar la página"
+#~ msgstr "Could not delete page"
+
+#~ msgid "Se elimino la página de forma exitosa"
+#~ msgstr "Page deleted successfully"
+
+#~ msgid "Error al obtener el reporte"
+#~ msgstr "Error fetching report"
+
+#~ msgid "Reporte obtenido exitosamente"
+#~ msgstr "Report fetched successfully"
+
+#~ msgid "Se obtuvieron los templates de forma exitosa"
+#~ msgstr "Templates fetched successfully"
+
+#~ msgid "Se obtuvieron los grupo plantilla mensaje de forma exitosa"
+#~ msgstr "Group of message templates fetched successfully"
+
+#~ msgid "Se creo grupo plantilla mensaje de forma exitosa"
+#~ msgstr "Message template created successfully"
+
+#~ msgid "Error al crear el grupo plantilla mensaje"
+#~ msgstr "Error creating Group of message templates"
+
+#~ msgid "Se obtuvo grupo plantilla mensaje de forma exitosa"
+#~ msgstr "Group of message templates fetched successfully"
+
+#~ msgid "Grupo plantilla mensaje no encontrada"
+#~ msgstr "Group of message templates not found"
+
+#~ msgid "Error al obtener grupo plantilla mensaje"
+#~ msgstr "Error fetching Group of message templates"
+
+#~ msgid "Se actualizó grupo plantilla mensaje de forma exitosa"
+#~ msgstr "Group of message templates updated successfully"
+
+#~ msgid "Error al actualizar grupo plantilla mensaje"
+#~ msgstr "Error updating Group of message templates"
+
+#~ msgid "Se elimino grupo plantilla mensaje de forma exitosa"
+#~ msgstr "Group of message templates deleted successfully"
+
+#~ msgid "Grupo plantilla está siendo usado por alguna campaña activa"
+#~ msgstr "Group of message templates is being used by an active campaign"
+
+#~ msgid "Grupo plantilla mensaje no encontrado"
+#~ msgstr "Group of message templates not found"
+
+#~ msgid "Error al eliminar Grupo plantilla mensaje"
+#~ msgstr "Error deleting Group of message templates"
+
+#~ msgid "No soportado por el momento"
+#~ msgstr "Not supported at the moment"
+
+#~ msgid "Configuración incorrecta para el tipo de mensaje"
+#~ msgstr "Wrong config for this message type"
+
+#~ msgid "Se obtuvieron las plantillas de forma exitosa"
+#~ msgstr "Templates fetched successfully"
+
+#~ msgid "Error al obtener las plantillas"
+#~ msgstr "Error fetching templates"
+
+#~ msgid "Se creo la platilla de forma exitosa"
+#~ msgstr "Template created successfully"
+
+#~ msgid "Error al crear la plantilla"
+#~ msgstr "Error creating template"
+
+#~ msgid "Se obtuvo la plantilla de forma exitosa"
+#~ msgstr "Template fetched successfully"
+
+#~ msgid "Plantilla no encontrada"
+#~ msgstr "Template not found"
+
+#~ msgid "Error al obtener la plantilla"
+#~ msgstr "Error fetching template"
+
+#~ msgid "Se actualizó la plantilla de forma exitosa"
+#~ msgstr "Template updated successfully"
+
+#~ msgid "Error al actualizar la plantilla"
+#~ msgstr "Error updating template"
+
+#~ msgid "Se elimino la plantilla de forma exitosa"
+#~ msgstr "Template deleted successfully"
+
+#~ msgid "Plantilla no encontrado"
+#~ msgstr "Template not found"
+
+#~ msgid "Mensaje Plantilla"
+#~ msgstr "MEssage Template"
+
+#~ msgid "Error al eliminar la Plantilla"
+#~ msgstr "Error deleting template"
+
+#~ msgid "Error al tranferir conversacion"
+#~ msgstr "Error transferring conversation"
+
+#~ msgid "Configuración general de Messenger"
+#~ msgstr "Messanger general configuration"
+
+#~ msgid "Configuración de plantillas de mensajes"
+#~ msgstr "Message templates configuration"
+
+#~ msgid "Grupos de plantillas de mensajes"
+#~ msgstr "Message templates groups"
+
+#~ msgid "Configuración de página"
+#~ msgstr "Page configuration"
+
+#~ msgid "Destinos"
+#~ msgstr "Destinations"
+
+#~ msgid "Campañas"
+#~ msgstr "Campaigns"
+
+#~ msgid "Reportes Meta/Facebook"
+#~ msgstr "Meta/Facebook reports"
+
+#~ msgid "Reportes Conversaciones Meta/Facebook"
+#~ msgstr "Meta/facebook Conversations Reports"
+
+#~ msgid "Conversaciones / Chat"
+#~ msgstr "Conversations / Chat"
+
+#~ msgid "Contactos"
+#~ msgstr "Contacts"
+
+#~ msgid "Disposición de chat"
+#~ msgstr "Chat disposition"
+
+#~ msgid "Transferencia de agentes"
+#~ msgstr "Agent's transfer"
+
+#~ msgid "Plantillas Messenger"
+#~ msgstr "Messenger templates"
+
+#~ msgid "Grupos de plantillas Messenger"
+#~ msgstr "Messenger templates groups"
+
+#~ msgid "Templates por campaña"
+#~ msgstr "Templates by Campaigns"
+
+#~ msgid "Texto"
+#~ msgstr "Text"
 
 #~ msgid "Error al obtener las calificacio"
 #~ msgstr "Error fetching call dispositions"

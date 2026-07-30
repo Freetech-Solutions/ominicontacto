@@ -1656,17 +1656,17 @@ class RespuestaFormularioGestionForm(forms.ModelForm):
         super(RespuestaFormularioGestionForm, self).__init__(*args, **kwargs)
 
         for campo in campos:
-            if campo.tipo is FieldFormulario.TIPO_TEXTO:
+            if campo.tipo == FieldFormulario.TIPO_TEXTO:
                 self.fields[campo.nombre_campo] = forms.CharField(
                     label=campo.nombre_campo, widget=forms.TextInput(
                         attrs={'class': 'form-control'}),
                     required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_FECHA:
+            elif campo.tipo == FieldFormulario.TIPO_FECHA:
                 self.fields[campo.nombre_campo] = forms.CharField(
                     label=campo.nombre_campo, widget=forms.TextInput(
                         attrs={'class': 'class-fecha form-control'}),
                     required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_LISTA:
+            elif campo.tipo == FieldFormulario.TIPO_LISTA:
                 choices = (EMPTY_CHOICE,) + tuple((option, option)
                                                   for option in json.loads(campo.values_select))
                 self.fields[campo.nombre_campo] = forms.ChoiceField(
@@ -1674,25 +1674,25 @@ class RespuestaFormularioGestionForm(forms.ModelForm):
                     label=campo.nombre_campo, widget=forms.Select(
                         attrs={'class': 'form-control'}),
                     required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_TEXTO_AREA:
+            elif campo.tipo == FieldFormulario.TIPO_TEXTO_AREA:
                 self.fields[campo.nombre_campo] = forms.CharField(
                     label=campo.nombre_campo, widget=forms.Textarea(
                         attrs={'class': 'form-control'}),
                     required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_NUMERO and \
-                    campo.tipo_numero is FieldFormulario.TIPO_ENTERO:
+            elif campo.tipo == FieldFormulario.TIPO_NUMERO and \
+                    campo.tipo_numero == FieldFormulario.TIPO_ENTERO:
                 self.fields[campo.nombre_campo] = forms.IntegerField(
                     label=campo.nombre_campo, min_value=0,
                     widget=forms.NumberInput(attrs={'class': 'form-control'}),
                     required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_NUMERO and \
-                    campo.tipo_numero is FieldFormulario.TIPO_DECIMAL:
+            elif campo.tipo == FieldFormulario.TIPO_NUMERO and \
+                    campo.tipo_numero == FieldFormulario.TIPO_DECIMAL:
                 self.fields[campo.nombre_campo] = forms.DecimalField(
                     label=campo.nombre_campo, min_value=0,
                     decimal_places=campo.cifras_significativas,
                     widget=forms.NumberInput(attrs={'class': 'form-control'}),
                     required=campo.is_required)
-            elif campo.tipo is FieldFormulario.TIPO_LISTA_DINAMICA:
+            elif campo.tipo == FieldFormulario.TIPO_LISTA_DINAMICA:
                 servicio = InteraccionConSistemaExterno()
                 respuesta_sitio_externo = servicio.obtener_lista_dinamica(campo.sitio_externo)
                 choices = (EMPTY_CHOICE,) + tuple((option, option)
