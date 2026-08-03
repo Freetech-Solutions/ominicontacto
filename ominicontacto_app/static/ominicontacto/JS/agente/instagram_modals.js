@@ -57,6 +57,8 @@ const closeAgentChannelWrappersFromInstagram = () => {
     $('#wrapperWebphone').removeClass('active');
     $('#wrapperWhatsapp').addClass('hidden');
     $('#wrapperFacebook').addClass('hidden');
+    $('#wrapperEmail').addClass('hidden').removeClass('reading fullscreen');
+    $('#emailReadingBackdrop').addClass('hidden');
 };
 
 const setEventListenersInstagram = () => {
