@@ -664,6 +664,7 @@ export default {
                 access_token: this.supFacebookPage.access_token,
                 verify_token: this.supFacebookPage.verify_token,
                 app_id: this.supFacebookPage.app_id,
+                app_secret: this.supFacebookPage.app_secret,
                 page_id: this.supFacebookPage.page_id,
                 destination: this.getDestinationData(),
                 schedule: this.form.schedule,

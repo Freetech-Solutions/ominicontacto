@@ -52,6 +52,7 @@ class Migration(migrations.Migration):
                 ('access_token', models.CharField(max_length=500)),
                 ('verify_token', models.CharField(max_length=255)),
                 ('app_id', models.CharField(max_length=255)),
+                ('app_secret', models.CharField(blank=True, max_length=255, null=True)),
                 ('page_id', models.CharField(max_length=255)),
                 ('ig_user_id', models.CharField(max_length=255)),
                 ('username', models.CharField(blank=True, default='', max_length=255)),

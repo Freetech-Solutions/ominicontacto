@@ -8,6 +8,7 @@ export default {
         access_token: null,
         verify_token: '',
         app_id: '',
+        app_secret: null,
         page_id: '',
         destination: {
             data: null,

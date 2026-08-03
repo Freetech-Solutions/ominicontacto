@@ -52,7 +52,8 @@ class PaginaMetaFacebook(models.Model):
     # Channel data (Meta App)
     access_token = models.CharField(max_length=500)   # Page Access Token
     verify_token = models.CharField(max_length=255)   # Used for webhook verification
-    app_id = models.CharField(max_length=255)     # App Secret from Meta App
+    app_id = models.CharField(max_length=255)
+    app_secret = models.CharField(max_length=255, blank=True, null=True)
     page_id = models.CharField(max_length=255)        # Facebook Page ID
     destination = models.ForeignKey(
         'configuracion_telefonia_app.DestinoEntrante', on_delete=models.PROTECT,

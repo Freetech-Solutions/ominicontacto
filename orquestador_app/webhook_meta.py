@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import hashlib
-import hmac
 import json
 import logging
 
@@ -26,6 +24,7 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.permissions import AllowAny
 from ominicontacto_app.services.redis.redis_streams import RedisStreams
+from orquestador_app.meta_webhook_signature import verify_meta_webhook_signature
 
 from facebook_meta_app.models import PaginaMetaFacebook
 from instagram_app.models import CuentaInstagram
@@ -86,7 +85,10 @@ class WebhookMetaView(APIView):
                 "pero no se encontro cuenta activa.",
                 app_id,
             )
-            return True
+            return HttpResponse(status=status.HTTP_200_OK)
+        if not verify_meta_webhook_signature(
+                request, account.app_secret, app_id, 'Instagram'):
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         self.redis_stream.write_stream(
             account.get_stream_name,
             request.body.decode('utf-8'),
@@ -97,7 +99,7 @@ class WebhookMetaView(APIView):
             app_id,
             account.get_stream_name,
         )
-        return True
+        return HttpResponse(status=status.HTTP_200_OK)
 
     def _dispatch_facebook_payload(self, request, payload, app_id):
         page = self._get_facebook_page(payload, app_id)
@@ -107,7 +109,10 @@ class WebhookMetaView(APIView):
                 "pero no se encontro pagina activa.",
                 app_id,
             )
-            return True
+            return HttpResponse(status=status.HTTP_200_OK)
+        if not verify_meta_webhook_signature(
+                request, page.app_secret, app_id, 'Facebook'):
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         self.redis_stream.write_stream(
             page.get_stream_name,
             request.body,
@@ -118,53 +123,28 @@ class WebhookMetaView(APIView):
             app_id,
             page.get_stream_name,
         )
-        return True
+        return HttpResponse(status=status.HTTP_200_OK)
 
     def _dispatch_non_whatsapp_payload(self, request, app_id):
         payload = self._get_payload(request, app_id)
         if payload is None:
-            return False
+            return None
 
         payload_object = payload.get("object")
         if payload_object == "instagram":
             return self._dispatch_instagram_payload(request, payload, app_id)
         if payload_object == "page":
             return self._dispatch_facebook_payload(request, payload, app_id)
-        return False
+        return None
 
     def _verify_signature(self, request, linea):
-        """
-        Verifica la firma HMAC-SHA256 enviada por Meta en el header X-Hub-Signature-256.
-        Retorna True si la firma es válida o si no hay app_secret configurado (backward compat).
-        Retorna False si el header existe pero la firma no coincide.
-        """
+        """Validate WhatsApp with the same optional Meta signature policy."""
         app_secret = linea.configuracion.get('app_secret', '')
-        if not app_secret:
-            return True  # backward-compatible: sin secret configurado se permite
-
-        signature_header = request.headers.get('X-Hub-Signature-256', '')
-        if not signature_header:
-            logger.warning(
-                "Webhook Meta (app_id=%s): request sin header X-Hub-Signature-256.",
-                linea.configuracion.get('app_id')
-            )
-            return False
-
-        expected = 'sha256=' + hmac.new(
-            app_secret.encode('utf-8'),
-            request.body,
-            hashlib.sha256
-        ).hexdigest()
-
-        if not hmac.compare_digest(signature_header, expected):
-            logger.warning(
-                "Webhook Meta (app_id=%s): firma HMAC invalida. "
-                "Posible solicitud no autorizada.",
-                linea.configuracion.get('app_id')
-            )
-            return False
-
-        return True
+        return verify_meta_webhook_signature(
+            request,
+            app_secret,
+            linea.configuracion.get('app_id'),
+            'WhatsApp')
 
     def get(self, request, app_id):
         try:
@@ -185,8 +165,9 @@ class WebhookMetaView(APIView):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
 
     def post(self, request, app_id):
-        if self._dispatch_non_whatsapp_payload(request, app_id):
-            return HttpResponse(status=status.HTTP_200_OK)
+        non_whatsapp_response = self._dispatch_non_whatsapp_payload(request, app_id)
+        if non_whatsapp_response is not None:
+            return non_whatsapp_response
 
         linea = self._get_linea(app_id)
         if linea is None:
