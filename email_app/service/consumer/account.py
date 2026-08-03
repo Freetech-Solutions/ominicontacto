@@ -28,20 +28,24 @@ log = logging.getLogger(__name__)
 
 
 class AccountConsumer:
-    def __init__(self):
+    def __init__(self, reconnect_delay=5, max_reconnect_delay=60, logout_timeout=5):
         self.tasks_map: dict[int, asyncio.Task] = {}
+        self.reconnect_delay = reconnect_delay
+        self.max_reconnect_delay = max_reconnect_delay
+        self.logout_timeout = logout_timeout
 
     @property
     def tasks(self):
         return self.tasks_map.values()
 
-    def check_result(self, task: asyncio.Task):
+    def check_result(self, acc: int, task: asyncio.Task):
+        if self.tasks_map.get(acc) is task:
+            self.tasks_map.pop(acc, None)
         try:
             result = task.result()
             log.debug("check-result task=%r result=%r", task.get_name(), result)
         except asyncio.CancelledError:
             pass
-        # except asyncio.TimeoutError: pass
         except Exception as exc:
             log.exception("check-result task=%r exception=%r", task.get_name(), exc)
 
@@ -50,7 +54,7 @@ class AccountConsumer:
         if acc not in self.tasks_map:
             log.info("subscribe acc=%r", acc)
             task = asyncio.create_task(self.asubscribe(account), name=f"acc-{acc}")
-            task.add_done_callback(self.check_result)
+            task.add_done_callback(lambda task, acc=acc: self.check_result(acc, task))
             self.tasks_map[acc] = task
 
     def unsubscribe(self, account=None):
@@ -67,15 +71,44 @@ class AccountConsumer:
                 task.cancel()
 
     async def asubscribe(self, account: "models.Account"):
-        client = await aioimaplib.client(account)
-        await aioimaplib.login(client, account)
+        acc = account.pk
+        reconnect_delay = self.reconnect_delay
+        while True:
+            client = None
+            try:
+                client = await aioimaplib.client(account)
+                await aioimaplib.login(client, account)
+                reconnect_delay = self.reconnect_delay
+                while True:
+                    await self.fetch(client, account)
+                    await self.fetch_cooldown(client, account)
+            except asyncio.CancelledError:
+                await self._disconnect(client, acc, graceful=True)
+                raise
+            except Exception as exc:
+                log.exception(
+                    "subscription-error acc=%r exception=%r reconnect_in=%r",
+                    acc,
+                    exc,
+                    reconnect_delay,
+                )
+                await self._disconnect(client, acc, graceful=False)
+                await asyncio.sleep(reconnect_delay)
+                reconnect_delay = min(reconnect_delay * 2, self.max_reconnect_delay)
+
+    async def _disconnect(self, client, acc, graceful):
+        if client is None:
+            return
         try:
-            while True:
-                await self.fetch(client, account)
-                await self.fetch_cooldown(client, account)
-        except asyncio.CancelledError:
-            await aioimaplib.logout(client)
-            raise
+            if graceful:
+                try:
+                    await asyncio.wait_for(aioimaplib.logout(client), self.logout_timeout)
+                except asyncio.CancelledError:
+                    raise
+                except Exception as exc:
+                    log.warning("logout-error acc=%r exception=%r", acc, exc)
+        finally:
+            aioimaplib.close(client)
 
     async def fetch(self, client: aioimaplib.IMAP4, account: "models.Account"):
         account.insights.setdefault("mailbox", account.settings["inbound"]["mailbox"])
