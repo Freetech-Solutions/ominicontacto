@@ -546,7 +546,8 @@ class ViewSet(viewsets.ViewSet):
                     data={'id': [_('No existe una página con este id')]}),
                 status=status.HTTP_404_NOT_FOUND
             )
-        instance.delete()
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])
         StreamDePaginas().notificar_page_eliminada(instance)
         return Response(
             data=get_response_data(
