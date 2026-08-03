@@ -528,8 +528,10 @@ export default {
             } else {
                 // "Desasignar" y "Seguir gestionando": enviar y cerrar la ventana
                 this.$toast.add({
-                    severity: 'success', summary: 'Enviado',
-                    detail: 'El correo fue enviado.', life: 2500
+                    severity: 'success',
+                    summary: 'Enviado',
+                    detail: 'El correo fue enviado.',
+                    life: 2500
                 });
                 this.closeThread();
             }
@@ -642,9 +644,12 @@ export default {
 
 <style scoped>
 .email-agent-panel {
-  height: 100%;
+  height: 100vh;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
   font-size: 13px;
   background: #fff;
 }
@@ -659,12 +664,29 @@ export default {
   min-height: 0;
   overflow: hidden;
 }
-.list {
-  overflow-y: auto;
-  height: calc(100% - 4px);
+.email-agent-panel :deep(.p-tabview) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.email-agent-panel :deep(.p-tabview-nav-container) {
+  flex: 0 0 auto;
 }
 .email-agent-panel :deep(.p-tabview-panels) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   padding: 0;
+}
+.email-agent-panel :deep(.p-tabview-panel) {
+  height: 100%;
+  min-height: 0;
+}
+.list {
+  overflow-y: auto;
+  height: 100%;
+  overscroll-behavior: contain;
 }
 .email-agent-panel :deep(.p-tabview-nav) {
   font-size: 0.82rem;
