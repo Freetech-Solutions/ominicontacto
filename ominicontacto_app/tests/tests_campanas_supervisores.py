@@ -94,3 +94,41 @@ class AsignacionSupervisoresACampanasTests(OMLBaseTest):
             self.assertRedirects(response, reverse(list_url))
             self.assertContains(response,
                                 _("No tiene permiso para asignar supervisores a esta campaña."))
+
+    def test_opciones_de_reportes_email_disponibles_en_todos_los_tipos_de_campana(self):
+        self.client.login(username=self.supervisor_creador.user.username,
+                          password=self.DEFAULT_PASSWORD)
+
+        for type in self.TYPES:
+            campana = self.campanas[type]
+            campana.estado = Campana.ESTADO_ACTIVA
+            campana.email_habilitado = True
+            campana.save(update_fields=['estado', 'email_habilitado'])
+
+            response = self.client.get(reverse(self.TYPE_LIST_URL[type]))
+
+            self.assertContains(
+                response,
+                'embed/email/campaigns/{0}/conversations'.format(campana.pk))
+            self.assertContains(
+                response,
+                'embed/email/campaigns/{0}/reports'.format(campana.pk))
+
+    def test_opciones_de_reportes_email_ocultas_si_la_canalidad_esta_desactivada(self):
+        self.client.login(username=self.supervisor_creador.user.username,
+                          password=self.DEFAULT_PASSWORD)
+
+        for type in self.TYPES:
+            campana = self.campanas[type]
+            campana.estado = Campana.ESTADO_ACTIVA
+            campana.email_habilitado = False
+            campana.save(update_fields=['estado', 'email_habilitado'])
+
+            response = self.client.get(reverse(self.TYPE_LIST_URL[type]))
+
+            self.assertNotContains(
+                response,
+                'embed/email/campaigns/{0}/conversations'.format(campana.pk))
+            self.assertNotContains(
+                response,
+                'embed/email/campaigns/{0}/reports'.format(campana.pk))

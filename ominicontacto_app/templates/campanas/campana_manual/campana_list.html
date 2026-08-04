@@ -50,6 +50,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                         <a class="dropdown-item" href="{% url 'campana_reporte_grafico' campana.pk %}">
                             <span class="icon icon-graph"></span>{% trans 'Reportes' %}
                         </a>
+                        {% include "campanas/email_reports_options.html" %}
                         <a class="dropdown-item" href="{% url 'agregar_contacto_a_campana' campana.pk %}">
                             <span class="icon icon-plus"></span>{% trans 'Agregar Contacto' %}
                         </a>
@@ -103,6 +104,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                         <a class="dropdown-item" href="{% url 'campana_reporte_grafico' campana.pk %}">
                             <span class="icon icon-graph"></span>{% trans 'Reportes' %}
                         </a>
+                        {% include "campanas/email_reports_options.html" %}
                         {% if campana.oculto %}
                             <a class="dropdown-item" href="{% url 'campana_manual_desocultar' campana.pk %}">
                                 <span class="icon icon-eye"></span>{% trans 'Hacer visible' %}

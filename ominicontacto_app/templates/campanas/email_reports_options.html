@@ -1,0 +1,9 @@
+{% load i18n %}
+{% if campana.email_habilitado %}
+<a class="dropdown-item" href="{% url 'webui' name='app' path='' %}embed/email/campaigns/{{ campana.pk }}/conversations">
+    <span class="icon icon-graph"></span>{% trans 'Conversaciones Email' %}
+</a>
+<a class="dropdown-item" href="{% url 'webui' name='app' path='' %}embed/email/campaigns/{{ campana.pk }}/reports">
+    <span class="icon icon-graph"></span>{% trans 'Reportes Email' %}
+</a>
+{% endif %}
