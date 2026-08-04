@@ -23,7 +23,8 @@ from rest_framework import status
 
 from email_app import models
 from ominicontacto_app.models import User
-from ominicontacto_app.tests.factories import CampanaFactory
+from ominicontacto_app.tests.factories import (
+    AgenteProfileFactory, CampanaFactory, QueueFactory, QueueMemberFactory)
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
 
 
@@ -133,11 +134,19 @@ class CampaignEmailReportTest(OMLBaseTest):
         self.assertEqual(data["messages"], 2)
         self.assertEqual(len(data["mensajes"]), 2)
 
-    def test_agents_endpoint_returns_list(self):
+    def test_agents_endpoint_returns_campaign_agents(self):
+        queue = QueueFactory.create(campana=self.campana)
+        agente = AgenteProfileFactory.create()
+        QueueMemberFactory.create(member=agente, queue_name=queue)
         url = reverse("email:api:v1:campaign-agents", args=[self.campana.pk])
+
         response = self.client.get(url)
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIsInstance(response.json(), list)
+        self.assertEqual(response.json(), [{
+            "id": agente.id,
+            "name": agente.user.get_full_name() or agente.user.username,
+        }])
 
     def test_report_requires_authentication(self):
         self.client.logout()

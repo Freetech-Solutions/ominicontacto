@@ -300,8 +300,7 @@ class CampaignAgentsAPIView(APIView):
         except Exception:
             # campaign without a queue yet -> no agents to filter by
             members = []
-        for member in members:
-            agente = member.member
+        for agente in members:
             name = ""
             if agente.user_id:
                 name = agente.user.get_full_name() or agente.user.username
