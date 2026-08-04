@@ -19,14 +19,16 @@
             <Image :src="getSafeMediaUrl(message.message.image.url)" width="250" />
           </a>
         </div>
-        <div v-if="message.type==='file'">
-          <a :href="getSafeMediaUrl(message.message.file.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
-            <iframe :src="getSafeMediaUrl(message.message.file.url)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
-          </a>
-        </div>
-        <div v-if="message.type==='document' || message.type==='application'">
-          <a :href="getSafeMediaUrl(message.message.document.url)" style="text-decoration: none; color: inherit;" target="_blank" rel="noopener noreferrer" download>
-            <iframe :src="getSafeMediaUrl(message.message.document.url)" frameBorder="0" scrolling="auto" height="100%" width="100%"></iframe>
+        <div v-if="isDownloadableAttachment(message)">
+          <a
+            :href="getAttachmentUrl(message)"
+            class="attachment-link"
+            target="_blank"
+            rel="noopener noreferrer"
+            download
+          >
+            <i class="pi pi-file mr-2"></i>
+            <span>{{ $t('globals.download') }}</span>
           </a>
         </div>
         <div v-if="message.type==='audio'">
@@ -82,6 +84,14 @@ export default {
     },
     methods: {
         getSafeMediaUrl,
+        isDownloadableAttachment (message) {
+            return ['file', 'document', 'application'].includes(message?.type);
+        },
+        getAttachmentUrl (message) {
+            const content = message?.message || {};
+            const attachment = content.file || content.document || content.application;
+            return getSafeMediaUrl(attachment?.url);
+        },
         getClasses (itsMine) {
             if (itsMine) {
                 return {
@@ -128,5 +138,15 @@ export default {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
+}
+.attachment-link {
+  align-items: center;
+  color: inherit;
+  display: inline-flex;
+  padding: 0.5rem 0;
+  text-decoration: none;
+}
+.attachment-link:hover {
+  text-decoration: underline;
 }
 </style>
