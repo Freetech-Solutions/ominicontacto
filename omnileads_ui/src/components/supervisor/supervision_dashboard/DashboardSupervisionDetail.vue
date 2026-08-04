@@ -225,7 +225,9 @@ export default {
             type: Object,
             default: () => ({
                 whatsappLines: 0,
-                metaLandingPages: 0
+                metaLandingPages: 0,
+                instagramAccounts: 0,
+                emailAccounts: 0
             })
         },
         chartLineIntervalAuth: Object,
@@ -279,14 +281,24 @@ export default {
         resourceMetrics () {
             return [
                 {
-                    label: 'Lineas de Whatsapp',
+                    label: this.$t('views.dashboard_home_page.whatsapp_lines'),
                     value: Number(this.resourceCounts?.whatsappLines || 0),
                     color: '#25D366'
                 },
                 {
-                    label: 'Meta Landing Pages',
+                    label: this.$t('views.dashboard_home_page.meta_landing_pages'),
                     value: Number(this.resourceCounts?.metaLandingPages || 0),
                     color: '#1877F2'
+                },
+                {
+                    label: this.$t('views.dashboard_home_page.instagram_accounts'),
+                    value: Number(this.resourceCounts?.instagramAccounts || 0),
+                    color: '#E1306C'
+                },
+                {
+                    label: this.$t('views.dashboard_home_page.email_accounts'),
+                    value: Number(this.resourceCounts?.emailAccounts || 0),
+                    color: '#6D5DFB'
                 }
             ];
         },

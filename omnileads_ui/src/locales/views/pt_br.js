@@ -2,7 +2,11 @@ export default {
     dashboard_home_page: {
         active_campaign_by_type: 'Campanhas {type} Ativas',
         agent_status: 'Status do agente',
-        call_sumary: 'Resumo da chamada'
+        call_sumary: 'Resumo da chamada',
+        whatsapp_lines: 'Linhas do WhatsApp',
+        meta_landing_pages: 'Landing Pages da Meta',
+        instagram_accounts: 'Contas do Instagram',
+        email_accounts: 'Contas de e-mail'
     },
     add_agents_to_campaign: {
         already_agent_in_campaign: 'O agente já está na campanha',

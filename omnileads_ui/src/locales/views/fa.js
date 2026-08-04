@@ -2,7 +2,11 @@ export default {
     dashboard_home_page: {
         active_campaign_by_type: 'Campañas {type} Activas',
         agent_status: 'وضعیت نماینده',
-        call_sumary: 'خلاصه تماس'
+        call_sumary: 'خلاصه تماس',
+        whatsapp_lines: 'خطوط واتساپ',
+        meta_landing_pages: 'صفحات فرود متا',
+        instagram_accounts: 'حساب‌های اینستاگرام',
+        email_accounts: 'حساب‌های ایمیل'
     },
     add_agents_to_campaign: {
         already_agent_in_campaign: 'این نماینده در حال حاضر در کمپین است',
