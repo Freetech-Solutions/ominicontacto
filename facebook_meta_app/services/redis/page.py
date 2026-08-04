@@ -34,7 +34,7 @@ class StreamDePaginas(object):
     def regenerar_stream(self):
         stream_manager = RedisStreams()
         stream_manager.flush(NOMBRE_STREAM)
-        for page in PaginaMetaFacebook.objects.all():
+        for page in PaginaMetaFacebook.objects_default.all():
             if page.is_active:
                 self.notificar_nueva_page(page)
             else:
