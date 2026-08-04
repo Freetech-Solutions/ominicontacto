@@ -12,8 +12,10 @@ export default {
         call_sumary: 'Call Sumary',
         call_sumary_attended: 'Attended',
         call_sumary_failed: 'Failed',
+        configured_channels: 'Configured channels',
+        voice_lines: 'Voice Lines',
         whatsapp_lines: 'WhatsApp Lines',
-        meta_landing_pages: 'Meta Landing Pages',
+        meta_messenger_accounts: 'Meta Messenger Accounts',
         instagram_accounts: 'Instagram Accounts',
         email_accounts: 'Email Accounts'
     },

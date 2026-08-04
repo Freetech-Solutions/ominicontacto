@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-shell">
-    <div class="dashboard-status-strip">
-      <div class="dashboard-status-cluster">
+    <div class="dashboard-status-header">
+      <div class="dashboard-overview-row">
         <div
           v-for="metric in overviewMetrics"
           :key="metric.label"
@@ -16,18 +16,34 @@
         </div>
       </div>
 
-      <div class="dashboard-status-cluster dashboard-status-cluster--right">
+      <div
+        class="dashboard-channel-row"
+        role="list"
+        :aria-label="$t('views.dashboard_home_page.configured_channels')"
+      >
         <div
           v-for="metric in resourceMetrics"
-          :key="metric.label"
-          class="dashboard-status-item"
+          :key="metric.key"
+          class="dashboard-channel-item"
+          role="listitem"
+          tabindex="0"
+          :aria-label="`${metric.label}: ${metric.value}`"
+          :style="{
+            '--channel-color': metric.color,
+            '--channel-tint': metric.tint
+          }"
         >
+          <span class="dashboard-channel-icon-wrap">
+            <i
+              :class="['dashboard-channel-icon', metric.icon]"
+              aria-hidden="true"
+            ></i>
+          </span>
+          <strong class="dashboard-channel-value">{{ metric.value }}</strong>
           <span
-            class="dashboard-status-dot"
-            :style="{ background: metric.color }"
-          ></span>
-          <span class="dashboard-status-label">{{ metric.label }}</span>
-          <strong class="dashboard-status-value">{{ metric.value }}</strong>
+            class="dashboard-channel-tooltip"
+            role="tooltip"
+          >{{ metric.label }}</span>
         </div>
       </div>
     </div>
@@ -224,8 +240,9 @@ export default {
         resourceCounts: {
             type: Object,
             default: () => ({
+                voiceLines: 0,
                 whatsappLines: 0,
-                metaLandingPages: 0,
+                metaMessengerAccounts: 0,
                 instagramAccounts: 0,
                 emailAccounts: 0
             })
@@ -281,24 +298,44 @@ export default {
         resourceMetrics () {
             return [
                 {
+                    key: 'voice',
+                    label: this.$t('views.dashboard_home_page.voice_lines'),
+                    value: Number(this.resourceCounts?.voiceLines || 0),
+                    color: '#0EA5E9',
+                    tint: 'rgba(14, 165, 233, 0.13)',
+                    icon: 'pi pi-phone'
+                },
+                {
+                    key: 'whatsapp',
                     label: this.$t('views.dashboard_home_page.whatsapp_lines'),
                     value: Number(this.resourceCounts?.whatsappLines || 0),
-                    color: '#25D366'
+                    color: '#16A765',
+                    tint: 'rgba(22, 167, 101, 0.13)',
+                    icon: 'pi pi-whatsapp'
                 },
                 {
-                    label: this.$t('views.dashboard_home_page.meta_landing_pages'),
-                    value: Number(this.resourceCounts?.metaLandingPages || 0),
-                    color: '#1877F2'
+                    key: 'messenger',
+                    label: this.$t('views.dashboard_home_page.meta_messenger_accounts'),
+                    value: Number(this.resourceCounts?.metaMessengerAccounts || 0),
+                    color: '#1877F2',
+                    tint: 'rgba(24, 119, 242, 0.13)',
+                    icon: 'pi pi-facebook'
                 },
                 {
+                    key: 'instagram',
                     label: this.$t('views.dashboard_home_page.instagram_accounts'),
                     value: Number(this.resourceCounts?.instagramAccounts || 0),
-                    color: '#E1306C'
+                    color: '#D62976',
+                    tint: 'rgba(214, 41, 118, 0.13)',
+                    icon: 'pi pi-instagram'
                 },
                 {
+                    key: 'email',
                     label: this.$t('views.dashboard_home_page.email_accounts'),
                     value: Number(this.resourceCounts?.emailAccounts || 0),
-                    color: '#6D5DFB'
+                    color: '#6D5DFB',
+                    tint: 'rgba(109, 93, 251, 0.13)',
+                    icon: 'pi pi-envelope'
                 }
             ];
         },
@@ -388,24 +425,26 @@ html.dark-mode .dashboard-shell {
   margin-left: 0;
 }
 
-.dashboard-status-strip {
+.dashboard-status-header {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
+  flex-direction: column;
+  gap: 0.8rem;
   margin-bottom: 1.5rem;
 }
 
-.dashboard-status-cluster {
+.dashboard-overview-row {
   display: flex;
   flex-wrap: wrap;
   gap: 0.75rem;
 }
 
-.dashboard-status-cluster--right {
-  margin-left: auto;
+.dashboard-channel-row {
+  display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: 0.55rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--dashboard-border);
 }
 
 .dashboard-status-item {
@@ -437,10 +476,120 @@ html.dark-mode .dashboard-shell {
   color: var(--dashboard-text);
 }
 
-@media (max-width: 960px) {
-  .dashboard-status-cluster--right {
-    margin-left: 0;
+.dashboard-channel-item {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  min-width: 4.35rem;
+  min-height: 3.25rem;
+  padding: 0.42rem 0.65rem 0.42rem 0.45rem;
+  border-radius: 18px;
+  background: var(--dashboard-surface);
+  border: 1px solid var(--dashboard-border);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.07);
+  cursor: help;
+  outline: none;
+  transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.dashboard-channel-item:hover,
+.dashboard-channel-item:focus-visible {
+  z-index: 5;
+  transform: translateY(-2px);
+  border-color: var(--channel-color);
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-channel-item:focus-visible {
+  box-shadow: 0 0 0 3px var(--channel-tint), 0 14px 30px rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-channel-icon-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 2.15rem;
+  border-radius: 12px;
+  color: var(--channel-color);
+  background: var(--channel-tint);
+}
+
+.dashboard-channel-icon {
+  font-size: 1.05rem;
+}
+
+.dashboard-channel-value {
+  min-width: 1ch;
+  color: var(--dashboard-text);
+  font-size: 1.05rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.dashboard-channel-tooltip {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  left: 50%;
+  z-index: 10;
+  width: max-content;
+  max-width: 15rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: 9px;
+  color: #ffffff;
+  background: #162033;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.25;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, -0.25rem);
+  transition: opacity 140ms ease, transform 140ms ease;
+}
+
+.dashboard-channel-item:last-child .dashboard-channel-tooltip {
+  right: 0;
+  left: auto;
+  transform: translateY(-0.25rem);
+}
+
+.dashboard-channel-item:hover .dashboard-channel-tooltip,
+.dashboard-channel-item:focus-visible .dashboard-channel-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.dashboard-channel-item:last-child:hover .dashboard-channel-tooltip,
+.dashboard-channel-item:last-child:focus-visible .dashboard-channel-tooltip {
+  transform: translateY(0);
+}
+
+html.dark-mode .dashboard-channel-item {
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.22);
+}
+
+html.dark-mode .dashboard-channel-tooltip {
+  color: #162033;
+  background: #f5f7fb;
+}
+
+@media (max-width: 640px) {
+  .dashboard-overview-row,
+  .dashboard-channel-row {
     justify-content: flex-start;
+  }
+
+  .dashboard-status-item {
+    flex: 1 1 auto;
+  }
+
+  .dashboard-channel-item {
+    min-width: 4rem;
   }
 }
 

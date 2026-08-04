@@ -3,8 +3,10 @@ export default {
         active_campaign_by_type: 'Campanhas {type} Ativas',
         agent_status: 'Status do agente',
         call_sumary: 'Resumo da chamada',
+        configured_channels: 'Canais configurados',
+        voice_lines: 'Linhas de Voz',
         whatsapp_lines: 'Linhas do WhatsApp',
-        meta_landing_pages: 'Landing Pages da Meta',
+        meta_messenger_accounts: 'Contas do Meta Messenger',
         instagram_accounts: 'Contas do Instagram',
         email_accounts: 'Contas de e-mail'
     },

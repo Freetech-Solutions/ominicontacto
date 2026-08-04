@@ -3,8 +3,10 @@ export default {
         active_campaign_by_type: 'Campañas {type} Activas',
         agent_status: 'وضعیت نماینده',
         call_sumary: 'خلاصه تماس',
+        configured_channels: 'کانال‌های پیکربندی‌شده',
+        voice_lines: 'خطوط صوتی',
         whatsapp_lines: 'خطوط واتساپ',
-        meta_landing_pages: 'صفحات فرود متا',
+        meta_messenger_accounts: 'حساب‌های متا مسنجر',
         instagram_accounts: 'حساب‌های اینستاگرام',
         email_accounts: 'حساب‌های ایمیل'
     },

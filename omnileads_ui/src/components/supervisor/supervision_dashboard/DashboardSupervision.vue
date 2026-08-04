@@ -35,6 +35,7 @@ import LineService from '@/services/supervisor/whatsapp/line_service';
 import PageService from '@/services/supervisor/facebook/page_service';
 import InstagramAccountService from '@/services/supervisor/instagram/account_service';
 import EmailAccountService from '@/services/supervisor/email/account_service';
+import OutboundRouteService from '@/services/supervisor/outbound_route_service';
 
 export default {
     components: {
@@ -45,6 +46,7 @@ export default {
         const pageService = new PageService();
         const instagramAccountService = new InstagramAccountService();
         const emailAccountService = new EmailAccountService();
+        const outboundRouteService = new OutboundRouteService();
 
         function getCollectionSize (response) {
             const items = Array.isArray(response) ? response : response?.data;
@@ -53,15 +55,17 @@ export default {
 
         async function fetchResourceCounts () {
             try {
-                const [linesResponse, pagesResponse, instagramResponse, emailResponse] = await Promise.all([
+                const [voiceResponse, linesResponse, pagesResponse, instagramResponse, emailResponse] = await Promise.all([
+                    outboundRouteService.sipTrunks(),
                     lineService.list(),
                     pageService.list(),
                     instagramAccountService.list(),
                     emailAccountService.list()
                 ]);
                 resourceCounts.value = {
+                    voiceLines: getCollectionSize(voiceResponse?.sipTrunks),
                     whatsappLines: getCollectionSize(linesResponse),
-                    metaLandingPages: getCollectionSize(pagesResponse),
+                    metaMessengerAccounts: getCollectionSize(pagesResponse),
                     instagramAccounts: getCollectionSize(instagramResponse),
                     emailAccounts: getCollectionSize(emailResponse)
                 };
@@ -69,8 +73,9 @@ export default {
                 console.error('Error al obtener los contadores del dashboard');
                 console.error(error);
                 resourceCounts.value = {
+                    voiceLines: 0,
                     whatsappLines: 0,
-                    metaLandingPages: 0,
+                    metaMessengerAccounts: 0,
                     instagramAccounts: 0,
                     emailAccounts: 0
                 };
@@ -171,8 +176,9 @@ export default {
         const loadingData = ref(false);
         const reportData = ref({ data: null });
         const resourceCounts = ref({
+            voiceLines: 0,
             whatsappLines: 0,
-            metaLandingPages: 0,
+            metaMessengerAccounts: 0,
             instagramAccounts: 0,
             emailAccounts: 0
         });
