@@ -11,6 +11,7 @@ export default {
                 access_token: page.access_token,
                 verify_token: page.verify_token,
                 app_id: page.app_id,
+                app_secret: page.app_secret || null,
                 page_id: page.page_id,
                 destination: {
                     data: page.destination ? page.destination.data : null,
@@ -31,6 +32,7 @@ export default {
                 access_token: null,
                 verify_token: '',
                 app_id: '',
+                app_secret: null,
                 page_id: '',
                 destination: {
                     data: null,

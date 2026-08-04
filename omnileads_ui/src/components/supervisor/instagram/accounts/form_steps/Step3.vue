@@ -661,6 +661,7 @@ export default {
                 access_token: this.supInstagramAccount.access_token,
                 verify_token: this.supInstagramAccount.verify_token,
                 app_id: this.supInstagramAccount.app_id,
+                app_secret: this.supInstagramAccount.app_secret,
                 page_id: this.supInstagramAccount.page_id,
                 ig_user_id: this.supInstagramAccount.ig_user_id,
                 username: this.supInstagramAccount.username,

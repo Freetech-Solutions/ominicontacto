@@ -22,6 +22,7 @@ from rest_framework.permissions import AllowAny
 from ominicontacto_app.services.redis.redis_streams import RedisStreams
 
 from facebook_meta_app.models import PaginaMetaFacebook
+from orquestador_app.meta_webhook_signature import verify_meta_webhook_signature
 
 
 class WebhookFacebookMessengerView(APIView):
@@ -50,6 +51,12 @@ class WebhookFacebookMessengerView(APIView):
             return HttpResponse(challenge, status=status.HTTP_403_FORBIDDEN)
 
     def post(self, request, app_id):
+        pagina = PaginaMetaFacebook.objects.filter(app_id=app_id).first()
+        app_secret = pagina.app_secret if pagina else None
+        if not verify_meta_webhook_signature(
+                request, app_secret, app_id, 'Facebook'):
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
+
         stream_name = 'facebook_meta_webhook_page_{}'.format(app_id)
         self.redis_stream.write_stream(stream_name, request.body, max_stream_length=100000)
         return HttpResponse(status=status.HTTP_200_OK)

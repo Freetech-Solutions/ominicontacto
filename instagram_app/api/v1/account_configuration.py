@@ -44,6 +44,7 @@ class InstagramAccountSerializer(serializers.Serializer):
     access_token = serializers.CharField()
     verify_token = serializers.CharField()
     app_id = serializers.CharField()
+    app_secret = serializers.CharField(allow_blank=True, allow_null=True, required=False)
     page_id = serializers.CharField()
     ig_user_id = serializers.CharField()
     username = serializers.CharField()
@@ -305,8 +306,8 @@ class InstagramAccountCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = CuentaInstagram
         fields = [
-            'name', 'description', 'access_token', 'verify_token', 'app_id', 'page_id',
-            'ig_user_id', 'username', 'schedule', 'campaign', 'welcome_message',
+            'name', 'description', 'access_token', 'verify_token', 'app_id', 'app_secret',
+            'page_id', 'ig_user_id', 'username', 'schedule', 'campaign', 'welcome_message',
             'goodbye_message', 'out_of_hours_message', 'is_active',
         ]
 

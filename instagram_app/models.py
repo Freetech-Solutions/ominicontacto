@@ -75,6 +75,7 @@ class CuentaInstagram(models.Model):
     access_token = models.CharField(max_length=500)
     verify_token = models.CharField(max_length=255)
     app_id = models.CharField(max_length=255)
+    app_secret = models.CharField(max_length=255, blank=True, null=True)
     page_id = models.CharField(max_length=255)
     ig_user_id = models.CharField(max_length=255)
     username = models.CharField(max_length=255, blank=True, default="")
