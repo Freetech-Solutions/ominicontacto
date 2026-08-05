@@ -37,8 +37,8 @@ from ._utils import PROTOCOL_IMAP_WITH_TLS
 log = logging.getLogger(__name__)
 
 
-CHUNKS_SIZE = 25
-TIMEOUT = IMAP4.TIMEOUT_SECONDS
+CHUNKS_SIZE = 10
+TIMEOUT = 60.0
 
 
 try:
@@ -147,7 +147,8 @@ async def idle_cooldown(client: IMAP4, account: "models.Account"):
                         return {k: int(v) for k, v in match.groupdict().items()}
         finally:
             client.idle_done()
-            await asyncio.wait_for(task, 1)
+            timeout = account.settings["inbound"].get("idle_done_timeout", client.timeout)
+            await asyncio.wait_for(task, timeout)
 
 
 async def login(client: IMAP4, account: "models.Account"):
@@ -166,3 +167,10 @@ async def login(client: IMAP4, account: "models.Account"):
 
 async def logout(client: IMAP4):
     await client.logout()
+
+
+def close(client: IMAP4):
+    protocol = getattr(client, "protocol", None)
+    transport = getattr(protocol, "transport", None)
+    if transport is not None:
+        transport.close()
