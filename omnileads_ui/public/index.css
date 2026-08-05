@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 :root {
   --surface-a:#ffffff;
   --surface-b:#f8f9fa;
@@ -9,7 +10,7 @@
   --text-color-secondary:#6c757d;
   --primary-color:var(--primary-color, #F71883);
   --primary-color-text:#ffffff;
-  --font-family:-apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Helvetica, Arial, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol;
+  --font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
   --surface-0: #ffffff;
   --surface-50: #FAFAFA;
   --surface-100: #F5F5F5;
@@ -49,8 +50,8 @@
 }
 
 .p-component {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-size: 1rem;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.875rem;
   font-weight: normal;
 }
 
@@ -76,8 +77,8 @@
 }
 
 .p-link {
-  font-size: 1rem;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 0.875rem;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   border-radius: 3px;
 }
 .p-link:focus {
@@ -236,8 +237,8 @@
   padding: 0.25rem 0;
 }
 .p-autocomplete .p-autocomplete-multiple-container .p-autocomplete-input-token input {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-size: 1rem;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.875rem;
   color: #495057;
   padding: 0;
   margin: 0;
@@ -360,7 +361,7 @@
   margin-right: 0.5rem;
 }
 .p-datepicker table {
-  font-size: 1rem;
+  font-size: 0.875rem;
   margin: 0.5rem 0;
 }
 .p-datepicker table th {
@@ -673,8 +674,8 @@
   padding: 0.25rem 0;
 }
 .p-chips .p-chips-multiple-container .p-chips-input-token input {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-  font-size: 1rem;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.875rem;
   color: #495057;
   padding: 0;
   margin: 0;
@@ -1031,7 +1032,7 @@
 }
 
 .p-inputtext {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 1rem;
   color: #495057;
   background: #ffffff;
@@ -1639,7 +1640,7 @@
   background: var(--primary-color, #F71883);
   border: 1px solid var(--primary-color, #F71883);
   padding: 0.5rem 1rem;
-  font-size: 1rem;
+  font-size: 0.875rem;
   transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
   border-radius: 3px;
 }
@@ -1725,9 +1726,9 @@
 }
 .p-button .p-badge {
   margin-left: 0.5rem;
-  min-width: 1rem;
-  height: 1rem;
-  line-height: 1rem;
+  min-width: 0.875rem;
+  height: 0.875rem;
+  line-height: 0.875rem;
   color: var(--primary-color, #F71883);
   background-color: #ffffff;
 }
@@ -1750,14 +1751,14 @@
   height: 2.357rem;
 }
 .p-button.p-button-sm {
-  font-size: 0.875rem;
+  font-size: 0.765625rem;
   padding: 0.4375rem 0.875rem;
 }
 .p-button.p-button-sm .p-button-icon {
   font-size: 0.875rem;
 }
 .p-button.p-button-lg {
-  font-size: 1.25rem;
+  font-size: 1.09375rem;
   padding: 0.625rem 1.25rem;
 }
 .p-button.p-button-lg .p-button-icon {
@@ -2637,7 +2638,7 @@
   color: #ffffff;
   background: var(--primary-color, #F71883);
   border: 1px solid var(--primary-color, #F71883);
-  font-size: 1rem;
+  font-size: 0.875rem;
   transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
   border-radius: 3px;
   display: flex;
@@ -2801,7 +2802,7 @@
   color: #ffffff;
   background: var(--primary-color, #F71883);
   border: 1px solid var(--primary-color, #F71883);
-  font-size: 1rem;
+  font-size: 0.875rem;
   transition: background-color 0.2s, color 0.2s, border-color 0.2s, box-shadow 0.2s;
   border-radius: 3px;
 }
@@ -5384,8 +5385,8 @@
   padding: 1rem;
 }
 .p-terminal .p-terminal-input {
-  font-size: 1rem;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 0.875rem;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 .p-carousel .p-carousel-indicators .p-carousel-indicator.p-highlight button {

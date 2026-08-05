@@ -87,15 +87,27 @@ export default {
 </script>
 
 <style>
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
 /* Global Premium Layout & Typography */
 #app {
-  font-family: 'Asap', sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.5;
   font-weight: unset;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 .swal2-popup {
-  font-family: 'Asap', sans-serif;
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-weight: unset;
+}
+
+.p-component,
+.p-link {
+  font-family: inherit;
+  font-size: 0.875rem;
 }
 
 /* Global PrimeVue Structural Overrides (Both Light/Dark) */
@@ -148,7 +160,24 @@ export default {
 }
 
 h1, h2, h3, h4 {
-    font-weight: unset;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+h1 {
+    font-size: 1.25rem;
+}
+
+h2 {
+    font-size: 1.125rem;
+}
+
+h3 {
+    font-size: 1rem;
+}
+
+h4 {
+    font-size: 0.875rem;
 }
 
 /* --- Dark Mode Variables and Overrides --- */
