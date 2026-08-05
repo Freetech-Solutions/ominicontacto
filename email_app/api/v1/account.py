@@ -35,7 +35,15 @@ from ...crypter import encrypt
 from ..permissions import ViewPermission
 
 
-class AssignedCampaignMixin:
+class AssignedCampaignMixin(serializers.Serializer):
+    """Expone la campaña que tiene la cuenta asignada como canalidad email.
+
+    Hereda de ``Serializer`` a propósito: ``SerializerMetaclass`` solo recolecta
+    los campos declarados en las bases que tienen ``_declared_fields``, así que
+    en un mixin plano el ``SerializerMethodField`` se descarta en silencio y la
+    respuesta sale sin la clave ``assigned_campaign``.
+    """
+
     assigned_campaign = serializers.SerializerMethodField()
 
     def get_assigned_campaign(self, account):
