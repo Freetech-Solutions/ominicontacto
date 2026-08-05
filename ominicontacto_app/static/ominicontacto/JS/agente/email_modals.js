@@ -88,6 +88,7 @@ const setEmailEventListeners = () => {
         $('#emailReadingBackdrop').addClass('hidden');
         $('#wrapperWhatsapp').addClass('hidden');
         $('#wrapperFacebook').addClass('hidden');
+        $('#wrapperInstagram').addClass('hidden');
         $('#wrapperWebphone').removeClass('active');
         clearEmailUnreadBadges();
     });
