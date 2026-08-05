@@ -21,6 +21,17 @@ class QuerySet(models.QuerySet):
     pass
 
 
+def _assign_open_conversations_to_campaign(campaign_account):
+    from .conversation import ConversacionEmail
+
+    return ConversacionEmail.objects.filter(
+        account=campaign_account.account,
+        campana__isnull=True,
+        agent__isnull=True,
+        status__in=ConversacionEmail.GENERAL_INBOX_QUEUED,
+    ).update(campana=campaign_account.campaign)
+
+
 class CampaignAccount(models.Model):
     campaign = models.OneToOneField(
         to="ominicontacto_app.Campana",
@@ -35,3 +46,7 @@ class CampaignAccount(models.Model):
     service_level = models.IntegerField(default=90)
 
     objects = QuerySet.as_manager()
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        _assign_open_conversations_to_campaign(self)

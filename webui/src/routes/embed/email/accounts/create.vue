@@ -83,7 +83,7 @@ const api = mande("/email/api/v1/accounts")
 const cookies = useCookies(["csrftoken"])
 const router = useRouter()
 
-function onSignatureImage(event: Event, model: { $value: string }) {
+function onSignatureImage(event: Event, model: { $value: string | undefined }) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   const reader = new FileReader()

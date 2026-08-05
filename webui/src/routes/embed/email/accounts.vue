@@ -8,6 +8,11 @@ type Account = {
   id: number
   name: string
   active: boolean
+  assigned_campaign: {
+    id: number
+    name: string
+    display: string
+  } | null
   messages: number
   test: TestMutationData | null | undefined
 }
@@ -304,8 +309,19 @@ function handleAccountTest(account: Account, open: boolean) {
                     <label v-bind:for="`it-${account.id}-cb`">{{ account.name }}</label>
                   </ItemTitle>
                   <ItemDescription>
-                    {{ account.messages }}
-                    {{ "messages" }}
+                    <span>
+                      {{ account.messages }}
+                      {{ "messages" }}
+                    </span>
+                    <span class="block text-xs">
+                      <template v-if="account.assigned_campaign">
+                        {{ "Canalidad email asignada a campaña" }}
+                        {{ account.assigned_campaign.display }}
+                      </template>
+                      <template v-else>
+                        {{ "Canalidad email sin campaña asignada" }}
+                      </template>
+                    </span>
                   </ItemDescription>
                 </ItemContent>
                 <ItemActions>

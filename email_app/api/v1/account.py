@@ -35,6 +35,22 @@ from ...crypter import encrypt
 from ..permissions import ViewPermission
 
 
+class AssignedCampaignMixin:
+    assigned_campaign = serializers.SerializerMethodField()
+
+    def get_assigned_campaign(self, account):
+        campaign_accounts = list(account.campaign_accounts.all())
+        if not campaign_accounts:
+            return None
+        campaign_account = campaign_accounts[0]
+        campaign = campaign_account.campaign
+        return {
+            "id": campaign.pk,
+            "name": campaign.nombre,
+            "display": "{} - {}".format(campaign.pk, campaign.nombre),
+        }
+
+
 def validate_email_address(value):
     name, email = parseaddr(value)
     EmailValidator()(email)
@@ -131,7 +147,7 @@ class OutboundSerializer(serializers.Serializer):
         return value
 
 
-class ListSerializer(serializers.Serializer):
+class ListSerializer(AssignedCampaignMixin, serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField()
     active = serializers.BooleanField()
@@ -145,6 +161,7 @@ class ListSerializer(serializers.Serializer):
                 "name",
                 "active",
             )
+            .prefetch_related("campaign_accounts__campaign")
             .annotate(
                 messages=Count("message"),
             )
@@ -153,7 +170,7 @@ class ListSerializer(serializers.Serializer):
         return cls(instance=queryset, many=True)
 
 
-class CreateSerializer(serializers.Serializer):
+class CreateSerializer(AssignedCampaignMixin, serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(max_length=100)
     active = serializers.BooleanField()
@@ -175,7 +192,7 @@ class CreateSerializer(serializers.Serializer):
         return instance
 
 
-class RetrieveSerializer(serializers.Serializer):
+class RetrieveSerializer(AssignedCampaignMixin, serializers.Serializer):
     id = serializers.IntegerField()
     name = serializers.CharField()
     active = serializers.BooleanField()
@@ -189,12 +206,12 @@ class RetrieveSerializer(serializers.Serializer):
             "name",
             "active",
             "settings",
-        )
+        ).prefetch_related("campaign_accounts__campaign")
         instance = queryset.get(pk=pk)
         return cls(instance=instance)
 
 
-class UpdateSerializer(serializers.Serializer):
+class UpdateSerializer(AssignedCampaignMixin, serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(max_length=100)
     active = serializers.BooleanField()
@@ -208,7 +225,7 @@ class UpdateSerializer(serializers.Serializer):
             "name",
             "active",
             "settings",
-        )
+        ).prefetch_related("campaign_accounts__campaign")
         instance = queryset.get(pk=pk)
         return cls(instance=instance, data=data, partial=True)
 
