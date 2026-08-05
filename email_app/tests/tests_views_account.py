@@ -21,6 +21,7 @@ from django.urls import reverse
 from rest_framework import status
 
 from email_app import models
+from ominicontacto_app.forms.base import CampaignEmailAccountForm
 from ominicontacto_app.models import User
 from ominicontacto_app.tests.factories import CampanaFactory
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
@@ -142,6 +143,88 @@ class AccountABMTest(OMLBaseTest):
         self.assertIn(campana.nombre, response.json()["detail"])
         # La cuenta NO debe haber sido eliminada.
         self.assertTrue(models.Account.objects.filter(pk=account.pk).exists())
+
+    def test_account_list_includes_assigned_campaign(self):
+        account = self._create_account("cuenta-campana")
+        campana = CampanaFactory.create(nombre="EmailCamp")
+        models.CampaignAccount.objects.create(campaign=campana, account=account)
+
+        response = self.client.get(reverse("email:api:v1:account-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        row = next(item for item in response.json() if item["id"] == account.pk)
+        self.assertEqual(row["assigned_campaign"]["id"], campana.pk)
+        self.assertEqual(row["assigned_campaign"]["name"], campana.nombre)
+        self.assertEqual(
+            row["assigned_campaign"]["display"],
+            "{} - {}".format(campana.pk, campana.nombre),
+        )
+
+    def test_account_retrieve_includes_assigned_campaign(self):
+        account = self._create_account("cuenta-detalle")
+        campana = CampanaFactory.create(nombre="EmailCamp")
+        models.CampaignAccount.objects.create(campaign=campana, account=account)
+
+        response = self.client.get(
+            reverse("email:api:v1:account-detail", args=[account.pk])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.json()["assigned_campaign"]["id"], campana.pk)
+
+    def test_campaign_email_form_rejects_account_used_by_another_campaign(self):
+        account = self._create_account("cuenta-en-uso")
+        campana = CampanaFactory.create(nombre="Campana Original")
+        models.CampaignAccount.objects.create(campaign=campana, account=account)
+
+        form = CampaignEmailAccountForm(data={
+            "account": account.pk,
+            "service_level": 90,
+        })
+
+        self.assertFalse(form.is_valid())
+        error = form.errors["account"][0]
+        self.assertIn("{} - {}".format(campana.pk, campana.nombre), error)
+        self.assertIn("esta cuenta ya está en uso", error)
+
+    def test_campaign_email_form_allows_current_campaign_account(self):
+        account = self._create_account("cuenta-propia")
+        campana = CampanaFactory.create(nombre="Campana Propia")
+        campaign_account = models.CampaignAccount.objects.create(
+            campaign=campana, account=account
+        )
+
+        form = CampaignEmailAccountForm(
+            instance=campaign_account,
+            data={"account": account.pk, "service_level": 90},
+        )
+
+        self.assertTrue(form.is_valid())
+
+    def test_campaign_account_save_assigns_open_null_campaign_conversations(self):
+        account = self._create_account("cuenta-backfill")
+        campana = CampanaFactory.create(nombre="Campana Backfill")
+        pending = models.ConversacionEmail.objects.create(
+            account=account,
+            campana=None,
+            agent=None,
+            status=models.ConversacionEmail.STATUS_NEW,
+            thread_key="<new@example.com>",
+        )
+        closed = models.ConversacionEmail.objects.create(
+            account=account,
+            campana=None,
+            agent=None,
+            status=models.ConversacionEmail.STATUS_CLOSED,
+            thread_key="<closed@example.com>",
+        )
+
+        models.CampaignAccount.objects.create(campaign=campana, account=account)
+
+        pending.refresh_from_db()
+        closed.refresh_from_db()
+        self.assertEqual(pending.campana_id, campana.pk)
+        self.assertIsNone(closed.campana_id)
 
     # --- Permisos ----------------------------------------------------------
 

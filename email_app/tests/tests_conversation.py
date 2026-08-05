@@ -120,6 +120,23 @@ class EmailAgentChannelTest(OMLBaseTest):
         self.assertEqual(conv.status, models.ConversacionEmail.STATUS_REOPENED)
         self.assertIsNone(conv.agent_id)  # back to the general inbox
 
+    def test_ingest_assigns_campaign_to_legacy_null_campaign_conversation(self):
+        conv = self._conversation(
+            campana=None, agent=None, status=models.ConversacionEmail.STATUS_ANSWERED,
+            thread_key="<legacy-null@example.com>")
+        reply = self._inbound_message(
+            "<reply3@example.com>", references=["<legacy-null@example.com>"],
+            stamp="legacy-null")
+
+        conv2, created = ingest_inbound_message(reply)
+
+        self.assertFalse(created)
+        self.assertEqual(conv2.id, conv.id)
+        conv.refresh_from_db()
+        self.assertEqual(conv.status, models.ConversacionEmail.STATUS_REOPENED)
+        self.assertEqual(conv.campana_id, self.campana.id)
+        self.assertIsNone(conv.agent_id)
+
     # --- Inbox listing (Asignado / Inbox General) -------------------------
 
     def test_list_assigned_tab(self):

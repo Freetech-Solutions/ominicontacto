@@ -2727,6 +2727,29 @@ class CampaignEmailAccountForm(forms.ModelForm):
             'service_level': forms.NumberInput(attrs={'class': 'form-control'}),
         }
 
+    def clean_account(self):
+        account = self.cleaned_data.get('account')
+        if not account:
+            return account
+        usage = CampaignEmailAccount.objects.filter(account=account).select_related(
+            'campaign'
+        )
+        if self.instance.pk:
+            usage = usage.exclude(pk=self.instance.pk)
+        usage = usage.first()
+        if usage is not None:
+            campaign = usage.campaign
+            raise forms.ValidationError(
+                _(
+                    'esta cuenta ya está en uso en campaña %(campaign)s. '
+                    'Por favor desactive la canalidad en dicha campaña para '
+                    'proceder a su reasignación'
+                ),
+                code='account_already_in_use',
+                params={'campaign': '{} - {}'.format(campaign.pk, campaign.nombre)},
+            )
+        return account
+
 
 class CustomBaseDatosContactoForm(forms.ModelForm):
 

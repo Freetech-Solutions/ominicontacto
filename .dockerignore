@@ -15,6 +15,10 @@ __pycache__/
 venv/
 env/
 
+# Dependencias JS: cada stage las instala por su cuenta.
+# Copiarlas rompe el build de webui (pnpm intenta purgar node_modules sin TTY).
+**/node_modules
+
 # Archivos de configuración de IDEs y linters
 .vscode/
 .idea/
