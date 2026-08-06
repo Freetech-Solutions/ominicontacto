@@ -9,6 +9,7 @@ PRE-2.6.6
 - oml-3173 Email Channel.
 - oml-3354 Whatsapp Interactive Menu UX Flow in full screen.
 - oml-3353 Premium Reports: New metric: Agent response time.
+- oml-3390 Premium Reports: chat center activity for Meta/Instagram channels.
 
 ## Changed
 
@@ -28,6 +29,10 @@ PRE-2.6.6
 - oml-3342 Configure Pause on first login as a Group option.
 - oml-3365 Prevent code injections in VueJs frontends.
 - oml-3368 Static code issues corrections.
+- oml-3366 Verify digital signature in Instagram and Facebook Messenger webhooks.
+- oml-3374 Make Facebook landing page optional.
+- oml-3389 Optimize headlines/titles sizes.
+- oml-3377 Fix meta download media automatically
 
 ## Fixed
 
@@ -55,3 +60,4 @@ PRE-2.6.6
   configuracion_telefonia_app: 0026
   instagram_app: 0001
   email_app: 0001
+  facebook_meta_app: 0002
