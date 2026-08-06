@@ -60,7 +60,7 @@ class ReporteCentroContactoFormTest(SimpleTestCase):
         self.fecha = '01/01/2025-01/01/2025'
 
     def _build_form(self, campanas=None, incluir_finalizadas=False, grupos=None, agentes=None,
-                    contacto_id=None, address=None, fecha=None):
+                    campana_id=None, contacto_id=None, address=None, fecha=None):
         data = {
             'fecha': fecha if fecha is not None else self.fecha,
             'campana': campanas or [],
@@ -69,6 +69,8 @@ class ReporteCentroContactoFormTest(SimpleTestCase):
             data['grupo_agente'] = grupos
         if agentes is not None:
             data['agente'] = agentes
+        if campana_id is not None:
+            data['campana_id'] = campana_id
         if contacto_id is not None:
             data['contacto_id'] = contacto_id
         if address is not None:
@@ -207,6 +209,16 @@ class ReporteCentroContactoFormTest(SimpleTestCase):
         form = self._build_form(agentes=['999'])
         self.assertFalse(form.is_valid())
         self.assertIn('agente', form.errors)
+
+    def test_campana_id_is_valid_integer(self):
+        form = self._build_form(campana_id='123')
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data['campana_id'], 123)
+
+    def test_campana_id_must_be_numeric(self):
+        form = self._build_form(campana_id='abc')
+        self.assertFalse(form.is_valid())
+        self.assertIn('campana_id', form.errors)
 
     def test_contact_id_is_valid_integer(self):
         form = self._build_form(contacto_id='12345')

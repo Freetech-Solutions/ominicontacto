@@ -143,6 +143,12 @@ class ReporteCentroContactoForm(forms.Form):
         widget=forms.SelectMultiple(attrs={'class': 'form-control'}),
         label=_('Agentes')
     )
+    campana_id = forms.IntegerField(
+        required=False,
+        min_value=0,
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'placeholder': _('Ej: 123')}),
+        label=_('ID campana')
+    )
     contacto_id = forms.IntegerField(
         required=False,
         min_value=0,

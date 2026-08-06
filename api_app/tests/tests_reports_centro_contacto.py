@@ -464,6 +464,53 @@ class ReporteCentroContactoFormViewTest(OMLBaseTest):
         self.assertFalse(mock_kpis.called)
 
     @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
+    def test_campana_id_is_forwarded_to_kpis(self, mock_kpis):
+        mock_kpis.return_value = MOCK_KPIS
+        response = self._post_form(
+            self.admin_user.username,
+            {
+                'fecha': self.fecha,
+                'campana': [ReporteCentroContactoForm.TODAS_LAS_CAMPANAS_VALUE],
+                'campana_id': str(self.campana_activa.id),
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(mock_kpis.call_args[1]['campaign_id'], self.campana_activa.id)
+        self.assertEqual(mock_kpis.call_args[1]['allowed_campaigns'], [self.campana_activa.id])
+
+    @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
+    def test_campana_id_invalid_shows_error_and_does_not_call_kpis(self, mock_kpis):
+        mock_kpis.return_value = MOCK_KPIS
+        response = self._post_form(
+            self.admin_user.username,
+            {
+                'fecha': self.fecha,
+                'campana': [ReporteCentroContactoForm.TODAS_LAS_CAMPANAS_VALUE],
+                'campana_id': 'abc',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertIn('campana_id', response.context['form'].errors)
+        self.assertFalse(mock_kpis.called)
+
+    @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
+    def test_campana_id_out_of_scope_shows_error(self, mock_kpis):
+        mock_kpis.return_value = MOCK_KPIS
+        response = self._post_form(
+            self.admin_user.username,
+            {
+                'fecha': self.fecha,
+                'campana': [ReporteCentroContactoForm.TODAS_LAS_CAMPANAS_VALUE],
+                'campana_id': '999999',
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context['form'].is_valid())
+        self.assertIn('campana_id', response.context['form'].errors)
+        self.assertFalse(mock_kpis.called)
+
+    @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
     def test_contact_id_is_forwarded_to_kpis(self, mock_kpis):
         mock_kpis.return_value = MOCK_KPIS
         response = self._post_form(

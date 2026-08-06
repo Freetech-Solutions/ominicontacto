@@ -392,7 +392,7 @@ class Command(BaseCommand):
 
         # 1) Troncal para la Ruta saliente (PBX emulator)
         caller_id_saliente = '01177660010'
-        remote_host_saliente = 'pbxemulator:5070'
+        remote_host_saliente = 'kamailio-itsp:5060'
         text_config_ruta_saliente = (
             "endpoint/from_user=" + caller_id_saliente + "\n"
             "remote_hosts=" + remote_host_saliente + "\n"        
@@ -412,7 +412,7 @@ class Command(BaseCommand):
         remote_host_voicebot = 'pbxemulator:5070'
         text_config_voicebot = (
             "endpoint/from_user=" + caller_id_saliente + "\n"
-            "remote_hosts=" + remote_host_saliente + "\n"        
+            "remote_hosts=" + remote_host_voicebot + "\n"
             "outbound_auth/username=" + caller_id_saliente + "\n"
             "outbound_auth/password=omnileads\n"
             "registration/contact_user=" + caller_id_saliente + "\n"
@@ -497,7 +497,7 @@ class Command(BaseCommand):
 
         # Ruta saliente hacia el pbx-emulator (usa troncal dedicada para ruta saliente)
         ruta_saliente = RutaSalienteFactory(ring_time=25, dial_options="Tt")
-        PatronDeDiscadoFactory(ruta_saliente=ruta_saliente, match_pattern="1234567[0-9][0-9]")
+        PatronDeDiscadoFactory(ruta_saliente=ruta_saliente, match_pattern="XXXXXXX")
         PatronDeDiscadoFactory(ruta_saliente=ruta_saliente, match_pattern="88887777")
         OrdenTroncalFactory(ruta_saliente=ruta_saliente, orden=0, troncal=troncal_ruta_saliente)
         sincronizador_ruta_saliente = SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk()

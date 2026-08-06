@@ -50,10 +50,18 @@ class CampanaDialerDetailView(DetailView):
             dialer_service = get_dialer_service()
             datos_campana = dialer_service.obtener_estado_campana(campana)
             if datos_campana:
-                cant_contactos_llamados = LlamadaLog.objects.cantidad_contactos_llamados(campana)
+                if 'contactos_llamados' in datos_campana:
+                    cant_contactos_llamados = datos_campana['contactos_llamados']
+                else:
+                    # Fallback Wombat / motores sin la métrica en Redis
+                    cant_contactos_llamados = LlamadaLog.objects.cantidad_contactos_llamados(
+                        campana)
                 context['cant_contactos_llamados'] = cant_contactos_llamados
+                context['canales_abiertos_pstn'] = datos_campana.get('canales_abiertos_pstn', 0)
                 context['efectuadas'] = datos_campana['efectuadas']
                 context['terminadas'] = datos_campana['terminadas']
+                context['llamadas_conectadas'] = datos_campana.get('llamadas_conectadas', 0)
+                context['conectadas_no_atendidas'] = datos_campana.get('conectadas_no_atendidas', 0)
                 context['estimadas'] = datos_campana['estimadas']
                 context['reintentos_abiertos'] = datos_campana['reintentos_abiertos']
                 context['status'] = datos_campana['status']
@@ -73,13 +81,20 @@ def detalle_campana_dialer_view(request):
     dialer_service = get_dialer_service()
     datos_campana = dialer_service.obtener_estado_campana(campana)
     if datos_campana:
-        cant_contactos_llamados = LlamadaLog.objects.cantidad_contactos_llamados(campana)
+        if 'contactos_llamados' in datos_campana:
+            cant_contactos_llamados = datos_campana['contactos_llamados']
+        else:
+            # Fallback Wombat / motores sin la métrica en Redis
+            cant_contactos_llamados = LlamadaLog.objects.cantidad_contactos_llamados(campana)
         data = {
             'error_consulta': False,
             'campana': campana,
+            'canales_abiertos_pstn': datos_campana.get('canales_abiertos_pstn', 0),
             'cant_contactos_llamados': cant_contactos_llamados,
             'efectuadas': datos_campana['efectuadas'],
             'terminadas': datos_campana['terminadas'],
+            'llamadas_conectadas': datos_campana.get('llamadas_conectadas', 0),
+            'conectadas_no_atendidas': datos_campana.get('conectadas_no_atendidas', 0),
             'estimadas': datos_campana['estimadas'],
             'reintentos_abiertos': datos_campana['reintentos_abiertos'],
             'status': datos_campana['status']

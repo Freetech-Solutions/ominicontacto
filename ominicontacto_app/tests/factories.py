@@ -209,11 +209,24 @@ class BaseDatosContactoFactory(DjangoModelFactory):
                ' "cols_telefono": [0, 4, 5]}'
 
 
+# Prefijos del emulador PSTN (kamailio-itsp): 2 números de 7 dígitos por prefijo + 72 con 123*
+PREFIJOS_PSTN_EMULATOR = [
+    '092', '093', '094', '095', '096', '097', '098', '099',
+    '081', '082', '083', '084', '085', '086',
+]
+
+TELEFONOS_CONTACTO_FACTORY = (
+    [f'{p}310{i}' for p in PREFIJOS_PSTN_EMULATOR for i in (1, 2)]
+    + [f'123{str(i).zfill(4)}' for i in range(1, 73)]
+)
+
+
 class ContactoFactory(DjangoModelFactory):
     class Meta:
         model = Contacto
 
-    telefono = lazy_attribute(lambda a: '1234567' + str(faker.random_number(2, fix_len=True)))
+    telefono = Sequence(
+        lambda n: TELEFONOS_CONTACTO_FACTORY[n % len(TELEFONOS_CONTACTO_FACTORY)])
     email = ""
     id_externo = None
     datos = lazy_attribute(

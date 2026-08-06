@@ -351,6 +351,9 @@ class OmnidialerStatsUpdater {
             case 'STATS':
                 self.updateStats(event_data.camp_id, event_data);
                 break;
+            case 'CALLS':
+                self.updateOpenPstnChannels(event_data.camp_id, event_data.calls);
+                break;
             case 'EXPIRATION':
                 self.notifyExpiration(event_data.camp_id);
                 break;
@@ -371,6 +374,12 @@ class OmnidialerStatsUpdater {
             //     break;
             }
         });
+    }
+
+    updateOpenPstnChannels(camp_id, calls){
+        if (Number(campaignInModal) === Number(camp_id)){
+            $('#id_OPEN_PSTN_CHANNELS').html(Number(calls));
+        }
     }
 
     notifyExpiration(camp_id){
@@ -433,6 +442,15 @@ class OmnidialerStatsUpdater {
                 let pending_initial = Number($('#id_PENDING_INITIAL_CONTACT_ATTEMPTS').val());
                 let pending = pending_attempts + pending_initial;
                 $('#id_PENDING').html(pending);
+            }
+            // Contactos llamados = success + no-contact + reintentos abiertos
+            if (Object.hasOwn(stats_data, 'CONTACTED SUCCESSFULLY') ||
+                Object.hasOwn(stats_data, 'FINALIZED WITH NO CONTACT') ||
+                Object.hasOwn(stats_data, 'NO CONTACTS WITH PENDING ATTEMPTS')){
+                let contacts_called = Number($('#id_CONTACTED_SUCCESSFULLY').val()) +
+                    Number($('#id_FINALIZED_WITH_NO_CONTACT').val()) +
+                    Number($('#id_NO_CONTACTS_WITH_PENDING_ATTEMPTS').html());
+                $('#id_CONTACTS_CALLED').html(contacts_called);
             }
         }
     }

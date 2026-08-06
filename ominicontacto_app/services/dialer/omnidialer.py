@@ -19,6 +19,7 @@ import requests
 from urllib.parse import urljoin
 import logging
 from django.conf import settings
+from django.utils.translation import gettext_lazy as _
 from ominicontacto_app.errors import OmlError
 from ominicontacto_app.services.dialer.phone_dialer import AbstractPhoneDialerService
 from ominicontacto_app.services.redis.connection import create_redis_connection
@@ -42,9 +43,33 @@ PHONE_INCIDENCE_RULE = 1
 DISPOSITION_INCIDENCE_RULE = 2
 
 CAMP_STATS_KEY = 'CAMP:{0}:COUNTER'
+CAMP_CHANNELS_KEY = 'OML:CALLS:{0}:DIALER'
+CAMP_CALLDATA_KEY = 'OML:CALLDATA:CAMP:{0}'
 FINALIZED_NOCONTACT = "FINALIZED WITH NO CONTACT"
 PENDING_ATTEMPTS = "NO CONTACTS WITH PENDING ATTEMPTS"
 FINALIZED_SUCCESS = "CONTACTED SUCCESSFULLY"
+
+# Campos CALLDATA (Redis DB2) que suman el KPI «Conectadas no atendidas» (dialer = CALL_TYPE:2)
+CONECTADAS_NO_ATENDIDAS_FIELDS = (
+    'CALL_TYPE:2:EXIT_ABANDON',
+    'CALL_TYPE:2:EXIT_TIMEOUT',
+    'CALL_TYPE:2:EXIT_HANDOFF_ABANDON',
+    'CALL_TYPE:2:EXIT_HANDOFF_TIMEOUT',
+)
+HIDDEN_DIALER_STATUS_KEYS = frozenset({'ANSWERED_AGENT'})
+
+# Etiquetas legibles para el desglose del modal de campaña dialer
+DIALER_STATUS_LABELS = {
+    '404_NOT_FOUND': _('Teléfono no existe'),
+    '480_TEMPORARILY_UNAVAILABLE': _('Temporalmente no disponible'),
+    'NOANSWER': _('No atiende'),
+    'CHANUNAVAIL': _('Error de canal'),
+    'BUSY': _('Teléfono ocupado'),
+    'ANSWERED_PSTN': _('Llamadas conectadas'),
+    'INVALID_NUMBER': _('Error de ruta'),
+    'CANCEL': _('Cancelaciones'),
+    'CONECTADAS_NO_ATENDIDAS': _('Conectadas no atendidas'),
+}
 
 
 class OmnidialerServiceError(OmlError):
@@ -165,15 +190,34 @@ class OmnidialerService(AbstractPhoneDialerService):
     def obtener_estado_campana(self, campana):
         redis_connection = create_redis_connection(db=3)
         stats = redis_connection.hgetall(CAMP_STATS_KEY.format(campana.id))
+        canales_val = redis_connection.get(CAMP_CHANNELS_KEY.format(campana.id))
+        try:
+            canales_abiertos_pstn = int(canales_val or 0)
+        except (TypeError, ValueError):
+            canales_abiertos_pstn = 0
+
+        redis_calldata = create_redis_connection(db=2)
+        calldata_vals = redis_calldata.hmget(
+            CAMP_CALLDATA_KEY.format(campana.id),
+            *CONECTADAS_NO_ATENDIDAS_FIELDS,
+        ) or ()
+        conectadas_no_atendidas = 0
+        for val in calldata_vals:
+            try:
+                conectadas_no_atendidas += int(val or 0)
+            except (TypeError, ValueError):
+                pass
 
         efectuadas = int(stats.pop('ATTEMPTED_CALLS', 0))
         terminadas_ok = int(stats.pop(FINALIZED_SUCCESS, 0))
         terminadas_no = int(stats.pop(FINALIZED_NOCONTACT, 0))
         estimadas_iniciales = int(stats.pop('PENDING_INITIAL_CONTACT_ATTEMPTS', 0))
         pending_attempts = int(stats.pop(PENDING_ATTEMPTS, 0))
+        llamadas_conectadas = int(stats.pop('ANSWERED_PSTN', 0))
         estimadas = estimadas_iniciales + pending_attempts
         data = {
             'error_consulta': False,
+            'canales_abiertos_pstn': canales_abiertos_pstn,
             'efectuadas': efectuadas,
             'terminadas': terminadas_ok + terminadas_no,
             'terminadas_ok': terminadas_ok,
@@ -181,11 +225,21 @@ class OmnidialerService(AbstractPhoneDialerService):
             'estimadas': estimadas,
             'estimadas_iniciales': estimadas_iniciales,
             'reintentos_abiertos': pending_attempts,
+            # Contactos con al menos un ciclo de resultado (final_status <> INITIAL)
+            'contactos_llamados': terminadas_ok + terminadas_no + pending_attempts,
+            'llamadas_conectadas': llamadas_conectadas,
+            'conectadas_no_atendidas': conectadas_no_atendidas,
         }
         status = []
-        # El resto de los valores va a status
+        # El resto de los valores va a status (sin ANSWERED_AGENT ni KPIs fijos)
         for key, val in stats.items():
-            status.append({'gbState': key, 'nCalls': int(val)})
+            if key in HIDDEN_DIALER_STATUS_KEYS:
+                continue
+            status.append({
+                'gbState': key,
+                'gbStateLabel': DIALER_STATUS_LABELS.get(key, key),
+                'nCalls': int(val),
+            })
         data['status'] = status
         return data
 

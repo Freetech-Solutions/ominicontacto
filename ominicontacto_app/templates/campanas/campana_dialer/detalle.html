@@ -46,13 +46,16 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
     {% if resultado %}
         <br>
         <h2>{% trans 'Resultados en discador' %}</h2>
+        <p>{% trans 'Canales abiertos PSTN' %}: <strong>{{ canales_abiertos_pstn }}</strong></p>
         <p>{% trans 'Llamadas efectuadas' %}: <strong>{{ efectuadas }}</strong></p>
         <p>{% trans 'Llamadas Terminadas' %}: <strong>{{ terminadas }}</strong></p>
+        <p>{% trans 'Llamadas conectadas' %}: <strong>{{ llamadas_conectadas }}</strong></p>
+        <p>{% trans 'Conectadas no atendidas' %}: <strong>{{ conectadas_no_atendidas }}</strong></p>
         <p>{% trans 'Llamadas restantes estimadas'  %}: <strong>{{ estimadas }}</strong></p>
         <p>{% trans 'Reintentos abiertos' %}: <strong>{{ reintentos_abiertos }}</strong></p>
         <p>{% trans 'Cantidad de contactos llamados' %}: <strong>{{ cant_contactos_llamados }}</strong></p>
         {% for statu in status %}
-            <p>{{statu.gbState}} {{statu.gbStateExt}} <strong>{{statu.nCalls}}</strong></p>
+            <p>{{statu.gbStateLabel|default:statu.gbState}} {{statu.gbStateExt}} <strong>{{statu.nCalls}}</strong></p>
         {% endfor %}
     {% else %}
         <em>{% trans 'No se obtuvieron resultados del discador' %}</em>

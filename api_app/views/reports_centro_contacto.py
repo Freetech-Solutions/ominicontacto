@@ -4534,6 +4534,7 @@ class ReporteCentroContactoFormView(FormView):
         incluir_finalizadas = form.cleaned_data.get('incluir_finalizadas', False)
         grupos_seleccionados = form.cleaned_data.get('grupo_agente') or []
         agentes_seleccionados = form.cleaned_data.get('agente') or []
+        campana_id = form.cleaned_data.get('campana_id')
         contacto_id = form.cleaned_data.get('contacto_id')
         address_query = form.cleaned_data.get('address')
         callid = (form.cleaned_data.get('callid') or '').strip() or None
@@ -4576,6 +4577,22 @@ class ReporteCentroContactoFormView(FormView):
                 campana_nombre = _('%(count)s campañas seleccionadas') % {
                     'count': len(selected_campaign_ids)
                 }
+
+        # Filtro exacto por campaign_id (interactions_summary.campaign_id)
+        if campana_id is not None:
+            if campana_id not in set(allowed_campaigns):
+                form.add_error(
+                    'campana_id',
+                    _('Campaña inválida o fuera del alcance seleccionado.')
+                )
+                return self.form_invalid(form)
+            allowed_campaigns = [campana_id]
+            campana_nombre = (
+                Campana.objects
+                .filter(pk=campana_id)
+                .values_list('nombre', flat=True)
+                .first() or str(campana_id)
+            )
 
         if (
             not grupos_seleccionados or
@@ -4676,6 +4693,7 @@ class ReporteCentroContactoFormView(FormView):
         if duracion_bot_min == 0:
             duracion_bot_min = None
         kpis = obtener_kpis_centro_contacto(
+            campaign_id=campana_id,
             start_date=desde,
             end_date=hasta,
             allowed_campaigns=allowed_campaigns,
@@ -5952,6 +5970,7 @@ class ReporteCentroContactoFormView(FormView):
             campana_nombre=campana_nombre,
             grupo_nombre=grupo_nombre,
             agente_nombre=agente_nombre,
+            campana_id=campana_id,
             contacto_id=contacto_id,
             address_nombre=address_nombre,
             llamadas_por_campana=llamadas_por_campana,
@@ -6823,7 +6842,23 @@ def _parse_export_filters(request):
         visible_set = set(campanas_visibles_ids)
         if not set(selected_campaign_ids).issubset(visible_set):
             return None, Response({'error': _('Campaña inválida.')}, status=status.HTTP_400_BAD_REQUEST)
-        allowed_campaigns = selected_campaign_ids
+            allowed_campaigns = selected_campaign_ids
+
+    campana_id_raw = data.get('campana_id')
+    if campana_id_raw is not None and str(campana_id_raw).strip() != '':
+        try:
+            campana_id_filtro = int(campana_id_raw)
+        except (TypeError, ValueError):
+            return None, Response(
+                {'error': _('ID campana inválido.')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if campana_id_filtro not in set(allowed_campaigns):
+            return None, Response(
+                {'error': _('Campaña inválida o fuera del alcance seleccionado.')},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        allowed_campaigns = [campana_id_filtro]
 
     grupos_visibles = Grupo.objects.filter(
         agentes__campana_member__queue_name__campana__in=campanas_visibles
