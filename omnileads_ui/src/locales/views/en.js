@@ -11,7 +11,13 @@ export default {
         yesterday: 'Yesterday',
         call_sumary: 'Call Sumary',
         call_sumary_attended: 'Attended',
-        call_sumary_failed: 'Failed'
+        call_sumary_failed: 'Failed',
+        configured_channels: 'Configured channels',
+        voice_lines: 'Voice Lines',
+        whatsapp_lines: 'WhatsApp Lines',
+        meta_messenger_accounts: 'Meta Messenger Accounts',
+        instagram_accounts: 'Instagram Accounts',
+        email_accounts: 'Email Accounts'
     },
     add_agents_to_campaign: {
         already_agent_in_campaign: 'The agent is already in the campaign',
