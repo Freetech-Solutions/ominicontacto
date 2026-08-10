@@ -112,16 +112,21 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 {{ form.control_de_duplicados }}
                 {{ form.control_de_duplicados.errors }}
             </div>
+            <div class="col-md-3">
+                <label for="{{ form.barajar_contactos.id_for_label }}">{% trans 'Barajar orden de contactos:' %}</label>
+                {{ form.barajar_contactos }}
+                {{ form.barajar_contactos.errors }}
+            </div>
             {% if not form.initial.es_template %}
                 <div class="col-md-3">
                     <label for="{{ form.fecha_inicio.id_for_label }}">{% trans 'Fecha inicio:' %}</label>
                     {{ form.fecha_inicio|attr:"id:id_fecha_inicio" }}
                     {{ form.fecha_inicio.errors }}
-                </div>
-                <div class="col-md-3">
-                    <label for="{{ form.fecha_fin.id_for_label }}">{% trans 'Fecha fin:' %}</label>
-                    {{ form.fecha_fin|attr:"id:id_fecha_fin" }}
-                    {{ form.fecha_fin.errors }}
+                    <div class="mt-2">
+                        <label for="{{ form.fecha_fin.id_for_label }}">{% trans 'Fecha fin:' %}</label>
+                        {{ form.fecha_fin|attr:"id:id_fecha_fin" }}
+                        {{ form.fecha_fin.errors }}
+                    </div>
                 </div>
             {% endif %}
 

@@ -1365,6 +1365,7 @@ class Campana(models.Model):
         choices=CONTROL_DE_DUPLICADOS_CHOICES,
         default=PERMITIR_DUPLICADOS,
     )
+    barajar_contactos = models.BooleanField(default=False)
     whatsapp_habilitado = models.BooleanField(default=False)
     meta_facebook_habilitado = models.BooleanField(default=False)
     instagram_habilitado = models.BooleanField(default=False)

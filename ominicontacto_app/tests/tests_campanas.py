@@ -319,6 +319,50 @@ class CampanasTests(OMLBaseTest):
         message = _('No puede seleccionar una BD vacia')
         self.assertEqual(campana_dialer_form.errors['bd_contacto'], [message])
 
+    def test_campana_barajar_contactos_default_false(self):
+        campana = CampanaFactory.create(type=Campana.TYPE_DIALER)
+        self.assertFalse(campana.barajar_contactos)
+
+    def test_campana_barajar_contactos_persiste(self):
+        campana = CampanaFactory.create(type=Campana.TYPE_DIALER, barajar_contactos=True)
+        campana.refresh_from_db()
+        self.assertTrue(campana.barajar_contactos)
+
+    def test_campana_dialer_form_incluye_barajar_contactos(self):
+        ContactoFactory.create(bd_contacto=self.campana_dialer.bd_contacto)
+        campana_dialer_data = {
+            'nombre': 'test_barajar',
+            'bd_contacto': self.campana_dialer.bd_contacto.pk,
+            'tipo_interaccion': Campana.FORMULARIO,
+            'control_de_duplicados': Campana.EVITAR_DUPLICADOS,
+            'objetivo': 1,
+            'tiempo_desconexion': 2,
+            'barajar_contactos': True,
+            'prioridad': 10,
+            'fecha_inicio': '10/04/2014',
+            'fecha_fin': '20/04/2014',
+        }
+        campana_dialer_form = CampanaDialerForm(data=campana_dialer_data)
+        self.assertTrue(campana_dialer_form.is_valid(), campana_dialer_form.errors)
+        self.assertTrue(campana_dialer_form.cleaned_data['barajar_contactos'])
+
+    def test_campana_dialer_form_barajar_contactos_default_false(self):
+        ContactoFactory.create(bd_contacto=self.campana_dialer.bd_contacto)
+        campana_dialer_data = {
+            'nombre': 'test_sin_barajar',
+            'bd_contacto': self.campana_dialer.bd_contacto.pk,
+            'tipo_interaccion': Campana.FORMULARIO,
+            'control_de_duplicados': Campana.EVITAR_DUPLICADOS,
+            'objetivo': 1,
+            'tiempo_desconexion': 2,
+            'prioridad': 10,
+            'fecha_inicio': '10/04/2014',
+            'fecha_fin': '20/04/2014',
+        }
+        campana_dialer_form = CampanaDialerForm(data=campana_dialer_data)
+        self.assertTrue(campana_dialer_form.is_valid(), campana_dialer_form.errors)
+        self.assertFalse(campana_dialer_form.cleaned_data['barajar_contactos'])
+
 
 class AgenteCampanaTests(CampanasTests):
 

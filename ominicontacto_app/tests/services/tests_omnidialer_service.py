@@ -22,6 +22,7 @@ from mock import MagicMock, patch
 from ominicontacto_app.services.dialer.omnidialer import (
     CAMP_CALLDATA_KEY,
     CAMP_CHANNELS_KEY,
+    CAMP_PACING_KEY,
     CONECTADAS_NO_ATENDIDAS_FIELDS,
     FINALIZED_NOCONTACT,
     FINALIZED_SUCCESS,
@@ -140,6 +141,57 @@ class OmnidialerServiceEstadoCampanaTests(SimpleTestCase):
         self.assertEqual(data['status'][0]['nCalls'], 7)
 
     @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_exit_shortcall_tiene_label_shortcall(self, mock_redis_factory):
+        self._configure_redis(
+            mock_redis_factory,
+            dialer_hgetall={'EXIT_SHORTCALL': '4'},
+            dialer_get=None,
+        )
+
+        campana = MagicMock()
+        campana.id = 11
+
+        data = OmnidialerService().obtener_estado_campana(campana)
+
+        self.assertEqual(data['status'][0]['gbState'], 'EXIT_SHORTCALL')
+        self.assertEqual(data['status'][0]['gbStateLabel'], 'shortcall')
+        self.assertEqual(data['status'][0]['nCalls'], 4)
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_exit_abandon_tiene_label_abandonadas(self, mock_redis_factory):
+        self._configure_redis(
+            mock_redis_factory,
+            dialer_hgetall={'EXIT_ABANDON': '9'},
+            dialer_get=None,
+        )
+
+        campana = MagicMock()
+        campana.id = 12
+
+        data = OmnidialerService().obtener_estado_campana(campana)
+
+        self.assertEqual(data['status'][0]['gbState'], 'EXIT_ABANDON')
+        self.assertEqual(data['status'][0]['gbStateLabel'], 'Abandonadas')
+        self.assertEqual(data['status'][0]['nCalls'], 9)
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_exit_timeout_tiene_label_timeout_de_cola(self, mock_redis_factory):
+        self._configure_redis(
+            mock_redis_factory,
+            dialer_hgetall={'EXIT_TIMEOUT': '2'},
+            dialer_get=None,
+        )
+
+        campana = MagicMock()
+        campana.id = 13
+
+        data = OmnidialerService().obtener_estado_campana(campana)
+
+        self.assertEqual(data['status'][0]['gbState'], 'EXIT_TIMEOUT')
+        self.assertEqual(data['status'][0]['gbStateLabel'], 'Timeout de cola')
+        self.assertEqual(data['status'][0]['nCalls'], 2)
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
     def test_answered_agent_oculto_y_conectadas_no_atendidas_desde_calldata(
             self, mock_redis_factory):
         redis_dialer, redis_calldata = self._configure_redis(
@@ -168,3 +220,76 @@ class OmnidialerServiceEstadoCampanaTests(SimpleTestCase):
             *CONECTADAS_NO_ATENDIDAS_FIELDS,
         )
         redis_dialer.hgetall.assert_called_once()
+
+
+class OmnidialerServicePacingCampanaTests(SimpleTestCase):
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_obtener_pacing_campana_tipado(self, mock_redis_factory):
+        redis_dialer = MagicMock()
+        redis_dialer.hgetall.return_value = {
+            'MODE': 'PREDICTIVE',
+            'REASON': 'ok',
+            'GAMMA': '1.0',
+            'C_DIAL': '4',
+            'P_HIT': '0.5',
+            'DROP_RATE': '0.01',
+            'A_FREE': '2',
+            'A_EXPECTED': '1.4',
+            'C_RINGING': '3',
+            'TS': '1710000000',
+        }
+        mock_redis_factory.return_value = redis_dialer
+
+        campana = MagicMock()
+        campana.id = 18
+        data = OmnidialerService().obtener_pacing_campana(campana)
+
+        self.assertEqual(data['MODE'], 'PREDICTIVE')
+        self.assertEqual(data['REASON'], 'ok')
+        self.assertEqual(data['GAMMA'], 1.0)
+        self.assertEqual(data['C_DIAL'], 4)
+        self.assertEqual(data['P_HIT'], 0.5)
+        self.assertEqual(data['DROP_RATE'], 0.01)
+        self.assertEqual(data['A_FREE'], 2.0)
+        self.assertEqual(data['A_EXPECTED'], 1.4)
+        self.assertEqual(data['C_RINGING'], 3)
+        self.assertEqual(data['TS'], 1710000000)
+        redis_dialer.hgetall.assert_called_once_with(CAMP_PACING_KEY.format(18))
+        mock_redis_factory.assert_called_once_with(db=3)
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_obtener_pacing_campana_none_si_vacio(self, mock_redis_factory):
+        redis_dialer = MagicMock()
+        redis_dialer.hgetall.return_value = {}
+        mock_redis_factory.return_value = redis_dialer
+
+        campana = MagicMock()
+        campana.id = 7
+        self.assertIsNone(OmnidialerService().obtener_pacing_campana(campana))
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_obtener_pacing_campana_campos_vacios_como_none(self, mock_redis_factory):
+        redis_dialer = MagicMock()
+        redis_dialer.hgetall.return_value = {
+            'MODE': 'PREDICTIVE_WARMUP',
+            'REASON': 'warmup',
+            'GAMMA': '0.0',
+            'C_DIAL': '0',
+            'P_HIT': '',
+            'DROP_RATE': '',
+            'A_FREE': '1',
+            'A_EXPECTED': '0.0',
+            'C_RINGING': '0',
+            'TS': '1710000001',
+        }
+        mock_redis_factory.return_value = redis_dialer
+
+        campana = MagicMock()
+        campana.id = 9
+        data = OmnidialerService().obtener_pacing_campana(campana)
+        self.assertEqual(data['MODE'], 'PREDICTIVE_WARMUP')
+        self.assertIsNone(data['P_HIT'])
+        self.assertIsNone(data['DROP_RATE'])
+        self.assertEqual(data['C_DIAL'], 0)
+        self.assertEqual(data['GAMMA'], 0.0)

@@ -1964,14 +1964,15 @@ class CampanaDialerForm(CampanaMixinForm, forms.ModelForm):
     class Meta:
         model = Campana
         fields = ('nombre', 'fecha_inicio', 'fecha_fin', 'control_de_duplicados',
-                  'bd_contacto', 'campo_direccion', 'sistema_externo', 'id_externo',
-                  'tipo_interaccion', 'sitio_externo', 'objetivo', 'mostrar_nombre',
-                  'outcid', 'outr', 'speech', 'prioridad', 'whatsapp_habilitado',
-                  'mostrar_callid', 'permitir_calificar_telefonos',
+                  'bd_contacto', 'barajar_contactos', 'campo_direccion', 'sistema_externo',
+                  'id_externo', 'tipo_interaccion', 'sitio_externo', 'objetivo',
+                  'mostrar_nombre', 'outcid', 'outr', 'speech', 'prioridad',
+                  'whatsapp_habilitado', 'mostrar_callid', 'permitir_calificar_telefonos',
                   'meta_facebook_habilitado', 'instagram_habilitado', 'email_habilitado',
                   'mostrar_callid')
         labels = {
             'bd_contacto': 'Base de Datos de Contactos',
+            'barajar_contactos': _('Barajar orden de contactos'),
         }
 
         help_texts = {

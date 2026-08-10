@@ -220,6 +220,23 @@ TELEFONOS_CONTACTO_FACTORY = (
     + [f'123{str(i).zfill(4)}' for i in range(1, 73)]
 )
 
+# 1000 números de 7 dígitos sin prefijos 08X/09X (ruta saliente XXXXXXX / PBX)
+TELEFONOS_CONTACTO_7DIGITOS = [f'123{str(i).zfill(4)}' for i in range(1000)]
+
+# Prefijos del SBC PSTN QA (kamailio_pstn_qa.cfg, route[QA_SIP_ERROR_PREFIX]):
+# 081-094 -> respuestas SIP sintéticas; cualquier otro prefijo -> relay al ITSP.
+PREFIJOS_PSTN_QA_SIP_ERROR = [f'{i:03d}' for i in range(81, 95)]
+
+# 1000 números de 7 dígitos con prefijos 081-094 (~72 por prefijo)
+TELEFONOS_PSTN_QA_SIP_ERROR = [
+    f'{PREFIJOS_PSTN_QA_SIP_ERROR[i % len(PREFIJOS_PSTN_QA_SIP_ERROR)]}'
+    f'{str(i // len(PREFIJOS_PSTN_QA_SIP_ERROR)).zfill(4)}'
+    for i in range(1000)
+]
+
+# 1000 números de 7 dígitos sin prefijos 081-094 (relay normal al ITSP)
+TELEFONOS_PSTN_QA_RELAY_ITSP = [f'124{str(i).zfill(4)}' for i in range(1000)]
+
 
 class ContactoFactory(DjangoModelFactory):
     class Meta:

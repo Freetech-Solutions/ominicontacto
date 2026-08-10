@@ -45,6 +45,7 @@ DISPOSITION_INCIDENCE_RULE = 2
 CAMP_STATS_KEY = 'CAMP:{0}:COUNTER'
 CAMP_CHANNELS_KEY = 'OML:CALLS:{0}:DIALER'
 CAMP_CALLDATA_KEY = 'OML:CALLDATA:CAMP:{0}'
+CAMP_PACING_KEY = 'CAMP:{0}:PACING'
 FINALIZED_NOCONTACT = "FINALIZED WITH NO CONTACT"
 PENDING_ATTEMPTS = "NO CONTACTS WITH PENDING ATTEMPTS"
 FINALIZED_SUCCESS = "CONTACTED SUCCESSFULLY"
@@ -68,6 +69,9 @@ DIALER_STATUS_LABELS = {
     'ANSWERED_PSTN': _('Llamadas conectadas'),
     'INVALID_NUMBER': _('Error de ruta'),
     'CANCEL': _('Cancelaciones'),
+    'EXIT_SHORTCALL': _('shortcall'),
+    'EXIT_ABANDON': _('Abandonadas'),
+    'EXIT_TIMEOUT': _('Timeout de cola'),
     'CONECTADAS_NO_ATENDIDAS': _('Conectadas no atendidas'),
 }
 
@@ -242,6 +246,49 @@ class OmnidialerService(AbstractPhoneDialerService):
             })
         data['status'] = status
         return data
+
+    def obtener_pacing_campana(self, campana):
+        """
+        Lee el snapshot de pacing predictivo CAMP:{id}:PACING (Redis DB3).
+
+        Escrito por el worker en cada tick de `_allowed_parallel_predictive`.
+        Retorna None si el hash está vacío o expiró (TTL corto).
+        """
+        redis_connection = create_redis_connection(db=3)
+        raw = redis_connection.hgetall(CAMP_PACING_KEY.format(campana.id))
+        if not raw:
+            return None
+
+        def _float(name):
+            val = raw.get(name, '')
+            if val is None or val == '':
+                return None
+            try:
+                return float(val)
+            except (TypeError, ValueError):
+                return None
+
+        def _int(name):
+            val = raw.get(name, '')
+            if val is None or val == '':
+                return None
+            try:
+                return int(float(val))
+            except (TypeError, ValueError):
+                return None
+
+        return {
+            'MODE': str(raw.get('MODE') or ''),
+            'REASON': str(raw.get('REASON') or ''),
+            'GAMMA': _float('GAMMA'),
+            'C_DIAL': _int('C_DIAL'),
+            'P_HIT': _float('P_HIT'),
+            'DROP_RATE': _float('DROP_RATE'),
+            'A_FREE': _float('A_FREE'),
+            'A_EXPECTED': _float('A_EXPECTED'),
+            'C_RINGING': _int('C_RINGING'),
+            'TS': _int('TS'),
+        }
 
     def obtener_llamadas_pendientes(self, campana) -> int:
         redis_connection = create_redis_connection(db=3)

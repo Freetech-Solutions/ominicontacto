@@ -34,7 +34,10 @@ from ominicontacto_app.tests.factories import (GrupoFactory, AgenteProfileFactor
                                                FieldFormularioFactory, BaseDatosContactoFactory,
                                                ContactoFactory, CampanaFactory,
                                                NombreCalificacionFactory, PausaFactory,
-                                               OpcionCalificacionFactory)
+                                               OpcionCalificacionFactory,
+                                               TELEFONOS_CONTACTO_7DIGITOS,
+                                               TELEFONOS_PSTN_QA_SIP_ERROR,
+                                               TELEFONOS_PSTN_QA_RELAY_ITSP)
 from configuracion_telefonia_app.tests.factories import (RutaSalienteFactory, TroncalSIPFactory,
                                                          PatronDeDiscadoFactory,
                                                          RutaEntranteFactory,
@@ -339,6 +342,24 @@ class Command(BaseCommand):
         self.bd_contacto = BaseDatosContactoFactory()
         ContactoFactory.create_batch(100, bd_contacto=self.bd_contacto)
 
+        # BD de prueba: 1000 contactos con teléfonos de 7 dígitos (sin 08X/09X)
+        self.bd_contacto_7digitos = BaseDatosContactoFactory(
+            nombre='BD_CONTACTOS_7DIGITOS', cantidad_contactos=1000
+        )
+        for telefono in TELEFONOS_CONTACTO_7DIGITOS:
+            ContactoFactory(bd_contacto=self.bd_contacto_7digitos, telefono=telefono)
+
+        # BD QA PSTN: 2000 contactos para probar las respuestas SIP sintéticas
+        # de kamailio_pstn_qa.cfg. 1000 con prefijos 081-094 (error SIP) y
+        # 1000 sin esos prefijos (relay normal al ITSP). No se asigna a
+        # ninguna campaña.
+        self.bd_contacto_pstn_qa = BaseDatosContactoFactory(
+            nombre='BD_PSTN_QA', cantidad_contactos=2000
+        )
+        telefonos_pstn_qa = TELEFONOS_PSTN_QA_SIP_ERROR + TELEFONOS_PSTN_QA_RELAY_ITSP
+        for telefono in telefonos_pstn_qa:
+            ContactoFactory(bd_contacto=self.bd_contacto_pstn_qa, telefono=telefono)
+
         # Crear DBs Preview
         metadata = '{"cant_col": 4, "cols_telefono": [0], ' + \
             '"nombres_de_columnas": ["telefono", "nombre", "direccion", "localidad"]}'
@@ -392,7 +413,7 @@ class Command(BaseCommand):
 
         # 1) Troncal para la Ruta saliente (PBX emulator)
         caller_id_saliente = '01177660010'
-        remote_host_saliente = 'kamailio-itsp:5060'
+        remote_host_saliente = 'pbxemulator:5070'
         text_config_ruta_saliente = (
             "endpoint/from_user=" + caller_id_saliente + "\n"
             "remote_hosts=" + remote_host_saliente + "\n"        

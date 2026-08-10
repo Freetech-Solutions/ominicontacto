@@ -25,6 +25,7 @@ from ominicontacto_app.models import QueueMember, Pausa
 from ominicontacto_app.services.asterisk.redis_database import AgenteFamily
 from ominicontacto_app.services.asterisk.asterisk_ami import AMIManagerConnector
 from ominicontacto_app.services.agent.presence import AgentPresenceManager
+from ominicontacto_app.services.dialer import acw_metrics
 from notification_app.notification import RedisStreamNotifier, AgentNotifier
 
 import logging
@@ -82,6 +83,10 @@ class AgentActivityAmiManager(object):
         else:
             pause_name = Pausa.objects.activa_by_pauseid(pause_id).nombre
 
+        # Si salimos de ACW hacia otra pausa, emitir sample antes de pisar TIMESTAMP.
+        if str(pause_id) != '0':
+            self._emit_acw_sample_if_leaving(agente_profile)
+
         # Solo actualiza el estado en Redis, sin ejecutar comandos AMI
         insert_redis_error = self._set_agent_pause_redis_status(
             agente_profile, pause_name, pause_id)
@@ -94,6 +99,9 @@ class AgentActivityAmiManager(object):
         # Me aseguro q exista la pausa activa:
         if pause_id not in ('0', '00', 'OW'):
             pause_id = Pausa.objects.activa_by_pauseid(pause_id).id
+
+        # ACW → READY: leer CAMPAIGN/TIMESTAMP antes de borrar CAMPAIGN en READY.
+        self._emit_acw_sample_if_leaving(agente_profile)
 
         # Solo actualiza el estado en Redis, sin ejecutar comandos AMI
         insert_redis_error = self._set_agent_redis_status(agente_profile, 'unpause')
@@ -126,6 +134,60 @@ class AgentActivityAmiManager(object):
     def _get_family(self, agente_profile):
         agente_family = AgenteFamily()
         return agente_family._get_nombre_family(agente_profile)
+
+    def _get_agent_redis_fields(self, agente_profile, fields):
+        """HMGET de OML:AGENT:{id}. Retorna dict field→value (None si falta)."""
+        family = self._get_family(agente_profile)
+        redis_connection = self.get_redis_connection()
+        try:
+            values = redis_connection.hmget(family, *fields)
+            return dict(zip(fields, values))
+        except redis.exceptions.RedisError:
+            logger.exception(
+                'Error leyendo campos Redis agente=%s fields=%s',
+                agente_profile.id, fields,
+            )
+            return {f: None for f in fields}
+
+    @staticmethod
+    def _is_acw_redis_state(status, pause_id):
+        if str(pause_id or '') == '0':
+            return True
+        if status and 'ACW' in str(status):
+            return True
+        return False
+
+    def _emit_acw_sample_if_leaving(self, agente_profile):
+        """
+        Si el agente está en PAUSE-ACW, envía EXIT_ACW al dialer con duración
+        y campaña actuales. No debe fallar ni bloquear el cambio de estado.
+        """
+        try:
+            data = self._get_agent_redis_fields(
+                agente_profile, ('STATUS', 'PAUSE_ID', 'TIMESTAMP', 'CAMPAIGN'),
+            )
+            if not self._is_acw_redis_state(data.get('STATUS'), data.get('PAUSE_ID')):
+                return
+            campaign_raw = data.get('CAMPAIGN') or ''
+            if not str(campaign_raw).strip():
+                return
+            try:
+                ts = int(float(data.get('TIMESTAMP') or 0))
+            except (TypeError, ValueError):
+                return
+            if ts <= 0:
+                return
+            acw_duration = max(0.0, float(time.time() - ts))
+            acw_metrics.submit_exit_acw(
+                campaign_raw,
+                acw_duration,
+                agent_id=getattr(agente_profile, 'id', None),
+            )
+        except Exception:
+            logger.exception(
+                'Error emitiendo sample ACW agente=%s (estado se aplicará igual)',
+                getattr(agente_profile, 'id', None),
+            )
 
     def _get_redis_status_data(self, action):
         status = action
