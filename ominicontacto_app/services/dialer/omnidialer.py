@@ -287,6 +287,9 @@ class OmnidialerService(AbstractPhoneDialerService):
             'A_FREE': _float('A_FREE'),
             'A_EXPECTED': _float('A_EXPECTED'),
             'C_RINGING': _int('C_RINGING'),
+            'THROTTLE_STREAK': _int('THROTTLE_STREAK'),
+            'THROTTLE_LATCHED': _int('THROTTLE_LATCHED'),
+            'EVENT': str(raw.get('EVENT') or ''),
             'TS': _int('TS'),
         }
 

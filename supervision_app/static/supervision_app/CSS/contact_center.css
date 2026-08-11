@@ -74,6 +74,10 @@
     box-sizing: border-box;
 }
 
+.contact-center-container [x-cloak] {
+    display: none !important;
+}
+
 /* ============================================
    TIPOGRAFÍA
    ============================================ */
@@ -377,6 +381,363 @@
     color: var(--text-primary);
     min-width: 60px;
     text-align: right;
+}
+
+/* ============================================
+   PANEL DIALER — Estado Discador (horizontal)
+   ============================================ */
+
+.contact-center-container .panel-dialer-estado {
+    display: block;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-bottom: var(--spacing-lg);
+    box-sizing: border-box;
+}
+
+.contact-center-container .panel-dialer-estado .pd-card {
+    width: 100%;
+    background-color: var(--bg-card);
+    border-radius: var(--border-radius);
+    padding: var(--spacing-lg);
+    box-shadow: var(--shadow-card);
+    box-sizing: border-box;
+}
+
+.contact-center-container .panel-dialer-estado .pd-card-head h2 {
+    margin: 0 0 var(--spacing-md);
+    font-size: 1.35rem;
+    color: var(--text-primary);
+}
+
+.contact-center-container .panel-dialer-estado .pd-estado-empty {
+    padding: var(--spacing-xl);
+    text-align: center;
+    color: var(--text-secondary);
+    border: 1px dashed var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: #fff;
+}
+
+/* Fila principal: aside (campaña+canales) | KPIs densos */
+.contact-center-container .panel-dialer-estado .pd-estado-layout {
+    display: grid;
+    grid-template-columns: minmax(200px, 240px) minmax(0, 1fr);
+    gap: var(--spacing-lg);
+    align-items: stretch;
+    width: 100%;
+    margin-bottom: var(--spacing-lg);
+}
+
+.contact-center-container .panel-dialer-estado .pd-estado-aside {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: var(--spacing-md);
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.contact-center-container .panel-dialer-estado .pd-estado-campaign-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.25;
+    word-break: break-word;
+}
+
+.contact-center-container .panel-dialer-estado .pd-estado-badge {
+    align-self: flex-start;
+    display: inline-block;
+    padding: 0.25rem 0.7rem;
+    border-radius: 999px;
+    background: var(--success-light);
+    color: #2e7d32;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.contact-center-container .panel-dialer-estado .pd-channels-hero {
+    margin-top: auto;
+    text-align: center;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius-sm);
+    background: linear-gradient(135deg, var(--success-light), var(--info-light));
+    border: 1px solid rgba(76, 175, 80, 0.25);
+}
+
+.contact-center-container .panel-dialer-estado .pd-channels-value {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--success);
+    line-height: 1;
+}
+
+.contact-center-container .panel-dialer-estado .pd-channels-label {
+    margin-top: 0.4rem;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.contact-center-container .panel-dialer-estado .pd-estado-main {
+    min-width: 0;
+    width: 100%;
+}
+
+/* 5 columnas × 2 filas en desktop */
+.contact-center-container .panel-dialer-estado .pd-kpi-grid {
+    display: grid;
+    gap: var(--spacing-sm);
+    width: 100%;
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-grid-dense {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-grid-pacing {
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    margin-bottom: var(--spacing-md);
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 88px;
+    padding: 0.7rem 0.5rem;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-ok {
+    background: var(--success-light);
+    border-color: rgba(76, 175, 80, 0.35);
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-warn {
+    background: var(--warning-light);
+    border-color: rgba(255, 152, 0, 0.35);
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-info {
+    background: var(--info-light);
+    border-color: rgba(33, 150, 243, 0.35);
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-muted {
+    background: #fafafa;
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-value {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    word-break: break-word;
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-ok .pd-kpi-value {
+    color: #2e7d32;
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-warn .pd-kpi-value {
+    color: #ef6c00;
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-info .pd-kpi-value {
+    color: #1565c0;
+}
+
+.contact-center-container .panel-dialer-estado .pd-kpi-label {
+    margin-top: 0.35rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+    line-height: 1.2;
+}
+
+.contact-center-container .panel-dialer-estado .pd-estado-bottom {
+    width: 100%;
+}
+
+.contact-center-container .panel-dialer-estado .pd-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.contact-center-container .panel-dialer-estado .pd-group:last-child {
+    margin-bottom: 0;
+}
+
+.contact-center-container .panel-dialer-estado .pd-group-title {
+    margin: 0 0 var(--spacing-sm);
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.contact-center-container .panel-dialer-estado .pd-status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.55rem;
+}
+
+.contact-center-container .panel-dialer-estado .pd-status-chip {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.7rem;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+}
+
+.contact-center-container .panel-dialer-estado .pd-status-chip-label {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+}
+
+.contact-center-container .panel-dialer-estado .pd-status-chip-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing {
+    padding-top: var(--spacing-md);
+    border-top: 1px solid var(--border-color);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-head .pd-group-title {
+    margin: 0;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-empty {
+    display: block;
+    color: var(--text-muted);
+    margin-bottom: var(--spacing-sm);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-mode {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.6rem;
+    padding: 0.4rem 0.75rem;
+    background: var(--purple-light);
+    border: 1px solid rgba(156, 39, 176, 0.25);
+    border-radius: var(--border-radius-sm);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-mode-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-mode-value {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--purple);
+    letter-spacing: 0.02em;
+    word-break: break-word;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-details {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem 1.25rem;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-row strong {
+    color: var(--text-primary);
+    font-weight: 700;
+    text-align: right;
+}
+
+@media (max-width: 1200px) {
+    .contact-center-container .panel-dialer-estado .pd-kpi-grid-dense {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-kpi-grid-pacing {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-pacing-details {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 900px) {
+    .contact-center-container .panel-dialer-estado .pd-estado-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-estado-aside {
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-channels-hero {
+        margin-top: 0;
+        margin-left: auto;
+        min-width: 140px;
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-kpi-grid-dense {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .contact-center-container .panel-dialer-estado .pd-kpi-grid-dense,
+    .contact-center-container .panel-dialer-estado .pd-kpi-grid-pacing {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-pacing-details {
+        grid-template-columns: 1fr;
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-estado-aside {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .contact-center-container .panel-dialer-estado .pd-channels-hero {
+        margin-left: 0;
+        width: 100%;
+    }
 }
 
 /* ============================================

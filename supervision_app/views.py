@@ -34,8 +34,10 @@ from ominicontacto_app.forms.base import GrupoAgenteForm
 from ominicontacto_app.models import Campana, Grupo, AgenteProfile
 from supervision_app.services.redisgears_service import RedisGearsService
 from supervision_app.services.voicebot_calls import get_voicebot_active_call_rows
-from ominicontacto_app.services.dialer import wombat_habilitado
+from ominicontacto_app.services.dialer import get_dialer_service, wombat_habilitado
 from ominicontacto_app.services.redis.connection import create_redis_connection
+from reportes_app.models import LlamadaLog
+from reportes_app.views_campanas_dialer_reportes import _obtener_pacing_contexto
 
 logger = logging.getLogger(__name__)
 
@@ -272,39 +274,65 @@ class DashboardCampView(AddSettingsContextMixin, TemplateView):
         return context
 
 
+def _campanas_panel_general_queryset(request_user):
+    """
+    Campañas disponibles en el selector del panel-general.
+
+    Admin: todas las no finalizadas / no templates.
+    Supervisor: solo las asignadas actuales no finalizadas.
+    Sin perfil supervisor: vacío (fallback polling en el cliente).
+    """
+    estados_excluidos = [
+        Campana.ESTADO_FINALIZADA,
+        Campana.ESTADO_TEMPLATE_ACTIVO,
+        Campana.ESTADO_TEMPLATE_BORRADO,
+    ]
+    try:
+        if request_user.get_is_administrador():
+            return Campana.objects.filter(oculto=False).exclude(
+                estado__in=estados_excluidos
+            ).order_by('nombre')
+        supervisor = request_user.get_supervisor_profile()
+        if supervisor is None:
+            return Campana.objects.none()
+        return supervisor.campanas_asignadas_actuales_no_finalizadas().filter(
+            oculto=False
+        ).order_by('nombre')
+    except Exception:
+        return Campana.objects.none()
+
+
+def _enrich_contact_center_supervisor_context(context, request_user):
+    """Inyecta supervisor_id / SIP y registra el stream Redis de agentes."""
+    try:
+        supervisor = request_user.get_supervisor_profile()
+        if supervisor is None:
+            raise AttributeError('supervisor profile missing')
+        context['supervisor_id'] = supervisor.id
+        kamailio_service = KamailioService()
+        sip_usuario = kamailio_service.generar_sip_user(supervisor.sip_extension)
+        sip_password = kamailio_service.generar_sip_password(sip_usuario)
+        context['sip_usuario'] = sip_usuario
+        context['sip_password'] = sip_password
+        RedisGearsService().registra_stream_supervisor(supervisor.id)
+    except Exception:
+        context['supervisor_id'] = None
+        context['sip_usuario'] = ''
+        context['sip_password'] = ''
+    return context
+
+
 class DashboardContactCenterView(AddSettingsContextMixin, TemplateView):
     template_name = 'supervision_contact_center.html'
 
     def get_context_data(self, **kwargs):
         context = super(DashboardContactCenterView, self).get_context_data(**kwargs)
-        # Obtener todas las campañas para el selector, excluyendo finalizadas y templates
-        queryset = Campana.objects.filter(
-            oculto=False
-        ).exclude(
-            estado__in=[
-                Campana.ESTADO_FINALIZADA,
-                Campana.ESTADO_TEMPLATE_ACTIVO,
-                Campana.ESTADO_TEMPLATE_BORRADO
-            ]
-        ).order_by('nombre')
-        context['campanas'] = queryset
-        try:
-            supervisor = self.request.user.get_supervisor_profile()
-            context['supervisor_id'] = supervisor.id
-            kamailio_service = KamailioService()
-            sip_usuario = kamailio_service.generar_sip_user(supervisor.sip_extension)
-            sip_password = kamailio_service.generar_sip_password(sip_usuario)
-            context['sip_usuario'] = sip_usuario
-            context['sip_password'] = sip_password
-        except Exception:
-            context['supervisor_id'] = None
-            context['sip_usuario'] = ''
-            context['sip_password'] = ''
-        return context
+        context['campanas'] = _campanas_panel_general_queryset(self.request.user)
+        return _enrich_contact_center_supervisor_context(context, self.request.user)
 
 
 class DashboardContactCenterCampaignView(AddSettingsContextMixin, TemplateView):
-    """Panel general de supervisión con campaña fija por URL (supervision/<id_camp>/panel-general/)."""
+    """Panel general con campaña fija por URL (supervision/<id_camp>/panel-general/)."""
     template_name = 'supervision_contact_center.html'
 
     def get_context_data(self, **kwargs):
@@ -312,17 +340,7 @@ class DashboardContactCenterCampaignView(AddSettingsContextMixin, TemplateView):
         if id_camp is None:
             raise Http404
 
-        # Mismo queryset de campañas que el panel general (no finalizadas, no templates)
-        queryset = Campana.objects.filter(
-            oculto=False
-        ).exclude(
-            estado__in=[
-                Campana.ESTADO_FINALIZADA,
-                Campana.ESTADO_TEMPLATE_ACTIVO,
-                Campana.ESTADO_TEMPLATE_BORRADO
-            ]
-        ).order_by('nombre')
-
+        queryset = _campanas_panel_general_queryset(self.request.user)
         campana = queryset.filter(id=id_camp).first()
         if not campana:
             raise Http404
@@ -330,20 +348,147 @@ class DashboardContactCenterCampaignView(AddSettingsContextMixin, TemplateView):
         context = super(DashboardContactCenterCampaignView, self).get_context_data(**kwargs)
         context['campanas'] = queryset
         context['initial_campaign_id'] = id_camp
+        return _enrich_contact_center_supervisor_context(context, self.request.user)
 
+
+def _campanas_panel_dialer_queryset(request_user):
+    """Campañas dialer del selector de Panel Dialer (mismo alcance que panel-general + TYPE_DIALER)."""
+    return _campanas_panel_general_queryset(request_user).filter(type=Campana.TYPE_DIALER)
+
+
+def _empty_panel_dialer_estado():
+    return {
+        'estado_discador': {
+            'pending_initial': 0,
+            'pending_retries': 0,
+            'finalized_no_contact': 0,
+            'contacted_successfully': 0,
+            'attempted_calls': 0,
+            'answered_pstn': 0,
+            'answered_agent': 0,
+            'conectadas_no_atendidas': 0,
+            'estimadas': 0,
+            'contactos_llamados': 0,
+            'campana_nombre': '',
+            'campana_estado': '',
+            'status': [],
+        },
+        'llamadas_discando': 0,
+        'pacing': None,
+        'show_pacing_section': False,
+    }
+
+
+def _panel_dialer_estado_payload(campana):
+    """
+    Payload Estado Discador del Panel Dialer (paridad con modal campana_dialer/detalle_servicio).
+    Reutiliza obtener_estado_campana + pacing del motor dialer.
+    """
+    empty = _empty_panel_dialer_estado()
+    if not campana:
+        return empty
+
+    dialer_service = get_dialer_service()
+    try:
+        datos = dialer_service.obtener_estado_campana(campana) or {}
+    except Exception as e:
+        logger.error(
+            'Error obtener_estado_campana para panel dialer campana %s: %s',
+            campana.id, e, exc_info=True,
+        )
+        datos = {}
+
+    redis_dialer = None
+    try:
+        redis_dialer = create_redis_connection(db=3)
+        redis_dialer.ping()
+    except Exception:
+        redis_dialer = None
+
+    legacy = _get_dialer_status_metrics(redis_dialer, campana.id) if redis_dialer else empty['estado_discador']
+
+    if 'contactos_llamados' in datos:
+        contactos_llamados = datos.get('contactos_llamados', 0)
+    else:
         try:
-            supervisor = self.request.user.get_supervisor_profile()
-            context['supervisor_id'] = supervisor.id
-            kamailio_service = KamailioService()
-            sip_usuario = kamailio_service.generar_sip_user(supervisor.sip_extension)
-            sip_password = kamailio_service.generar_sip_password(sip_usuario)
-            context['sip_usuario'] = sip_usuario
-            context['sip_password'] = sip_password
+            contactos_llamados = LlamadaLog.objects.cantidad_contactos_llamados(campana)
         except Exception:
-            context['supervisor_id'] = None
-            context['sip_usuario'] = ''
-            context['sip_password'] = ''
-        return context
+            contactos_llamados = 0
+
+    status = []
+    for item in datos.get('status') or []:
+        status.append({
+            'gbState': item.get('gbState'),
+            'gbStateLabel': str(item.get('gbStateLabel') or item.get('gbState') or ''),
+            'gbStateExt': item.get('gbStateExt') or '',
+            'nCalls': _safe_int(item.get('nCalls', 0), 0),
+        })
+
+    estado = {
+        'pending_initial': _safe_int(
+            datos.get('estimadas_iniciales', legacy.get('pending_initial', 0)), 0),
+        'pending_retries': _safe_int(
+            datos.get('reintentos_abiertos', legacy.get('pending_retries', 0)), 0),
+        'finalized_no_contact': _safe_int(
+            datos.get('terminadas_no', legacy.get('finalized_no_contact', 0)), 0),
+        'contacted_successfully': _safe_int(
+            datos.get('terminadas_ok', legacy.get('contacted_successfully', 0)), 0),
+        'attempted_calls': _safe_int(
+            datos.get('efectuadas', legacy.get('attempted_calls', 0)), 0),
+        'answered_pstn': _safe_int(
+            datos.get('llamadas_conectadas', legacy.get('answered_pstn', 0)), 0),
+        'answered_agent': _safe_int(legacy.get('answered_agent', 0), 0),
+        'conectadas_no_atendidas': _safe_int(datos.get('conectadas_no_atendidas', 0), 0),
+        'estimadas': _safe_int(datos.get('estimadas', 0), 0),
+        'contactos_llamados': _safe_int(contactos_llamados, 0),
+        'campana_nombre': campana.nombre or '',
+        'campana_estado': str(campana.get_estado_display()),
+        'status': status,
+    }
+
+    try:
+        pacing_ctx = _obtener_pacing_contexto(campana, dialer_service)
+    except Exception as e:
+        logger.error(
+            'Error pacing para panel dialer campana %s: %s', campana.id, e, exc_info=True,
+        )
+        pacing_ctx = {'pacing': None, 'show_pacing_section': False}
+
+    return {
+        'estado_discador': estado,
+        'llamadas_discando': _safe_int(datos.get('canales_abiertos_pstn', 0), 0),
+        'pacing': pacing_ctx.get('pacing'),
+        'show_pacing_section': bool(pacing_ctx.get('show_pacing_section')),
+    }
+
+
+class DashboardPanelDialerView(AddSettingsContextMixin, TemplateView):
+    template_name = 'supervision_panel_dialer.html'
+
+    def get_context_data(self, **kwargs):
+        context = super(DashboardPanelDialerView, self).get_context_data(**kwargs)
+        context['campanas'] = _campanas_panel_dialer_queryset(self.request.user)
+        return _enrich_contact_center_supervisor_context(context, self.request.user)
+
+
+class DashboardPanelDialerCampaignView(AddSettingsContextMixin, TemplateView):
+    """Panel Dialer con campaña fija por URL (supervision/<id_camp>/panel-dialer/)."""
+    template_name = 'supervision_panel_dialer.html'
+
+    def get_context_data(self, **kwargs):
+        id_camp = kwargs.get('id_camp')
+        if id_camp is None:
+            raise Http404
+
+        queryset = _campanas_panel_dialer_queryset(self.request.user)
+        campana = queryset.filter(id=id_camp).first()
+        if not campana:
+            raise Http404
+
+        context = super(DashboardPanelDialerCampaignView, self).get_context_data(**kwargs)
+        context['campanas'] = queryset
+        context['initial_campaign_id'] = id_camp
+        return _enrich_contact_center_supervisor_context(context, self.request.user)
 
 
 class DashboardDialerCampView(AddSettingsContextMixin, TemplateView):
@@ -780,6 +925,14 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         exit_shortcall_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_SHORTCALL', 0))
         exit_shortcall_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_SHORTCALL', 0))
         shortcall_total = exit_shortcall_type1 + exit_shortcall_type2
+        errores_total = (
+            _safe_int(calldata.get('CALL_TYPE:2:FAIL', 0))
+            + _safe_int(calldata.get('CALL_TYPE:1:FAIL', 0))
+            + _safe_int(calldata.get('CALL_TYPE:2:OTHER', 0))
+            + _safe_int(calldata.get('CALL_TYPE:1:OTHER', 0))
+            + _safe_int(calldata.get('CALL_TYPE:2:BLACKLIST', 0))
+            + _safe_int(calldata.get('CALL_TYPE:1:BLACKLIST', 0))
+        )
         
         # Calcular ocupado como suma de BUSY y EXIT_BUSY de ambos tipos
         ocupado_total = busy_type2 + exit_busy_type2 + busy_type1 + exit_busy_type1
@@ -828,9 +981,10 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
             'congestion': congestion_total,  # CALL_TYPE:2:EXIT_CONGESTION + CALL_TYPE:1:EXIT_CONGESTION
             'chanunavail': chanunavail_total,  # CALL_TYPE:2:CHANUNAVAIL + CALL_TYPE:1:CHANUNAVAIL (Redis)
             'num_sin_ruta': nondialplan_type2,  # CALL_TYPE:2:NONDIALPLAN
-            'errores': 0,  # No disponible directamente, placeholder
+            'errores': errores_total,  # FAIL + OTHER + BLACKLIST (CALL_TYPE 1 y 2)
             'shortcall': shortcall_total,  # CALL_TYPE:1:EXIT_SHORTCALL + CALL_TYPE:2:EXIT_SHORTCALL
         }
+
         
         # Log de depuración para verificar métricas calculadas
         logger.debug(f"[DEBUG] Métricas outbound calculadas para campaña {campaign_id}: {outbound}")
@@ -1357,6 +1511,36 @@ def dashboard_contact_center_llamadas(request):
         logger.error(f"Error en dashboard_contact_center_llamadas: {e}", exc_info=True)
         return JsonResponse({
             'error': 'Error obteniendo métricas de llamadas',
+            'detail': str(e),
+        }, status=500)
+
+
+def dashboard_panel_dialer_estado(request):
+    """
+    Estado Discador completo del Panel Dialer (paridad modal campana_dialer/list).
+
+    GET campaign_id (requerido): campaña TYPE_DIALER asignada al supervisor.
+    """
+    try:
+        campaign_id, error_response = validate_campaign_id(request, required=True)
+        if error_response:
+            return error_response
+
+        campana = _campanas_panel_dialer_queryset(request.user).filter(id=campaign_id).first()
+        if not campana:
+            raise Http404
+
+        payload = _panel_dialer_estado_payload(campana)
+        return JsonResponse({
+            **payload,
+            'timestamp': datetime.datetime.now().isoformat(),
+        })
+    except Http404:
+        raise
+    except Exception as e:
+        logger.error(f"Error en dashboard_panel_dialer_estado: {e}", exc_info=True)
+        return JsonResponse({
+            'error': 'Error obteniendo estado del discador',
             'detail': str(e),
         }, status=500)
 

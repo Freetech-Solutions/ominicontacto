@@ -22,11 +22,29 @@ from __future__ import unicode_literals
 
 from django.utils.translation import gettext as _
 
+from django.http import JsonResponse
 from django.shortcuts import render
 from ominicontacto_app.models import Campana, OpcionCalificacion
 from django.views.generic.detail import DetailView
 from ominicontacto_app.services.dialer import get_dialer_service
 from reportes_app.models import LlamadaLog
+
+
+def _campana_es_predictiva(campana):
+    queue = getattr(campana, 'queue_campana', None)
+    return bool(getattr(queue, 'initial_predictive_model', False))
+
+
+def _obtener_pacing_contexto(campana, dialer_service=None):
+    """Snapshot CAMP:{id}:PACING si el motor es Omnidialer; None en Wombat."""
+    if dialer_service is None:
+        dialer_service = get_dialer_service()
+    obtener = getattr(dialer_service, 'obtener_pacing_campana', None)
+    pacing = obtener(campana) if callable(obtener) else None
+    return {
+        'pacing': pacing,
+        'show_pacing_section': pacing is not None or _campana_es_predictiva(campana),
+    }
 
 
 class CampanaDialerDetailView(DetailView):
@@ -45,9 +63,8 @@ class CampanaDialerDetailView(DetailView):
             tipo=OpcionCalificacion.GESTION).values('nombre')
         estados_running = [Campana.ESTADO_ACTIVA, Campana.ESTADO_PAUSADA,
                            Campana.ESTADO_FINALIZADA]
+        dialer_service = get_dialer_service()
         if campana.estado in estados_running:
-
-            dialer_service = get_dialer_service()
             datos_campana = dialer_service.obtener_estado_campana(campana)
             if datos_campana:
                 if 'contactos_llamados' in datos_campana:
@@ -68,6 +85,7 @@ class CampanaDialerDetailView(DetailView):
                 context['resultado'] = True
             else:
                 context['resultado'] = False
+        context.update(_obtener_pacing_contexto(campana, dialer_service))
         return context
 
     def get_object(self, queryset=None):
@@ -109,4 +127,15 @@ def detalle_campana_dialer_view(request):
             'error_consulta': _(u"No se pudo consultar el estado actual de la campaña. "
                                 "Consulte con su administrador.")
         }
+    data.update(_obtener_pacing_contexto(campana, dialer_service))
     return render(request, 'campanas/campana_dialer/detalle_campana.html', data)
+
+
+def pacing_campana_dialer_view(request):
+    """Snapshot JSON de pacing predictivo (poll AJAX del modal de detalle)."""
+    pk_campana = int(request.GET['pk_campana'])
+    campana = Campana.objects.get(pk=pk_campana)
+    dialer_service = get_dialer_service()
+    obtener = getattr(dialer_service, 'obtener_pacing_campana', None)
+    pacing = obtener(campana) if callable(obtener) else None
+    return JsonResponse({'pacing': pacing})

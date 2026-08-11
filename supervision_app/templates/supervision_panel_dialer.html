@@ -3,7 +3,7 @@
 {% load i18n %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'supervision_app/CSS/contact_center.css' %}">
+<link rel="stylesheet" href="{% static 'supervision_app/CSS/contact_center.css' %}?v=20260811-pd5">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 {% endblock %}
 
@@ -27,49 +27,41 @@ $(function() {
     }
 });
 </script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script type="text/javascript" src="{% static 'JS/ext/reconnecting-websocket-iife.min.js' %}"></script>
 <script>
-    // Definir las URLs antes de que Alpine.js se cargue
-    window.CONTACT_CENTER_DATA_URL = "{% url 'supervision_contact_center_data' %}";
-    window.CONTACT_CENTER_AGENTES_URL = "{% url 'supervision_contact_center_agentes' %}";
-    window.CONTACT_CENTER_AGENTES_LISTA_URL = "{% url 'supervision_contact_center_agentes_lista' %}";
-    window.CONTACT_CENTER_LLAMADAS_URL = "{% url 'supervision_contact_center_llamadas' %}";
-    window.CONTACT_CENTER_BOTS_CAMPANA_URL = "{% url 'supervision_contact_center_bots_campana' %}";
-    window.CONTACT_CENTER_SUPERVISOR_ID = {{ supervisor_id|default:0 }};
-    window.CONTACT_CENTER_API_ACTION_AGENT = "{% url 'api_accion_sobre_agente' pk=0 %}".replace(/\/0\/$/, '/');
-    window.CONTACT_CENTER_API_SPY = "{% url 'api_call_spy' %}";
-    window.CONTACT_CENTER_API_THREE_WAY = "{% url 'api_three_way_conf' %}";
-    window.CONTACT_CENTER_API_SEND_MESSAGE = "{% url 'api_enviar_mensaje_agentes' %}";
+    window.PANEL_DIALER_DATA_URL = "{% url 'supervision_contact_center_data' %}";
+    window.PANEL_DIALER_AGENTES_URL = "{% url 'supervision_contact_center_agentes' %}";
+    window.PANEL_DIALER_AGENTES_LISTA_URL = "{% url 'supervision_contact_center_agentes_lista' %}";
+    window.PANEL_DIALER_LLAMADAS_URL = "{% url 'supervision_contact_center_llamadas' %}";
+    window.PANEL_DIALER_BOTS_CAMPANA_URL = "{% url 'supervision_contact_center_bots_campana' %}";
+    window.PANEL_DIALER_ESTADO_URL = "{% url 'supervision_panel_dialer_estado' %}";
+    window.PANEL_DIALER_SUPERVISOR_ID = {{ supervisor_id|default:0 }};
+    window.PANEL_DIALER_API_ACTION_AGENT = "{% url 'api_accion_sobre_agente' pk=0 %}".replace(/\/0\/$/, '/');
+    window.PANEL_DIALER_API_SPY = "{% url 'api_call_spy' %}";
+    window.PANEL_DIALER_API_THREE_WAY = "{% url 'api_three_way_conf' %}";
+    window.PANEL_DIALER_API_SEND_MESSAGE = "{% url 'api_enviar_mensaje_agentes' %}";
     {% if supervisor_id %}
-    window.CONTACT_CENTER_AGENTES_STREAM_URL = "wss://" + window.location.host + "/consumers/stream/supervisor/{{ supervisor_id }}/agentes";
+    window.PANEL_DIALER_AGENTES_STREAM_URL = "wss://" + window.location.host + "/consumers/stream/supervisor/{{ supervisor_id }}/agentes";
     {% else %}
-    window.CONTACT_CENTER_AGENTES_STREAM_URL = null;
+    window.PANEL_DIALER_AGENTES_STREAM_URL = null;
     {% endif %}
-    window.CONTACT_CENTER_CAMPAIGN_NAMES = {
+    window.PANEL_DIALER_CAMPAIGN_NAMES = {
         {% for campana in campanas %}
         "{{ campana.id }}": "{{ campana.nombre|escapejs }}"{% if not forloop.last %},{% endif %}
         {% endfor %}
     };
-    window.CONTACT_CENTER_CAMPAIGN_TYPES = {
-        {% for campana in campanas %}
-        "{{ campana.id }}": {{ campana.type }}{% if not forloop.last %},{% endif %}
-        {% endfor %}
-    };
-    window.CONTACT_CENTER_TYPE_DIALER = 2;
     {% if initial_campaign_id %}
-    window.CONTACT_CENTER_INITIAL_CAMPAIGN_ID = {{ initial_campaign_id }};
+    window.PANEL_DIALER_INITIAL_CAMPAIGN_ID = {{ initial_campaign_id }};
     {% else %}
-    window.CONTACT_CENTER_INITIAL_CAMPAIGN_ID = null;
+    window.PANEL_DIALER_INITIAL_CAMPAIGN_ID = null;
     {% endif %}
 </script>
-<script type="text/javascript" src="{% static 'supervision_app/JS/contact_center.js' %}?v=20260811-ob2"></script>
+<script type="text/javascript" src="{% static 'supervision_app/JS/panel_dialer.js' %}?v=20260811-pd4"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}
 
 {% block content %}
-<div x-data="contactCenterDashboard" x-init="init()" @alpine:destroy="cleanup()" class="contact-center-container">
-    <!-- Contenido oculto necesario para PhoneJS / WebRTC -->
+<div x-data="panelDialerDashboard" x-init="init()" @alpine:destroy="cleanup()" class="contact-center-container">
     <input type="hidden" value="{{ supervisor_id|default:'' }}" id="supervisor_id" />
     <input type="hidden" value="{{ sip_usuario|default:'' }}" id="sipExt" />
     <input type="hidden" value="{{ sip_password|default:'' }}" id="sipSec" />
@@ -84,7 +76,6 @@ $(function() {
     <audio id="RingBusy">
         <source id="fuentebOut" src="{% static 'ominicontacto/ring/busy.ogg' %}" type="audio/mpeg">
     </audio>
-    <!-- Barra SIP mínima (requerida por PhoneJSView) -->
     <div class="sip-bar-contact-center" id="timeBar">
         <div id="CallStatus"></div>
         <div id="SipStatus"></div>
@@ -94,15 +85,15 @@ $(function() {
     </div>
 
     <div class="header">
-        <h1><i class="fas fa-headset"></i> Panel general</h1>
+        <h1><i class="fas fa-phone-alt"></i> Panel Dialer</h1>
         <div class="header-controls">
             <div class="campaign-selector">
                 <label for="campaign-select" class="campaign-label">
                     <i class="fas fa-filter"></i> Campaña:
                 </label>
-                <select 
-                    id="campaign-select" 
-                    x-model="campaignId" 
+                <select
+                    id="campaign-select"
+                    x-model="campaignId"
                     @change="onCampaignChange()"
                     class="campaign-select"
                     required
@@ -114,13 +105,13 @@ $(function() {
                 </select>
             </div>
             <div class="status-info">
-                <span class="live-indicator">● En Vivo</span> | 
+                <span class="live-indicator">● En Vivo</span> |
                 Última act: <span x-text="lastUpdate || '--:--:--'"></span>
             </div>
         </div>
     </div>
 
-    <h2>Agentes, Tiempos y Llamadas (Real-Time)</h2>
+    <h2>Agentes, Tiempos y Discador (Real-Time)</h2>
     <div class="dashboard-grid grid-realtime">
         <div class="card metric-card">
             <i class="fas fa-users metric-icon status-logueados"></i>
@@ -156,112 +147,140 @@ $(function() {
         </div>
     </div>
 
-    <div class="dashboard-grid grid-main">
-        <div class="card">
-            <h2>
-                <i class="fas fa-arrow-circle-up" style="color: #ff9800;"></i> Llamadas Outbound
-            </h2>
-            <div class="stats-summary" style="display: none;">
-                <div class="stat-item">
-                    <div class="stat-value" x-text="formatNumber(data.llamadas?.outbound?.discadas || 0)">0</div>
-                    <div class="stat-label">LL Discadas Total</div>
+    <section class="panel-dialer-estado">
+        <div class="pd-card">
+            <div class="pd-card-head">
+                <h2><i class="fas fa-phone-alt"></i> Estado Discador</h2>
+            </div>
+
+            <div class="pd-estado-empty" x-show="!campaignId">
+                <p><i class="fas fa-filter"></i> Seleccione una campaña dialer para ver el estado del discador.</p>
+            </div>
+
+            <div class="pd-estado-layout" x-show="campaignId" x-cloak>
+                <aside class="pd-estado-aside">
+                    <span class="pd-estado-badge" x-text="data.estado_discador?.campana_estado || '—'">—</span>
+                    <div class="pd-channels-hero">
+                        <div class="pd-channels-value" x-text="formatNumber(data.llamadas_discando || 0)">0</div>
+                        <div class="pd-channels-label">Canales abiertos PSTN</div>
+                    </div>
+                </aside>
+
+                <div class="pd-estado-main">
+                    <div class="pd-kpi-grid pd-kpi-grid-dense">
+                        <div class="pd-kpi">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.attempted_calls || 0)">0</div>
+                            <div class="pd-kpi-label">Llamadas efectuadas</div>
+                        </div>
+                        <div class="pd-kpi">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.answered_pstn || 0)">0</div>
+                            <div class="pd-kpi-label">Llamadas conectadas</div>
+                        </div>
+                        <div class="pd-kpi pd-kpi-warn">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.conectadas_no_atendidas || 0)">0</div>
+                            <div class="pd-kpi-label">Conectadas no atendidas</div>
+                        </div>
+                        <div class="pd-kpi pd-kpi-ok">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.answered_agent || 0)">0</div>
+                            <div class="pd-kpi-label">Conectadas al agente</div>
+                        </div>
+                        <div class="pd-kpi">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.estimadas || 0)">0</div>
+                            <div class="pd-kpi-label">Restantes estimadas</div>
+                        </div>
+                        <div class="pd-kpi">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.pending_initial || 0)">0</div>
+                            <div class="pd-kpi-label">Contactos pendientes</div>
+                        </div>
+                        <div class="pd-kpi">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.pending_retries || 0)">0</div>
+                            <div class="pd-kpi-label">Reintentos abiertos</div>
+                        </div>
+                        <div class="pd-kpi">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.contactos_llamados || 0)">0</div>
+                            <div class="pd-kpi-label">Contactos llamados</div>
+                        </div>
+                        <div class="pd-kpi pd-kpi-ok">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.contacted_successfully || 0)">0</div>
+                            <div class="pd-kpi-label">Contactados exitosamente</div>
+                        </div>
+                        <div class="pd-kpi pd-kpi-muted">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.finalized_no_contact || 0)">0</div>
+                            <div class="pd-kpi-label">Finalizados sin contacto</div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="outbound-stats-table">
-                <template x-for="(item, index) in [
-                    { label: 'Atendidas (Human)', key: 'atendidas_human', color: '#4caf50' },
-                    { label: 'Atendidas (Bot)', key: 'atendidas_bot', color: '#8bc34a' },
-                    { label: 'Atendidas (Mixta)', key: 'atendidas_mix', color: '#66bb6a' },
-                    { label: 'Contestadores', key: 'contestadores', color: '#2196f3' },
-                    { label: 'Ocupado', key: 'ocupado', color: '#ff9800' },
-                    { label: 'Timeout', key: 'timeout', color: '#ff5722' },
-                    { label: 'Canceladas', key: 'canceladas', color: '#f44336' },
-                    { label: 'Shortcall', key: 'shortcall', color: '#607d8b' },
-                    { label: 'Congestión', key: 'congestion', color: '#9c27b0' },
-                    { label: 'Canal no disponible', key: 'chanunavail', color: '#795548' },
-                    { label: 'Num sin ruta', key: 'num_sin_ruta', color: '#6d4c41' },
-                    { label: 'Otro Error', key: 'errores', color: '#9e9e9e' }
-                ]" :key="index">
-                    <div class="stat-row">
-                        <div class="stat-label" x-text="item.label"></div>
-                        <div class="stat-bar-container">
-                            <div class="stat-bar" 
-                                 :style="`width: ${Math.min(((data.llamadas?.outbound?.[item.key] || 0) / Math.max(data.llamadas?.outbound?.discadas || 1, 1)) * 100, 100)}%; background-color: ${item.color};`">
+
+            <div class="pd-estado-bottom" x-show="campaignId" x-cloak>
+                <div class="pd-group" x-show="(data.estado_discador?.status || []).length > 0">
+                    <h3 class="pd-group-title"><i class="fas fa-list"></i> Desglose de disposiciones</h3>
+                    <div class="pd-status-grid">
+                        <template x-for="item in (data.estado_discador?.status || [])" :key="item.gbState">
+                            <div class="pd-status-chip">
+                                <span class="pd-status-chip-label" x-text="item.gbStateLabel || item.gbState"></span>
+                                <span class="pd-status-chip-value" x-text="formatNumber(item.nCalls || 0)"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="pd-group pd-pacing" x-show="show_pacing_section">
+                    <div class="pd-pacing-head">
+                        <h3 class="pd-group-title"><i class="fas fa-tachometer-alt"></i> Pacing predictivo</h3>
+                        <div class="pd-pacing-mode" x-show="data.pacing">
+                            <span class="pd-pacing-mode-label">Modo</span>
+                            <span class="pd-pacing-mode-value" x-text="formatPacingText(data.pacing?.MODE)">—</span>
+                        </div>
+                    </div>
+                    <em class="pd-pacing-empty" x-show="!data.pacing">Sin snapshot / TTL expirado</em>
+                    <div class="pd-pacing-body" x-show="data.pacing">
+                        <div class="pd-kpi-grid pd-kpi-grid-pacing">
+                            <div class="pd-kpi pd-kpi-info">
+                                <div class="pd-kpi-value" x-text="formatPacingPercent(data.pacing?.P_HIT)">—</div>
+                                <div class="pd-kpi-label">% contactación</div>
+                            </div>
+                            <div class="pd-kpi pd-kpi-warn">
+                                <div class="pd-kpi-value" x-text="formatPacingPercent(data.pacing?.DROP_RATE)">—</div>
+                                <div class="pd-kpi-label">Drop rate</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(data.pacing?.C_DIAL)">—</div>
+                                <div class="pd-kpi-label">C_dial</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingFloat(data.pacing?.GAMMA, 3)">—</div>
+                                <div class="pd-kpi-label">γ (gamma)</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingFloat(data.pacing?.A_FREE, 2)">—</div>
+                                <div class="pd-kpi-label">Ag libres</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingFloat(data.pacing?.A_EXPECTED, 2)">—</div>
+                                <div class="pd-kpi-label">Probabilidad Ag libres</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(data.pacing?.C_RINGING)">—</div>
+                                <div class="pd-kpi-label">Canales Ringing</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(data.pacing?.THROTTLE_STREAK)">—</div>
+                                <div class="pd-kpi-label">Throttle streak</div>
                             </div>
                         </div>
-                        <div class="stat-value" x-text="formatNumber(data.llamadas?.outbound?.[item.key] || 0)">0</div>
-                    </div>
-                </template>
-            </div>
-        </div>
-
-        <div class="card gestiones-card">
-            <div class="estado-discador-section">
-                <h2><i class="fas fa-phone-alt"></i> Estado Discador</h2>
-                <div class="stats-summary">
-                    <div class="stat-item">
-                        <div class="stat-value stat-positive" x-text="formatNumber(data.llamadas?.outbound?.llamadas_discando || 0)">0</div>
-                        <div class="stat-label">Canales activos</div>
-                    </div>
-                </div>
-                <div class="estado-discador-metrics">
-                    <div class="estado-discador-item">
-                        <div class="estado-discador-label">Llamadas Discadas</div>
-                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.attempted_calls || 0)">0</div>
-                    </div>
-                    <div class="estado-discador-item">
-                        <div class="estado-discador-label">Atendidas en destino</div>
-                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.answered_pstn || 0)">0</div>
-                    </div>
-                    <div class="estado-discador-item">
-                        <div class="estado-discador-label">Conectadas al agente</div>
-                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.answered_agent || 0)">0</div>
-                    </div>
-                    <div class="estado-discador-item">
-                        <div class="estado-discador-label">Contactos pendientes</div>
-                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.pending_initial || 0)">0</div>
-                    </div>
-                    <div class="estado-discador-item">
-                        <div class="estado-discador-label">Contactos con reintentos pendientes</div>
-                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.pending_retries || 0)">0</div>
-                    </div>
-                    <div class="estado-discador-item">
-                        <div class="estado-discador-label">Finalizados sin contacto</div>
-                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.finalized_no_contact || 0)">0</div>
-                    </div>
-                    <div class="estado-discador-item">
-                        <div class="estado-discador-label">Contactados exitosamente</div>
-                        <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.contacted_successfully || 0)">0</div>
+                        <div class="pd-pacing-details">
+                            <div class="pd-pacing-row"><span>Motivo</span><strong x-text="formatPacingText(data.pacing?.REASON)">—</strong></div>
+                            <div class="pd-pacing-row"><span>Throttle latched</span><strong x-text="formatPacingBool(data.pacing?.THROTTLE_LATCHED)">—</strong></div>
+                            <div class="pd-pacing-row"><span>Evento</span><strong x-text="formatPacingText(data.pacing?.EVENT)">—</strong></div>
+                            <div class="pd-pacing-row"><span>Timestamp</span><strong x-text="formatPacingNumber(data.pacing?.TS)">—</strong></div>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    </section>
 
-        <div class="card">
-            <h2>
-                <i class="fas fa-arrow-circle-down" style="color: #2196f3;"></i> Llamadas Inbound
-            </h2>
-            <div class="stats-summary">
-                <div class="stat-item">
-                    <div class="stat-value" x-text="formatNumber(data.llamadas?.inbound?.entrantes || 0)">0</div>
-                    <div class="stat-label">Entrantes Total</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-value stat-warning" x-text="data.llamadas?.inbound?.en_cola || 0">0</div>
-                    <div class="stat-label">En Cola Ahora</div>
-                </div>
-            </div>
-            <div class="chart-container">
-                <canvas id="inboundChart"></canvas>
-            </div>
-            <div class="positive-gestions">
-                <span class="positive-value" x-text="formatNumber(data.llamadas?.inbound?.positivas || 0)">0</span> 
-                Gestiones Positivas
-            </div>
-        </div>
-    </div>
-
-    <!-- Tabla de Agentes -->
     <div class="card agents-table-card" style="margin-top: 20px;">
         <h2>
             <i class="fas fa-users"></i> Agentes de la Campaña
@@ -305,7 +324,7 @@ $(function() {
                             <td x-text="formatTime(agente.ATT || 0)"></td>
                             <td x-text="formatTimestamp(agente.TIMESTAMP)"></td>
                             <td class="agents-actions-cell">
-                                <div class="agents-actions-btns" x-show="window.CONTACT_CENTER_SUPERVISOR_ID">
+                                <div class="agents-actions-btns" x-show="window.PANEL_DIALER_SUPERVISOR_ID">
                                     <button type="button" class="btn-agent-action" title="Monitoreo" @click="executeSpy(agente)" :disabled="actionLoading"><i class="fas fa-volume-up"></i></button>
                                     <button type="button" class="btn-agent-action" title="Susurrar" @click="executeWhisper(agente)" :disabled="actionLoading"><i class="fas fa-comment"></i></button>
                                     <button type="button" class="btn-agent-action" title="Conferencia 3 vías" @click="executeThreeWay(agente)" :disabled="actionLoading"><i class="fas fa-users"></i></button>
@@ -328,7 +347,6 @@ $(function() {
         </div>
     </div>
 
-    <!-- Tabla Bots de la Campaña -->
     <div class="card agents-table-card" style="margin-top: 20px;">
         <h2>
             <i class="fas fa-robot"></i> Bots de la Campaña
@@ -349,7 +367,7 @@ $(function() {
                             <td><strong x-text="bot.nombre || ('Bot ' + bot.id)"></strong></td>
                             <td x-text="formatNumber(bot.llamadas_activas || 0)">0</td>
                             <td class="agents-actions-cell">
-                                <div class="agents-actions-btns" x-show="window.CONTACT_CENTER_SUPERVISOR_ID">
+                                <div class="agents-actions-btns" x-show="window.PANEL_DIALER_SUPERVISOR_ID">
                                     <button type="button" class="btn-agent-action" title="Monitoreo" @click="executeSpy(bot)" :disabled="actionLoading"><i class="fas fa-volume-up"></i></button>
                                 </div>
                             </td>

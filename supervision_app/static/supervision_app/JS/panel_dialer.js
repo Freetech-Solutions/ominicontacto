@@ -1,7 +1,8 @@
 function registerContactCenterDashboard() {
-    Alpine.data('contactCenterDashboard', () => ({
+    Alpine.data('panelDialerDashboard', () => ({
         // Estado del componente (preselección desde URL supervision/<id_camp>/panel-general/)
-        campaignId: (typeof window !== 'undefined' && window.CONTACT_CENTER_INITIAL_CAMPAIGN_ID != null) ? String(window.CONTACT_CENTER_INITIAL_CAMPAIGN_ID) : '',
+        campaignId: (typeof window !== 'undefined' && window.PANEL_DIALER_INITIAL_CAMPAIGN_ID != null) ? String(window.PANEL_DIALER_INITIAL_CAMPAIGN_ID) : '',
+        // Panel Dialer: sin gráficos Inbound/Outbound
         data: {
             agentes: {
                 logueados: 0,
@@ -13,44 +14,13 @@ function registerContactCenterDashboard() {
                 lista_agentes: [],
             },
             llamadas: {
-                outbound: {
-                    discadas: 0,
-                    atendidas: 0,
-                    atendidas_human: 0,
-                    atendidas_bot: 0,
-                    atendidas_mix: 0,
-                    positivas: 0,
-                    llamadas_discando: 0,
-                    contestadores: 0,
-                    ocupado: 0,
-                    timeout: 0,
-                    canceladas: 0,
-                    congestion: 0,
-                    chanunavail: 0,
-                    num_sin_ruta: 0,
-                    errores: 0,
-                    shortcall: 0,
-                },
-                inbound: {
-                    entrantes: 0,
-                    atendidas: 0,
-                    positivas: 0,
-                    en_cola: 0,
-                    abandonadas: 0,
-                    timeout: 0,
-                    errores: 0,
-                },
                 call_times: {
                     aht: 0,
                     mas_extensa: 0,
                     gestion_positiva: 0,
                 },
-                gestiones: {
-                    human: 0,
-                    bot: 0,
-                    mixed: 0,
-                },
             },
+            llamadas_discando: 0,
             estado_discador: {
                 pending_initial: 0,
                 pending_retries: 0,
@@ -59,8 +29,16 @@ function registerContactCenterDashboard() {
                 attempted_calls: 0,
                 answered_pstn: 0,
                 answered_agent: 0,
+                conectadas_no_atendidas: 0,
+                estimadas: 0,
+                contactos_llamados: 0,
+                campana_nombre: '',
+                campana_estado: '',
+                status: [],
             },
+            pacing: null,
         },
+        show_pacing_section: false,
         loading: false,
         lastUpdate: null,
         initialized: false,
@@ -71,35 +49,22 @@ function registerContactCenterDashboard() {
         messageModalRecipientId: '',
         messageModalRecipientType: 'agent',
         messageModalText: '',
-        charts: {
-            outbound: null,
-            inbound: null,
-            gestiones: null,
-        },
-        chartsInitialized: {
-            outbound: false,
-            inbound: false,
-            gestiones: false,
-        },
+        charts: {},
+        chartsInitialized: {},
         pollingId: null,
         pollingIntervalMs: 5000, // 5 segundos
         statsPollingId: null,
         statsIntervalMs: 30000, // stats ATT/llamadas vía REST (no viajan en el stream)
         agentesMap: {}, // id → fila fusionada (estado vivo del stream + stats REST)
         agentesSocket: null,
-        streamEnabled: !!(typeof window !== 'undefined' && window.CONTACT_CENTER_AGENTES_STREAM_URL),
+        streamEnabled: !!(typeof window !== 'undefined' && window.PANEL_DIALER_AGENTES_STREAM_URL),
         _streamEverConnected: false,
         _streamMessageSeen: 'Stream subscribed!',
         dialerSocket: null,
         dialerWsEnabled: (typeof ReconnectingWebSocket !== 'undefined'),
         _dialerWsConnected: false,
         _dialerWsEverConnected: false,
-        _dialerNeedsRestResync: false, // un fetchLlamadas completo tras reconexión WS
-        outboundDialerSocket: null,
-        outboundDialerWsEnabled: (typeof ReconnectingWebSocket !== 'undefined'),
-        _outboundDialerWsConnected: false,
-        _outboundDialerWsEverConnected: false,
-        _outboundNeedsRestResync: false, // snapshot REST tras reconexión / cambio de campaña
+        _dialerNeedsRestResync: false, // un fetchEstadoDiscador completo tras reconexión WS
         destroyingCharts: false, // Flag para prevenir actualizaciones durante destrucción
         _isPolling: false, // Flag para prevenir solapamiento de requests de polling
         _pollingAbortController: null, // AbortController para cancelar requests en vuelo
@@ -115,26 +80,46 @@ function registerContactCenterDashboard() {
             },
             lista_agentes: [],
             llamadas: {
-                outbound: null,
-                inbound: null,
                 call_times: null,
-                gestiones: null,
             },
+            llamadas_discando: null,
             estado_discador: null,
+            pacing: null,
         },
 
-        // Colores para gr?ficos
-        colors: {
-            success: '#4caf50',
-            successLight: '#80e27e',
-            warning: '#ff9800',
-            danger: '#f44336',
-            info: '#2196f3',
-            purple: '#9c27b0',
-            grey: '#9e9e9e',
-            teal: '#009688',
-            orange: '#ff5722',
+        emptyEstadoDiscador() {
+            return {
+                pending_initial: 0,
+                pending_retries: 0,
+                finalized_no_contact: 0,
+                contacted_successfully: 0,
+                attempted_calls: 0,
+                answered_pstn: 0,
+                answered_agent: 0,
+                conectadas_no_atendidas: 0,
+                estimadas: 0,
+                contactos_llamados: 0,
+                campana_nombre: '',
+                campana_estado: '',
+                status: [],
+            };
         },
+
+        resetEstadoDiscador() {
+            this.data.estado_discador = this.emptyEstadoDiscador();
+            this.data.llamadas_discando = 0;
+            this.data.pacing = null;
+            this.show_pacing_section = false;
+            this.previousData.estado_discador = JSON.parse(JSON.stringify(this.data.estado_discador));
+            this.previousData.llamadas_discando = 0;
+            this.previousData.pacing = null;
+        },
+
+        campaignName() {
+            const names = window.PANEL_DIALER_CAMPAIGN_NAMES || {};
+            return names[String(this.campaignId)] || '';
+        },
+
 
         /**
          * Comparaci?n profunda de objetos/arrays
@@ -152,7 +137,7 @@ function registerContactCenterDashboard() {
             
             // Prevenir stack overflow con límite de profundidad
             if (currentDepth >= maxDepth) {
-                console.warn('[ContactCenter] deepEqual alcanzó el límite de profundidad, usando comparación por referencia');
+                console.warn('[PanelDialer] deepEqual alcanzó el límite de profundidad, usando comparación por referencia');
                 return obj1 === obj2;
             }
             
@@ -273,12 +258,12 @@ function registerContactCenterDashboard() {
                     await new Promise(resolve => setTimeout(resolve, delay));
                     
                     // Log del reintento
-                    console.warn(`[ContactCenter] Reintentando fetch (intento ${attempt + 1}/${maxRetries}):`, url);
+                    console.warn(`[PanelDialer] Reintentando fetch (intento ${attempt + 1}/${maxRetries}):`, url);
                 }
             }
             
             // Si llegamos aquí, todos los intentos fallaron
-            console.error(`[ContactCenter] Error en fetch después de ${maxRetries + 1} intentos:`, lastError);
+            console.error(`[PanelDialer] Error en fetch después de ${maxRetries + 1} intentos:`, lastError);
             throw lastError;
         },
 
@@ -286,26 +271,11 @@ function registerContactCenterDashboard() {
          * Inicializaci?n del componente
          */
         init() {
-            // Prevenir inicializaciones m?ltiples, salvo si el canvas del gr?fico inbound fue reemplazado (p. ej. Alpine re-render)
             if (this.initialized) {
-                const canvasReplaced = this.charts.inbound && this.charts.inbound.canvas && !document.contains(this.charts.inbound.canvas);
-                if (!canvasReplaced) {
-                    console.warn('[ContactCenter] El componente ya est? inicializado');
-                    return;
-                }
-                // Canvas reemplazado: destruir gr?ficos y permitir re-inicializaci?n
-                this.destroyCharts();
-                this.initialized = false;
+                console.warn('[PanelDialer] El componente ya está inicializado');
+                return;
             }
 
-            // Configurar Chart.js para dark mode
-            Chart.defaults.color = '#b0b0b0';
-            Chart.defaults.font.family = "'Segoe UI', sans-serif";
-
-            // Inicializar gr?ficos
-            this.initCharts();
-
-            // Cargar datos iniciales (primera carga completa)
             this.fetchData().then(() => {
                 if (this.streamEnabled) {
                     this.connectAgentesStream();
@@ -314,28 +284,21 @@ function registerContactCenterDashboard() {
                 if (this.dialerWsEnabled) {
                     this.connectDialerStatsSocket();
                 }
-                this.syncOutboundDialerSocket();
             });
 
-            // Iniciar polling (llamadas/bots siempre; agentes solo si no hay stream)
             this.startPolling();
 
-            // Limpiar recursos al cerrar la página
             const cleanupHandler = () => {
                 this.cleanup();
             };
             window.addEventListener('beforeunload', cleanupHandler);
             
-            // Prevenir memory leaks: pausar polling cuando la página está oculta
             const visibilityHandler = () => {
                 if (document.hidden) {
-                    // Pausar polling cuando la página está oculta
                     this.stopPolling();
                     this.stopStatsPolling();
                     this.disconnectDialerStatsSocket();
-                    this.disconnectOutboundDialerSocket();
                 } else {
-                    // Reanudar polling cuando la página vuelve a ser visible
                     this.startPolling();
                     if (this.streamEnabled) {
                         this.startStatsPolling();
@@ -343,15 +306,12 @@ function registerContactCenterDashboard() {
                     if (this.dialerWsEnabled) {
                         this.connectDialerStatsSocket();
                     }
-                    this.syncOutboundDialerSocket();
                 }
             };
             document.addEventListener('visibilitychange', visibilityHandler);
             
-            // Fallback adicional: limpiar en pagehide (más confiable que beforeunload en algunos navegadores)
             window.addEventListener('pagehide', cleanupHandler);
 
-            // Marcar como inicializado
             this.initialized = true;
         },
 
@@ -360,124 +320,13 @@ function registerContactCenterDashboard() {
          * Cancela todas las actualizaciones pendientes antes de destruir
          */
         destroyCharts() {
-            this.destroyingCharts = true;
-            
-            // Cancelar todas las actualizaciones pendientes de gráficos
-            Object.keys(this._chartUpdating || {}).forEach(key => {
-                delete this._chartUpdating[key];
-            });
-            
-            // Destruir todos los gráficos
-            Object.keys(this.charts).forEach(key => {
-                if (this.charts[key] && typeof this.charts[key].destroy === 'function') {
-                    try {
-                        this.charts[key].destroy();
-                    } catch (e) {
-                        console.warn(`[ContactCenter] Error al destruir gr?fico ${key}:`, e);
-                    }
-                }
-                this.charts[key] = null;
-                this.chartsInitialized[key] = false;
-            });
-            
-            // Resetear flag inmediatamente después de destruir (sin setTimeout)
-            // Esto previene race conditions donde actualizaciones pueden ocurrir durante el timeout
             this.destroyingCharts = false;
         },
 
         /**
-         * Inicializar los 4 gr?ficos Chart.js
+         * Panel Dialer: sin gráficos
          */
         initCharts() {
-            // Destruir gr?ficos existentes antes de crear nuevos
-            this.destroyCharts();
-
-            // NOTA: El gráfico outbound ahora usa una tabla con barras CSS en lugar de Chart.js
-            // Esto es más robusto y siempre muestra los valores correctamente
-            this.charts.outbound = null;
-            this.chartsInitialized.outbound = true;
-
-            // 2. INBOUND CHART (Dona)
-            const ctxIn = document.getElementById('inboundChart');
-            if (ctxIn) {
-                try {
-                    // Guardar referencia a los colores para usar en generateLabels
-                    const inboundColors = [
-                        this.colors.success,   // Atendidas - verde
-                        this.colors.grey,    // Abandonadas - gris
-                        this.colors.danger,    // Timeout - rojo
-                    ];
-                    
-                    this.charts.inbound = new Chart(ctxIn.getContext('2d'), {
-                        type: 'doughnut',
-                        data: {
-                            labels: [
-                                'Atendidas',
-                                'Abandonadas (Cancel)',
-                                'Timeout Sistema',
-                            ],
-                            datasets: [{
-                                data: [0, 0, 0],  // Valores iniciales para que Chart.js calcule layout
-                                backgroundColor: inboundColors,
-                                borderWidth: 2,
-                                borderColor: '#16213e'
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            animation: {
-                                duration: 0 // Desactivar animaciones desde el inicio
-                            },
-                            plugins: {
-                                legend: { 
-                                    position: 'right',
-                                    generateLabels: (chart) => {
-                                        const data = chart.data;
-                                        if (data.labels.length && data.datasets.length) {
-                                            const dataset = data.datasets[0];
-                                            
-                                            return data.labels.map((label, i) => {
-                                                const value = dataset.data[i] || 0;
-                                                // Formatear el label según el tipo
-                                                let displayLabel = label;
-                                                if (label === 'Abandonadas') {
-                                                    displayLabel = 'Abandonadas';
-                                                } else if (label === 'Timeout Sistema') {
-                                                    displayLabel = 'Timeout';
-                                                }
-                                                // Usar el color correcto de la lista definida arriba
-                                                const color = inboundColors[i] || dataset.backgroundColor?.[i] || '#9e9e9e';
-                                                return {
-                                                    text: `${displayLabel}: ${value}`,
-                                                    fillStyle: color,
-                                                    hidden: false,
-                                                    index: i
-                                                };
-                                            });
-                                        }
-                                        return [];
-                                    }
-                                }
-                            },
-                            cutout: '65%'
-                        }
-                    });
-                    // Marcar como inicializado después de un pequeño delay para permitir que Chart.js configure todos los plugins
-                    setTimeout(() => {
-                        this.chartsInitialized.inbound = true;
-                    }, 50);
-                } catch (e) {
-                    console.error('[ContactCenter] Error al inicializar gráfico inbound:', e);
-                    this.charts.inbound = null;
-                }
-            }
-
-            // NOTA: El gráfico de gestiones ha sido removido del Panel General
-            this.charts.gestiones = null;
-            this.chartsInitialized.gestiones = true;
-
-            // NOTA: El gráfico de sentimiento ha sido reemplazado por el widget "Estado Discador"
         },
 
         /**
@@ -486,7 +335,7 @@ function registerContactCenterDashboard() {
         async fetchData() {
             this.loading = true;
             try {
-                const url = window.CONTACT_CENTER_DATA_URL || '/supervision/panel-general/data/';
+                const url = window.PANEL_DIALER_DATA_URL || '/supervision/panel-general/data/';
                 const params = new URLSearchParams();
                 if (this.campaignId) {
                     params.set('campaign_id', this.campaignId);
@@ -506,15 +355,19 @@ function registerContactCenterDashboard() {
                     throw new Error(jsonData.error);
                 }
 
-                // Actualizar datos
+                // Actualizar datos (Estado Discador va por endpoint dedicado)
                 this.data = {
                     agentes: {
                         ...this.data.agentes,
                         ...(jsonData.agentes || {}),
                         lista_agentes: jsonData.agentes?.lista_agentes || [],
                     },
-                    llamadas: jsonData.llamadas || this.data.llamadas,
-                    estado_discador: jsonData.estado_discador || this.data.estado_discador,
+                    llamadas: {
+                        call_times: (jsonData.llamadas && jsonData.llamadas.call_times) || this.data.llamadas.call_times,
+                    },
+                    llamadas_discando: this.data.llamadas_discando || 0,
+                    estado_discador: this.data.estado_discador || this.emptyEstadoDiscador(),
+                    pacing: this.data.pacing,
                 };
 
                 // Sembrar mapa vivo de agentes (estado + stats) desde el baseline REST
@@ -535,12 +388,11 @@ function registerContactCenterDashboard() {
                     },
                     lista_agentes: JSON.parse(JSON.stringify(this.data.agentes.lista_agentes || [])),
                     llamadas: {
-                        outbound: JSON.parse(JSON.stringify(this.data.llamadas?.outbound || {})),
-                        inbound: JSON.parse(JSON.stringify(this.data.llamadas?.inbound || {})),
                         call_times: JSON.parse(JSON.stringify(this.data.llamadas?.call_times || {})),
-                        gestiones: JSON.parse(JSON.stringify(this.data.llamadas?.gestiones || {})),
                     },
+                    llamadas_discando: this.data.llamadas_discando || 0,
                     estado_discador: JSON.parse(JSON.stringify(this.data.estado_discador || {})),
+                    pacing: this.data.pacing ? JSON.parse(JSON.stringify(this.data.pacing)) : null,
                 };
 
                 // Actualizar timestamp
@@ -553,6 +405,7 @@ function registerContactCenterDashboard() {
 
                 // Actualizar gr?ficos
                 this.updateCharts();
+                await this.fetchEstadoDiscador();
 
             } catch (error) {
                 console.error('Error obteniendo datos del contact center:', error);
@@ -567,7 +420,7 @@ function registerContactCenterDashboard() {
          */
         async fetchAgentes() {
             try {
-                const url = window.CONTACT_CENTER_AGENTES_URL || '/supervision/panel-general/data/agentes/';
+                const url = window.PANEL_DIALER_AGENTES_URL || '/supervision/panel-general/data/agentes/';
                 const params = new URLSearchParams();
                 if (this.campaignId) {
                     params.set('campaign_id', this.campaignId);
@@ -630,7 +483,7 @@ function registerContactCenterDashboard() {
          */
         async fetchAgentesLista() {
             try {
-                const url = window.CONTACT_CENTER_AGENTES_LISTA_URL || '/supervision/panel-general/data/agentes-lista/';
+                const url = window.PANEL_DIALER_AGENTES_LISTA_URL || '/supervision/panel-general/data/agentes-lista/';
                 const params = new URLSearchParams();
                 if (this.campaignId) {
                     params.set('campaign_id', this.campaignId);
@@ -680,11 +533,86 @@ function registerContactCenterDashboard() {
         },
 
         /**
-         * Obtener solo m?tricas de llamadas
+         * Estado Discador completo (paridad modal campana_dialer/list)
+         */
+        async fetchEstadoDiscador() {
+            if (!this.campaignId) {
+                this.resetEstadoDiscador();
+                return;
+            }
+            try {
+                const url = window.PANEL_DIALER_ESTADO_URL || '/supervision/panel-dialer/data/estado-discador/';
+                const params = new URLSearchParams();
+                params.set('campaign_id', this.campaignId);
+                const fullUrl = `${url}?${params.toString()}`;
+
+                const response = await this.safeFetch(fullUrl, {
+                    credentials: 'same-origin',
+                    headers: {
+                        'Accept': 'application/json',
+                    }
+                }, 10000, 1, this._pollingAbortController?.signal);
+
+                const jsonData = await response.json();
+                if (jsonData.error) {
+                    throw new Error(jsonData.error);
+                }
+
+                const protectLive = this.shouldProtectDialerFromRest();
+                const incoming = {
+                    ...this.emptyEstadoDiscador(),
+                    ...(jsonData.estado_discador || {}),
+                };
+                // WS puede tener canales/stats más frescos: no pisar esos keys si el socket vive
+                if (protectLive) {
+                    const live = this.data.estado_discador || {};
+                    [
+                        'attempted_calls', 'answered_pstn', 'answered_agent',
+                        'pending_initial', 'pending_retries',
+                        'finalized_no_contact', 'contacted_successfully',
+                    ].forEach((key) => {
+                        if (live[key] !== undefined && live[key] !== null) {
+                            incoming[key] = live[key];
+                        }
+                    });
+                }
+
+                let newDiscando = Number(jsonData.llamadas_discando || 0);
+                if (protectLive) {
+                    newDiscando = Number(this.data.llamadas_discando || 0);
+                }
+
+                this.data.estado_discador = incoming;
+                this.data.llamadas_discando = newDiscando;
+                this.data.pacing = jsonData.pacing || null;
+                this.show_pacing_section = !!jsonData.show_pacing_section;
+                this.previousData.estado_discador = JSON.parse(JSON.stringify(incoming));
+                this.previousData.llamadas_discando = newDiscando;
+                this.previousData.pacing = this.data.pacing
+                    ? JSON.parse(JSON.stringify(this.data.pacing))
+                    : null;
+
+                if (jsonData.timestamp) {
+                    this.lastUpdate = new Date(jsonData.timestamp).toLocaleTimeString();
+                }
+
+                if (this._dialerNeedsRestResync) {
+                    this._dialerNeedsRestResync = false;
+                }
+            } catch (error) {
+                const isAbort = error.name === 'AbortError' || (typeof DOMException !== 'undefined' && error instanceof DOMException && error.message && String(error.message).toLowerCase().includes('aborted'));
+                if (!isAbort) {
+                    console.error('Error obteniendo estado del discador:', error);
+                }
+            }
+        },
+
+        /**
+         * Obtener solo métricas de tiempos de llamada (AHT / gestión)
          */
         async fetchLlamadas() {
             try {
-                const url = window.CONTACT_CENTER_LLAMADAS_URL || '/supervision/panel-general/data/llamadas/';
+                const url = window.PANEL_DIALER_LLAMADAS_URL || '/supervision/panel-general/data/llamadas/';
                 const params = new URLSearchParams();
                 if (this.campaignId) {
                     params.set('campaign_id', this.campaignId);
@@ -704,79 +632,18 @@ function registerContactCenterDashboard() {
                     throw new Error(jsonData.error);
                 }
 
-                const newLlamadas = {
-                    outbound: jsonData.outbound || {},
-                    inbound: jsonData.inbound || {},
-                    call_times: jsonData.call_times || {},
-                    gestiones: jsonData.gestiones || {},
-                };
-                
-                const newEstadoDiscador = jsonData.estado_discador || {
-                    pending_initial: 0,
-                    pending_retries: 0,
-                    finalized_no_contact: 0,
-                    contacted_successfully: 0,
-                    attempted_calls: 0,
-                    answered_pstn: 0,
-                    answered_agent: 0,
-                };
-
-                // Con WS discador activo: no pisar estado_discador ni canales activos (salvo resync post-reconnect)
-                const protectDialerLive = this.shouldProtectDialerFromRest();
-                // Outbound: REST (CALLDATA DB2) es fuente absoluta entre polls; el WS aplica deltas en vivo.
-                // No bloquear Outbound desde REST (evita UI congelada si el WS conecta pero no pinta).
-                const liveOutbound = this.data.llamadas?.outbound || {};
-                if (protectDialerLive) {
-                    newLlamadas.outbound = {
-                        ...newLlamadas.outbound,
-                        llamadas_discando: liveOutbound.llamadas_discando || 0,
+                const newCallTimes = jsonData.call_times || {};
+                if (this.hasChanged('call_times', newCallTimes, this.previousData.llamadas.call_times)) {
+                    this.data.llamadas = {
+                        call_times: newCallTimes,
                     };
-                }
-
-                let hasChanges = false;
-                const groupsToCheck = ['outbound', 'inbound', 'call_times', 'gestiones'];
-                
-                for (const group of groupsToCheck) {
-                    if (this.hasChanged(group, newLlamadas[group], this.previousData.llamadas[group])) {
-                        hasChanges = true;
-                        break;
-                    }
-                }
-                
-                // Verificar cambios en estado_discador solo si el REST puede escribirlo
-                if (!protectDialerLive && this.hasChanged('estado_discador', newEstadoDiscador, this.previousData.estado_discador)) {
-                    hasChanges = true;
-                }
-
-                // Solo actualizar si hay cambios
-                if (hasChanges) {
-                    this.data.llamadas = newLlamadas;
-                    if (!protectDialerLive) {
-                        this.data.estado_discador = newEstadoDiscador;
-                        this.previousData.estado_discador = JSON.parse(JSON.stringify(newEstadoDiscador));
-                    }
                     this.previousData.llamadas = {
-                        outbound: JSON.parse(JSON.stringify(newLlamadas.outbound)),
-                        inbound: JSON.parse(JSON.stringify(newLlamadas.inbound)),
-                        call_times: JSON.parse(JSON.stringify(newLlamadas.call_times)),
-                        gestiones: JSON.parse(JSON.stringify(newLlamadas.gestiones)),
+                        call_times: JSON.parse(JSON.stringify(newCallTimes)),
                     };
-                    
-                    // Actualizar timestamp
                     if (jsonData.timestamp) {
                         const date = new Date(jsonData.timestamp);
                         this.lastUpdate = date.toLocaleTimeString();
                     }
-                    
-                    // Actualizar solo los gr?ficos que cambiaron
-                    this.updateChartsSelective(newLlamadas);
-                }
-
-                if (this._dialerNeedsRestResync) {
-                    this._dialerNeedsRestResync = false;
-                }
-                if (this._outboundNeedsRestResync) {
-                    this._outboundNeedsRestResync = false;
                 }
 
             } catch (error) {
@@ -797,7 +664,7 @@ function registerContactCenterDashboard() {
                 return;
             }
             try {
-                const url = window.CONTACT_CENTER_BOTS_CAMPANA_URL || '/supervision/panel-general/data/bots-campana/';
+                const url = window.PANEL_DIALER_BOTS_CAMPANA_URL || '/supervision/panel-general/data/bots-campana/';
                 const params = new URLSearchParams();
                 params.set('campaign_id', this.campaignId);
                 const fullUrl = `${url}?${params.toString()}`;
@@ -825,155 +692,21 @@ function registerContactCenterDashboard() {
             }
         },
 
-        /**
-         * Actualizar gr?ficos con los datos actuales (todos)
-         */
         updateCharts() {
-            const llamadas = this.data.llamadas || {};
-            this.updateChartsSelective(llamadas);
+            // Panel Dialer: sin gráficos
         },
 
-        /**
-         * Verificar si un gr?fico est? listo para ser actualizado
-         */
-        isChartReady(chart, chartKey) {
-            if (!chart) return false;
-            if (this.destroyingCharts) return false;
-            if (typeof chart.destroyed !== 'undefined' && chart.destroyed) return false;
-            if (typeof chart.update !== 'function') return false;
-            if (!chart.data || !chart.data.datasets || !chart.data.datasets[0]) return false;
-            // Verificar que el gr?fico tenga la estructura completa de Chart.js
-            if (!chart.canvas || !chart.ctx) return false;
-            // Verificar que el canvas aún esté en el DOM
-            if (!chart.canvas.parentNode) return false;
-            // Compatibilidad con Chart.js v3/v4: no asumir estructura interna de config/plugins
-            if (chart.canvas && chart.canvas.isConnected === false) return false;
-            return true;
+        isChartReady() {
+            return false;
         },
 
-        /**
-         * Actualizar un gr?fico de forma segura usando requestAnimationFrame
-         * Previene actualizaciones concurrentes del mismo gráfico
-         */
-        safeUpdateChart(chart, data, chartKey) {
-            if (!chart || !chartKey) return;
-            if (!this.isChartReady(chart, chartKey)) return;
-            
-            // Prevenir actualizaciones concurrentes del mismo gráfico
-            if (this._chartUpdating[chartKey]) {
-                return;
-            }
-            
-            // Marcar como actualizando
-            this._chartUpdating[chartKey] = true;
-            
-            try {
-                // Verificar que los datos sean un array válido
-                if (!Array.isArray(data)) {
-                    console.warn('[ContactCenter] Los datos del gráfico deben ser un array');
-                    this._chartUpdating[chartKey] = false;
-                    return;
-                }
-                
-                // Verificar que el dataset exista
-                if (!chart.data || !chart.data.datasets || !chart.data.datasets[0]) {
-                    console.warn('[ContactCenter] El gráfico no tiene un dataset válido');
-                    this._chartUpdating[chartKey] = false;
-                    return;
-                }
-                
-                // Preservar los colores originales si se están perdiendo (especialmente para inbound)
-                if (chartKey === 'inbound') {
-                    // Definir los colores correctos para inbound - SIEMPRE establecerlos explícitamente
-                    const inboundColors = [
-                        this.colors.success,   // Atendidas - verde
-                        this.colors.grey,    // Abandonadas - gris
-                        this.colors.danger,    // Timeout - rojo
-                    ];
-                    
-                    // SIEMPRE establecer los colores correctos para evitar que se pierdan
-                    chart.data.datasets[0].backgroundColor = inboundColors;
-                }
-                
-                // Actualizar los datos
-                chart.data.datasets[0].data = data;
-                
-                // Usar requestAnimationFrame para asegurar que la actualizaci?n ocurra en el momento correcto
-                requestAnimationFrame(() => {
-                    try {
-                        // Verificar nuevamente antes de actualizar (puede haber cambiado el estado)
-                        if (!this.isChartReady(chart, chartKey)) {
-                            this._chartUpdating[chartKey] = false;
-                            return;
-                        }
-                        
-                        try {
-                            // Para gráficos de tipo doughnut, asegurar que se renderice incluso con datos cero
-                            if (chart.config.type === 'doughnut' && chartKey === 'inbound') {
-                                // Verificar que el canvas tenga dimensiones válidas
-                                if (chart.canvas && chart.canvas.width === 0) {
-                                    chart.resize();
-                                }
-                            }
-                            
-                            // Usar 'none' solo si el gráfico ya fue inicializado completamente
-                            // Esto evita problemas con plugins que intentan acceder a propiedades no inicializadas
-                            if (this.chartsInitialized[chartKey]) {
-                                chart.update('none');
-                            } else {
-                                // Si no está inicializado, usar update sin argumentos para permitir la inicialización
-                                chart.update();
-                                this.chartsInitialized[chartKey] = true;
-                            }
-                        } catch (e) {
-                            // Si 'none' falla, intentar sin argumentos
-                            try {
-                                chart.update();
-                                this.chartsInitialized[chartKey] = true;
-                            } catch (e2) {
-                                console.warn('[ContactCenter] Error al actualizar gr?fico:', e2);
-                                // Si ambos fallan, marcar como no inicializado para reintentar en la próxima actualización
-                                this.chartsInitialized[chartKey] = false;
-                            }
-                        }
-                    } finally {
-                        // Resetear flag de actualización en finally para asegurar que siempre se resetee
-                        this._chartUpdating[chartKey] = false;
-                    }
-                });
-            } catch (e) {
-                console.warn('[ContactCenter] Error al preparar actualizaci?n de gr?fico:', e);
-                // Resetear flag en caso de error
-                this._chartUpdating[chartKey] = false;
-            }
+        safeUpdateChart() {
         },
 
-        /**
-         * Actualizar gr?ficos de forma selectiva basado en los datos proporcionados
-         */
-        updateChartsSelective(llamadas) {
-            if (!llamadas) return;
-            if (this.destroyingCharts) return; // No actualizar si se est?n destruyendo gr?ficos
-
-            // NOTA: El gráfico outbound ahora usa Alpine.js directamente en el HTML
-            // Los valores se actualizan automáticamente cuando cambia this.data.llamadas.outbound
-            // No necesitamos actualizar Chart.js para outbound
-
-            // Actualizar Inbound Chart
-            if (this.charts.inbound && llamadas.inbound) {
-                const inbound = llamadas.inbound;
-                this.safeUpdateChart(this.charts.inbound, [
-                    inbound.atendidas || 0,
-                    inbound.abandonadas || 0,
-                    inbound.timeout || 0,
-                ], 'inbound');
-            }
-
-            // NOTA: El gráfico de gestiones ha sido removido del Panel General
-            // NOTA: El gráfico de sentimiento ha sido reemplazado por el widget "Estado Discador"
+        updateChartsSelective() {
         },
 
-        /**
+                /**
          * Iniciar polling para actualizar datos peri?dicamente
          */
         startPolling() {
@@ -992,7 +725,7 @@ function registerContactCenterDashboard() {
             this.pollingId = setInterval(() => {
                 // Prevenir solapamiento: si ya hay un polling en curso, saltar esta iteración
                 if (this._isPolling) {
-                    console.warn('[ContactCenter] Polling ya en curso, saltando esta iteración');
+                    console.warn('[PanelDialer] Polling ya en curso, saltando esta iteración');
                     return;
                 }
                 
@@ -1002,11 +735,12 @@ function registerContactCenterDashboard() {
 
                 // Con stream activo: solo métricas de campaña/bots (agentes vivos van por WS)
                 const tasks = this.streamEnabled
-                    ? [this.fetchLlamadas(), this.fetchBotsCampana()]
+                    ? [this.fetchLlamadas(), this.fetchEstadoDiscador(), this.fetchBotsCampana()]
                     : [
                         this.fetchAgentes(),
                         this.fetchAgentesLista(),
                         this.fetchLlamadas(),
+                        this.fetchEstadoDiscador(),
                         this.fetchBotsCampana(),
                     ];
                 
@@ -1070,14 +804,13 @@ function registerContactCenterDashboard() {
                 try {
                     window.contactCenterPhoneController.phone.hangUp();
                 } catch (e) {
-                    console.warn('[ContactCenter] Error al colgar en cleanup:', e);
+                    console.warn('[PanelDialer] Error al colgar en cleanup:', e);
                 }
             }
             this.stopPolling();
             this.stopStatsPolling();
             this.disconnectAgentesStream();
             this.disconnectDialerStatsSocket();
-            this.disconnectOutboundDialerSocket();
             this.destroyCharts();
             this.initialized = false;
         },
@@ -1086,12 +819,10 @@ function registerContactCenterDashboard() {
          * Manejar cambio de campa?a
          */
         onCampaignChange() {
-            // Con stream: refiltrar inmediatamente desde agentesMap; REST trae baseline/stats
             if (this.streamEnabled) {
                 this.updateFilteredAgentes();
             }
-            this._outboundNeedsRestResync = true;
-            this.syncOutboundDialerSocket();
+            this.resetEstadoDiscador();
             this.fetchData();
             this.fetchBotsCampana();
         },
@@ -1121,6 +852,49 @@ function registerContactCenterDashboard() {
                 return '0';
             }
             return Number(num).toLocaleString('es-ES');
+        },
+
+        formatPacingText(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            return String(value);
+        },
+
+        formatPacingNumber(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            return this.formatNumber(value);
+        },
+
+        formatPacingFloat(value, digits) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            const n = Number(value);
+            if (Number.isNaN(n)) {
+                return '—';
+            }
+            return n.toFixed(digits || 2);
+        },
+
+        formatPacingPercent(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            const n = Number(value);
+            if (Number.isNaN(n)) {
+                return '—';
+            }
+            return `${Math.round(n * 100)}%`;
+        },
+
+        formatPacingBool(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            return Number(value) ? 'sí' : 'no';
         },
 
         /**
@@ -1251,7 +1025,7 @@ function registerContactCenterDashboard() {
         },
 
         async executeSupervisorAction(agentId, action) {
-            const baseUrl = window.CONTACT_CENTER_API_ACTION_AGENT;
+            const baseUrl = window.PANEL_DIALER_API_ACTION_AGENT;
             if (!baseUrl) {
                 alert('Configuración de API no disponible.');
                 return;
@@ -1275,8 +1049,8 @@ function registerContactCenterDashboard() {
                 alert('Debe finalizar la acción actual antes de realizar otra.');
                 return;
             }
-            const url = window.CONTACT_CENTER_API_SPY;
-            const supervisorId = window.CONTACT_CENTER_SUPERVISOR_ID;
+            const url = window.PANEL_DIALER_API_SPY;
+            const supervisorId = window.PANEL_DIALER_SUPERVISOR_ID;
             if (!url || !supervisorId) {
                 alert('Configuración de supervisor o API no disponible.');
                 return;
@@ -1304,8 +1078,8 @@ function registerContactCenterDashboard() {
                 alert('Debe finalizar la acción actual antes de realizar otra.');
                 return;
             }
-            const url = window.CONTACT_CENTER_API_SPY;
-            const supervisorId = window.CONTACT_CENTER_SUPERVISOR_ID;
+            const url = window.PANEL_DIALER_API_SPY;
+            const supervisorId = window.PANEL_DIALER_SUPERVISOR_ID;
             if (!url || !supervisorId) {
                 alert('Configuración de supervisor o API no disponible.');
                 return;
@@ -1333,8 +1107,8 @@ function registerContactCenterDashboard() {
                 alert('Debe finalizar la acción actual antes de realizar otra.');
                 return;
             }
-            const url = window.CONTACT_CENTER_API_THREE_WAY;
-            const supervisorId = window.CONTACT_CENTER_SUPERVISOR_ID;
+            const url = window.PANEL_DIALER_API_THREE_WAY;
+            const supervisorId = window.PANEL_DIALER_SUPERVISOR_ID;
             if (!url || !supervisorId) {
                 alert('Configuración de supervisor o API no disponible.');
                 return;
@@ -1372,7 +1146,7 @@ function registerContactCenterDashboard() {
         },
 
         async sendMessage() {
-            const url = window.CONTACT_CENTER_API_SEND_MESSAGE;
+            const url = window.PANEL_DIALER_API_SEND_MESSAGE;
             if (!url) {
                 alert('Configuración de API no disponible.');
                 return;
@@ -1419,7 +1193,7 @@ function registerContactCenterDashboard() {
          * Sembrar agentesMap desde lista REST (baseline o fallback polling).
          */
         seedAgentesMapFromLista(lista) {
-            const campaignNames = window.CONTACT_CENTER_CAMPAIGN_NAMES || {};
+            const campaignNames = window.PANEL_DIALER_CAMPAIGN_NAMES || {};
             const selectedName = this.campaignId ? campaignNames[String(this.campaignId)] : null;
             const nextMap = {};
             (lista || []).forEach((agente) => {
@@ -1567,7 +1341,7 @@ function registerContactCenterDashboard() {
                         ATT: prev.ATT || 0,
                     };
                 } catch (err) {
-                    console.warn('[ContactCenter] Error parseando evento de stream de agentes:', err);
+                    console.warn('[PanelDialer] Error parseando evento de stream de agentes:', err);
                 }
             });
             Object.keys(updates).forEach((id) => {
@@ -1579,9 +1353,9 @@ function registerContactCenterDashboard() {
         },
 
         connectAgentesStream() {
-            const url = window.CONTACT_CENTER_AGENTES_STREAM_URL;
+            const url = window.PANEL_DIALER_AGENTES_STREAM_URL;
             if (!url || typeof ReconnectingWebSocket === 'undefined') {
-                console.warn('[ContactCenter] Stream de agentes no disponible; usando polling REST');
+                console.warn('[PanelDialer] Stream de agentes no disponible; usando polling REST');
                 this.streamEnabled = false;
                 this.stopStatsPolling();
                 this.startPolling();
@@ -1607,11 +1381,11 @@ function registerContactCenterDashboard() {
                 try {
                     this.applyStreamAgents(e.data);
                 } catch (err) {
-                    console.warn('[ContactCenter] Error procesando mensaje de stream:', err);
+                    console.warn('[PanelDialer] Error procesando mensaje de stream:', err);
                 }
             });
             rws.addEventListener('error', () => {
-                console.warn('[ContactCenter] Error en websocket de agentes');
+                console.warn('[PanelDialer] Error en websocket de agentes');
             });
             this.agentesSocket = rws;
         },
@@ -1621,7 +1395,7 @@ function registerContactCenterDashboard() {
                 try {
                     this.agentesSocket.close();
                 } catch (e) {
-                    console.warn('[ContactCenter] Error cerrando stream de agentes:', e);
+                    console.warn('[PanelDialer] Error cerrando stream de agentes:', e);
                 }
                 this.agentesSocket = null;
             }
@@ -1634,147 +1408,9 @@ function registerContactCenterDashboard() {
             return !!(this.dialerWsEnabled && this._dialerWsConnected && !this._dialerNeedsRestResync);
         },
 
-        isSelectedCampaignDialer() {
-            if (!this.campaignId) {
-                return false;
-            }
-            const types = window.CONTACT_CENTER_CAMPAIGN_TYPES || {};
-            const typeDialer = window.CONTACT_CENTER_TYPE_DIALER != null
-                ? Number(window.CONTACT_CENTER_TYPE_DIALER)
-                : 2;
-            return Number(types[String(this.campaignId)]) === typeDialer;
-        },
-
-        syncOutboundDialerSocket() {
-            if (this.isSelectedCampaignDialer() && this.outboundDialerWsEnabled) {
-                if (!this.outboundDialerSocket) {
-                    this.connectOutboundDialerSocket();
-                }
-            } else {
-                this.disconnectOutboundDialerSocket();
-            }
-        },
-
-        connectOutboundDialerSocket() {
-            if (typeof ReconnectingWebSocket === 'undefined') {
-                console.warn('[ContactCenter] ReconnectingWebSocket no disponible; Outbound por REST');
-                this.outboundDialerWsEnabled = false;
-                this._outboundDialerWsConnected = false;
-                return;
-            }
-            this.disconnectOutboundDialerSocket();
-            const url = 'wss://' + window.location.host + '/channels/supervision/dialer';
-            const rws = new ReconnectingWebSocket(url, [], {
-                connectionTimeout: 10000,
-                maxReconnectionDelay: 3000,
-                minReconnectionDelay: 1000,
-            });
-            rws.addEventListener('open', () => {
-                this._outboundDialerWsConnected = true;
-                if (this._outboundDialerWsEverConnected) {
-                    this._outboundNeedsRestResync = true;
-                    this.fetchLlamadas();
-                }
-                this._outboundDialerWsEverConnected = true;
-            });
-            rws.addEventListener('message', (e) => {
-                try {
-                    const eventData = JSON.parse(e.data);
-                    this.applyOutboundDialerEvent(eventData);
-                } catch (err) {
-                    console.warn('[ContactCenter] Error procesando mensaje supervision/dialer:', err);
-                }
-            });
-            rws.addEventListener('close', () => {
-                this._outboundDialerWsConnected = false;
-            });
-            rws.addEventListener('error', () => {
-                console.warn('[ContactCenter] Error en websocket supervision/dialer');
-            });
-            this.outboundDialerSocket = rws;
-        },
-
-        disconnectOutboundDialerSocket() {
-            this._outboundDialerWsConnected = false;
-            if (this.outboundDialerSocket) {
-                try {
-                    this.outboundDialerSocket.close();
-                } catch (e) {
-                    console.warn('[ContactCenter] Error cerrando websocket supervision/dialer:', e);
-                }
-                this.outboundDialerSocket = null;
-            }
-        },
-
-        /**
-         * Aplica updates del canal /channels/supervision/dialer a Llamadas Outbound.
-         */
-        applyOutboundDialerEvent(eventData) {
-            if (!eventData || !this.campaignId || !this.isSelectedCampaignDialer()) {
-                return;
-            }
-            // initial_data es snapshot grueso de dialers table; Outbound usa REST como baseline absoluto
-            if (eventData.initial_data != null) {
-                return;
-            }
-            if (eventData.type !== 'update' || !eventData.args || eventData.args.DIALER == null) {
-                return;
-            }
-            const payload = eventData.args.DIALER;
-            const updates = Array.isArray(payload) ? payload : [payload];
-            const ATTENDED_FIELDS = ['atendidas_human', 'atendidas_bot', 'atendidas_mix'];
-            let changed = false;
-            const nextOutbound = { ...(this.data.llamadas.outbound || {}) };
-
-            updates.forEach((data) => {
-                if (!data || Number(data.campaign_id) !== Number(this.campaignId)) {
-                    return;
-                }
-                // Prefer outbound_field; fallback mínimo por field grueso (compat payloads viejos)
-                let outboundField = data.outbound_field;
-                if (!outboundField && data.field) {
-                    const fieldFallback = {
-                        dialed: 'discadas',
-                        amd: 'contestadores',
-                        shortcall: 'shortcall',
-                    };
-                    outboundField = fieldFallback[data.field] || null;
-                    if (data.field === 'attended') {
-                        // Sin desglose fine: sumar atendidas agregadas
-                        const deltaAtt = Number(data.delta != null ? data.delta : 1);
-                        nextOutbound.atendidas = Number(nextOutbound.atendidas || 0) + deltaAtt;
-                        nextOutbound.positivas = Number(nextOutbound.positivas || 0) + deltaAtt;
-                        changed = true;
-                    }
-                }
-                if (!outboundField) {
-                    return;
-                }
-                const delta = Number(data.delta != null ? data.delta : 1);
-                nextOutbound[outboundField] = Number(nextOutbound[outboundField] || 0) + delta;
-                if (ATTENDED_FIELDS.includes(outboundField)) {
-                    nextOutbound.atendidas = Number(nextOutbound.atendidas || 0) + delta;
-                    nextOutbound.positivas = Number(nextOutbound.positivas || 0) + delta;
-                }
-                changed = true;
-            });
-
-            if (!changed) {
-                return;
-            }
-            this.data.llamadas = {
-                ...this.data.llamadas,
-                outbound: nextOutbound,
-            };
-            if (this.previousData.llamadas) {
-                this.previousData.llamadas.outbound = JSON.parse(JSON.stringify(nextOutbound));
-            }
-            this.lastUpdate = new Date().toLocaleTimeString();
-        },
-
         connectDialerStatsSocket() {
             if (typeof ReconnectingWebSocket === 'undefined') {
-                console.warn('[ContactCenter] ReconnectingWebSocket no disponible; Estado Discador por REST');
+                console.warn('[PanelDialer] ReconnectingWebSocket no disponible; Estado Discador por REST');
                 this.dialerWsEnabled = false;
                 this._dialerWsConnected = false;
                 return;
@@ -1793,13 +1429,13 @@ function registerContactCenterDashboard() {
                         payload: { service: 'dialer_stats' },
                     }));
                 } catch (e) {
-                    console.warn('[ContactCenter] Error suscribiendo dialer_stats:', e);
+                    console.warn('[PanelDialer] Error suscribiendo dialer_stats:', e);
                 }
                 this._dialerWsConnected = true;
                 if (this._dialerWsEverConnected) {
-                    // Reconexión: un snapshot REST completo (discador + gráficos) y luego vuelven los eventos
+                    // Reconexión: un snapshot REST completo del Estado Discador y luego vuelven los eventos
                     this._dialerNeedsRestResync = true;
-                    this.fetchLlamadas();
+                    this.fetchEstadoDiscador();
                 }
                 this._dialerWsEverConnected = true;
             });
@@ -1810,14 +1446,14 @@ function registerContactCenterDashboard() {
                         this.applyDialerStatsEvent(eventData.args);
                     }
                 } catch (err) {
-                    console.warn('[ContactCenter] Error procesando mensaje omnidialer:', err);
+                    console.warn('[PanelDialer] Error procesando mensaje omnidialer:', err);
                 }
             });
             rws.addEventListener('close', () => {
                 this._dialerWsConnected = false;
             });
             rws.addEventListener('error', () => {
-                console.warn('[ContactCenter] Error en websocket omnidialer');
+                console.warn('[PanelDialer] Error en websocket omnidialer');
             });
             this.dialerSocket = rws;
         },
@@ -1828,7 +1464,7 @@ function registerContactCenterDashboard() {
                 try {
                     this.dialerSocket.close();
                 } catch (e) {
-                    console.warn('[ContactCenter] Error cerrando websocket omnidialer:', e);
+                    console.warn('[PanelDialer] Error cerrando websocket omnidialer:', e);
                 }
                 this.dialerSocket = null;
             }
@@ -1848,19 +1484,8 @@ function registerContactCenterDashboard() {
             const eventType = args.type;
             if (eventType === 'CALLS') {
                 const calls = Number(args.calls || 0);
-                this.data.llamadas = {
-                    ...this.data.llamadas,
-                    outbound: {
-                        ...(this.data.llamadas.outbound || {}),
-                        llamadas_discando: calls,
-                    },
-                };
-                if (this.previousData.llamadas && this.previousData.llamadas.outbound) {
-                    this.previousData.llamadas.outbound = {
-                        ...this.previousData.llamadas.outbound,
-                        llamadas_discando: calls,
-                    };
-                }
+                this.data.llamadas_discando = calls;
+                this.previousData.llamadas_discando = calls;
                 this.lastUpdate = new Date().toLocaleTimeString();
                 return;
             }
@@ -1894,6 +1519,11 @@ function registerContactCenterDashboard() {
             if (!changed) {
                 return;
             }
+            // Al actualizar STATS via WS, recalcular restantes estimadas
+            if (Object.prototype.hasOwnProperty.call(next, 'pending_initial')
+                    || Object.prototype.hasOwnProperty.call(next, 'pending_retries')) {
+                next.estimadas = Number(next.pending_initial || 0) + Number(next.pending_retries || 0);
+            }
             this.data.estado_discador = next;
             this.previousData.estado_discador = JSON.parse(JSON.stringify(next));
             this.lastUpdate = new Date().toLocaleTimeString();
@@ -1903,7 +1533,7 @@ function registerContactCenterDashboard() {
             if (!this.campaignId) {
                 return false;
             }
-            const campaignNames = window.CONTACT_CENTER_CAMPAIGN_NAMES || {};
+            const campaignNames = window.PANEL_DIALER_CAMPAIGN_NAMES || {};
             const selectedName = campaignNames[String(this.campaignId)];
             if (!selectedName) {
                 return false;
@@ -2019,10 +1649,10 @@ function registerContactCenterDashboard() {
         if (typeof window.Alpine !== 'undefined' && typeof window.Alpine.data === 'function') {
             try {
                 registerContactCenterDashboard();
-                console.log('[ContactCenter] Componente contactCenterDashboard registrado correctamente');
+                console.log('[PanelDialer] Componente panelDialerDashboard registrado correctamente');
                 return true;
             } catch (error) {
-                console.error('[ContactCenter] Error al registrar el componente:', error);
+                console.error('[PanelDialer] Error al registrar el componente:', error);
                 return false;
             }
         }
@@ -2051,7 +1681,7 @@ function registerContactCenterDashboard() {
             clearInterval(interval);
         } else if (attempts >= maxAttempts) {
             clearInterval(interval);
-            console.error('[ContactCenter] No se pudo registrar el componente despu?s de', maxAttempts, 'intentos');
+            console.error('[PanelDialer] No se pudo registrar el componente despu?s de', maxAttempts, 'intentos');
         }
     }, 100);
 })();

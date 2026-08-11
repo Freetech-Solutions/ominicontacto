@@ -74,6 +74,14 @@ class SupervisionAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'supervision_contact_center',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            # Existen en BD para restringir la URL; el acceso real se otorga vía
+            # URL_PERMISOS_ALTERNATIVOS → supervision_contact_center (sin menú propio).
+            {'nombre': 'supervision_panel_dialer',
+             'roles': []},
+            {'nombre': 'supervision_panel_dialer_campaign',
+             'roles': []},
+            {'nombre': 'supervision_panel_dialer_estado',
+             'roles': []},
         ]
 
     informacion_de_permisos = {
@@ -88,4 +96,10 @@ class SupervisionAppConfig(AppConfig):
             {'descripcion': _('Estado de campañas dialer en supervision'), 'version': '1.13.0'},
         'supervision_contact_center':
             {'descripcion': _('Panel general de supervisión'), 'version': '1.23.0'},
+        'supervision_panel_dialer':
+            {'descripcion': _('Panel Dialer de supervisión'), 'version': '1.24.0'},
+        'supervision_panel_dialer_campaign':
+            {'descripcion': _('Panel Dialer por campaña'), 'version': '1.24.0'},
+        'supervision_panel_dialer_estado':
+            {'descripcion': _('Estado Discador del Panel Dialer (JSON)'), 'version': '1.24.0'},
     }

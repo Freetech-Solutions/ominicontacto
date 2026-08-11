@@ -112,17 +112,49 @@ class DialerDataManager(AbstractDataManager):
         'EXIT_HANDOFF_TIMEOUT',
         'EXIT_HANDOFF_ABANDON',
     )
+    # Eventos extra en CALLDATA del panel (no están en EVENTOS_NO_CONTACTACION / NO_DIALOGO)
+    EXTRA_PANEL_CALL_EVENTS = ('EXIT_BUSY', 'EXIT_CONGESTION')
+    # Mapeo fino hacia keys de Llamadas Outbound (panel-general); campanas_dialers ignora outbound_field
+    OUTBOUND_FIELD_BY_EVENT = {
+        'DIAL': 'discadas',
+        'EXIT_ANSWERED_HUMAN': 'atendidas_human',
+        'EXIT_ANSWERED_BOT': 'atendidas_bot',
+        'EXIT_ANSWERED_MIX': 'atendidas_mix',
+        'EXIT_AMD': 'contestadores',
+        'BUSY': 'ocupado',
+        'EXIT_BUSY': 'ocupado',
+        'NOANSWER': 'timeout',
+        'EXIT_TIMEOUT': 'timeout',
+        'EXIT_HANDOFF_TIMEOUT': 'timeout',
+        'CANCEL': 'canceladas',
+        'EXIT_SHORTCALL': 'shortcall',
+        'CONGESTION': 'congestion',
+        'EXIT_CONGESTION': 'congestion',
+        'CHANUNAVAIL': 'chanunavail',
+        'NONDIALPLAN': 'num_sin_ruta',
+        'FAIL': 'errores',
+        'OTHER': 'errores',
+        'BLACKLIST': 'errores',
+    }
     # EXIT_SHORTCALL: escrito por el logger ACD; contar como fin de llamada para canales y como no atendida en tiempo real
     # EXIT_AMD: contestador (columna "Contestador"); el logger publica CAMP en CALLEVENTS para tiempo real
     CALL_EVENTS = ('DIAL', 'CONNECT') + EVENTOS_ATENDIDAS + ('EXIT_SHORTCALL', 'EXIT_AMD') \
         + LlamadaLog.EVENTOS_NO_CONEXION \
         + LlamadaLog.EVENTOS_NO_CONTACTACION \
-        + LlamadaLog.EVENTOS_NO_DIALOGO
+        + LlamadaLog.EVENTOS_NO_DIALOGO \
+        + EXTRA_PANEL_CALL_EVENTS
     PENDING_RETRIES = 'NO CONTACTS WITH PENDING ATTEMPTS'
     PENDING_INITIAL = 'PENDING_INITIAL_CONTACT_ATTEMPTS'
     # Eventos que el logger ACD escribe en Redis como fin de llamada (sin EVENTOS_FIN_CONEXION legacy)
     ENDING_EVENTS = [f'CALL_TYPE:{Campana.TYPE_DIALER}:{event}' for event in
-                     list(EVENTOS_ATENDIDAS) + ['EXIT_SHORTCALL'] + list(LlamadaLog.EVENTOS_NO_CONEXION)]
+                     list(EVENTOS_ATENDIDAS) + ['EXIT_SHORTCALL']
+                     + list(LlamadaLog.EVENTOS_NO_CONEXION) + list(EXTRA_PANEL_CALL_EVENTS)]
+
+    def _with_outbound_field(self, data, event):
+        outbound_field = self.OUTBOUND_FIELD_BY_EVENT.get(event)
+        if outbound_field:
+            data['outbound_field'] = outbound_field
+        return data
 
     def __init__(self, redis_oml_connection, redis_calldata_connection):
         super().__init__(redis_oml_connection, redis_calldata_connection)
@@ -340,22 +372,36 @@ class DialerDataManager(AbstractDataManager):
         if event_data['type'] == 'CAMP':
             if event_data['call_type'] != str(LlamadaLog.LLAMADA_DIALER):
                 return
-            if event_data['event'] == 'DIAL':
-                data = {'campaign_id': event_data['id'], 'field': 'dialed'}
+            event = event_data['event']
+            campaign_id = event_data['id']
+            if event == 'DIAL':
+                data = {'campaign_id': campaign_id, 'field': 'dialed'}
                 if wombat_habilitado():
-                    data['channels'] = self.get_channels_from_calldata(event_data['id'])
-                return data
-            if event_data['event'] in self.EVENTOS_ATENDIDAS or event_data['event'] == 'CONNECT':
-                return {'campaign_id': event_data['id'], 'field': 'attended'}
-            if event_data['event'] == 'EXIT_SHORTCALL':
+                    data['channels'] = self.get_channels_from_calldata(campaign_id)
+                return self._with_outbound_field(data, event)
+            if event in self.EVENTOS_ATENDIDAS:
+                return self._with_outbound_field(
+                    {'campaign_id': campaign_id, 'field': 'attended'}, event)
+            if event == 'CONNECT':
+                # Tabla dialer cuenta CONNECT; el panel Outbound solo usa EXIT_ANSWERED_*
+                return {'campaign_id': campaign_id, 'field': 'attended'}
+            if event == 'EXIT_SHORTCALL':
                 # Solo actualizar shortcall; no contar como No atendida
-                return {'campaign_id': event_data['id'], 'field': 'shortcall', 'delta': 1}
-            if event_data['event'] in LlamadaLog.EVENTOS_NO_CONTACTACION:
-                return {'campaign_id': event_data['id'], 'field': 'not_attended'}
-            if event_data['event'] == 'EXIT_AMD':
-                return {'campaign_id': event_data['id'], 'field': 'amd'}
-            if event_data['event'] in self.PERDIDAS_DIALER_EVENTS:
-                return {'campaign_id': event_data['id'], 'field': 'connections_lost'}
+                return self._with_outbound_field(
+                    {'campaign_id': campaign_id, 'field': 'shortcall', 'delta': 1}, event)
+            if event in LlamadaLog.EVENTOS_NO_CONTACTACION:
+                return self._with_outbound_field(
+                    {'campaign_id': campaign_id, 'field': 'not_attended'}, event)
+            if event in self.EXTRA_PANEL_CALL_EVENTS:
+                # EXIT_BUSY / EXIT_CONGESTION: panel Occupado/Congestion; tabla dialer = no atendida
+                return self._with_outbound_field(
+                    {'campaign_id': campaign_id, 'field': 'not_attended'}, event)
+            if event == 'EXIT_AMD':
+                return self._with_outbound_field(
+                    {'campaign_id': campaign_id, 'field': 'amd'}, event)
+            if event in self.PERDIDAS_DIALER_EVENTS:
+                return self._with_outbound_field(
+                    {'campaign_id': campaign_id, 'field': 'connections_lost'}, event)
         if event_data['type'] == 'DISPOSITION':
             delta = 0
             if event_data['engaged']:

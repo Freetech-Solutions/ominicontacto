@@ -497,14 +497,8 @@ class Command(BaseCommand):
         campana_preview_1 = self._crear_campana_preview('preview-1', self.bd_contacto)
         campana_preview_2 = self._crear_campana_preview('preview-2', self.bd_contacto)
 
-        # 3 campañas dialer (solo si wombat no está habilitado)
-        campana_dialer_1 = None
-        campana_dialer_2 = None
-        campana_dialer_3 = None
+        # Template de campaña dialer (solo si wombat no está habilitado)
         if not wombat_habilitado():
-            campana_dialer_1 = self._crear_campana_dialer('dialer-1')
-            campana_dialer_2 = self._crear_campana_dialer('dialer-2')
-            campana_dialer_3 = self._crear_campana_dialer('dialer-3')
             self._crear_campana_dialer('DIALER_TEMPLATE', es_template=True)
 
         # Templates
@@ -546,12 +540,6 @@ class Command(BaseCommand):
         queue_service.agregar_agentes_en_cola(campana_preview_1, _agentes('ag1', 'ag2', 'ag3', 'ag4'))
         queue_service.agregar_agentes_en_cola(campana_preview_2, _agentes('ag5', 'ag6', 'ag7', 'ag8'))
 
-        # Dialer: dialer-1 (ag1..ag4), dialer-2 (ag5..ag8), dialer-3 (ag9, ag10)
-        if campana_dialer_1 is not None:
-            queue_service.agregar_agentes_en_cola(campana_dialer_1, _agentes('ag1', 'ag2', 'ag3', 'ag4'))
-            queue_service.agregar_agentes_en_cola(campana_dialer_2, _agentes('ag5', 'ag6', 'ag7', 'ag8'))
-            queue_service.agregar_agentes_en_cola(campana_dialer_3, _agentes('ag9', 'ag10'))
-
         # Campaña manual con agentes base
         queue_service.agregar_agentes_en_cola(campana_manual, agentes_base)
 
@@ -560,8 +548,6 @@ class Command(BaseCommand):
             campana_manual, campana_preview_1, campana_preview_2,
             campana_inbound_1, campana_inbound_2, campana_inbound_3, campana_inbound_4
         ]
-        if campana_dialer_1 is not None:
-            campanas_gerente.extend([campana_dialer_1, campana_dialer_2, campana_dialer_3])
         self.gerente.campanasupervisors.set(campanas_gerente)
 
     def add_arguments(self, parser):

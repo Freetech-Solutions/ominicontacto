@@ -1,0 +1,23 @@
+{% load i18n %}
+{% if show_pacing_section %}
+    <hr>
+    <h2>{% trans 'Pacing predictivo' %}</h2>
+    {% if not pacing %}
+        <em id="id_PACING_EMPTY">{% trans 'Sin snapshot / TTL expirado' %}</em>
+    {% else %}
+        <em id="id_PACING_EMPTY" style="display:none;">{% trans 'Sin snapshot / TTL expirado' %}</em>
+    {% endif %}
+    <p>{% trans 'Modo' %}: <strong id="id_PACING_MODE">{% if pacing %}{{ pacing.MODE|default:"—" }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'Motivo' %}: <strong id="id_PACING_REASON">{% if pacing %}{{ pacing.REASON|default:"—" }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'γ (gamma)' %}: <strong id="id_PACING_GAMMA">{% if pacing and pacing.GAMMA != None %}{{ pacing.GAMMA|floatformat:3 }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'C_dial' %}: <strong id="id_PACING_C_DIAL">{% if pacing and pacing.C_DIAL != None %}{{ pacing.C_DIAL }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'P_hit' %}: <strong id="id_PACING_P_HIT">{% if pacing and pacing.P_HIT != None %}{% widthratio pacing.P_HIT 1 100 %}%{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'Drop rate' %}: <strong id="id_PACING_DROP_RATE">{% if pacing and pacing.DROP_RATE != None %}{% widthratio pacing.DROP_RATE 1 100 %}%{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'A_free' %}: <strong id="id_PACING_A_FREE">{% if pacing and pacing.A_FREE != None %}{{ pacing.A_FREE|floatformat:2 }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'A_expected' %}: <strong id="id_PACING_A_EXPECTED">{% if pacing and pacing.A_EXPECTED != None %}{{ pacing.A_EXPECTED|floatformat:2 }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'C_ringing' %}: <strong id="id_PACING_C_RINGING">{% if pacing and pacing.C_RINGING != None %}{{ pacing.C_RINGING }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'Throttle streak' %}: <strong id="id_PACING_THROTTLE_STREAK">{% if pacing and pacing.THROTTLE_STREAK != None %}{{ pacing.THROTTLE_STREAK }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'Throttle latched' %}: <strong id="id_PACING_THROTTLE_LATCHED">{% if pacing and pacing.THROTTLE_LATCHED != None %}{% if pacing.THROTTLE_LATCHED %}{% trans 'sí' %}{% else %}{% trans 'no' %}{% endif %}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'Evento' %}: <strong id="id_PACING_EVENT">{% if pacing and pacing.EVENT %}{{ pacing.EVENT }}{% else %}—{% endif %}</strong></p>
+    <p>{% trans 'Timestamp' %}: <strong id="id_PACING_TS">{% if pacing and pacing.TS != None %}{{ pacing.TS }}{% else %}—{% endif %}</strong></p>
+{% endif %}

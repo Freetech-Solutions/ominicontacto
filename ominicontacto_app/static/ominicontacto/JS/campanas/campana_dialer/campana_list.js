@@ -28,7 +28,10 @@ var wombat_enabled = undefined;
 var campaigns_data = undefined;
 var hidden_campaigns = {};
 var campaignInModal = undefined;
+var pacingPollInterval = undefined;
 var manager = undefined;
+
+const PACING_POLL_MS = 5000;
 
 $(function(){
     campaigns_data = JSON.parse($('#campaigns_data').prop('innerText'));
@@ -47,6 +50,7 @@ $(function(){
         stats = new OmnidialerStatsUpdater(notifications);
     }
     $('#modal_ventana').on('hidden.bs.modal', function(e) {
+        stopPacingPoll();
         campaignInModal = undefined;
     });
 
@@ -97,6 +101,7 @@ function stopWindowRefresh() {
 }
 
 function mostrar_detalle_campana(pk_campana) {
+    stopPacingPoll();
     if ($('#modal_ventana').attr('first-time') == 'true'){
         $('#modal_ventana').attr('first-time', 'false');
     }
@@ -109,7 +114,84 @@ function mostrar_detalle_campana(pk_campana) {
         campaignInModal = pk_campana;
         $('#modal_ventana').html(data);
         $('#modal_ventana').fadeIn('slow');
+        startPacingPoll(pk_campana);
     });
+}
+
+function stopPacingPoll() {
+    if (pacingPollInterval != undefined) {
+        clearInterval(pacingPollInterval);
+        pacingPollInterval = undefined;
+    }
+}
+
+function startPacingPoll(pk_campana) {
+    stopPacingPoll();
+    if ($('#id_PACING_MODE').length === 0) {
+        return;
+    }
+    pacingPollInterval = setInterval(function() {
+        if (campaignInModal != pk_campana) {
+            return;
+        }
+        oml_api.getDialerCampaignPacing(pk_campana, function(data) {
+            if (campaignInModal != pk_campana) {
+                return;
+            }
+            updatePacingDom(data && data.pacing);
+        });
+    }, PACING_POLL_MS);
+}
+
+function _pacingDash(value) {
+    if (value === null || value === undefined || value === '') {
+        return '—';
+    }
+    return value;
+}
+
+function _pacingRatioPct(value) {
+    if (value === null || value === undefined || value === '') {
+        return '—';
+    }
+    return (Number(value) * 100).toFixed(1) + '%';
+}
+
+function _pacingFloat(value, digits) {
+    if (value === null || value === undefined || value === '') {
+        return '—';
+    }
+    return Number(value).toFixed(digits);
+}
+
+function updatePacingDom(pacing) {
+    if ($('#id_PACING_MODE').length === 0) {
+        return;
+    }
+    if (!pacing) {
+        $('#id_PACING_EMPTY').show();
+        return;
+    }
+    $('#id_PACING_EMPTY').hide();
+    $('#id_PACING_MODE').text(_pacingDash(pacing.MODE));
+    $('#id_PACING_REASON').text(_pacingDash(pacing.REASON));
+    $('#id_PACING_GAMMA').text(_pacingFloat(pacing.GAMMA, 3));
+    $('#id_PACING_C_DIAL').text(_pacingDash(pacing.C_DIAL));
+    $('#id_PACING_P_HIT').text(_pacingRatioPct(pacing.P_HIT));
+    $('#id_PACING_DROP_RATE').text(_pacingRatioPct(pacing.DROP_RATE));
+    $('#id_PACING_A_FREE').text(_pacingFloat(pacing.A_FREE, 2));
+    $('#id_PACING_A_EXPECTED').text(_pacingFloat(pacing.A_EXPECTED, 2));
+    $('#id_PACING_C_RINGING').text(_pacingDash(pacing.C_RINGING));
+    $('#id_PACING_THROTTLE_STREAK').text(_pacingDash(pacing.THROTTLE_STREAK));
+    if (pacing.THROTTLE_LATCHED === null || pacing.THROTTLE_LATCHED === undefined ||
+            pacing.THROTTLE_LATCHED === '') {
+        $('#id_PACING_THROTTLE_LATCHED').text('—');
+    } else {
+        $('#id_PACING_THROTTLE_LATCHED').text(
+            Number(pacing.THROTTLE_LATCHED) ? gettext('sí') : gettext('no'));
+    }
+    $('#id_PACING_EVENT').text(pacing.EVENT ? pacing.EVENT : '—');
+    $('#id_PACING_TS').text(_pacingDash(pacing.TS));
 }
 
 function mostrar_campanas_dialer_ocultas() {

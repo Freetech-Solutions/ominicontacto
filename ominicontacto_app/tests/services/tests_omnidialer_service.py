@@ -237,6 +237,9 @@ class OmnidialerServicePacingCampanaTests(SimpleTestCase):
             'A_FREE': '2',
             'A_EXPECTED': '1.4',
             'C_RINGING': '3',
+            'THROTTLE_STREAK': '5',
+            'THROTTLE_LATCHED': '1',
+            'EVENT': 'THROTTLE_ENGAGED',
             'TS': '1710000000',
         }
         mock_redis_factory.return_value = redis_dialer
@@ -254,6 +257,9 @@ class OmnidialerServicePacingCampanaTests(SimpleTestCase):
         self.assertEqual(data['A_FREE'], 2.0)
         self.assertEqual(data['A_EXPECTED'], 1.4)
         self.assertEqual(data['C_RINGING'], 3)
+        self.assertEqual(data['THROTTLE_STREAK'], 5)
+        self.assertEqual(data['THROTTLE_LATCHED'], 1)
+        self.assertEqual(data['EVENT'], 'THROTTLE_ENGAGED')
         self.assertEqual(data['TS'], 1710000000)
         redis_dialer.hgetall.assert_called_once_with(CAMP_PACING_KEY.format(18))
         mock_redis_factory.assert_called_once_with(db=3)
@@ -281,6 +287,9 @@ class OmnidialerServicePacingCampanaTests(SimpleTestCase):
             'A_FREE': '1',
             'A_EXPECTED': '0.0',
             'C_RINGING': '0',
+            'THROTTLE_STREAK': '',
+            'THROTTLE_LATCHED': '',
+            'EVENT': '',
             'TS': '1710000001',
         }
         mock_redis_factory.return_value = redis_dialer
@@ -293,3 +302,6 @@ class OmnidialerServicePacingCampanaTests(SimpleTestCase):
         self.assertIsNone(data['DROP_RATE'])
         self.assertEqual(data['C_DIAL'], 0)
         self.assertEqual(data['GAMMA'], 0.0)
+        self.assertIsNone(data['THROTTLE_STREAK'])
+        self.assertIsNone(data['THROTTLE_LATCHED'])
+        self.assertEqual(data['EVENT'], '')

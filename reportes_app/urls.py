@@ -340,6 +340,10 @@ urlpatterns += [
          login_required(
              views_campanas_dialer_reportes.detalle_campana_dialer_view),
          name="campana_dialer_detalle_servicio"),
+    path('campana_dialer/pacing/',
+         login_required(
+             views_campanas_dialer_reportes.pacing_campana_dialer_view),
+         name="campana_dialer_pacing"),
     path('campana_dialer/<int:pk_campana>/detalle/',
          login_required(
              views_campanas_dialer_reportes.CampanaDialerDetailView.as_view()),

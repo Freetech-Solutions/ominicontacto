@@ -30,6 +30,11 @@ class OMLAPI {
         $.get(URL, {pk_campana: campaign_id}, callback_ok);
     }
 
+    getDialerCampaignPacing(campaign_id, callback_ok) {
+        var URL = Urls.campana_dialer_pacing();
+        $.get(URL, {pk_campana: campaign_id}, callback_ok);
+    }
+
     getHiddenDialerCampaigns(callback_ok) {
         $.get(Urls.campana_dialer_mostrar_ocultas(), callback_ok);
     }

@@ -25,11 +25,14 @@ from supervision_app.views import (
     SupervisionCampanasDialerView,
     DashboardContactCenterView,
     DashboardContactCenterCampaignView,
+    DashboardPanelDialerView,
+    DashboardPanelDialerCampaignView,
     dashboard_contact_center_data,
     dashboard_contact_center_agentes,
     dashboard_contact_center_agentes_lista,
     dashboard_contact_center_bots_campana,
     dashboard_contact_center_llamadas,
+    dashboard_panel_dialer_estado,
     supervision_voicebot_llamadas,
 )
 
@@ -82,5 +85,18 @@ urlpatterns = [
     path('supervision/panel-general/data/llamadas/',
          login_required(dashboard_contact_center_llamadas),
          name='supervision_contact_center_llamadas',
+         ),
+    # Panel Dialer (sin Inbound / Outbound)
+    path('supervision/<int:id_camp>/panel-dialer/',
+         login_required(DashboardPanelDialerCampaignView.as_view()),
+         name='supervision_panel_dialer_campaign',
+         ),
+    path('supervision/panel-dialer/',
+         login_required(DashboardPanelDialerView.as_view()),
+         name='supervision_panel_dialer',
+         ),
+    path('supervision/panel-dialer/data/estado-discador/',
+         login_required(dashboard_panel_dialer_estado),
+         name='supervision_panel_dialer_estado',
          ),
 ]

@@ -50,6 +50,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
             {% for statu in status %}
                 <p>{{statu.gbStateLabel|default:statu.gbState}} {{statu.gbStateExt}} <strong>{{statu.nCalls}}</strong></p>
             {% endfor %}
+            {% include 'campanas/campana_dialer/_pacing_kpis.html' %}
         </div>
       {% endif %}
         <div class="modal-footer">

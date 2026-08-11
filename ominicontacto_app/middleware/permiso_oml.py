@@ -23,6 +23,10 @@ from django.core.exceptions import PermissionDenied
 # URLs accesibles con permisos alternativos (misma regla que en DRF permissions).
 URL_PERMISOS_ALTERNATIVOS = {
     'api_interaction_transfers_centro_contacto': ('grabacion_buscar',),
+    # Panel Dialer reutiliza el permiso de Panel General (sin ítem de menú propio).
+    'supervision_panel_dialer': ('supervision_contact_center',),
+    'supervision_panel_dialer_campaign': ('supervision_contact_center',),
+    'supervision_panel_dialer_estado': ('supervision_contact_center',),
 }
 
 

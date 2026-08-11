@@ -107,6 +107,8 @@ class ReportesAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'campana_dialer_detalle_servicio',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
+            {'nombre': 'campana_dialer_pacing',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'campana_dialer_detalle',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'reporte_de_resultados',
@@ -248,6 +250,9 @@ class ReportesAppConfig(AppConfig):
              'version': '1.7.0'},
         'campana_dialer_detalle_servicio':
             {'descripcion': _('Detalle del estado de una campaña Dialer'), 'version': '1.7.0'},
+        'campana_dialer_pacing':
+            {'descripcion': _('Snapshot JSON de pacing predictivo de una campaña Dialer'),
+             'version': '1.28.0'},
         'campana_dialer_detalle':
             {'descripcion': _('Detalle del estado de una campaña Dialer (para ventana modal)'),
              'version': '1.7.0'},
