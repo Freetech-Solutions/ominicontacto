@@ -35,9 +35,17 @@ from rest_framework.status import (
 from rest_framework.views import APIView
 
 from api_app.authentication import ExpiringTokenAuthentication
+from api_app.services.voicebot_webhook import (
+    construir_observaciones,
+    extract_call_summary,
+    publicar_voicebot_transfer_proceed,
+    read_required_field,
+    resolver_agente_fallback,
+    sanitize_headers_for_log,
+)
 from api_app.views.permissions import TienePermisoOML
 from ominicontacto_app.models import (
-    Contacto, OpcionCalificacion, CalificacionCliente, AgenteProfile
+    Contacto, OpcionCalificacion, CalificacionCliente
 )
 
 logger = logging.getLogger(__name__)
@@ -46,8 +54,7 @@ logger = logging.getLogger(__name__)
 # hacia el ACD. Se puede sobreescribir desde settings (VERLOOP_CALIFICACION_NOMBRE).
 DEFAULT_VERLOOP_CALIFICACION_NOMBRE = 'GESTION_BOT'
 
-# Canal Redis donde el CommandDispatcher del ACD escucha comandos globales.
-ACD_GLOBAL_COMMANDS_CHANNEL = 'acd:commands:global'
+LOG_LABEL = 'Verloop'
 
 
 def _calificacion_nombre_voicebot():
@@ -55,17 +62,6 @@ def _calificacion_nombre_voicebot():
     return getattr(
         settings, 'VERLOOP_CALIFICACION_NOMBRE', DEFAULT_VERLOOP_CALIFICACION_NOMBRE
     )
-
-
-def _sanitize_headers_for_log(headers):
-    """Devuelve un dict de headers con Authorization enmascarado para logs."""
-    safe = {}
-    for key, value in headers.items():
-        if key.lower() == 'authorization':
-            safe[key] = '***'
-        else:
-            safe[key] = value
-    return safe
 
 
 class VerloopWebhookView(APIView):
@@ -84,166 +80,26 @@ class VerloopWebhookView(APIView):
 
     @staticmethod
     def _extract_call_summary(body_data):
-        """Extrae call_summary buscando en raíz y luego en analysis.user_defined.
-
-        Acepta tanto `call_summary` como `Call_Summary`. Si el valor es la
-        cadena literal "None" se considera inválido y se devuelve un sentinel.
-        """
-        candidate_keys = ('call_summary', 'Call_Summary')
-
-        def _read(container):
-            if not isinstance(container, dict):
-                return None
-            for k in candidate_keys:
-                value = container.get(k)
-                if value is not None:
-                    return str(value)
-            return None
-
-        call_summary = _read(body_data)
-        if not call_summary:
-            analysis = body_data.get('analysis') if isinstance(body_data, dict) else None
-            user_defined = analysis.get('user_defined') if isinstance(analysis, dict) else None
-            call_summary = _read(user_defined)
-
-        return call_summary
+        return extract_call_summary(body_data)
 
     @staticmethod
     def _construir_observaciones(body_data):
-        """Construye observaciones aplanando body_data.
-
-        Reglas:
-          - Excluye cualquier clave con prefijo 'X-' en cualquier nivel.
-          - Excluye en raíz 'call_id' y 'callid' (duplicados de X-Verloop-callID).
-          - Excluye en cualquier nivel: callID, customerID, phone, CampID.
-          - Aplana dicts anidados usando '.' como separador de ruta.
-          - Listas se serializan como JSON compacto.
-          - Valores None o '' se omiten.
-        """
-        EXCLUDED_TOP = {'call_id', 'callid'}
-        EXCLUDED_KEYS = {'callID', 'customerID', 'phone', 'CampID'}
-
-        def _flatten(node, prefix=''):
-            pares = []
-            if not isinstance(node, dict):
-                return pares
-            for key, value in node.items():
-                if not isinstance(key, str):
-                    continue
-                if key.startswith('X-'):
-                    continue
-                if key in EXCLUDED_KEYS:
-                    continue
-                if prefix == '' and key in EXCLUDED_TOP:
-                    continue
-                ruta = f"{prefix}{key}"
-                if isinstance(value, dict):
-                    pares.extend(_flatten(value, prefix=f"{ruta}."))
-                elif isinstance(value, list):
-                    if value:
-                        try:
-                            rendered = json.dumps(value, ensure_ascii=False, default=str)
-                        except (TypeError, ValueError):
-                            rendered = repr(value)
-                        pares.append((ruta, rendered))
-                else:
-                    if value not in (None, ''):
-                        pares.append((ruta, value))
-            return pares
-
-        if not isinstance(body_data, dict):
-            body_data = {}
-        return " | ".join(f"{k}: {v}" for k, v in _flatten(body_data))
+        return construir_observaciones(
+            body_data, excluded_keys={'callID', 'customerID', 'phone', 'CampID'})
 
     @staticmethod
     def _resolver_agente(request, campana):
-        """
-        Selecciona el agente a asociar a la calificación, en este orden:
-          1. request.user.agenteprofile (si el usuario autenticado es agente).
-          2. settings.VERLOOP_BOT_AGENT_USERNAME → agente con ese username.
-          3. Primer agente de la campaña.
-          4. Primer AgenteProfile activo del sistema.
-        Lanza ValueError si no se encuentra ninguno.
-        """
-        try:
-            return request.user.agenteprofile
-        except AttributeError:
-            pass
-
-        bot_username = getattr(settings, 'VERLOOP_BOT_AGENT_USERNAME', None)
-        if bot_username:
-            agente = AgenteProfile.objects.filter(
-                user__username=bot_username, user__is_active=True
-            ).first()
-            if agente:
-                logger.info(
-                    'Verloop: usando agente BOT configurado "%s" (id=%s)',
-                    bot_username, agente.id,
-                )
-                return agente
-            logger.warning(
-                'Verloop: VERLOOP_BOT_AGENT_USERNAME="%s" no corresponde a un agente activo',
-                bot_username,
-            )
-
-        agentes_campana = campana.obtener_agentes()
-        if agentes_campana.exists():
-            agente = agentes_campana.first()
-            logger.info(
-                'Verloop: usando primer agente de la campaña %s (id=%s)',
-                campana.id, agente.id,
-            )
-            return agente
-
-        agente = AgenteProfile.objects.filter(user__is_active=True).first()
-        if agente:
-            logger.warning(
-                'Verloop: sin agentes en la campaña %s, usando primer agente activo (id=%s)',
-                campana.id, agente.id,
-            )
-            return agente
-
-        raise ValueError('No agent available for creating disposition')
+        return resolver_agente_fallback(
+            request, campana,
+            getattr(settings, 'VERLOOP_BOT_AGENT_USERNAME', None), LOG_LABEL)
 
     @staticmethod
     def _publicar_voicebot_transfer_proceed(call_id):
-        """Publica el comando voicebot_transfer_proceed en Redis para el ACD."""
-        try:
-            from ominicontacto_app.services.redis.connection import create_redis_connection
-
-            r_client = create_redis_connection(db=0)
-            payload = {
-                'action': 'voicebot_transfer_proceed',
-                'call_id': call_id,
-            }
-            r_client.publish(ACD_GLOBAL_COMMANDS_CHANNEL, json.dumps(payload))
-            logger.info(
-                'Verloop: comando voicebot_transfer_proceed publicado en %s para call_id=%s',
-                ACD_GLOBAL_COMMANDS_CHANNEL, call_id,
-            )
-        except Exception:
-            logger.exception(
-                'Verloop: error publicando voicebot_transfer_proceed para call_id=%s',
-                call_id,
-            )
+        publicar_voicebot_transfer_proceed(call_id)
 
     @staticmethod
     def _read_required_field(body_data, headers, field_name):
-        """Lee un campo obligatorio buscando con el nombre EXACTO en body y header.
-
-        Prioridad: body > header. No se aceptan variaciones de nombre
-        (case-insensitive, guion-bajo, etc.). Devuelve el valor en str o None.
-        """
-        value = None
-        if isinstance(body_data, dict):
-            value = body_data.get(field_name)
-        if value is None:
-            value = headers.get(field_name)
-        if value is None:
-            return None
-        if isinstance(value, str):
-            value = value.strip()
-        return value if value not in (None, '') else None
+        return read_required_field(body_data, headers, field_name)
 
     def post(self, request):
         """
@@ -270,12 +126,12 @@ class VerloopWebhookView(APIView):
         if debug_payload:
             logger.info(
                 'Verloop DEBUG headers=%s',
-                _sanitize_headers_for_log(request.headers),
+                sanitize_headers_for_log(request.headers),
             )
         elif logger.isEnabledFor(logging.DEBUG):
             logger.debug(
                 'Verloop webhook headers=%s',
-                _sanitize_headers_for_log(request.headers),
+                sanitize_headers_for_log(request.headers),
             )
 
         try:

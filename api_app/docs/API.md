@@ -33,6 +33,7 @@
 29. [Reports](#reports)
 30. [Agent and Interaction Reports](#agent-and-interaction-reports)
 31. [Transfers](#transfers)
+32. [Voicebot Webhooks](#voicebot-webhooks)
 
 ---
 
@@ -3857,6 +3858,121 @@ or
   "error": "<error description>"
 }
 ```
+
+---
+
+## Voicebot Webhooks
+
+Inbound webhooks designed for voicebot platforms (Verloop or any SIP voicebot)
+to report call outcomes back to OMniLeads. Authentication is a **static Bearer
+token** of a service user (see [Authentication](#authentication)); the caller
+does **not** need an agent profile.
+
+### Schedule Contact Callback
+
+#### `POST /api/v1/webhook/voicebot/agenda/`
+
+Qualifies the contact with the campaign's reserved **Agenda** disposition and,
+when the scheduling data is valid, creates or updates the contact schedule
+(`AgendaContacto`) in a single call.
+
+**Behavior:**
+
+1. Validates the campaign, contact, and phone.
+2. Resolves the campaign's **voicebot agent** (`AgenteProfile.voicebot=True`,
+   member of the campaign queue). The schedule is assigned to this agent.
+3. Upserts the contact disposition with the campaign's **Agenda** disposition
+   option (resolved internally — the integrator does not need its ID).
+4. If `callback_valid` is `true` and `callback_date`/`callback_time` are valid,
+   upserts the schedule for that contact and campaign (existing schedules are
+   updated, making retries idempotent) and marks the disposition as scheduled.
+5. If `callback_valid` is `false` or the date/time cannot be parsed, the
+   disposition is still recorded and the response returns `200 OK` with a
+   warning (no schedule is created).
+
+The schedule is always created as **PERSONAL** for the campaign's voicebot
+agent. Make sure that agent's group has no personal schedule limits
+(`limitar_agendas_personales` / `limitar_agendas_personales_en_dias`), otherwise
+the request fails with `400`.
+
+Dates and times are interpreted in the **server timezone** of the OMniLeads
+instance. Align it with the timezone used by the voicebot platform to
+normalize its dates.
+
+**Request Body** (every field may also be sent as an HTTP header with the same
+exact name; body takes precedence):
+
+```json
+{
+  "X-OML-Campaign-ID": "78",
+  "X-OML-Contact-ID": "418884",
+  "X-OML-Call-ID": "1781910936.418884",
+  "phone": "2664167431",
+  "callback_valid": "true",
+  "callback_date": "2026-08-11",
+  "callback_time": "15:00:00",
+  "callback_request": "Llamame mañana después de las 3",
+  "callback_rule": "explicit_time"
+}
+```
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `X-OML-Campaign-ID` | integer | Yes | Active campaign ID |
+| `X-OML-Contact-ID` | integer | Yes | Contact ID belonging to the campaign database |
+| `X-OML-Call-ID` | string | Yes | ACD call ID of the voicebot interaction |
+| `phone` | string | Yes | One of the contact's phone numbers |
+| `callback_valid` | string/bool | No (`false`) | Whether the bot could normalize a valid schedule |
+| `callback_date` | string | If `callback_valid=true` | Schedule date, `YYYY-MM-DD` (server timezone) |
+| `callback_time` | string | If `callback_valid=true` | Schedule time, `HH:MM:SS` or `HH:MM` |
+| `callback_request` | string | No | Original customer request, stored as schedule notes |
+| `callback_rule` | string | No | Normalization rule applied by the bot, stored as schedule notes |
+
+**Response (200 OK — scheduled):**
+```json
+{
+  "status": "OK",
+  "calificacion_id": 501,
+  "agenda_id": 99,
+  "created": true,
+  "warnings": []
+}
+```
+
+**Response (200 OK — disposition recorded without scheduling):**
+```json
+{
+  "status": "OK",
+  "calificacion_id": 501,
+  "agenda_id": null,
+  "created": false,
+  "warnings": [
+    "callback_valid=false: the disposition was recorded without scheduling"
+  ]
+}
+```
+
+`created` is `false` when an existing schedule was updated (upsert).
+
+**Error responses:**
+- `400 Bad Request`: missing/invalid fields, invalid `phone`, invalid campaign
+  (e.g. no contact database), the campaign has no voicebot agent assigned, or
+  schedule business-rule validation (personal schedule limits). On business-rule
+  errors the whole request is rolled back (no disposition is persisted).
+- `404 Not Found`: campaign not found or inactive, or contact not found.
+- `500 Internal Server Error`: unexpected error.
+
+### Voicebot Disposition Webhooks
+
+#### `POST /api/v1/webhook/voicebot/` and `POST /api/v1/webhook/verloop/`
+
+Create or update the contact disposition with an explicit disposition option ID
+(`X-OML-Disposition` / `X-Verloop-Disposition`). When the applied option name
+matches the configured end-of-bot disposition (`VOICEBOT_CALIFICACION_NOMBRE` /
+`VERLOOP_CALIFICACION_NOMBRE`, default `GESTION_BOT`), a
+`voicebot_transfer_proceed` command is published to Redis so the ACD resumes a
+pending transfer. See [calendar_call.md](./calendar_call.md) for the callback
+scheduling integration guide.
 
 ---
 

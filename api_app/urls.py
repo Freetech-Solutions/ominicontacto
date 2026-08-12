@@ -163,6 +163,7 @@ from api_app.views.transfer import (
 )
 from api_app.views.verloop import VerloopWebhookView
 from api_app.views.voicebot import VoicebotWebhookView
+from api_app.views.voicebot_agenda import VoicebotAgendaWebhookView
 
 
 router = routers.DefaultRouter()
@@ -828,4 +829,8 @@ urlpatterns = [
     # ###########  VOICEBOT WEBHOOK (genérico SIP)    ############ #
     path('api/v1/webhook/voicebot/',
          VoicebotWebhookView.as_view(), name='api_voicebot_webhook'),
+
+    # ###########  VOICEBOT AGENDA WEBHOOK (genérico SIP)    ############ #
+    path('api/v1/webhook/voicebot/agenda/',
+         VoicebotAgendaWebhookView.as_view(), name='api_voicebot_agenda_webhook'),
 ]

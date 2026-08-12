@@ -1,8 +1,11 @@
 # Scheduling a Callback via the OMniLeads API
 
-This guide describes the procedure for a **Voicebot integrator** to schedule a follow-up call on a contact using the OMniLeads REST API.
+This guide describes how a **Voicebot integrator** (e.g. Verloop) schedules a
+follow-up call on a contact using a **single** OMniLeads REST endpoint.
 
-The workflow mirrors what a human agent does in the OMniLeads UI: first qualify the interaction with the **Agenda** disposition, then create the contact schedule.
+The voicebot platform is expected to do all natural-language interpretation on
+its side (relative dates such as "llamame mañana después de las 3") and send
+OMniLeads an already-normalized date and time.
 
 ---
 
@@ -10,34 +13,38 @@ The workflow mirrors what a human agent does in the OMniLeads UI: first qualify 
 
 | Step | Endpoint | Purpose |
 |------|----------|---------|
-| 1 | `POST /api/v1/login` | Obtain an authentication token |
-| 2 | `GET /api/v1/campaign/{campaign_id}/dispositionOptions/` | Resolve the **Agenda** disposition ID for the campaign |
-| 3 | `POST /api/v1/disposition/` | Qualify the contact with the **Agenda** disposition |
-| 4 | `POST /api/v1/agenda_contacto/` | Create or update the scheduled callback |
+| 1 | `POST /api/v1/webhook/voicebot/agenda/` | Qualify the contact with the **Agenda** disposition **and** create/update the scheduled callback |
 
-> **Important:** Step 3 is mandatory. You must submit the **Agenda** disposition before calling `agenda_contacto`. This links the qualification to the scheduling action and keeps OMniLeads reporting and agent state consistent.
+One request does both things:
+
+1. Upserts the contact's disposition using the campaign's reserved **Agenda**
+   disposition option (resolved internally by OMniLeads — you do not need to
+   discover its ID).
+2. If `callback_valid=true` and the date/time are valid, creates or updates the
+   contact schedule. Repeating the same request updates the existing schedule
+   (upsert by contact + campaign), so retries are idempotent.
+
+The schedule is created as a **personal** schedule assigned to the campaign's
+**voicebot agent** (`AgenteProfile.voicebot=True`, member of the campaign
+queue). Supervisors can later reassign it to a human agent via
+`POST /api/v1/supervision/reasignar_agenda_contacto/` or the schedules UI.
 
 ---
 
 ## Prerequisites
 
 - **Base URL:** your OMniLeads instance (e.g. `https://omnileads.example.com`)
-- **API prefix:** all endpoints are under `/api/v1/`
-- **Credentials:** a valid OMniLeads **agent** username and password
-- **Campaign context:** the internal OMniLeads campaign ID
-- **Contact context:** the internal OMniLeads contact ID
-- **Call context:** the Asterisk `callid` of the active Voicebot call (e.g. `1781961848.10`)
+- **Authentication:** a static Bearer token of a service user (see below)
+- **Campaign context:** the internal OMniLeads campaign ID (`CampID`)
+- **Contact context:** the internal OMniLeads contact ID (`customerID`)
+- **Call context:** the ACD `callid` of the active voicebot call
+  (e.g. `1781910936.418884`)
 - **Phone number:** one of the phone numbers associated with the contact record
 
-The authenticated agent must be assigned to the campaign queue. The agent role must include the `api_agenda_contacto_create` permission (assigned by default after running `actualizar_permisos`).
+### Authentication
 
----
-
-## Step 1 — Authenticate
-
-Obtain a Bearer token to use in subsequent requests.
-
-**Request**
+The token belongs to a **service user** (it does not need an agent profile).
+It is obtained once:
 
 ```http
 POST /api/v1/login
@@ -46,257 +53,190 @@ Content-Type: application/json
 
 ```json
 {
-  "username": "your_agent_username",
-  "password": "your_agent_password"
+  "username": "voicebot_service",
+  "password": "<password>"
 }
 ```
 
-**Response (200 OK)**
-
-```json
-{
-  "user": {
-    "id": 1,
-    "username": "verloop",
-    "agent_id": 5
-  },
-  "expires_in": "23:59:59",
-  "token": "431bf3de771c920ee30ebd17d0c2ae8e31c1b1a1"
-}
-```
-
-Use the returned `token` in all following requests:
+Store the returned `token` in the voicebot platform configuration and send it
+on every request:
 
 ```
 Authorization: Bearer <token>
 ```
 
-Tokens expire after a configurable period. Re-authenticate when the token is no longer valid.
+By default tokens do not expire (`TOKEN_EXPIRED_AFTER_SECONDS = None`). If the
+instance configures an expiration, re-authenticate when the token is rejected.
+
+### Server-side prerequisites (OMniLeads administrator)
+
+- The campaign must have its **voicebot agent** assigned as a queue member
+  (already the case when the voicebot answers the campaign calls).
+- The voicebot agent's group must **not** enforce personal schedule limits
+  (`limitar_agendas_personales` / `limitar_agendas_personales_en_dias`),
+  otherwise requests start failing with `400` once the limit is reached.
+- `callback_date`/`callback_time` are interpreted in the **OMniLeads server
+  timezone**. Align it with the timezone the bot uses to normalize dates.
 
 ---
 
-## Step 2 — Resolve the Agenda Disposition ID
-
-Every OMniLeads campaign includes a built-in disposition named **`Agenda`**. This is the disposition type used to indicate that the contact should receive a scheduled callback.
-
-You must retrieve its numeric `id` dynamically for each campaign. **Do not hardcode** this value — it varies per campaign.
-
-**Request**
+## Request
 
 ```http
-GET /api/v1/campaign/{campaign_id}/dispositionOptions/
-Authorization: Bearer <token>
-```
-
-**Response (200 OK)**
-
-```json
-[
-  {
-    "id": 42,
-    "name": "Interested",
-    "hidden": false
-  },
-  {
-    "id": 94,
-    "name": "Agenda",
-    "hidden": false
-  }
-]
-```
-
-**Selection rule:** find the entry where `name` equals `"Agenda"` and store its `id` (e.g. `94`). This is the `idDispositionOption` you will use in Step 3.
-
-Hidden dispositions (`hidden: true`) are still returned by this endpoint but cannot be used when submitting a disposition.
-
----
-
-## Step 3 — Submit the Agenda Disposition
-
-Qualify the contact using the **Agenda** disposition ID obtained in Step 2. This step records the call outcome and prepares the contact for scheduling.
-
-**Request**
-
-```http
-POST /api/v1/disposition/
+POST /api/v1/webhook/voicebot/agenda/
 Authorization: Bearer <token>
 Content-Type: application/json
 ```
 
 ```json
 {
-  "idContact": 10,
-  "idDispositionOption": 94,
-  "callid": "1781961848.10",
-  "comments": "Customer requested a callback tomorrow at 1 PM"
+  "X-OML-Campaign-ID": "78",
+  "X-OML-Contact-ID": "418884",
+  "X-OML-Call-ID": "1781910936.418884",
+  "phone": "2664167431",
+  "callback_valid": "true",
+  "callback_date": "2026-08-11",
+  "callback_time": "15:00:00",
+  "callback_request": "Llamame mañana después de las 3",
+  "callback_rule": "explicit_time"
 }
 ```
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `idContact` | integer | Yes | Internal OMniLeads contact ID |
-| `idDispositionOption` | integer | Yes | The **Agenda** disposition ID from Step 2 |
-| `callid` | string | Recommended | Asterisk call ID of the current interaction |
-| `comments` | string | No | Free-text notes about the interaction |
+| `X-OML-Campaign-ID` | integer | Yes | Active OMniLeads campaign ID |
+| `X-OML-Contact-ID` | integer | Yes | Contact ID belonging to the campaign's contact database |
+| `X-OML-Call-ID` | string | Yes | ACD call ID of the voicebot interaction |
+| `phone` | string | Yes | Phone number to call back; must be one of the contact's phone numbers |
+| `callback_valid` | string/bool | No (default `false`) | Whether the bot obtained a valid normalized schedule |
+| `callback_date` | string | If `callback_valid=true` | Schedule date, `YYYY-MM-DD` (server timezone) |
+| `callback_time` | string | If `callback_valid=true` | Schedule time, `HH:MM:SS` or `HH:MM` |
+| `callback_request` | string | No | Original customer request; stored as schedule notes |
+| `callback_rule` | string | No | Normalization rule applied by the bot; stored as schedule notes |
 
-**Response (201 Created)**
+> Every field may also be sent as an **HTTP header** with the same exact name
+> (the body takes precedence). This is useful for webhook blocks that only
+> allow custom headers.
 
-```json
-{
-  "id": 501,
-  "idContact": 10,
-  "callid": "1781961848.10",
-  "idDispositionOption": 94,
-  "comments": "Customer requested a callback tomorrow at 1 PM"
-}
-```
+### Mapping from Verloop variables
 
-**Common errors**
-
-| Status | Cause |
-|--------|-------|
-| `400` | Invalid `idDispositionOption` (not found or hidden) |
-| `400` | `idContact` does not belong to the disposition's campaign |
-| `403` | Authenticated user is not an agent |
-
-> **Why this step matters:** OMniLeads treats **Agenda** as a special disposition type. Submitting it before scheduling ensures the qualification is recorded against the call and the subsequent schedule is correctly associated with that qualification.
+If your flow normalizes the scheduling request into variables such as
+`callback_date`, `callback_time`, `callback_rule`, `callback_valid`,
+`callback_request`, `CampID`, `callID`, `customerID` and `phone`, configure the
+Webhook Block to send a **flat JSON body** like the example above (do not send
+the nested `{"variables": {"name": {"value": ...}}}` envelope).
 
 ---
 
-## Step 4 — Schedule the Callback
+## Responses
 
-Create or update the contact schedule with the desired date, time, and phone number.
-
-**Request**
-
-```http
-POST /api/v1/agenda_contacto/
-Authorization: Bearer <token>
-Content-Type: application/json
-```
-
-```json
-{
-  "campaign_id": 16,
-  "contact_id": 10,
-  "date": "2026-06-20",
-  "time": "13:00:00",
-  "phone": "123456746",
-  "schedule_type": 1,
-  "observations": "Call tomorrow"
-}
-```
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `campaign_id` | integer | Yes | Active campaign ID |
-| `contact_id` | integer | Yes | Contact ID belonging to the campaign database |
-| `date` | string | Yes | Schedule date in `YYYY-MM-DD` format |
-| `time` | string | Yes | Schedule time in `HH:MM:SS` or `HH:MM` format |
-| `phone` | string | Yes | A phone number from the contact's available phone list |
-| `schedule_type` | integer | No | `1` = Personal (default), `2` = Global (dialer campaigns only) |
-| `observations` | string | No | Notes for the scheduled callback |
-
-**Response (200 OK)**
+**Scheduled (200 OK)**
 
 ```json
 {
   "status": "OK",
+  "calificacion_id": 501,
   "agenda_id": 99,
-  "created": true
+  "created": true,
+  "warnings": []
 }
 ```
 
 - `created: true` — a new schedule was created.
-- `created: false` — an existing schedule for the same contact and campaign was updated (upsert behavior).
+- `created: false` — an existing schedule for the same contact and campaign was
+  updated (upsert).
 
-If a qualification with the **Agenda** disposition already exists for the contact, OMniLeads marks it as scheduled (`agendado: true`) when the schedule is saved.
+**Disposition recorded without scheduling (200 OK)**
 
-**Common errors**
+When `callback_valid=false` (or the date/time cannot be parsed), OMniLeads
+still records the **Agenda** disposition so the call outcome is not lost, but
+no schedule is created:
+
+```json
+{
+  "status": "OK",
+  "calificacion_id": 501,
+  "agenda_id": null,
+  "created": false,
+  "warnings": [
+    "callback_valid=false: the disposition was recorded without scheduling"
+  ]
+}
+```
+
+**Errors**
 
 | Status | Cause |
 |--------|-------|
-| `400` | Invalid `phone` (not in the contact's phone list) |
-| `400` | Invalid `date` or `time` format |
-| `400` | `schedule_type: 2` (Global) on a non-dialer campaign |
-| `403` | Agent is not assigned to the campaign |
-| `404` | Campaign or contact not found |
+| `400` | Missing/invalid required field (`X-OML-Campaign-ID`, `X-OML-Contact-ID`, `X-OML-Call-ID`, `phone`) |
+| `400` | `phone` is not one of the contact's phone numbers |
+| `400` | Contact does not belong to the campaign database |
+| `400` | Campaign has no voicebot agent assigned |
+| `400` | Schedule business-rule validation (e.g. personal schedule limits of the voicebot agent). The whole request is rolled back, so retrying is safe. |
+| `403` | Missing/invalid Bearer token |
+| `404` | Campaign not found or inactive, or contact not found |
+| `500` | Unexpected server error |
+
+Error responses follow the format:
+
+```json
+{
+  "status": "ERROR",
+  "message": "Campaign has no voicebot agent",
+  "errors": {
+    "campaign": ["The campaign does not have a voicebot agent assigned"]
+  }
+}
+```
 
 ---
 
 ## Complete Example (cURL)
 
-Replace placeholders with your environment values.
-
 ```bash
 BASE_URL="https://omnileads.example.com"
-USERNAME="your_agent_username"
-PASSWORD="your_agent_password"
-CAMPAIGN_ID=16
-CONTACT_ID=10
-CALL_ID="1781961848.10"
-PHONE="123456746"
-SCHEDULE_DATE="2026-06-20"
-SCHEDULE_TIME="13:00:00"
+TOKEN="<service-user-token>"
 
-# 1. Login
-TOKEN=$(curl -sS -X POST "${BASE_URL}/api/v1/login" \
-  -H "Content-Type: application/json" \
-  -d "{\"username\":\"${USERNAME}\",\"password\":\"${PASSWORD}\"}" \
-  | jq -r '.token')
-
-# 2. Get disposition options and find the Agenda ID
-AGENDA_ID=$(curl -sS -X GET "${BASE_URL}/api/v1/campaign/${CAMPAIGN_ID}/dispositionOptions/" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  | jq '[.[] | select(.name == "Agenda")] | .[0].id')
-
-if [ -z "$AGENDA_ID" ] || [ "$AGENDA_ID" = "null" ]; then
-  echo "ERROR: Agenda disposition not found for campaign ${CAMPAIGN_ID}"
-  exit 1
-fi
-
-# 3. Submit Agenda disposition
-curl -sS -X POST "${BASE_URL}/api/v1/disposition/" \
+curl -sS -X POST "${BASE_URL}/api/v1/webhook/voicebot/agenda/" \
   -H "Authorization: Bearer ${TOKEN}" \
   -H "Content-Type: application/json" \
-  -d "{
-    \"idContact\": ${CONTACT_ID},
-    \"idDispositionOption\": ${AGENDA_ID},
-    \"callid\": \"${CALL_ID}\",
-    \"comments\": \"Customer requested a scheduled callback\"
-  }"
-
-# 4. Schedule the callback
-curl -sS -X POST "${BASE_URL}/api/v1/agenda_contacto/" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d "{
-    \"campaign_id\": ${CAMPAIGN_ID},
-    \"contact_id\": ${CONTACT_ID},
-    \"date\": \"${SCHEDULE_DATE}\",
-    \"time\": \"${SCHEDULE_TIME}\",
-    \"phone\": \"${PHONE}\",
-    \"schedule_type\": 1,
-    \"observations\": \"Call tomorrow\"
-  }"
+  -d '{
+    "X-OML-Campaign-ID": "78",
+    "X-OML-Contact-ID": "418884",
+    "X-OML-Call-ID": "1781910936.418884",
+    "phone": "2664167431",
+    "callback_valid": "true",
+    "callback_date": "2026-08-11",
+    "callback_time": "15:00:00",
+    "callback_request": "Llamame mañana después de las 3",
+    "callback_rule": "explicit_time"
+  }'
 ```
 
 ---
 
 ## Integration Checklist
 
-- [ ] Authenticate with agent credentials and cache the Bearer token until expiry.
-- [ ] Call `dispositionOptions` for the target campaign and locate the entry with `name == "Agenda"`.
-- [ ] Submit `POST /api/v1/disposition/` using the **Agenda** `id` as `idDispositionOption`.
-- [ ] Include the active `callid` in the disposition request.
-- [ ] Call `POST /api/v1/agenda_contacto/` with a valid `phone` from the contact record.
-- [ ] Handle upsert: a second schedule request for the same contact and campaign updates the existing entry.
-- [ ] Use `schedule_type: 1` (Personal) unless the campaign is a dialer and a global schedule is intended.
+- [ ] Obtain a service-user token once and configure it in the voicebot platform.
+- [ ] Send a flat JSON body (or headers) with the exact field names.
+- [ ] Send `callback_date`/`callback_time` already normalized (server timezone).
+- [ ] Use a `phone` value present in the contact record.
+- [ ] Treat `200` with `agenda_id` as scheduled; `200` with `warnings` as
+      "disposition recorded, not scheduled"; retry safely on `4xx/5xx`
+      (the upsert makes retries idempotent).
 
 ---
+
+## Legacy Flow (human agents)
+
+Human agents still use the agent-oriented flow: qualify with the **Agenda**
+disposition (`POST /api/v1/disposition/`) and then schedule via
+`POST /api/v1/agenda_contacto/` (see
+[Create Contact Schedule](./API.md#create-contact-schedule)). The voicebot
+webhook above exists so bot integrations do not need agent credentials nor
+multiple calls.
 
 ## Related Documentation
 
 - [OMniLeads API — Authentication](./API.md#authentication)
-- [OMniLeads API — Disposition Options](./API.md#disposition-options)
-- [OMniLeads API — Create Contact Schedule](./API.md#create-contact-schedule)
+- [OMniLeads API — Voicebot Webhooks](./API.md#voicebot-webhooks)
