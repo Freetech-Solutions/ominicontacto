@@ -467,6 +467,12 @@ class CalificacionesDeCampanaView(View):
 
 
 class ExportarCSVMixin:
+    """Auth Bearer + sesión para exportaciones consumibles por API externa."""
+    permission_classes = (TienePermisoOML,)
+    authentication_classes = (
+        SessionAuthentication,
+        ExpiringTokenAuthentication,
+    )
 
     def loguear_inicio_exportacion(
             self, tipo, campana_id, supervisor_nombre, fecha_hasta, fecha_desde):
