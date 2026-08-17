@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+import json
 import requests
 from urllib.parse import urljoin
 import logging
@@ -73,7 +74,63 @@ DIALER_STATUS_LABELS = {
     'EXIT_ABANDON': _('Abandonadas'),
     'EXIT_TIMEOUT': _('Timeout de cola'),
     'CONECTADAS_NO_ATENDIDAS': _('Conectadas no atendidas'),
+    'SIN_DISPOSICION': _('Sin disposición'),
+    'GESTION_BOT': _('Gestión del bot'),
+    'MUDA_BOT': _('Bot detecta muda'),
+    'SCHEDULE_CALL_BOT': _('Bot agendas'),
 }
+
+BOT_DISPOSITION_COUNTER_KEYS = frozenset({
+    'GESTION_BOT', 'MUDA_BOT', 'SCHEDULE_CALL_BOT',
+})
+SIN_DISPOSICION_COUNTER_KEY = 'SIN_DISPOSICION'
+DIALER_STATS_CHANNEL = 'OML:CHANNEL:DIALER'
+
+
+def record_bot_disposition_counter(campaign_id, new_nombre, previous_nombre=None):
+    """
+    Actualiza CAMP:{id}:COUNTER para disposiciones bot (sin polling).
+    Publica STATS en OML:CHANNEL:DIALER.
+    """
+    if not campaign_id:
+        return
+    new_key = new_nombre if new_nombre in BOT_DISPOSITION_COUNTER_KEYS else None
+    prev_key = (
+        previous_nombre if previous_nombre in BOT_DISPOSITION_COUNTER_KEYS else None
+    )
+    if new_key is None and prev_key is None:
+        return
+    if new_key == prev_key:
+        return
+
+    try:
+        redis_dialer = create_redis_connection(db=3)
+        redis_oml = create_redis_connection(db=0)
+        counter_key = CAMP_STATS_KEY.format(campaign_id)
+        changed = {'type': 'STATS', 'camp_id': campaign_id}
+
+        if prev_key and prev_key != new_key:
+            val = redis_dialer.hincrby(counter_key, prev_key, -1)
+            changed[prev_key] = int(val)
+
+        if new_key:
+            val = redis_dialer.hincrby(counter_key, new_key, 1)
+            changed[new_key] = int(val)
+            if prev_key is None:
+                raw = redis_dialer.hget(counter_key, SIN_DISPOSICION_COUNTER_KEY)
+                try:
+                    current = int(raw or 0)
+                except (TypeError, ValueError):
+                    current = 0
+                if current > 0:
+                    val = redis_dialer.hincrby(
+                        counter_key, SIN_DISPOSICION_COUNTER_KEY, -1)
+                    changed[SIN_DISPOSICION_COUNTER_KEY] = int(val)
+
+        redis_oml.publish(DIALER_STATS_CHANNEL, json.dumps(changed))
+    except Exception:
+        logger.exception(
+            'Error actualizando COUNTER disposiciones bot camp=%s', campaign_id)
 
 
 class OmnidialerServiceError(OmlError):

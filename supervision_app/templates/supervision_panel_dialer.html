@@ -139,6 +139,13 @@ $(function() {
                 <i class="fas fa-clock"></i> T. Promedio (AHT)
             </div>
         </div>
+        <div class="card metric-card time-card">
+            <div class="metric-value" x-text="formatPacingPercent(data.estado_discador?.p_hit)">—</div>
+            <div class="metric-label">
+                <i class="fas fa-percentage"></i>
+                <span x-text="data.estado_discador?.p_hit_label || 'P_HIT (contactación)'">P_HIT (contactación)</span>
+            </div>
+        </div>
         <div class="card metric-card time-card wait-card">
             <div class="metric-value status-ringing" x-text="formatNumber(data.llamadas?.call_times?.gestion_positiva || 0)">0</div>
             <div class="metric-label">
@@ -180,10 +187,6 @@ $(function() {
                             <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.conectadas_no_atendidas || 0)">0</div>
                             <div class="pd-kpi-label">Conectadas no atendidas</div>
                         </div>
-                        <div class="pd-kpi pd-kpi-ok">
-                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.answered_agent || 0)">0</div>
-                            <div class="pd-kpi-label">Conectadas al agente</div>
-                        </div>
                         <div class="pd-kpi">
                             <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.estimadas || 0)">0</div>
                             <div class="pd-kpi-label">Restantes estimadas</div>
@@ -195,10 +198,6 @@ $(function() {
                         <div class="pd-kpi">
                             <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.pending_retries || 0)">0</div>
                             <div class="pd-kpi-label">Reintentos abiertos</div>
-                        </div>
-                        <div class="pd-kpi">
-                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.contactos_llamados || 0)">0</div>
-                            <div class="pd-kpi-label">Contactos llamados</div>
                         </div>
                         <div class="pd-kpi pd-kpi-ok">
                             <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.contacted_successfully || 0)">0</div>

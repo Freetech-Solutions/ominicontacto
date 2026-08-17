@@ -176,9 +176,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 }
             });
 
-            // Modal Register Server
-            var registered = '{{ registered|safe }}';
-            showModalRegisterServer(registered === 'True');
+            // Modal Register Server: no se lanza automáticamente.
 
             // Dark/Light Mode Toggle
             var currentTheme = localStorage.getItem('theme') || 'light';

@@ -63,6 +63,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 <th>{% trans 'Apellido' %}</th>
                 <th>{% trans 'Campaña' %}</th>
                 <th>{% trans 'Teléfono' %}</th>
+                <th>{% trans 'Observaciones' %}</th>
             </tr>
         </thead>
         <tbody>
@@ -76,15 +77,43 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
               <td>{{ agenda.agente.user.last_name }}</td>
               <td>{{ agenda.campana }}</td>
               <td>{{ agenda.telefono}}</td>
+              <td>
+                {% if agenda.observaciones %}
+                  <button type="button" class="btn btn-sm btn-outline-primary"
+                          data-toggle="modal"
+                          data-target="#modalObservaciones{{ agenda.id }}">
+                    {% trans 'Mostrar' %}
+                  </button>
+                {% else %}—{% endif %}
+              </td>
           </tr>
        {% empty %}
             <tr>
-                <td colspan="7">{% trans 'No existen agendas para esta campaña' %}</td>
+                <td colspan="9">{% trans 'No existen agendas para esta campaña' %}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
 </div>
+{% for agenda in agendas %}
+{% if agenda.observaciones %}
+<div class="modal fade" id="modalObservaciones{{ agenda.id }}" role="dialog">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h4 class="modal-title">{% trans 'Observaciones' %}</h4>
+        </div>
+        <div class="modal-body">
+            <p>{{ agenda.observaciones|linebreaksbr }}</p>
+        </div>
+        <div class="modal-footer justify-content-between">
+            <button type="button" class="btn btn-default" data-dismiss="modal">{% trans 'Cerrar' %}</button>
+        </div>
+      </div>
+    </div>
+</div>
+{% endif %}
+{% endfor %}
 <div class="modal fade" id="modal-default">
     <div class="modal-dialog">
       <div class="modal-content">

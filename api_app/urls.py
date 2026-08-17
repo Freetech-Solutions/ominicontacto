@@ -106,7 +106,8 @@ from api_app.views.auditoria import ObtenerArchivoAuditoriaView
 from api_app.views.audios import ListadoAudiosView
 from api_app.views.wombat_dialer import (ReiniciarWombat, WombatState, WombatStart, WombatStop,
                                          SupervisionWombatDialerStats)
-from api_app.views.system import AsteriskQueuesData, NotifyAttendedMultinumCall, NotifyCallBlocked, HealthCheckView
+from api_app.views.system import (
+    AsteriskQueuesData, NotifyAttendedMultinumCall, NotifyCallBlocked, HealthCheckView)
 
 from api_app.views.destino_entrante import DestinoEntranteView, DestinoEntranteTiposView
 from api_app.views.logging import TransferenciaAEncuestaLogCreateView
@@ -158,7 +159,8 @@ from api_app.views.audios_asterisk import AudiosAsteriskListView
 from api_app.views.transfer import (
     TransferBlindAgentView, TransferBlindEndpointView,
     TransferBlindCampaignView, TransferBlindCampaignAgentView,
-    Transfer3WayView, HangupLegView, SpyChannelView, VoicebotHangupView, HoldCallView, ThreeWayConfView,
+    Transfer3WayView, HangupLegView, SpyChannelView, VoicebotHangupView,
+    HoldCallView, ThreeWayConfView,
     TransferConsultStartView, TransferConsultCompleteView, TransferConsultCancelView
 )
 from api_app.views.verloop import VerloopWebhookView

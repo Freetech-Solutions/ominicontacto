@@ -69,7 +69,7 @@ CONSTANCE_CONFIG = {
     # white-label
     "ASTERISK_TM": ("Asterisk", "", "char_field"),
     "OMNILEADS_TM": ("OMniLeads", "", "char_field"),
-    "SUGGEST_REGISTER": (True, "", bool),
+    "SUGGEST_REGISTER": (False, "", bool),
     "WOMBAT_TM": ("Wombat", "", "char_field"),
     "PRIMARY_COLOR": ("#F71883", "", "char_field"),
     "PRIMARY_LIGHT_COLOR": ("#FA4DA0", "", "char_field"),

@@ -65,16 +65,9 @@ def index_view(request):
             return HttpResponseRedirect(reverse('consola_de_agente'))
         admin_registered = (
             config_constance.CLIENT_NAME != '' and config_constance.CLIENT_KEY != '')
-        showRegisterPopUp = False
-        if 'showRegisterPopUp' not in request.session.keys():
-            if not admin_registered:
-                showRegisterPopUp = config_constance.SUGGEST_REGISTER
-            request.session['showRegisterPopUp'] = showRegisterPopUp
-        else:
-            showRegisterPopUp = False
         context = {
             'isAdmin': request.user.get_is_administrador(),
-            'showRegisterPopUp': showRegisterPopUp,
+            'showRegisterPopUp': False,
             'registered': admin_registered,
         }
         return TemplateResponse(request, template_name, context)

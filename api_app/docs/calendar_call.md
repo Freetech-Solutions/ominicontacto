@@ -227,6 +227,27 @@ curl -sS -X POST "${BASE_URL}/api/v1/webhook/voicebot/agenda/" \
 
 ---
 
+## Follow-up summary webhook
+
+After the schedule is created, the voicebot platform typically sends a later
+end-of-call webhook with the conversation `call_summary`:
+
+- `POST /api/v1/webhook/voicebot/`
+- `POST /api/v1/webhook/verloop/`
+
+If an `AgendaContacto` already exists for the same contact and campaign,
+OMniLeads **does not** change the Agenda disposition and **does not** publish
+`voicebot_transfer_proceed` to the ACD. It only concatenates `call_summary`
+(root or `analysis.user_defined`) onto the existing schedule notes.
+
+Retries that send the same summary are idempotent (the text is not duplicated).
+
+If there is no prior schedule, those webhooks keep their original behaviour:
+upsert the requested disposition and, when the option is `GESTION_BOT`, resume
+the pending ACD transfer.
+
+---
+
 ## Legacy Flow (human agents)
 
 Human agents still use the agent-oriented flow: qualify with the **Agenda**

@@ -66,6 +66,7 @@ class ReporteContactacionesCSV(ReporteCSV):
         for nombre in nombres:
             encabezado.append(nombre)
         encabezado.append(_("Calificación"))
+        encabezado.append(_("Resultado telefónico"))
         encabezado.append(_("Contactación"))
         encabezado.append(_("Intentos"))
 
@@ -80,6 +81,7 @@ class ReporteContactacionesCSV(ReporteCSV):
             lista_opciones.append(contactacion['calificacion'])
         else:
             lista_opciones.append('')
+        lista_opciones.append(contactacion.get('resultado_telefonico') or '')
         if contactacion['contactacion'] is not None:
             lista_opciones.append(contactacion['contactacion'])
         else:

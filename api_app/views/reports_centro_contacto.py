@@ -920,6 +920,8 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
     if duracion_bot_min is not None:
         queryset = queryset.filter(bot_duration__gte=duracion_bot_min)
 
+    queryset = queryset.exclude(Q_LISTADO_EXIT_ANSWERED_FANTASMA)
+
     Q_answered = Q(status__iexact='EXIT_ANSWERED')
     rows = (
         queryset
@@ -1033,7 +1035,7 @@ def _queryset_llamadas_salientes_voice(start_date=None, end_date=None,
         queryset = queryset.filter(agent_duration__gte=duracion_agente_min)
     if duracion_bot_min is not None:
         queryset = queryset.filter(bot_duration__gte=duracion_bot_min)
-    return queryset
+    return queryset.exclude(Q_LISTADO_EXIT_ANSWERED_FANTASMA)
 
 
 def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
@@ -4238,6 +4240,26 @@ Q_LISTADO_LLAMADAS_ATENDIDAS_CC = (
     | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
 )
 
+# CDR fantasma: ChannelDestroyed inventaba EXIT_ANSWERED con uniqueid ARI,
+# duración 0, sin agente ni bot. No es una llamada atendida.
+Q_LISTADO_EXIT_ANSWERED_FANTASMA = (
+    Q(status__iexact='EXIT_ANSWERED')
+    & (Q(total_duration__isnull=True) | Q(total_duration=0))
+    & (Q(agent_duration__isnull=True) | Q(agent_duration=0))
+    & (Q(bot_duration__isnull=True) | Q(bot_duration=0))
+    & (Q(agent_id__isnull=True) | Q(agent_id=-1))
+)
+
+
+def _telefono_interaccion(obj):
+    """Teléfono de cliente: outbound usa destino (marcado); inbound usa origen."""
+    direction = (getattr(obj, 'direction', None) or '').upper()
+    dest = getattr(obj, 'destination_address', None) or ''
+    src = getattr(obj, 'source_address', None) or ''
+    if direction == 'OUTBOUND':
+        return dest or src or '—'
+    return src or dest or '—'
+
 
 def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
@@ -4258,7 +4280,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
     queryset = InteractionsSummary.objects.filter(
         direction__iexact=direction_filter,
         channel_type__iexact='VOICE',
-    ).filter(Q_LISTADO_LLAMADAS_ATENDIDAS_CC)
+    ).filter(Q_LISTADO_LLAMADAS_ATENDIDAS_CC).exclude(Q_LISTADO_EXIT_ANSWERED_FANTASMA)
 
     if allowed_campaigns is not None:
         queryset = queryset.filter(
@@ -4371,7 +4393,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
             'fecha_hora': obj.start_time,
             'interaction_id': obj.interaction_id,
             'id_contacto': obj.customer_id,
-            'telefono': obj.source_address or obj.destination_address or '—',
+            'telefono': _telefono_interaccion(obj),
             'id_campana': obj.campaign_id,
             'nombre_campana': nombre_campana,
             'id_agente': obj.agent_id,
@@ -4464,7 +4486,7 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
         rows.append({
             'fecha_hora': obj.start_time,
             'id_contacto': obj.customer_id,
-            'telefono': obj.source_address or obj.destination_address or '—',
+            'telefono': _telefono_interaccion(obj),
             'id_campana': obj.campaign_id,
             'nombre_campana': nombre_campana,
             'tiempo_espera': wait_sec,

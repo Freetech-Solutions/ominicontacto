@@ -35,6 +35,8 @@ function registerContactCenterDashboard() {
                 campana_nombre: '',
                 campana_estado: '',
                 status: [],
+                p_hit: null,
+                p_hit_label: 'P_HIT (contactación)',
             },
             pacing: null,
         },
@@ -102,6 +104,8 @@ function registerContactCenterDashboard() {
                 campana_nombre: '',
                 campana_estado: '',
                 status: [],
+                p_hit: null,
+                p_hit_label: 'P_HIT (contactación)',
             };
         },
 
@@ -1504,6 +1508,10 @@ function registerContactCenterDashboard() {
                 'FINALIZED WITH NO CONTACT': 'finalized_no_contact',
                 'CONTACTED SUCCESSFULLY': 'contacted_successfully',
             };
+            const reserved = {
+                type: true, camp_id: true, admin: true,
+            };
+            Object.keys(mapping).forEach((k) => { reserved[k] = true; });
             const next = { ...(this.data.estado_discador || {}) };
             let changed = false;
             Object.keys(mapping).forEach((redisKey) => {
@@ -1516,6 +1524,33 @@ function registerContactCenterDashboard() {
                     }
                 }
             });
+            const statusList = Array.isArray(next.status) ? next.status.slice() : [];
+            Object.keys(args).forEach((redisKey) => {
+                if (reserved[redisKey]) {
+                    return;
+                }
+                const value = Number(args[redisKey]);
+                if (Number.isNaN(value)) {
+                    return;
+                }
+                const idx = statusList.findIndex((s) => s.gbState === redisKey);
+                if (idx >= 0) {
+                    if (Number(statusList[idx].nCalls) !== value) {
+                        statusList[idx] = Object.assign({}, statusList[idx], { nCalls: value });
+                        changed = true;
+                    }
+                } else {
+                    statusList.push({
+                        gbState: redisKey,
+                        gbStateLabel: redisKey,
+                        nCalls: value,
+                    });
+                    changed = true;
+                }
+            });
+            if (changed) {
+                next.status = statusList;
+            }
             if (!changed) {
                 return;
             }

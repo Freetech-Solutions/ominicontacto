@@ -3967,12 +3967,21 @@ exact name; body takes precedence):
 #### `POST /api/v1/webhook/voicebot/` and `POST /api/v1/webhook/verloop/`
 
 Create or update the contact disposition with an explicit disposition option ID
-(`X-OML-Disposition` / `X-Verloop-Disposition`). When the applied option name
-matches the configured end-of-bot disposition (`VOICEBOT_CALIFICACION_NOMBRE` /
-`VERLOOP_CALIFICACION_NOMBRE`, default `GESTION_BOT`), a
-`voicebot_transfer_proceed` command is published to Redis so the ACD resumes a
-pending transfer. See [calendar_call.md](./calendar_call.md) for the callback
-scheduling integration guide.
+(`X-OML-Disposition` / `X-Verloop-Disposition`).
+
+If an `AgendaContacto` already exists for the same contact and campaign (created
+via `POST /api/v1/webhook/voicebot/agenda/`), the webhook **does not** change
+the Agenda disposition and **does not** publish `voicebot_transfer_proceed`.
+It only concatenates `call_summary` / `Call_Summary` onto the existing schedule
+notes (`AgendaContacto.observaciones`). Repeating the same summary is
+idempotent.
+
+Otherwise, when the applied option name matches the configured end-of-bot
+disposition (`VOICEBOT_CALIFICACION_NOMBRE` / `VERLOOP_CALIFICACION_NOMBRE`,
+default `GESTION_BOT`), a `voicebot_transfer_proceed` command is published to
+Redis so the ACD resumes a pending transfer. See
+[calendar_call.md](./calendar_call.md) for the callback scheduling integration
+guide.
 
 ---
 

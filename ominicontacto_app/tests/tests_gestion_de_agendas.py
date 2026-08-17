@@ -258,6 +258,29 @@ class ExportCsvAgendasTests(OMLBaseTest):
             ],
         )
 
+    def test_modal_observaciones_en_listado(self):
+        comentario = 'Llamar mañana despues de las 10'
+        self.agenda_1.observaciones = comentario
+        self.agenda_1.save()
+        self.agenda_2.observaciones = ''
+        self.agenda_2.save()
+        fecha = timezone.now().date().strftime('%d/%m/%Y - %d/%m/%Y')
+        response = self.client.post(
+            reverse("agenda_contactos"),
+            {
+                "campana": [self.campana1.id, self.campana2.id],
+                "fecha": fecha
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, comentario)
+        self.assertContains(response, 'id="modalObservaciones{}"'.format(self.agenda_1.id))
+        self.assertContains(
+            response, 'data-target="#modalObservaciones{}"'.format(self.agenda_1.id))
+        self.assertNotContains(response, 'id="modalObservaciones{}"'.format(self.agenda_2.id))
+        self.assertNotContains(
+            response, 'data-target="#modalObservaciones{}"'.format(self.agenda_2.id))
+
     def test_eliminar_ok(self):
         fecha = timezone.now().date().strftime('%d/%m/%Y - %d/%m/%Y')
         response = self.client.post(

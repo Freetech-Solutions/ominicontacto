@@ -78,6 +78,7 @@ class ReporteDeResultadosTests(APITest, BaseTestDeReportes):
         url = reverse('reporte_de_resultados', args=[self.campana_activa.pk])
         response = self.client.get(url, follow=True)
         self.assertTemplateUsed(response, 'reporte_de_resultados.html')
+        self.assertContains(response, 'Resultado telefónico')
 
     def test_contactos_en_reporte_de_resultados(self):
         reporte = ReporteDeResultadosDeCampana(self.campana_activa)
@@ -102,11 +103,16 @@ class ReporteDeResultadosTests(APITest, BaseTestDeReportes):
         contactacion = reporte.contactaciones[self.contacto_no_calificado.id]
         self.assertIsNone(contactacion['calificacion'])
         self.assertEqual(contactacion['contactacion'], _('Contactado'))
+        self.assertEqual(contactacion['resultado_telefonico'], 'COMPLETEOUTNUM')
         self.assertTrue(self.contacto_no_atendido.id in reporte.contactaciones)
         contactacion = reporte.contactaciones[self.contacto_no_atendido.id]
         self.assertIsNone(contactacion['calificacion'])
         self.assertEqual(
             contactacion['contactacion'], NO_CONECTADO_DESCRIPCION['NOANSWER'])
+        self.assertEqual(contactacion['resultado_telefonico'], 'NOANSWER')
+
+        contactacion = reporte.contactaciones[self.contacto_calificado_gestion.id]
+        self.assertEqual(contactacion['resultado_telefonico'], 'COMPLETEAGENT')
 
     def test_contactos_en_reporte_de_resultados_paginado(self):
         reporte_1 = ReporteDeResultadosDeCampana(self.campana_activa, page_number=1, page_size=1)

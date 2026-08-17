@@ -46,7 +46,7 @@ class ReporteDeResultadosDeCampana(object):
         # Si no hay contactos originarios el reporte quedará vacío.
         if len(contactos_ids) > 0:
             calificados_ids = self._registrar_calificaciones(contactos_ids)
-            self._registrar_no_calificados(contactos_ids, calificados_ids)
+            self._registrar_resultados_telefonicos(contactos_ids, calificados_ids)
 
     def obtener_contactos(self, todos_contactos):
         contactos = self.campana.bd_contacto.contactos.order_by("id")
@@ -72,7 +72,8 @@ class ReporteDeResultadosDeCampana(object):
                 'contacto': contacto,
                 'calificacion': None,
                 'subcalificacion': None,
-                'contactacion': None
+                'contactacion': None,
+                'resultado_telefonico': None,
             }
         return ids
 
@@ -89,16 +90,11 @@ class ReporteDeResultadosDeCampana(object):
             self.contactaciones[contacto_id]['subcalificacion'] = calificacion.subcalificacion
         return calificados_ids
 
-    def _registrar_no_calificados(self, contactos_ids, calificados_ids):
-        # Ver como fue la contactacion. Si fue o no contactado.
+    def _registrar_resultados_telefonicos(self, contactos_ids, calificados_ids):
+        # Último evento telefónico (EXIT_ANSWERED, NOANSWER, etc.) por contacto.
         filtro_contactos = " AND contacto_id IN ('"
         filtro_contactos += "','".join([str(x) for x in contactos_ids])
         filtro_contactos += "')"
-        filtro_calificados = ''
-        if len(calificados_ids) > 0:
-            filtro_calificados = " AND contacto_id NOT IN ('"
-            filtro_calificados += "','".join([str(x) for x in calificados_ids])
-            filtro_calificados += "')"
         filtro_eventos = " AND event IN ('"
         filtro_eventos += "','".join(LlamadaResumen.EVENTOS_NO_CONEXION)
         filtro_eventos += "','"
@@ -106,9 +102,7 @@ class ReporteDeResultadosDeCampana(object):
         filtro_eventos += "')"
         params = {'campana_id': self.campana.id,
                   'filtro_contactos': filtro_contactos,
-                  'filtro_calificados': filtro_calificados,
                   'filtro_eventos': filtro_eventos}
-        # TODO: Filtrar eventos de LLamada log q indiquen finalizacion de llamada o intento
         sql = """
             SELECT contacto_id, event
             FROM (
@@ -116,16 +110,22 @@ class ReporteDeResultadosDeCampana(object):
                        max(fecha_fin) OVER (PARTITION BY contacto_id) max_my_date
                 FROM public.reportes_app_llamada_resumen
                 WHERE campana_id = {campana_id} AND contacto_id != -1
-                {filtro_contactos}{filtro_calificados}{filtro_eventos}
+                {filtro_contactos}{filtro_eventos}
             ) sub_query
             WHERE fecha_fin = max_my_date """.format(**params)
 
         cursor = connection.cursor()
         cursor.execute(sql)
         values = cursor.fetchall()
+        calificados = set(calificados_ids)
         for contacto_id, evento in values:
-            descripcion = self._get_descripcion_evento(evento)
-            self.contactaciones[contacto_id]['contactacion'] = descripcion
+            if contacto_id not in self.contactaciones:
+                continue
+            self.contactaciones[contacto_id]['resultado_telefonico'] = evento
+            if contacto_id not in calificados:
+                self.contactaciones[contacto_id]['contactacion'] = (
+                    self._get_descripcion_evento(evento)
+                )
 
     def _get_descripcion_evento(self, evento):
         if evento in LlamadaResumen.EVENTOS_NO_CONEXION:
