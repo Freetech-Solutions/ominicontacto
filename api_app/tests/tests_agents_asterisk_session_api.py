@@ -153,25 +153,17 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
         self.assertEqual(last_event.event_type, AgentActivityEventV2.EventType.STATE_PAUSED)
         self.assertEqual(last_event.pause_id, self.pausa.id)
 
-    @patch('ominicontacto_app.services.asterisk.agent_activity.AMIManagerConnector')
-    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
-           '_get_redis_agent_status')
     @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
            '_set_agent_pause_redis_status')
     @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
            '_set_agent_redis_status')
     def test_asterisk_session_login_pause_on_first_login(
-            self, set_agent_redis_status, set_agent_pause_redis_status,
-            get_redis_agent_status, ami_manager_connector):
+            self, set_agent_redis_status, set_agent_pause_redis_status):
         self.agente.grupo.pause_on_first_login = True
         self.agente.grupo.save()
-
-        ami_manager_instance = ami_manager_connector.return_value
-        ami_manager_instance._ami_manager.return_value = ('', False)
-        get_redis_agent_status.return_value = ('OFFLINE', False)
         set_agent_pause_redis_status.return_value = False
 
-        cant_logs = ActividadAgenteLog.objects.count()
+        cant_v2 = AgentActivityEventV2.objects.count()
         url = reverse('api_agent_asterisk_login')
         response = self.client.post(url, HTTP_AUTHORIZATION=self.auth_header)
 
@@ -179,41 +171,13 @@ class AgentsAsteriskSessionAPITest(OMLBaseTest):
         self.assertIn('status', response.json())
         self.assertEqual(response.json()['status'], 'OK')
 
-        ami_manager_instance.connect.assert_called_once_with()
-        ami_manager_instance.disconnect.assert_called_once_with()
-        self.assertEqual(ami_manager_instance._ami_manager.call_count, 2)
-
-        interface = 'PJSIP/' + str(self.agente.sip_extension).strip('[]')
-
-        queue_add_action, queue_add_content = ami_manager_instance._ami_manager.call_args_list[0][0]
-        self.assertEqual(queue_add_action, 'QueueAdd')
-        self.assertEqual(queue_add_content[0], self.agente.id)
-        self.assertEqual(queue_add_content[1], self.agente.get_asterisk_caller_id())
-        self.assertEqual(list(queue_add_content[2]), [])
-        self.assertEqual(list(queue_add_content[3]), [])
-        self.assertEqual(queue_add_content[4], interface)
-        self.assertEqual(queue_add_content[5], 0)
-
-        queue_pause_action, queue_pause_content = (
-            ami_manager_instance._ami_manager.call_args_list[1][0])
-        self.assertEqual(queue_pause_action, 'QueuePause')
-        self.assertEqual(queue_pause_content[0], self.agente.id)
-        self.assertEqual(queue_pause_content[1], self.agente.get_asterisk_caller_id())
-        self.assertEqual(list(queue_pause_content[2]), [])
-        self.assertEqual(list(queue_pause_content[3]), [])
-        self.assertEqual(queue_pause_content[4], interface)
-        self.assertEqual(queue_pause_content[5], '0')
-        self.assertEqual(queue_pause_content[6], 'true')
-
-        get_redis_agent_status.assert_called_once_with(self.agente)
         set_agent_redis_status.assert_not_called()
         set_agent_pause_redis_status.assert_called_once_with(self.agente, 'ACW', '0')
-
-        self.assertEqual(ActividadAgenteLog.objects.count(), cant_logs + 1)
-        log = ActividadAgenteLog.objects.last()
-        self.assertEqual(log.pausa_id, '0')
-        self.assertEqual(log.agente_id, self.agente.id)
-        self.assertEqual(log.event, ActividadAgenteLog.PAUSE)
+        self.assertEqual(AgentActivityEventV2.objects.count(), cant_v2 + 1)
+        last_event = AgentActivityEventV2.objects.order_by('-id').first()
+        self.assertEqual(last_event.agente_id, self.agente.id)
+        self.assertEqual(last_event.event_type, AgentActivityEventV2.EventType.STATE_ACW)
+        self.assertIsNone(last_event.pause_id)
 
     @patch('ominicontacto_app.services.asterisk.agent_activity.AgentActivityAmiManager.'
            'unpause_agent')
