@@ -23,11 +23,15 @@ from ominicontacto_app.services.dialer.omnidialer import (
     CAMP_CALLDATA_KEY,
     CAMP_CHANNELS_KEY,
     CAMP_PACING_KEY,
+    CAMP_STATS_KEY,
     CONECTADAS_NO_ATENDIDAS_FIELDS,
+    DIALER_STATS_CHANNEL,
     FINALIZED_NOCONTACT,
     FINALIZED_SUCCESS,
     OmnidialerService,
     PENDING_ATTEMPTS,
+    SIN_DISPOSICION_COUNTER_KEY,
+    record_bot_disposition_counter,
 )
 
 
@@ -220,6 +224,75 @@ class OmnidialerServiceEstadoCampanaTests(SimpleTestCase):
             *CONECTADAS_NO_ATENDIDAS_FIELDS,
         )
         redis_dialer.hgetall.assert_called_once()
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_status_incluye_labels_disposiciones_bot(self, mock_redis_factory):
+        self._configure_redis(
+            mock_redis_factory,
+            dialer_hgetall={
+                'SIN_DISPOSICION': '4',
+                'GESTION_BOT': '2',
+                'MUDA_BOT': '1',
+                'SCHEDULE_CALL_BOT': '3',
+            },
+            dialer_get='0',
+        )
+        campana = MagicMock()
+        campana.id = 3
+        data = OmnidialerService().obtener_estado_campana(campana)
+        by_key = {item['gbState']: item for item in data['status']}
+        self.assertEqual(by_key['SIN_DISPOSICION']['gbStateLabel'], 'Sin disposición')
+        self.assertEqual(by_key['GESTION_BOT']['gbStateLabel'], 'Gestión del bot')
+        self.assertEqual(by_key['MUDA_BOT']['gbStateLabel'], 'Bot detecta muda')
+        self.assertEqual(by_key['SCHEDULE_CALL_BOT']['gbStateLabel'], 'Bot agendas')
+        self.assertEqual(by_key['GESTION_BOT']['nCalls'], 2)
+
+
+class RecordBotDispositionCounterTests(SimpleTestCase):
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_gestion_bot_incr_y_decrementa_sin_disposicion(self, mock_redis_factory):
+        redis_dialer = MagicMock()
+        redis_oml = MagicMock()
+        redis_dialer.hincrby.side_effect = [5, 2]
+        redis_dialer.hget.return_value = '3'
+
+        def _conn(db=0):
+            return redis_dialer if db == 3 else redis_oml
+
+        mock_redis_factory.side_effect = _conn
+
+        record_bot_disposition_counter(15, 'GESTION_BOT', None)
+
+        redis_dialer.hincrby.assert_any_call(CAMP_STATS_KEY.format(15), 'GESTION_BOT', 1)
+        redis_dialer.hincrby.assert_any_call(
+            CAMP_STATS_KEY.format(15), SIN_DISPOSICION_COUNTER_KEY, -1)
+        redis_oml.publish.assert_called_once()
+        payload = redis_oml.publish.call_args[0]
+        self.assertEqual(payload[0], DIALER_STATS_CHANNEL)
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_cambia_muda_a_agenda(self, mock_redis_factory):
+        redis_dialer = MagicMock()
+        redis_oml = MagicMock()
+        redis_dialer.hincrby.side_effect = [0, 1]
+
+        def _conn(db=0):
+            return redis_dialer if db == 3 else redis_oml
+
+        mock_redis_factory.side_effect = _conn
+
+        record_bot_disposition_counter(15, 'SCHEDULE_CALL_BOT', 'MUDA_BOT')
+
+        redis_dialer.hincrby.assert_any_call(CAMP_STATS_KEY.format(15), 'MUDA_BOT', -1)
+        redis_dialer.hincrby.assert_any_call(
+            CAMP_STATS_KEY.format(15), 'SCHEDULE_CALL_BOT', 1)
+        redis_dialer.hget.assert_not_called()
+
+    @patch('ominicontacto_app.services.dialer.omnidialer.create_redis_connection')
+    def test_calificacion_no_bot_no_toca_redis(self, mock_redis_factory):
+        record_bot_disposition_counter(15, 'VENTA', None)
+        mock_redis_factory.assert_not_called()
 
 
 class OmnidialerServicePacingCampanaTests(SimpleTestCase):

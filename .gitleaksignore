@@ -1,0 +1,50 @@
+# Gitleaks ignore file for OMLApp (ominicontacto)
+#
+# Format: fingerprint (hash:file:rule-id:line)
+#
+# These are historical leaks in old commits. Do not add secrets values to this file.
+
+# api_app/docs/calendar_call.md - Test token in documentation
+f3aba61512d01cfc472e49824160cd31b6093cdd:api_app/docs/calendar_call.md:generic-api-key:64
+
+# install/docker/ci-images/certs_minio/private.key - Dev/CI Minio private key
+93b37235f0655271149a2f90b137ec119519cea7:install/docker/ci-images/certs_minio/private.key:private-key:1
+
+# install/docker/prodenv/first_boot_installer.sh - Installer script template vars
+4f28bddc16962a8b8bb5e9b21082d2c9e7a9747d:install/docker/prodenv/first_boot_installer.sh:generic-api-key:43
+4f28bddc16962a8b8bb5e9b21082d2c9e7a9747d:install/docker/prodenv/first_boot_installer.sh:generic-api-key:44
+
+# install/onpremise/cicd/deploy/.env_do - DigitalOcean env templates
+4f28bddc16962a8b8bb5e9b21082d2c9e7a9747d:install/onpremise/cicd/deploy/.env_do:generic-api-key:40
+4f28bddc16962a8b8bb5e9b21082d2c9e7a9747d:install/onpremise/cicd/deploy/.env_do:generic-api-key:41
+
+# install/onpremise/build/builder/.env_buildercontainer - Builder container credentials (historical)
+aae1884f0e0ef1550cca008973bc9a64636c943c:install/onpremise/build/builder/.env_buildercontainer:generic-api-key:5
+aae1884f0e0ef1550cca008973bc9a64636c943c:install/onpremise/build/builder/.env_buildercontainer:aws-access-token:3
+
+# deploy/certs/key.pem - Dev private key
+12f4f46b3f5fb6e220e967bcfdb1c3ea881b13f1:deploy/certs/key.pem:private-key:1
+
+# build/ansible/group_vars/docker_prodenv_vars.yml - Docker prod dev env variables template
+97e0c6a0d2ecf116ccb7ed8ef4ae65c8c3244962:build/ansible/group_vars/docker_prodenv_vars.yml:generic-api-key:9
+
+# deploy/ansible/roles/docker/files/certs/key.pem - Dev private key
+d48bdde68236f25e1580f78f4e9cf0846bc48e24:deploy/ansible/roles/docker/files/certs/key.pem:private-key:1
+
+# deploy/docker/prodenv/certs/key.pem - Dev private key
+d48bdde68236f25e1580f78f4e9cf0846bc48e24:deploy/docker/prodenv/certs/key.pem:private-key:1
+
+# deploy/ansible/group_vars/docker_prodenv_vars.yml - Ansible dev vars templates
+8f23fa346f5fe4533a413f657abab48f8d4122ad:deploy/ansible/group_vars/docker_prodenv_vars.yml:generic-api-key:12
+
+# ominicontacto_voip/asterisk-files/manager_custom.conf - VoIP custom manager credentials template
+b83a729592cd3afb40b57897486d6c06b1a53406:ominicontacto_voip/asterisk-files/manager_custom.conf:generic-api-key:16
+
+# ansible/post-freepbx/roles/asternic/templates/manager_custom.conf.j2 - Asternic manager template
+4152ea764a41d42802ef875d677bad0f002dfc39:ansible/post-freepbx/roles/asternic/templates/manager_custom.conf.j2:generic-api-key:16
+
+# deploy/hosts-virtual-freetech-desarrollo - Dev/staging variables templates
+d6e2d755197977f707b9ba451eb8f18f46d3b289:deploy/hosts-virtual-freetech-desarrollo:generic-api-key:16
+d6e2d755197977f707b9ba451eb8f18f46d3b289:deploy/hosts-virtual-freetech-desarrollo:generic-api-key:18
+aa2450d444ff940ee86cf95f706fc450ecc65454:deploy/hosts-virtual-freetech-desarrollo:generic-api-key:16
+aa2450d444ff940ee86cf95f706fc450ecc65454:deploy/hosts-virtual-freetech-desarrollo:generic-api-key:18

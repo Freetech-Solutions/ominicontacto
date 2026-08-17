@@ -35,9 +35,19 @@ from ominicontacto_app.models import Campana, Grupo, AgenteProfile
 from supervision_app.services.redisgears_service import RedisGearsService
 from supervision_app.services.voicebot_calls import get_voicebot_active_call_rows
 from ominicontacto_app.services.dialer import get_dialer_service, wombat_habilitado
+from ominicontacto_app.services.dialer.omnidialer import (
+    DIALER_STATUS_LABELS,
+    FINALIZED_NOCONTACT,
+    FINALIZED_SUCCESS,
+    HIDDEN_DIALER_STATUS_KEYS,
+    PENDING_ATTEMPTS,
+)
 from ominicontacto_app.services.redis.connection import create_redis_connection
 from reportes_app.models import LlamadaLog
-from reportes_app.views_campanas_dialer_reportes import _obtener_pacing_contexto
+from reportes_app.views_campanas_dialer_reportes import (
+    _campana_es_predictiva,
+    _obtener_pacing_contexto,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -372,6 +382,8 @@ def _empty_panel_dialer_estado():
             'campana_nombre': '',
             'campana_estado': '',
             'status': [],
+            'p_hit': None,
+            'p_hit_label': 'P_HIT (contactación)',
         },
         'llamadas_discando': 0,
         'pacing': None,
@@ -424,6 +436,7 @@ def _panel_dialer_estado_payload(campana):
             'nCalls': _safe_int(item.get('nCalls', 0), 0),
         })
 
+    es_predictiva = _campana_es_predictiva(campana)
     estado = {
         'pending_initial': _safe_int(
             datos.get('estimadas_iniciales', legacy.get('pending_initial', 0)), 0),
@@ -444,6 +457,12 @@ def _panel_dialer_estado_payload(campana):
         'campana_nombre': campana.nombre or '',
         'campana_estado': str(campana.get_estado_display()),
         'status': status,
+        'p_hit': _dialer_campaign_p_hit(
+            redis_dialer, campana.id, predictive=es_predictiva),
+        'p_hit_label': (
+            'P_HIT (contactación)' if es_predictiva
+            else 'P_HIT_RATIO (contactación)'
+        ),
     }
 
     try:
@@ -552,6 +571,59 @@ def _safe_float(value, default=0.0):
         return float(value) if value else default
     except (ValueError, TypeError):
         return default
+
+
+def _dialer_campaign_aht(redis_dialer_connection, campaign_id):
+    """
+    AHT del motor dialer (mismo insumo que el pacing predictivo).
+
+    Lee CAMP:{id}:AHT; si falta, ATT + ACW en Redis DB3.
+    """
+    if not redis_dialer_connection or not campaign_id:
+        return 0.0
+    try:
+        aht = _safe_float(
+            redis_dialer_connection.hget(f'CAMP:{campaign_id}:AHT', 'AHT'), 0.0)
+        if aht > 0:
+            return aht
+        att = _safe_float(
+            redis_dialer_connection.hget(f'CAMP:{campaign_id}:ATT', 'ATT'), 0.0)
+        acw = _safe_float(
+            redis_dialer_connection.hget(f'CAMP:{campaign_id}:ACW', 'ACW'), 0.0)
+        return att + acw
+    except Exception as e:
+        logger.warning(
+            'Error leyendo AHT dialer para campaña %s: %s', campaign_id, e)
+        return 0.0
+
+
+def _dialer_campaign_p_hit(redis_dialer_connection, campaign_id, predictive=True):
+    """
+    Tasa de contactación desde CAMP:{id}:METRICS.
+
+    Predictivo: P_HIT (EWMA), fallback P_HIT_RATIO.
+    Progresivo: solo P_HIT_RATIO (HIT / (HIT+FAIL) acumulado).
+    None si aún no hay muestra.
+    """
+    if not redis_dialer_connection or not campaign_id:
+        return None
+    try:
+        key = f'CAMP:{campaign_id}:METRICS'
+        if predictive:
+            raw = redis_dialer_connection.hget(key, 'P_HIT')
+            if raw is None or raw == '':
+                raw = redis_dialer_connection.hget(key, 'P_HIT_RATIO')
+        else:
+            raw = redis_dialer_connection.hget(key, 'P_HIT_RATIO')
+        if raw is None or raw == '':
+            return None
+        return max(0.0, float(raw))
+    except (TypeError, ValueError):
+        return None
+    except Exception as e:
+        logger.warning(
+            'Error leyendo P_HIT dialer para campaña %s: %s', campaign_id, e)
+        return None
 
 
 def _normalize_redis_dict(redis_dict):
@@ -1026,15 +1098,19 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         queue_size = queue_conn.get(queue_size_key) if queue_conn else None
         inbound['en_cola'] = _safe_int(queue_size, 0)
 
-        # Calcular tiempos (AHT, más extensa)
-        # T. Promedio (AHT) = OML:CALLDATA:CAMP:{id_camp} (Key: TOTAL_CALL_TIME) / OML:CALLDATA:CAMP:{id_camp} (Key: EXIT_ANSWERED)
-        total_call_time = _safe_float(calldata.get('TOTAL_CALL_TIME', 0))
-        exit_answered = _safe_int(calldata.get('EXIT_ANSWERED', 0))
-        
-        if exit_answered > 0:
-            aht = total_call_time / exit_answered
-        else:
-            aht = 0
+        # AHT: preferir CAMP:{id}:AHT del discador (ATT+ACW, pacing predictivo).
+        # El logger ACD no deja EXIT_ANSWERED genérico (usa HUMAN/BOT/MIX),
+        # así que TOTAL_CALL_TIME / EXIT_ANSWERED queda siempre en 0.
+        aht = _dialer_campaign_aht(redis_dialer_connection, campaign_id)
+        if aht <= 0:
+            total_call_time = _safe_float(calldata.get('TOTAL_CALL_TIME', 0))
+            answered_for_aht = atendidas_total + atendidas
+            if answered_for_aht <= 0:
+                answered_for_aht = _safe_int(calldata.get('EXIT_ANSWERED', 0))
+            if answered_for_aht > 0:
+                aht = total_call_time / answered_for_aht
+            else:
+                aht = 0
         
         # Obtener Gestión positiva desde Redis: OML:DISPOSITIONDATA:CAMP:{campaign_id} -> ENGAGED
         gestion_positiva = 0
@@ -1094,6 +1170,30 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         }
 
 
+_DIALER_STATUS_HIDDEN_KEYS = frozenset({
+    'ATTEMPTED_CALLS',
+    'ANSWERED_PSTN',
+    'ANSWERED_AGENT',
+    'PENDING_INITIAL_CONTACT_ATTEMPTS',
+    PENDING_ATTEMPTS,
+    FINALIZED_NOCONTACT,
+    FINALIZED_SUCCESS,
+}) | HIDDEN_DIALER_STATUS_KEYS
+
+
+def _dialer_status_from_counter(stats):
+    status = []
+    for key, val in (stats or {}).items():
+        if key in _DIALER_STATUS_HIDDEN_KEYS:
+            continue
+        status.append({
+            'gbState': key,
+            'gbStateLabel': str(DIALER_STATUS_LABELS.get(key, key)),
+            'nCalls': _safe_int(val, 0),
+        })
+    return status
+
+
 def _get_dialer_status_metrics(redis_dialer_connection, campaign_id):
     """
     Obtiene métricas del estado del discador desde Redis DB3.
@@ -1121,6 +1221,7 @@ def _get_dialer_status_metrics(redis_dialer_connection, campaign_id):
             'attempted_calls': 0,
             'answered_pstn': 0,
             'answered_agent': 0,
+            'status': [],
         }
     
     try:
@@ -1140,6 +1241,7 @@ def _get_dialer_status_metrics(redis_dialer_connection, campaign_id):
             'attempted_calls': _safe_int(stats.get('ATTEMPTED_CALLS', 0), 0),
             'answered_pstn': _safe_int(stats.get('ANSWERED_PSTN', 0), 0),
             'answered_agent': _safe_int(stats.get('ANSWERED_AGENT', 0), 0),
+            'status': _dialer_status_from_counter(stats),
         }
         
         return estado_discador
@@ -1153,6 +1255,7 @@ def _get_dialer_status_metrics(redis_dialer_connection, campaign_id):
             'attempted_calls': 0,
             'answered_pstn': 0,
             'answered_agent': 0,
+            'status': [],
         }
 
 
@@ -1499,6 +1602,7 @@ def dashboard_contact_center_llamadas(request):
                 'attempted_calls': 0,
                 'answered_pstn': 0,
                 'answered_agent': 0,
+                'status': [],
             }
 
         return JsonResponse({
@@ -1642,6 +1746,7 @@ def dashboard_contact_center_data(request):
                 'attempted_calls': 0,
                 'answered_pstn': 0,
                 'answered_agent': 0,
+                'status': [],
             }
 
         # Construir respuesta

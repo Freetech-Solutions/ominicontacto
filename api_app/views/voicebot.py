@@ -38,6 +38,7 @@ from api_app.authentication import ExpiringTokenAuthentication
 from api_app.services.voicebot_webhook import (
     construir_observaciones,
     extract_call_summary,
+    intentar_anexar_summary_a_agenda_previa,
     publicar_voicebot_transfer_proceed,
     read_required_field,
     resolver_agente_fallback,
@@ -67,11 +68,12 @@ def _calificacion_nombre_voicebot():
 class VoicebotWebhookView(APIView):
     """
     Vista genérica que procesa webhooks de voicebots SIP y crea/actualiza la
-    calificación del contacto en la campaña correspondiente. Si la opción de
-    calificación aplicada coincide con la configurada para fin de gestión del
-    bot, además publica un comando voicebot_transfer_proceed en Redis para que
-    el ACD pueda continuar la transferencia que quedó pendiente tras el REFER
-    del voicebot.
+    calificación del contacto en la campaña correspondiente. Si ya existe una
+    AgendaContacto para el contacto y la campaña, solo concatena el
+    call_summary a las observaciones de esa agenda y no publica comandos al
+    ACD. Si no hay agenda previa y la opción aplicada coincide con la
+    configurada para fin de gestión del bot, publica voicebot_transfer_proceed
+    en Redis para que el ACD continúe la transferencia pendiente tras el REFER.
     """
     permission_classes = (TienePermisoOML,)
     authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication,)
@@ -400,6 +402,18 @@ class VoicebotWebhookView(APIView):
                         },
                     },
                     status=HTTP_400_BAD_REQUEST,
+                )
+
+            payload_agenda = intentar_anexar_summary_a_agenda_previa(
+                contacto, campana, call_summary, LOG_LABEL)
+            if payload_agenda is not None:
+                return Response(
+                    data={
+                        'status': 'SUCCESS',
+                        'message': _('Summary appended to existing schedule'),
+                        'data': payload_agenda,
+                    },
+                    status=HTTP_200_OK,
                 )
 
             try:

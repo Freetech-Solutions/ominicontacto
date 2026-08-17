@@ -87,6 +87,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 {% endfor %}
                 <th>{% trans "Calificación" %}</th>
                 <th>{% trans "Subcalificación" %}</th>
+                <th>{% trans "Resultado telefónico" %}</th>
                 <th>{% trans "Contactación" %}</th>
             </tr>
         </thead>
@@ -99,6 +100,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
                 {% endfor %}
                 <td>{{ contactacion.calificacion|default_if_none:'' }}</td>
                 <td>{{ contactacion.subcalificacion|default_if_none:'' }}</td>
+                <td>{{ contactacion.resultado_telefonico|default_if_none:'' }}</td>
                 <td>{{ contactacion.contactacion|default_if_none:'' }}</td>
             </tr>
             {% empty %}

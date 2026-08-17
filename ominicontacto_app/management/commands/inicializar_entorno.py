@@ -35,6 +35,7 @@ from ominicontacto_app.tests.factories import (GrupoFactory, AgenteProfileFactor
                                                ContactoFactory, CampanaFactory,
                                                NombreCalificacionFactory, PausaFactory,
                                                OpcionCalificacionFactory,
+                                               TELEFONOS_CONTACTO_FACTORY,
                                                TELEFONOS_CONTACTO_7DIGITOS,
                                                TELEFONOS_PSTN_QA_SIP_ERROR,
                                                TELEFONOS_PSTN_QA_RELAY_ITSP)
@@ -82,6 +83,9 @@ class Command(BaseCommand):
             tipo=OpcionCalificacion.NO_ACCION, formulario=None)
         OpcionCalificacionFactory(
             nombre=self.abandon_bot.nombre, campana=campana,
+            tipo=OpcionCalificacion.NO_ACCION, formulario=None)
+        OpcionCalificacionFactory(
+            nombre=self.muda_bot.nombre, campana=campana,
             tipo=OpcionCalificacion.NO_ACCION, formulario=None)
         OpcionCalificacionFactory(
             nombre=self.schedule_call_bot.nombre, campana=campana,
@@ -338,9 +342,10 @@ class Command(BaseCommand):
         return user
 
     def _crear_dbs_contactos(self):
-        # crear BD default (100 contactos)
-        self.bd_contacto = BaseDatosContactoFactory()
-        ContactoFactory.create_batch(100, bd_contacto=self.bd_contacto)
+        # crear BD default (100 contactos: 1 por prefijo SIP QA + 75 sin prefijo)
+        self.bd_contacto = BaseDatosContactoFactory(cantidad_contactos=100)
+        for telefono in TELEFONOS_CONTACTO_FACTORY:
+            ContactoFactory(bd_contacto=self.bd_contacto, telefono=telefono)
 
         # BD de prueba: 1000 contactos con teléfonos de 7 dígitos (sin 08X/09X)
         self.bd_contacto_7digitos = BaseDatosContactoFactory(
@@ -478,6 +483,7 @@ class Command(BaseCommand):
         self.gestion_bot = NombreCalificacionFactory(nombre='GESTION_BOT')
         self.contestador_bot = NombreCalificacionFactory(nombre='CONTESTADOR_BOT')
         self.abandon_bot = NombreCalificacionFactory(nombre='ABANDON_BOT')
+        self.muda_bot = NombreCalificacionFactory(nombre='MUDA_BOT')
         self.schedule_call_bot = NombreCalificacionFactory(nombre='SCHEDULE_CALL_BOT')
 
         self._crear_dbs_contactos()

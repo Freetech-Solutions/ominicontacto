@@ -209,15 +209,15 @@ class BaseDatosContactoFactory(DjangoModelFactory):
                ' "cols_telefono": [0, 4, 5]}'
 
 
-# Prefijos del emulador PSTN (kamailio-itsp): 2 números de 7 dígitos por prefijo + 72 con 123*
+# Prefijos SIP QA (kamailio_pstn_qa.cfg): 1 número de 7 dígitos por prefijo + 75 con 123*
 PREFIJOS_PSTN_EMULATOR = [
+    '081', '082', '083', '084', '085', '086', '087',
     '092', '093', '094', '095', '096', '097', '098', '099',
-    '081', '082', '083', '084', '085', '086',
 ]
 
 TELEFONOS_CONTACTO_FACTORY = (
-    [f'{p}310{i}' for p in PREFIJOS_PSTN_EMULATOR for i in (1, 2)]
-    + [f'123{str(i).zfill(4)}' for i in range(1, 73)]
+    [f'{p}3101' for p in PREFIJOS_PSTN_EMULATOR]
+    + [f'123{str(i).zfill(4)}' for i in range(1, 76)]
 )
 
 # 1000 números de 7 dígitos sin prefijos 08X/09X (ruta saliente XXXXXXX / PBX)

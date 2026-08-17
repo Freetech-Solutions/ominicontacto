@@ -30,6 +30,11 @@ from supervision_app.services.data_management import (
 )
 from supervision_app.services.events_management import SupervisionEventManager
 from reportes_app.models import LlamadaLog
+from supervision_app.views import (
+    _dialer_campaign_aht,
+    _dialer_campaign_p_hit,
+    _get_campaign_call_metrics,
+)
 
 
 class DialerDataManagerGetInitialDataTests(TestCase):
@@ -242,6 +247,7 @@ class DashboardContactCenterStreamRegistrationTests(OMLBaseTest):
         campana_ids = set(response.context['campanas'].values_list('id', flat=True))
         self.assertIn(self.campana_asignada.id, campana_ids)
         self.assertNotIn(self.otra_campana.id, campana_ids)
+        self.assertContains(response, 'Desglose de disposiciones')
 
     @patch('supervision_app.views.KamailioService')
     @patch('supervision_app.views.RedisGearsService')
@@ -358,8 +364,13 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
         self.assertContains(response, 'Estado Discador')
         self.assertContains(response, 'Conectadas no atendidas')
         self.assertContains(response, 'Pacing predictivo')
+        self.assertContains(response, 'Desglose de disposiciones')
+        self.assertContains(response, 'T. Promedio (AHT)')
+        self.assertContains(response, 'P_HIT (contactación)')
         self.assertContains(response, 'Llamadas efectuadas')
         self.assertContains(response, 'panel-dialer-estado')
+        self.assertNotContains(response, 'Conectadas al agente')
+        self.assertNotContains(response, 'Contactos llamados')
         self.assertNotContains(response, 'Llamadas Outbound')
         self.assertNotContains(response, 'Llamadas Inbound')
         self.assertNotContains(response, 'inboundChart')
@@ -423,6 +434,8 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
                 'campana_nombre': self.campana_dialer.nombre,
                 'campana_estado': 'Activa',
                 'status': [{'gbState': 'BUSY', 'gbStateLabel': 'Teléfono ocupado', 'nCalls': 2}],
+                'p_hit': 0.42,
+                'p_hit_label': 'P_HIT (contactación)',
             },
             'llamadas_discando': 3,
             'pacing': {'MODE': 'NORMAL', 'P_HIT': 0.5},
@@ -440,6 +453,8 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
         self.assertIn('status', data['estado_discador'])
         self.assertEqual(data['show_pacing_section'], True)
         self.assertEqual(data['llamadas_discando'], 3)
+        self.assertEqual(data['estado_discador']['p_hit'], 0.42)
+        self.assertEqual(data['estado_discador']['p_hit_label'], 'P_HIT (contactación)')
         mock_payload.assert_called_once()
 
     def test_panel_dialer_estado_404_si_entrante(self):
@@ -461,3 +476,76 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
         url = reverse('supervision_panel_dialer_estado')
         response = self.client.get(url, **self.REQUEST_META)
         self.assertEqual(response.status_code, 400)
+
+
+class DialerCampaignAhtTests(TestCase):
+    """AHT del Panel Dialer desde Redis DB3 (pacing), no EXIT_ANSWERED genérico."""
+
+    def test_lee_hash_aht(self):
+        redis_dialer = MagicMock()
+        redis_dialer.hget.return_value = '95.5'
+        self.assertEqual(_dialer_campaign_aht(redis_dialer, 7), 95.5)
+        redis_dialer.hget.assert_called_once_with('CAMP:7:AHT', 'AHT')
+
+    def test_fallback_att_mas_acw(self):
+        redis_dialer = MagicMock()
+
+        def _hget(key, field):
+            return {'ATT': '40', 'ACW': '15'}.get(field)
+
+        redis_dialer.hget.side_effect = _hget
+        self.assertEqual(_dialer_campaign_aht(redis_dialer, 7), 55.0)
+
+    def test_call_metrics_prefiere_aht_dialer(self):
+        redis_calldata = MagicMock()
+        redis_calldata.hgetall.return_value = {
+            'TOTAL_CALL_TIME': '300',
+            'CALL_TYPE:2:EXIT_ANSWERED_HUMAN': '3',
+        }
+        redis_calldata.hget.return_value = None
+        redis_calldata.get.return_value = None
+        redis_dialer = MagicMock()
+        redis_dialer.get.return_value = '0'
+        redis_dialer.hget.return_value = '80'
+
+        metrics = _get_campaign_call_metrics(
+            redis_calldata, 12, redis_dialer_connection=redis_dialer)
+        self.assertEqual(metrics['call_times']['aht'], 80.0)
+
+    def test_call_metrics_sin_dialer_usa_human_bot_no_exit_generico(self):
+        redis_calldata = MagicMock()
+        redis_calldata.hgetall.return_value = {
+            'TOTAL_CALL_TIME': '300',
+            'CALL_TYPE:2:EXIT_ANSWERED_HUMAN': '3',
+        }
+        redis_calldata.hget.return_value = None
+        redis_calldata.get.return_value = None
+
+        metrics = _get_campaign_call_metrics(redis_calldata, 12)
+        self.assertEqual(metrics['call_times']['aht'], 100.0)
+
+
+class DialerCampaignPHitTests(TestCase):
+    """P_HIT persistente en CAMP:{id}:METRICS (no depende del snapshot PACING)."""
+
+    def test_lee_p_hit_ewma(self):
+        redis_dialer = MagicMock()
+        redis_dialer.hget.return_value = '0.37'
+        self.assertEqual(_dialer_campaign_p_hit(redis_dialer, 7, predictive=True), 0.37)
+        redis_dialer.hget.assert_called_once_with('CAMP:7:METRICS', 'P_HIT')
+
+    def test_fallback_p_hit_ratio_si_predictivo_sin_ewma(self):
+        redis_dialer = MagicMock()
+        redis_dialer.hget.side_effect = [None, '0.25']
+        self.assertEqual(_dialer_campaign_p_hit(redis_dialer, 7, predictive=True), 0.25)
+
+    def test_progresiva_usa_p_hit_ratio(self):
+        redis_dialer = MagicMock()
+        redis_dialer.hget.return_value = '0.31'
+        self.assertEqual(_dialer_campaign_p_hit(redis_dialer, 7, predictive=False), 0.31)
+        redis_dialer.hget.assert_called_once_with('CAMP:7:METRICS', 'P_HIT_RATIO')
+
+    def test_none_si_sin_muestra(self):
+        redis_dialer = MagicMock()
+        redis_dialer.hget.return_value = None
+        self.assertIsNone(_dialer_campaign_p_hit(redis_dialer, 7, predictive=True))

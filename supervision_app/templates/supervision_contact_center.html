@@ -196,7 +196,7 @@ $(function() {
         </div>
 
         <div class="card gestiones-card">
-            <div class="estado-discador-section">
+            <div class="estado-discador-section panel-dialer-estado">
                 <h2><i class="fas fa-phone-alt"></i> Estado Discador</h2>
                 <div class="stats-summary">
                     <div class="stat-item">
@@ -232,6 +232,17 @@ $(function() {
                     <div class="estado-discador-item">
                         <div class="estado-discador-label">Contactados exitosamente</div>
                         <div class="estado-discador-value" x-text="formatNumber(data.estado_discador?.contacted_successfully || 0)">0</div>
+                    </div>
+                </div>
+                <div class="pd-group" x-show="(data.estado_discador?.status || []).length > 0">
+                    <h3 class="pd-group-title"><i class="fas fa-list"></i> Desglose de disposiciones</h3>
+                    <div class="pd-status-grid">
+                        <template x-for="item in (data.estado_discador?.status || [])" :key="item.gbState">
+                            <div class="pd-status-chip">
+                                <span class="pd-status-chip-label" x-text="item.gbStateLabel || item.gbState"></span>
+                                <span class="pd-status-chip-value" x-text="formatNumber(item.nCalls || 0)"></span>
+                            </div>
+                        </template>
                     </div>
                 </div>
             </div>

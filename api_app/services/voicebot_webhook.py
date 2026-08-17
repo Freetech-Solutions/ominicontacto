@@ -26,7 +26,7 @@ from __future__ import unicode_literals
 import json
 import logging
 
-from ominicontacto_app.models import AgenteProfile
+from ominicontacto_app.models import AgendaContacto, AgenteProfile, CalificacionCliente
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +43,52 @@ def sanitize_headers_for_log(headers):
         else:
             safe[key] = value
     return safe
+
+
+def anexar_summary_a_agenda(agenda, summary):
+    """Concatena `summary` a `AgendaContacto.observaciones`.
+
+    Idempotente: si el summary ya está al final de las observaciones, no duplica.
+    Usa QuerySet.update para no re-ejecutar las reglas de negocio de AgendaContacto.save().
+    Devuelve True si se escribió un cambio.
+    """
+    summary = (summary or '').strip()
+    if not summary:
+        return False
+    actual = (agenda.observaciones or '').strip()
+    if actual.endswith(summary):
+        return False
+    nuevo = '{0}\n\n{1}'.format(actual, summary) if actual else summary
+    AgendaContacto.objects.filter(pk=agenda.pk).update(observaciones=nuevo)
+    agenda.observaciones = nuevo
+    return True
+
+
+def intentar_anexar_summary_a_agenda_previa(contacto, campana, call_summary, log_label):
+    """Si ya hay agenda para contacto+campaña, anexa el summary y no transfiere.
+
+    Devuelve el payload de respuesta (dict) o None si no hay agenda previa.
+    """
+    agenda = AgendaContacto.objects.filter(contacto=contacto, campana=campana).first()
+    if agenda is None:
+        return None
+    appended = anexar_summary_a_agenda(agenda, call_summary)
+    logger.info(
+        '%s: agenda previa id=%s contacto=%s campaña=%s; summary %s '
+        '(sin transfer ACD)',
+        log_label, agenda.id, contacto.id, campana.id,
+        'anexado' if appended else 'omitido',
+    )
+    calificacion_id = CalificacionCliente.objects.filter(
+        contacto=contacto,
+        opcion_calificacion__campana=campana,
+    ).values_list('id', flat=True).first()
+    return {
+        'agenda_id': agenda.id,
+        'calificacion_id': calificacion_id,
+        'appended': appended,
+        'observations': agenda.observaciones,
+    }
 
 
 def extract_call_summary(body_data):
