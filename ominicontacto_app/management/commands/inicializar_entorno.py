@@ -26,7 +26,7 @@ from api_app.utils.routes.inbound import escribir_ruta_entrante_config
 from ominicontacto_app.services.queue_member_service import QueueMemberService
 
 from ominicontacto_app.models import (Campana, Queue, User, OpcionCalificacion,
-                                      SupervisorProfile, ClienteWebPhoneProfile)
+                                      SupervisorProfile, ClienteWebPhoneProfile, Contacto)
 from ominicontacto_app.tests.factories import (GrupoFactory, AgenteProfileFactory,
                                                # ArchivoDeAudioFactory,
                                                ActuacionVigenteFactory,
@@ -37,8 +37,8 @@ from ominicontacto_app.tests.factories import (GrupoFactory, AgenteProfileFactor
                                                OpcionCalificacionFactory,
                                                TELEFONOS_CONTACTO_FACTORY,
                                                TELEFONOS_CONTACTO_7DIGITOS,
-                                               TELEFONOS_PSTN_QA_SIP_ERROR,
-                                               TELEFONOS_PSTN_QA_RELAY_ITSP)
+                                               CANTIDAD_PSTN_QA,
+                                               TELEFONOS_PSTN_QA)
 from configuracion_telefonia_app.tests.factories import (RutaSalienteFactory, TroncalSIPFactory,
                                                          PatronDeDiscadoFactory,
                                                          RutaEntranteFactory,
@@ -354,16 +354,20 @@ class Command(BaseCommand):
         for telefono in TELEFONOS_CONTACTO_7DIGITOS:
             ContactoFactory(bd_contacto=self.bd_contacto_7digitos, telefono=telefono)
 
-        # BD QA PSTN: 2000 contactos para probar las respuestas SIP sintéticas
-        # de kamailio_pstn_qa.cfg. 1000 con prefijos 081-094 (error SIP) y
-        # 1000 sin esos prefijos (relay normal al ITSP). No se asigna a
-        # ninguna campaña.
+        # BD QA PSTN: 5000 contactos para kamailio_pstn_qa.cfg.
+        # 3500 con prefijos de respuesta SIP sintética (081/084/087/092/093/094/099)
+        # y 1500 sin esos prefijos (relay normal al ITSP). No se asigna a ninguna campaña.
         self.bd_contacto_pstn_qa = BaseDatosContactoFactory(
-            nombre='BD_PSTN_QA', cantidad_contactos=2000
+            nombre='BD_PSTN_QA', cantidad_contactos=CANTIDAD_PSTN_QA
         )
-        telefonos_pstn_qa = TELEFONOS_PSTN_QA_SIP_ERROR + TELEFONOS_PSTN_QA_RELAY_ITSP
-        for telefono in telefonos_pstn_qa:
-            ContactoFactory(bd_contacto=self.bd_contacto_pstn_qa, telefono=telefono)
+        Contacto.objects.bulk_create([
+            Contacto(
+                bd_contacto=self.bd_contacto_pstn_qa,
+                telefono=telefono,
+                datos='["Contacto QA", "PSTN", "0", "0", "0"]',
+            )
+            for telefono in TELEFONOS_PSTN_QA
+        ])
 
         # Crear DBs Preview
         metadata = '{"cant_col": 4, "cols_telefono": [0], ' + \

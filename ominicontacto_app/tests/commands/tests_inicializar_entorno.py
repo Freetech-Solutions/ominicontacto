@@ -24,7 +24,14 @@ from mock import patch
 from ominicontacto_app.tests.utiles import OMLBaseTest
 from ominicontacto_app.management.commands.inicializar_entorno import Command
 from ominicontacto_app.models import AgenteProfile, Campana, SupervisorProfile
-from ominicontacto_app.tests.factories import PREFIJOS_PSTN_EMULATOR
+from collections import Counter
+
+from ominicontacto_app.tests.factories import (
+    CANTIDAD_PSTN_QA,
+    CANTIDAD_PSTN_QA_RELAY_ITSP,
+    PREFIJOS_PSTN_EMULATOR,
+    PSTN_QA_PREFIX_COUNTS,
+)
 
 
 class TestsInicializarEntorno (OMLBaseTest):
@@ -81,3 +88,14 @@ class TestsInicializarEntorno (OMLBaseTest):
         self.assertEqual(sorted(prefijos_encontrados), sorted(PREFIJOS_PSTN_EMULATOR))
         self.assertEqual(len(prefijos_encontrados), 15)
         self.assertEqual(sin_prefijo, 75)
+
+        contactos_pstn = list(inicializar_entorno.bd_contacto_pstn_qa.contactos.all())
+        self.assertEqual(len(contactos_pstn), CANTIDAD_PSTN_QA)
+        prefijos_pstn = Counter(c.telefono[:3] for c in contactos_pstn)
+        for prefijo, cantidad in PSTN_QA_PREFIX_COUNTS.items():
+            self.assertEqual(prefijos_pstn[prefijo], cantidad)
+        relay_itsp = sum(
+            count for prefijo, count in prefijos_pstn.items()
+            if prefijo not in PSTN_QA_PREFIX_COUNTS
+        )
+        self.assertEqual(relay_itsp, CANTIDAD_PSTN_QA_RELAY_ITSP)

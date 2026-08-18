@@ -17,11 +17,13 @@
 #
 from __future__ import unicode_literals
 
+from datetime import timedelta
+
 from django.urls import reverse
+from django.utils import timezone
 
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
-from ominicontacto_app.tests.factories import LlamadaLogFactory
-from reportes_app.models import LlamadaLog
+from reportes_app.models import AgentActivityEventV2
 
 
 class ApiEventoHoldTest(OMLBaseTest):
@@ -34,36 +36,42 @@ class ApiEventoHoldTest(OMLBaseTest):
         self.callid = 'callid1'
         self.url = reverse('api_evento_hold')
 
-    def test_evento_hold_inserta_hold(self):
-        LlamadaLogFactory(agente_id=self.agente.id, callid=self.callid, event='CONNECT')
+    def _ultimo_evento_hold(self):
+        return AgentActivityEventV2.objects.filter(
+            agente_id=self.agente.id,
+            metadata__callid=self.callid,
+            event_type__in=[
+                AgentActivityEventV2.EventType.STATE_ON_HOLD,
+                AgentActivityEventV2.EventType.STATE_OFF_HOLD,
+            ],
+        ).order_by('-id').first()
 
+    def test_evento_hold_inserta_hold(self):
         response = self.client.post(self.url, {'callid': self.callid})
 
         self.assertEqual(response.json(), {'status': 'OK'})
-        ultimo_log = LlamadaLog.objects.filter(
-            agente_id=self.agente.id, callid=self.callid).last()
-        self.assertEqual(ultimo_log.event, 'HOLD')
+        ultimo = self._ultimo_evento_hold()
+        self.assertIsNotNone(ultimo)
+        self.assertEqual(ultimo.event_type, AgentActivityEventV2.EventType.STATE_ON_HOLD)
+        self.assertEqual(ultimo.metadata.get('callid'), self.callid)
 
     def test_evento_hold_inserta_unhold(self):
-        LlamadaLogFactory(agente_id=self.agente.id, callid=self.callid, event='HOLD')
+        AgentActivityEventV2.objects.create(
+            agente_id=self.agente.id,
+            ts=timezone.now() - timedelta(seconds=1),
+            event_type=AgentActivityEventV2.EventType.STATE_ON_HOLD,
+            metadata={'callid': self.callid},
+        )
 
         response = self.client.post(self.url, {'callid': self.callid})
 
         self.assertEqual(response.json(), {'status': 'OK'})
-        ultimo_log = LlamadaLog.objects.filter(
-            agente_id=self.agente.id, callid=self.callid).last()
-        self.assertEqual(ultimo_log.event, 'UNHOLD')
+        ultimo = self._ultimo_evento_hold()
+        self.assertIsNotNone(ultimo)
+        self.assertEqual(ultimo.event_type, AgentActivityEventV2.EventType.STATE_OFF_HOLD)
 
-    def test_evento_hold_no_inserta_si_llamada_finalizo(self):
-        LlamadaLogFactory(
-            agente_id=self.agente.id, callid=self.callid, event='COMPLETEOUTNUM')
-        cantidad_logs_previa = LlamadaLog.objects.filter(
-            agente_id=self.agente.id, callid=self.callid).count()
-
-        response = self.client.post(self.url, {'callid': self.callid})
+    def test_evento_hold_requiere_callid(self):
+        response = self.client.post(self.url, {})
 
         self.assertEqual(response.json(), {'status': 'ERROR'})
-        self.assertEqual(
-            LlamadaLog.objects.filter(
-                agente_id=self.agente.id, callid=self.callid).count(),
-            cantidad_logs_previa)
+        self.assertIsNone(self._ultimo_evento_hold())

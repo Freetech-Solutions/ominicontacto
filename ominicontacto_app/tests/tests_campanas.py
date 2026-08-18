@@ -1849,15 +1849,16 @@ class SupervisorCampanaTests(CampanasTests):
         sincronizar_form = Mock(cleaned_data={'evitar_duplicados': False,
                                               'evitar_sin_telefono': True,
                                               'prefijo_discador': ''})
-        form_list = [Mock(), queue_form, Mock(), Mock(), Mock(), Mock(), Mock(), sincronizar_form]
+        form_list = [Mock(), queue_form]
+        form_dict = {CampanaDialerCreateView.SINCRONIZAR: sincronizar_form}
 
-        response = view.done(form_list)
+        response = view.done(form_list, form_dict)
 
         on_commit.assert_called_once()
         callback = on_commit.call_args[0][0]
         self.assertEqual(callback.args, (sincronizar_form, campana))
-        view.save_supervisores.assert_called_once_with(form_list, -3)
-        view.save_agentes.assert_called_once_with(form_list, -2)
+        view.save_supervisores.assert_called_once_with(form_dict)
+        view.save_agentes.assert_called_once_with(form_dict)
         self.assertEqual(response.status_code, 302)
 
     def _obtener_post_data_wizard_creacion_template_campana_manual(self, nombre_campana):
