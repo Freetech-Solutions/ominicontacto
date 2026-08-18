@@ -16,6 +16,10 @@ variables:
   DOCKER_ORG: ""
   FULL: ""
   BUILD: ""
+  # SKIP_OWASP=true → omite owasp_dependency_scan y owasp_defectdojo_upload (útil con FULL=true).
+  SKIP_OWASP: ""
+  # SKIP_TESTS=true → omite test:django, test:flake8 y test:eslint (útil con FULL=true).
+  SKIP_TESTS: ""
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
@@ -34,6 +38,8 @@ variables:
   # Sin variables → sonarqube, build, security_scan y security_report.
   # BUILD=true → solo build (container-image).
   # FULL=true → pipeline completo: tests, SAST, gitleaks, sonarqube, build y escaneos de seguridad.
+  # FULL=true + SKIP_OWASP=true → igual que FULL, sin OWASP.
+  # FULL=true + SKIP_TESTS=true → igual que FULL, sin tests (django/flake8/eslint).
 
 stages:
   - security
@@ -45,6 +51,8 @@ stages:
 
 .full-pipeline-rules: &full-pipeline-rules
   rules:
+    - if: '$SKIP_TESTS == "true"'
+      when: never
     - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
     - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "web"'
 
@@ -81,6 +89,8 @@ stages:
 
 .owasp-rules: &owasp-rules
   rules:
+    - if: '$SKIP_OWASP == "true"'
+      when: never
     - if: '$BUILD == "true" && $FULL != "true"'
       when: never
     - if: '$FULL == "true" && $CI_PIPELINE_SOURCE == "merge_request_event" && ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^master-.*$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^develop-.*$/)'
@@ -252,4 +262,7 @@ gitleaks_scan:
 # GitLab no expande ${OWASP_SCAN_STAGE} del template incluido en el campo stage.
 owasp_dependency_scan:
   stage: security
+  <<: *owasp-rules
+
+owasp_defectdojo_upload:
   <<: *owasp-rules

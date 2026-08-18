@@ -17,6 +17,7 @@ WORKDIR /build
 
 RUN set -eux; \
     apt-get update; \
+    apt-get upgrade -y; \
     apt-get install -y --no-install-recommends \
       build-essential \
       pkg-config \
@@ -90,8 +91,6 @@ COPY webui/ ./
 RUN pnpm build-only --base=/webui-app/
 
 ########################################################################
-# Build omlapp image with binaries
-FROM python:3.9-alpine as run
 
 #############################
 # 3) Runtime
@@ -110,6 +109,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 RUN set -eux; \
     apt-get update; \
+    apt-get upgrade -y; \
     apt-get install -y --no-install-recommends \
       curl \
       gettext \

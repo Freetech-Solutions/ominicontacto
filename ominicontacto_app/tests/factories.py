@@ -223,19 +223,36 @@ TELEFONOS_CONTACTO_FACTORY = (
 # 1000 números de 7 dígitos sin prefijos 08X/09X (ruta saliente XXXXXXX / PBX)
 TELEFONOS_CONTACTO_7DIGITOS = [f'123{str(i).zfill(4)}' for i in range(1000)]
 
-# Prefijos del SBC PSTN QA (kamailio_pstn_qa.cfg, route[QA_SIP_ERROR_PREFIX]):
-# 081-094 -> respuestas SIP sintéticas; cualquier otro prefijo -> relay al ITSP.
-PREFIJOS_PSTN_QA_SIP_ERROR = [f'{i:03d}' for i in range(81, 95)]
+# Mix BD_PSTN_QA (5000 contactos, 7 dígitos) alineado a kamailio_pstn_qa.cfg:
+# prefijos QA -> respuesta SIP sintética; el resto -> relay al ITSP.
+PSTN_QA_PREFIX_COUNTS = {
+    '081': 800,   # 480 Temporarily Unavailable
+    '084': 100,   # 500 Internal Server Error
+    '093': 100,   # 503 Service Unavailable
+    '094': 1000,  # 486 Busy Here
+    '099': 800,   # 408 Request Timeout
+    '092': 200,   # 404 Not Found
+    '087': 500,   # 180 Ringing 45 seconds
+}
 
-# 1000 números de 7 dígitos con prefijos 081-094 (~72 por prefijo)
-TELEFONOS_PSTN_QA_SIP_ERROR = [
-    f'{PREFIJOS_PSTN_QA_SIP_ERROR[i % len(PREFIJOS_PSTN_QA_SIP_ERROR)]}'
-    f'{str(i // len(PREFIJOS_PSTN_QA_SIP_ERROR)).zfill(4)}'
-    for i in range(1000)
-]
+CANTIDAD_PSTN_QA_SIP_ERROR = sum(PSTN_QA_PREFIX_COUNTS.values())
+CANTIDAD_PSTN_QA_RELAY_ITSP = 1500
+CANTIDAD_PSTN_QA = CANTIDAD_PSTN_QA_SIP_ERROR + CANTIDAD_PSTN_QA_RELAY_ITSP
+PREFIJOS_PSTN_QA_SIP_ERROR = list(PSTN_QA_PREFIX_COUNTS.keys())
 
-# 1000 números de 7 dígitos sin prefijos 081-094 (relay normal al ITSP)
-TELEFONOS_PSTN_QA_RELAY_ITSP = [f'124{str(i).zfill(4)}' for i in range(1000)]
+
+def _telefonos_prefijo(prefijo, cantidad):
+    return [f'{prefijo}{str(i).zfill(4)}' for i in range(cantidad)]
+
+
+TELEFONOS_PSTN_QA_SIP_ERROR = []
+for _prefijo, _cantidad in PSTN_QA_PREFIX_COUNTS.items():
+    TELEFONOS_PSTN_QA_SIP_ERROR.extend(_telefonos_prefijo(_prefijo, _cantidad))
+
+# 1500 números de 7 dígitos sin prefijos 08X/09X (relay normal al ITSP)
+TELEFONOS_PSTN_QA_RELAY_ITSP = _telefonos_prefijo('124', CANTIDAD_PSTN_QA_RELAY_ITSP)
+TELEFONOS_PSTN_QA = TELEFONOS_PSTN_QA_SIP_ERROR + TELEFONOS_PSTN_QA_RELAY_ITSP
+random.Random(42).shuffle(TELEFONOS_PSTN_QA)
 
 
 class ContactoFactory(DjangoModelFactory):
