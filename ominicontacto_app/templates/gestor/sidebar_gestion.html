@@ -27,7 +27,7 @@
         {% endif %}
         {% if child_item.url %}
         <li>
-          <a href="{{ child_item.url }}">{{ child_item.label }}</a>
+          <a href="{{ child_item.url }}" class="{{ child_item.class }}">{{ child_item.label }}</a>
         </li>
         {% endif %}
         {% if child_item.children %}
@@ -42,7 +42,7 @@
             {% endif %}
             {% if grandchild_item.url %}
             <li>
-              <a href="{{ grandchild_item.url }}">{{ grandchild_item.label }}</a>
+              <a href="{{ grandchild_item.url }}" class="{{ grandchild_item.class }}">{{ grandchild_item.label }}</a>
             </li>
             {% endif %}
             {% endfor %}

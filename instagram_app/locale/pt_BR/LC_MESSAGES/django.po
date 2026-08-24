@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 17:25-0300\n"
+"POT-Creation-Date: 2026-08-23 21:17-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -21,85 +21,85 @@ msgstr ""
 msgid "No tiene permiso para usar la canalidad Instagram."
 msgstr "Não tem permissão para usar o canal Instagram."
 
-#: instagram_app/api/v1/account_configuration.py:107
-#: instagram_app/api/v1/account_configuration.py:109
+#: instagram_app/api/v1/account_configuration.py:108
+#: instagram_app/api/v1/account_configuration.py:110
 msgid "Este campo es requerido."
 msgstr "Campo obrigatório."
 
-#: instagram_app/api/v1/account_configuration.py:130
+#: instagram_app/api/v1/account_configuration.py:131
 msgid "El valor de las opciones no puede repetirse"
 msgstr "O valor das opções não pode se repetir"
 
-#: instagram_app/api/v1/account_configuration.py:133
+#: instagram_app/api/v1/account_configuration.py:134
 msgid "No pueden definirse más de 10 opciones"
 msgstr "Não podem se definir mais de 10 opções"
 
-#: instagram_app/api/v1/account_configuration.py:140
+#: instagram_app/api/v1/account_configuration.py:141
 msgid "Campana"
 msgstr "Campanha"
 
-#: instagram_app/api/v1/account_configuration.py:141
+#: instagram_app/api/v1/account_configuration.py:142
 msgid "Menu Interactivo"
 msgstr "Menu Interativo"
 
-#: instagram_app/api/v1/account_configuration.py:154
+#: instagram_app/api/v1/account_configuration.py:155
 msgid "Valor incorrecto. Debe ser un id"
 msgstr "Valor errado. Deve ser um id"
 
-#: instagram_app/api/v1/account_configuration.py:158
+#: instagram_app/api/v1/account_configuration.py:159
 msgid "No existe campaña con ese id"
 msgstr "Não existe campanha com esse id"
 
-#: instagram_app/api/v1/account_configuration.py:405
+#: instagram_app/api/v1/account_configuration.py:406
 msgid "Se obtuvieron las cuentas de Instagram de forma exitosa"
 msgstr "Contas do Instagram obtidas com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:433
+#: instagram_app/api/v1/account_configuration.py:434
 msgid "Se creó la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram criada com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:439
-#: instagram_app/api/v1/account_configuration.py:445
+#: instagram_app/api/v1/account_configuration.py:440
+#: instagram_app/api/v1/account_configuration.py:446
 msgid "No se pudo crear la cuenta de Instagram"
 msgstr "Não foi possível criar a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:456
-#: instagram_app/api/v1/account_configuration.py:507
-#: instagram_app/api/v1/account_configuration.py:513
+#: instagram_app/api/v1/account_configuration.py:457
+#: instagram_app/api/v1/account_configuration.py:508
+#: instagram_app/api/v1/account_configuration.py:514
 msgid "No se pudo actualizar la cuenta de Instagram"
 msgstr "Não foi possível atualizar a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:457
-#: instagram_app/api/v1/account_configuration.py:525
-#: instagram_app/api/v1/account_configuration.py:544
+#: instagram_app/api/v1/account_configuration.py:458
+#: instagram_app/api/v1/account_configuration.py:526
+#: instagram_app/api/v1/account_configuration.py:545
 msgid "No existe una cuenta de Instagram con este id"
 msgstr "Não existe uma conta do Instagram com esse id"
 
-#: instagram_app/api/v1/account_configuration.py:501
+#: instagram_app/api/v1/account_configuration.py:502
 msgid "Se actualizó la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram atualizada com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:524
+#: instagram_app/api/v1/account_configuration.py:525
 msgid "No se pudo eliminar la cuenta de Instagram"
 msgstr "Não foi possível excluir a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:533
+#: instagram_app/api/v1/account_configuration.py:534
 msgid "Se eliminó la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram excluída com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:543
+#: instagram_app/api/v1/account_configuration.py:544
 msgid "No se pudo obtener la cuenta de Instagram"
 msgstr "Não foi possível obter a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:550
+#: instagram_app/api/v1/account_configuration.py:551
 msgid "Se obtuvo la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram obtida com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:575
+#: instagram_app/api/v1/account_configuration.py:576
 msgid "Se obtuvieron las campañas de forma exitosa"
 msgstr "Campanhas obtidas com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:590
+#: instagram_app/api/v1/account_configuration.py:591
 msgid "Se obtuvieron los grupos horarios de forma exitosa"
 msgstr "Grupos horários obtidos com sucesso"
 
