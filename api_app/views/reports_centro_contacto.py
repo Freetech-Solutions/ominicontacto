@@ -6997,12 +6997,8 @@ def _parse_export_filters_with_visible_campaigns(request):
 
 
 class ExportarCSVCentroContactoAPIView(APIView):
-    """Base para exportaciones CSV del centro de contacto (sesión + Bearer)."""
+    """Base para exportaciones CSV del centro de contacto."""
     permission_classes = (TienePermisoOML,)
-    authentication_classes = (
-        SessionAuthentication,
-        ExpiringTokenAuthentication,
-    )
     renderer_classes = (JSONRenderer,)
     http_method_names = ['post']
 
@@ -7387,6 +7383,10 @@ class ExportarCSVLlamadasAtendidasCentroContacto(ExportarCSVCentroContactoAPIVie
 
 class ExportarCSVLlamadasAtendidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Listado de llamadas atendidas (Egresos/Voz)."""
+    authentication_classes = (
+        SessionAuthentication,
+        ExpiringTokenAuthentication,
+    )
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7471,6 +7471,10 @@ class ExportarCSVLlamadasNoAtendidasCentroContacto(ExportarCSVCentroContactoAPIV
 
 class ExportarCSVLlamadasNoAtendidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Listado de llamadas no atendidas (Egresos)."""
+    authentication_classes = (
+        SessionAuthentication,
+        ExpiringTokenAuthentication,
+    )
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
