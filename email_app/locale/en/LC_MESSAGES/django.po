@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OMniLeads\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 17:25-0300\n"
+"POT-Creation-Date: 2026-08-23 21:17-0300\n"
 "PO-Revision-Date: 2026-06-25 00:00-0300\n"
 "Last-Translator: Freetech Solutions\n"
 "Language-Team: English\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: email_app/api/v1/account.py:249
+#: email_app/api/v1/account.py:274
 #, python-format
 msgid ""
 "This account cannot be deleted because it is configured in the following "
@@ -27,39 +27,39 @@ msgstr ""
 "campaign(s): %(campaigns)s. Remove the account from those campaigns before "
 "deleting it."
 
-#: email_app/api/v1/conversation.py:177
+#: email_app/api/v1/conversation.py:183
 msgid "Provide a message body."
 msgstr "Provide a message body."
 
-#: email_app/api/v1/conversation.py:202
+#: email_app/api/v1/conversation.py:208
 msgid "Error en los campos de contacto"
 msgstr "Error in contact fields"
 
-#: email_app/api/v1/conversation.py:204
+#: email_app/api/v1/conversation.py:210
 msgid "Faltan campos requeridos"
 msgstr "Required fields missing"
 
-#: email_app/api/v1/conversation.py:230 email_app/api/v1/reporte.py:281
+#: email_app/api/v1/conversation.py:238 email_app/api/v1/reporte.py:281
 msgid "The conversation does not exist."
 msgstr "The conversation does not exist."
 
-#: email_app/api/v1/conversation.py:235
+#: email_app/api/v1/conversation.py:243
 msgid "You do not have access to this conversation."
 msgstr "You do not have access to this conversation."
 
-#: email_app/api/v1/conversation.py:326
+#: email_app/api/v1/conversation.py:350
 msgid "You must take this conversation before reading it."
 msgstr "You must take this conversation before reading it."
 
-#: email_app/api/v1/conversation.py:340
+#: email_app/api/v1/conversation.py:364
 msgid "This conversation is already being attended by another agent."
 msgstr "This conversation is already being attended by another agent."
 
-#: email_app/api/v1/conversation.py:411
+#: email_app/api/v1/conversation.py:435
 msgid "The email could not be sent."
 msgstr "The email could not be sent."
 
-#: email_app/api/v1/conversation.py:434 email_app/api/v1/conversation.py:506
+#: email_app/api/v1/conversation.py:458 email_app/api/v1/conversation.py:530
 msgid "The conversation has no campaign."
 msgstr "The conversation has no campaign."
 

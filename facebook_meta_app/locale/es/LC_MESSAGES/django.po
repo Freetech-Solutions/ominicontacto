@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 17:25-0300\n"
+"POT-Creation-Date: 2026-08-23 21:17-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -64,11 +64,11 @@ msgstr ""
 #: facebook_meta_app/api/v1/disposition.py:366
 #: facebook_meta_app/api/v1/disposition.py:444
 #: facebook_meta_app/api/v1/disposition.py:486
-#: facebook_meta_app/api/v1/page_configuration.py:411
-#: facebook_meta_app/api/v1/page_configuration.py:439
-#: facebook_meta_app/api/v1/page_configuration.py:463
-#: facebook_meta_app/api/v1/page_configuration.py:520
-#: facebook_meta_app/api/v1/page_configuration.py:526
+#: facebook_meta_app/api/v1/page_configuration.py:414
+#: facebook_meta_app/api/v1/page_configuration.py:442
+#: facebook_meta_app/api/v1/page_configuration.py:466
+#: facebook_meta_app/api/v1/page_configuration.py:523
+#: facebook_meta_app/api/v1/page_configuration.py:529
 #: facebook_meta_app/api/v1/templates_group.py:111
 #: facebook_meta_app/api/v1/templates_group.py:155
 #: facebook_meta_app/api/v1/templates_messenger.py:140
@@ -324,51 +324,51 @@ msgstr ""
 msgid "Valor incorrecto."
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:319
+#: facebook_meta_app/api/v1/page_configuration.py:321
 msgid "Tipo de destino incorrecto"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:380
-#: facebook_meta_app/api/v1/page_configuration.py:399
+#: facebook_meta_app/api/v1/page_configuration.py:383
+#: facebook_meta_app/api/v1/page_configuration.py:402
 msgid "Se obtuvieron las páginas de forma exitosa"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:391
+#: facebook_meta_app/api/v1/page_configuration.py:394
 msgid "No se pudo obtener la página"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:392
-#: facebook_meta_app/api/v1/page_configuration.py:543
+#: facebook_meta_app/api/v1/page_configuration.py:395
+#: facebook_meta_app/api/v1/page_configuration.py:546
 msgid "No existe una página con este id"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:412
-#: facebook_meta_app/api/v1/page_configuration.py:464
+#: facebook_meta_app/api/v1/page_configuration.py:415
+#: facebook_meta_app/api/v1/page_configuration.py:467
 msgid "Este campo es requerido."
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:434
+#: facebook_meta_app/api/v1/page_configuration.py:437
 msgid "Se creó la página de forma exitosa"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:445
+#: facebook_meta_app/api/v1/page_configuration.py:448
 msgid "No se pudo crear la página"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:451
-#: facebook_meta_app/api/v1/page_configuration.py:532
+#: facebook_meta_app/api/v1/page_configuration.py:454
+#: facebook_meta_app/api/v1/page_configuration.py:535
 msgid "Error al crear la página >>>"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:514
+#: facebook_meta_app/api/v1/page_configuration.py:517
 msgid "Se creo la página de forma exitosa"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:542
+#: facebook_meta_app/api/v1/page_configuration.py:545
 msgid "No se pudo eliminar la página"
 msgstr ""
 
-#: facebook_meta_app/api/v1/page_configuration.py:551
+#: facebook_meta_app/api/v1/page_configuration.py:555
 msgid "Se elimino la página de forma exitosa"
 msgstr ""
 
