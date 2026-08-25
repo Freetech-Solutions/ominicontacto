@@ -39,6 +39,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.renderers import JSONRenderer
+from rest_framework.authentication import SessionAuthentication
+
+from api_app.authentication import ExpiringTokenAuthentication
 
 from ominicontacto_app.models import Campana, Grupo, AgenteProfile, OpcionCalificacion, CalificacionCliente
 from ominicontacto_app.utiles import (
@@ -6993,11 +6996,15 @@ def _parse_export_filters_with_visible_campaigns(request):
     return parsed + (visible_campaigns,), None
 
 
-class ExportarCSVCanalidadesCentroContacto(APIView):
-    """POST: inicia generación en background del CSV Canalidades por campaña."""
+class ExportarCSVCentroContactoAPIView(APIView):
+    """Base para exportaciones CSV del centro de contacto."""
     permission_classes = (TienePermisoOML,)
     renderer_classes = (JSONRenderer,)
     http_method_names = ['post']
+
+
+class ExportarCSVCanalidadesCentroContacto(ExportarCSVCentroContactoAPIView):
+    """POST: inicia generación en background del CSV Canalidades por campaña."""
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7038,11 +7045,8 @@ class ExportarCSVCanalidadesCentroContacto(APIView):
         )
 
 
-class ExportarCSVCanalidadesEgresosCentroContacto(APIView):
+class ExportarCSVCanalidadesEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Canalidades por campaña (Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7083,11 +7087,8 @@ class ExportarCSVCanalidadesEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVCanalidadesPorHoraCentroContacto(APIView):
+class ExportarCSVCanalidadesPorHoraCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Canalidades por hora."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7128,11 +7129,8 @@ class ExportarCSVCanalidadesPorHoraCentroContacto(APIView):
         )
 
 
-class ExportarCSVCanalidadesPorHoraEgresosCentroContacto(APIView):
+class ExportarCSVCanalidadesPorHoraEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Canalidades por hora (Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7173,11 +7171,8 @@ class ExportarCSVCanalidadesPorHoraEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVCanalidadesPorDiaCentroContacto(APIView):
+class ExportarCSVCanalidadesPorDiaCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Canalidades por día."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7218,11 +7213,8 @@ class ExportarCSVCanalidadesPorDiaCentroContacto(APIView):
         )
 
 
-class ExportarCSVCanalidadesPorDiaEgresosCentroContacto(APIView):
+class ExportarCSVCanalidadesPorDiaEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Canalidades por día (Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7263,11 +7255,8 @@ class ExportarCSVCanalidadesPorDiaEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVCanalidadesPorMesCentroContacto(APIView):
+class ExportarCSVCanalidadesPorMesCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Canalidades por mes."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7308,11 +7297,8 @@ class ExportarCSVCanalidadesPorMesCentroContacto(APIView):
         )
 
 
-class ExportarCSVCanalidadesPorMesEgresosCentroContacto(APIView):
+class ExportarCSVCanalidadesPorMesEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Canalidades por mes (Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7353,11 +7339,8 @@ class ExportarCSVCanalidadesPorMesEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasAtendidasCentroContacto(APIView):
+class ExportarCSVLlamadasAtendidasCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Listado de llamadas atendidas (Ingresos/Voz)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7398,11 +7381,12 @@ class ExportarCSVLlamadasAtendidasCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasAtendidasEgresosCentroContacto(APIView):
+class ExportarCSVLlamadasAtendidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Listado de llamadas atendidas (Egresos/Voz)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
+    authentication_classes = (
+        SessionAuthentication,
+        ExpiringTokenAuthentication,
+    )
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7443,11 +7427,8 @@ class ExportarCSVLlamadasAtendidasEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasNoAtendidasCentroContacto(APIView):
+class ExportarCSVLlamadasNoAtendidasCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Listado de llamadas no atendidas (Ingresos/Voz)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7488,11 +7469,12 @@ class ExportarCSVLlamadasNoAtendidasCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasNoAtendidasEgresosCentroContacto(APIView):
+class ExportarCSVLlamadasNoAtendidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Listado de llamadas no atendidas (Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
+    authentication_classes = (
+        SessionAuthentication,
+        ExpiringTokenAuthentication,
+    )
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7533,11 +7515,8 @@ class ExportarCSVLlamadasNoAtendidasEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasVozCentroContacto(APIView):
+class ExportarCSVLlamadasVozCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas de voz por campaña (Ingresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters_with_visible_campaigns(request)
@@ -7579,11 +7558,8 @@ class ExportarCSVLlamadasVozCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasVozEgresosCentroContacto(APIView):
+class ExportarCSVLlamadasVozEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas de voz por campaña (Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7624,11 +7600,8 @@ class ExportarCSVLlamadasVozEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasPorHoraCentroContacto(APIView):
+class ExportarCSVLlamadasPorHoraCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas por hora de día (Ingresos/Voz/Horas)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7669,11 +7642,8 @@ class ExportarCSVLlamadasPorHoraCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasPorHoraEgresosCentroContacto(APIView):
+class ExportarCSVLlamadasPorHoraEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas por hora de día (Egresos/Voz/Horas)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7714,11 +7684,8 @@ class ExportarCSVLlamadasPorHoraEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasPorDiaCentroContacto(APIView):
+class ExportarCSVLlamadasPorDiaCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas por día (Ingresos/Voz/Días)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7759,11 +7726,8 @@ class ExportarCSVLlamadasPorDiaCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasPorDiaEgresosCentroContacto(APIView):
+class ExportarCSVLlamadasPorDiaEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas por día (Egresos/Voz/Días)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7804,11 +7768,8 @@ class ExportarCSVLlamadasPorDiaEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasPorMesCentroContacto(APIView):
+class ExportarCSVLlamadasPorMesCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas por mes (Ingresos/Voz/Mes)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7849,11 +7810,8 @@ class ExportarCSVLlamadasPorMesCentroContacto(APIView):
         )
 
 
-class ExportarCSVLlamadasPorMesEgresosCentroContacto(APIView):
+class ExportarCSVLlamadasPorMesEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Llamadas por mes (Egresos/Voz/Mes)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7894,11 +7852,8 @@ class ExportarCSVLlamadasPorMesEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVConversacionesRespondidasCentroContacto(APIView):
+class ExportarCSVConversacionesRespondidasCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Conversaciones Respondidas (Ingresos WhatsApp)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7939,11 +7894,8 @@ class ExportarCSVConversacionesRespondidasCentroContacto(APIView):
         )
 
 
-class ExportarCSVConversacionesRespondidasEgresosCentroContacto(APIView):
+class ExportarCSVConversacionesRespondidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Conversaciones Respondidas (Egresos WhatsApp)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -7984,11 +7936,8 @@ class ExportarCSVConversacionesRespondidasEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVConversacionesNoRespondidasCentroContacto(APIView):
+class ExportarCSVConversacionesNoRespondidasCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Conversaciones no respondidas (Ingresos WhatsApp)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8029,11 +7978,8 @@ class ExportarCSVConversacionesNoRespondidasCentroContacto(APIView):
         )
 
 
-class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(APIView):
+class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Conversaciones no respondidas (Egresos WhatsApp)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8074,11 +8020,8 @@ class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorHoraCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorHoraCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por hora de día (WhatsApp Ingresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8118,11 +8061,8 @@ class ExportarCSVWhatsappMensajesPorHoraCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorHoraEgresosCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorHoraEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por hora (WhatsApp Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8162,11 +8102,8 @@ class ExportarCSVWhatsappMensajesPorHoraEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorCampanaCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorCampanaCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por campaña (WhatsApp Ingresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8206,11 +8143,8 @@ class ExportarCSVWhatsappMensajesPorCampanaCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorCampanaEgresosCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorCampanaEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por campaña (WhatsApp Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8251,11 +8185,8 @@ class ExportarCSVWhatsappMensajesPorCampanaEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorDiaCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorDiaCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por día (WhatsApp Ingresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8295,11 +8226,8 @@ class ExportarCSVWhatsappMensajesPorDiaCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorDiaEgresosCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorDiaEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por día (WhatsApp Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8339,11 +8267,8 @@ class ExportarCSVWhatsappMensajesPorDiaEgresosCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorMesCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorMesCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por mes (WhatsApp Ingresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8383,11 +8308,8 @@ class ExportarCSVWhatsappMensajesPorMesCentroContacto(APIView):
         )
 
 
-class ExportarCSVWhatsappMensajesPorMesEgresosCentroContacto(APIView):
+class ExportarCSVWhatsappMensajesPorMesEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
     """POST: inicia generación en background del CSV Mensajes por mes (WhatsApp Egresos)."""
-    permission_classes = (TienePermisoOML,)
-    renderer_classes = (JSONRenderer,)
-    http_method_names = ['post']
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)

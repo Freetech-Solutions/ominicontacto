@@ -479,6 +479,10 @@ class ExportarCSVMixin:
 
 class ExportarCSVResultadosBaseContactados(ExportarCSVMixin, APIView):
     permission_classes = (TienePermisoOML, )
+    authentication_classes = (
+        SessionAuthentication,
+        ExpiringTokenAuthentication,
+    )
     renderer_classes = (JSONRenderer, )
     http_method_names = ['post', ]
 
