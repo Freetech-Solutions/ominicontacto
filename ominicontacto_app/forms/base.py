@@ -1679,13 +1679,13 @@ class RespuestaFormularioGestionForm(forms.ModelForm):
                     label=campo.nombre_campo, widget=forms.Textarea(
                         attrs={'class': 'form-control'}),
                     required=campo.is_required)
-            elif campo.tipo == FieldFormulario.TIPO_NUMERO and \
+            elif campo.tipo == FieldFormulario.TIPO_NUMERO_ID and \
                     campo.tipo_numero == FieldFormulario.TIPO_ENTERO:
                 self.fields[campo.nombre_campo] = forms.IntegerField(
                     label=campo.nombre_campo, min_value=0,
                     widget=forms.NumberInput(attrs={'class': 'form-control'}),
                     required=campo.is_required)
-            elif campo.tipo == FieldFormulario.TIPO_NUMERO and \
+            elif campo.tipo == FieldFormulario.TIPO_NUMERO_ID and \
                     campo.tipo_numero == FieldFormulario.TIPO_DECIMAL:
                 self.fields[campo.nombre_campo] = forms.DecimalField(
                     label=campo.nombre_campo, min_value=0,
