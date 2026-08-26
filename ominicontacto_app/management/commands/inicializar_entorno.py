@@ -424,7 +424,6 @@ class Command(BaseCommand):
         caller_id_saliente = '01177660010'
         remote_host_saliente = 'pbxemulator:5070'
         text_config_ruta_saliente = (
-            "endpoint/from_user=" + caller_id_saliente + "\n"
             "remote_hosts=" + remote_host_saliente + "\n"        
             "outbound_auth/username=" + caller_id_saliente + "\n"
             "outbound_auth/password=omnileads\n"
@@ -440,8 +439,7 @@ class Command(BaseCommand):
         # 2) Troncal para el voicebot Verloop
         caller_id_voicebot = ''
         remote_host_voicebot = 'pbxemulator:5070'
-        text_config_voicebot = (
-            "endpoint/from_user=" + caller_id_saliente + "\n"
+        text_config_voicebot = (        
             "remote_hosts=" + remote_host_voicebot + "\n"
             "outbound_auth/username=" + caller_id_saliente + "\n"
             "outbound_auth/password=omnileads\n"
