@@ -2621,26 +2621,6 @@
                                         </table>
                                     </div>
                                 </div>
-                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 mt-6">{% trans 'Resumen por campaña' %}</h3>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 mb-4">
-                                    {% for row in egresos_llamadas_por_campana %}
-                                    <div class="bg-white rounded-lg border border-gray-200 p-3 shadow-sm">
-                                        <p class="text-sm font-semibold text-gray-800 truncate" title="{{ row.campaign_name }}">{{ row.campaign_name }}</p>
-                                        <div class="mt-2 flex justify-between text-xs">
-                                            <span class="text-gray-500">{% trans 'Enviadas' %}</span>
-                                            <span class="f-mono font-medium">{{ row.sent }}</span>
-                                        </div>
-                                        <div class="flex justify-between text-xs">
-                                            <span class="text-gray-500">{% trans 'Conectadas' %}</span>
-                                            <span class="f-mono font-medium">{{ row.conectadas }}</span>
-                                        </div>
-                                        <div class="flex justify-between text-xs">
-                                            <span class="text-gray-500">{% trans '% Conectadas Agente' %}</span>
-                                            <span class="f-mono font-medium text-green-600">{{ row.pct_conectadas|floatformat:1 }}%</span>
-                                        </div>
-                                    </div>
-                                    {% endfor %}
-                                </div>
                                 {% else %}
                                 <p class="reporte-cc-placeholder text-gray-500 text-sm text-center py-6">{% trans 'No hay datos para el rango y filtros seleccionados. Seleccione campaña y fecha y pulse Buscar.' %}</p>
                                 {% endif %}
