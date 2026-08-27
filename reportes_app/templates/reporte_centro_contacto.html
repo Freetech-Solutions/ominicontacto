@@ -2481,12 +2481,12 @@
                                         <p class="text-xl font-bold text-gray-900 f-mono mt-1">{{ egresos_llamadas_por_campana_totals.conectadas }}</p>
                                     </div>
                                     <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                                        <p class="text-xs text-gray-500 font-medium uppercase">{% trans '% Conectadas' %}</p>
+                                        <p class="text-xs text-gray-500 font-medium uppercase">{% trans '% Conectadas Agente' %}</p>
                                         <p class="text-xl font-bold text-gray-900 f-mono mt-1">{{ egresos_llamadas_por_campana_totals.pct_conectadas|floatformat:1 }}%</p>
                                     </div>
                                 </div>
                                 {% endif %}
-                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{% trans 'Performance outbound: volumen por tipo de resultado y % Conectadas' %}</h3>
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{% trans 'Performance outbound: volumen por tipo de resultado y % Conectadas Agente' %}</h3>
                                 <div class="reporte-cc-egresos-voz-chart-wrapper bg-white rounded-xl shadow-sm border border-gray-200 p-4">
                                     <div class="overflow-x-auto">
                                         <div class="reporte-cc-egresos-voz-chart" style="min-width: 600px;">
@@ -2578,19 +2578,14 @@
                                                 <tr>
                                                     <th scope="col">{% trans 'Campaña' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Enviadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Conectadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Canceladas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Sin respuesta' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Ocupado' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Contestador' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Shortcall' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Congestion' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Otro' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Transferidas' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Conectadas PSTN' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Conectadas Ag' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Contestador' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Shortcall' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% No Conectadas' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Transferencias' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% No conectadas' %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2598,38 +2593,28 @@
                                                 <tr>
                                                     <td>{{ row.campaign_name }}</td>
                                                     <td class="text-right f-mono">{{ row.sent }}</td>
-                                                    <td class="text-right f-mono">{{ row.conectadas }}</td>
-                                                    <td class="text-right f-mono">{{ row.canceladas }}</td>
-                                                    <td class="text-right f-mono">{{ row.no_atiende }}</td>
-                                                    <td class="text-right f-mono">{{ row.ocupado }}</td>
-                                                    <td class="text-right f-mono">{{ row.contestador }}</td>
-                                                    <td class="text-right f-mono">{{ row.shortcall }}</td>
-                                                    <td class="text-right f-mono">{{ row.congestion }}</td>
-                                                    <td class="text-right f-mono">{{ row.otro_error }}</td>
-                                                    <td class="text-right f-mono">{{ row.transferred }}</td>
+                                                    <td class="text-right f-mono">{{ row.pct_conectadas_pstn|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_no_conectadas|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_transferencias|floatformat:1 }}%</td>
                                                     <td class="text-right f-mono">{% if row.avg_wait_seconds is not None %}{{ row.avg_wait_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.avg_talk_seconds is not None %}{{ row.avg_talk_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_no_conectadas|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endfor %}
                                                 {% if egresos_llamadas_por_campana_totals %}
                                                 <tr class="font-weight-bold bg-gray-50">
                                                     <td>{% trans 'Total' %}</td>
                                                     <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.sent }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.conectadas }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.canceladas }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.no_atiende }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.ocupado }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.contestador }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.shortcall }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.congestion }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.otro_error }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.transferred }}</td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_conectadas|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_conectadas_pstn|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_shortcall|floatformat:1 }}%</td>
                                                     <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_no_conectadas|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_transferencias|floatformat:1 }}%</td>
+                                                    <td class="text-right">—</td>
+                                                    <td class="text-right">—</td>
                                                 </tr>
                                                 {% endif %}
                                             </tbody>
@@ -2650,7 +2635,7 @@
                                             <span class="f-mono font-medium">{{ row.conectadas }}</span>
                                         </div>
                                         <div class="flex justify-between text-xs">
-                                            <span class="text-gray-500">{% trans '% Conectadas' %}</span>
+                                            <span class="text-gray-500">{% trans '% Conectadas Agente' %}</span>
                                             <span class="f-mono font-medium text-green-600">{{ row.pct_conectadas|floatformat:1 }}%</span>
                                         </div>
                                     </div>
@@ -2693,7 +2678,7 @@
                                                     <th scope="col" class="text-right">{% trans 'Transferidas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Conectadas Agente' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% No conectadas' %}</th>
                                                 </tr>
                                             </thead>
@@ -2813,7 +2798,7 @@
                                                     <th scope="col" class="text-right">{% trans 'Transferidas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Conectadas Agente' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% No conectadas' %}</th>
                                                 </tr>
                                             </thead>
@@ -2933,7 +2918,7 @@
                                                     <th scope="col" class="text-right">{% trans 'Transferidas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas' %}</th>
+                                                    <th scope="col" class="text-right">{% trans '% Conectadas Agente' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% No conectadas' %}</th>
                                                 </tr>
                                             </thead>

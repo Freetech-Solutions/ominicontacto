@@ -32,6 +32,7 @@ from api_app.views.reports_centro_contacto import (
     _segment_duration_seconds_for_transfer,
     get_omnichannel_share_data,
     obtener_llamadas_por_campana,
+    obtener_llamadas_salientes_por_campana,
     obtener_kpis_centro_contacto,
 )
 from reportes_app.forms import ReporteCentroContactoForm
@@ -1965,3 +1966,121 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         self.assertEqual(row.get('transfer_in_count', 0), 0)
         self.assertEqual(row.get('transfer_out_count', 0), 0)
         self.assertEqual(row['pct_transferred'], 0.0)
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists(),
+    'Requiere tabla interactions_summary',
+)
+class ObtenerLlamadasSalientesPorCampanaTest(OMLBaseTest):
+    """Métricas de egresos voz por campaña: contactadas PSTN, % Ag, % No Conectadas, % Transferencias."""
+
+    def setUp(self):
+        super(ObtenerLlamadasSalientesPorCampanaTest, self).setUp()
+        self.crear_administrador()
+        self.hoy = timezone.now()
+        self.desde = self.hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.hasta = self.desde + timedelta(days=1) - timedelta(microseconds=1)
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CC outbound metrics',
+        )
+        self._seq = 0
+
+    def _create_outbound(self, status, agent_id=1, is_transferred=False,
+                         agent_duration=Decimal('10'), total_duration=Decimal('15')):
+        self._seq += 1
+        return InteractionsSummary.objects.create(
+            interaction_id='ob-camp-%s-%s' % (self.campana.pk, self._seq),
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction='OUTBOUND',
+            status=status,
+            hangup_cause='OTHER',
+            start_time=self.desde + timedelta(hours=10, minutes=self._seq),
+            end_time=self.desde + timedelta(hours=10, minutes=self._seq, seconds=30),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=agent_duration,
+            total_duration=total_duration,
+            bot_duration=Decimal('0'),
+            agent_id=agent_id,
+            is_transferred=is_transferred,
+        )
+
+    def test_metricas_contactadas_pstn_y_porcentajes(self):
+        # 7 contactadas PSTN (1 de cada status) + 3 no contactadas
+        self._create_outbound('EXIT_ANSWERED', is_transferred=True)
+        self._create_outbound('EXIT_AMD', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_SHORTCALL', agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_HANDOFF_ABANDON', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_HANDOFF_TIMEOUT', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('CANCEL', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+
+        self.assertEqual(row['sent'], 10)
+        self.assertEqual(row['conectadas'], 1)
+        self.assertEqual(row['contactadas_pstn'], 7)
+        self.assertEqual(row['transferred'], 1)
+        self.assertEqual(row['pct_conectadas_pstn'], 70.0)
+        self.assertEqual(row['pct_conectadas_ag'], round(100.0 * 1 / 7, 2))
+        self.assertEqual(row['pct_contestador'], round(100.0 * 1 / 7, 2))
+        self.assertEqual(row['pct_shortcall'], round(100.0 * 1 / 7, 2))
+        self.assertEqual(row['pct_no_conectadas'], 30.0)
+        self.assertEqual(row['pct_transferencias'], 100.0)
+        # Claves legacy conservadas para gráfico / tarjetas resumen
+        self.assertEqual(row['pct_conectadas'], 10.0)
+        self.assertIn('canceladas', row)
+        self.assertIn('contestador', row)
+
+    def test_division_por_cero_sin_contactadas_pstn(self):
+        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        row = rows[0]
+        self.assertEqual(row['sent'], 2)
+        self.assertEqual(row['contactadas_pstn'], 0)
+        self.assertEqual(row['conectadas'], 0)
+        self.assertEqual(row['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(row['pct_conectadas_ag'], 0.0)
+        self.assertEqual(row['pct_contestador'], 0.0)
+        self.assertEqual(row['pct_shortcall'], 0.0)
+        self.assertEqual(row['pct_no_conectadas'], 100.0)
+        self.assertEqual(row['pct_transferencias'], 0.0)
+
+    def test_pct_transferencias_cero_si_no_hay_exit_answered(self):
+        self._create_outbound('EXIT_AMD', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_ABANDON', agent_id=-1, agent_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        row = rows[0]
+        self.assertEqual(row['conectadas'], 0)
+        self.assertEqual(row['contactadas_pstn'], 2)
+        self.assertEqual(row['pct_conectadas_ag'], 0.0)
+        self.assertEqual(row['pct_contestador'], 50.0)
+        self.assertEqual(row['pct_shortcall'], 0.0)
+        self.assertEqual(row['pct_transferencias'], 0.0)
+        self.assertEqual(row['pct_conectadas_pstn'], 100.0)
+        self.assertEqual(row['pct_no_conectadas'], 0.0)
