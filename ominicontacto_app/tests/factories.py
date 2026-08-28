@@ -241,11 +241,12 @@ class FieldFormularioFactory(DjangoModelFactory):
         model = FieldFormulario
 
     formulario = SubFactory(FormularioFactory)
-    nombre_campo = lazy_attribute(lambda a: "campo_{0}".format(uuid4()))
-    # Cuidado al crear con este orden aleatorio
-    orden = lazy_attribute(lambda a: faker.random_int(1, 1000))
+    nombre_campo = Sequence(lambda n: "campo_{0}".format(n))
+    orden = Sequence(lambda n: n)
     tipo = FieldFormulario.TIPO_TEXTO
     values_select = None
+    tipo_numero = None
+    cifras_significativas = None
     is_required = False
 
 

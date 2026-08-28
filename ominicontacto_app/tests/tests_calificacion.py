@@ -44,7 +44,8 @@ from ominicontacto_app.tests.factories import (CampanaFactory, QueueFactory,
                                                AgendaContactoFactory)
 
 from ominicontacto_app.models import (AgendaContacto, NombreCalificacion, Campana, SitioExterno,
-                                      OpcionCalificacion, CalificacionCliente)
+                                      OpcionCalificacion, CalificacionCliente, FieldFormulario,
+                                      RespuestaFormularioGestion)
 
 
 class CalificacionTests(OMLBaseTest):
@@ -676,3 +677,95 @@ class CalificacionTests(OMLBaseTest):
         url = reverse('calificar_llamada', kwargs={'call_data_json': json.dumps(call_data)})
         response = self.client.get(url)
         self.assertContains(response, "calificacionTelefonoValor")
+
+
+class FormularioCalificacionTest(CalificacionTests):
+
+    def setUp(self):
+        super(FormularioCalificacionTest, self).setUp()
+
+        self.nombre_opcion_gestion_2 = NombreCalificacionFactory.create()
+        self.formulario_completo = FormularioFactory()
+        self.campo_texto = FieldFormularioFactory(formulario=self.formulario_completo,
+                                                  nombre_campo='texto',
+                                                  tipo=FieldFormulario.TIPO_TEXTO)
+        self.campo_fecha = FieldFormularioFactory(formulario=self.formulario_completo,
+                                                  nombre_campo='fecha',
+                                                  tipo=FieldFormulario.TIPO_FECHA)
+        self.campo_lista = FieldFormularioFactory(formulario=self.formulario_completo,
+                                                  nombre_campo='lista',
+                                                  tipo=FieldFormulario.TIPO_LISTA,
+                                                  values_select='["opc 1","opc 2","opc 3"]')
+        self.campo_texto_area = FieldFormularioFactory(formulario=self.formulario_completo,
+                                                       nombre_campo='texto_area',
+                                                       tipo=FieldFormulario.TIPO_TEXTO_AREA)
+        self.campo_entero = FieldFormularioFactory(formulario=self.formulario_completo,
+                                                   nombre_campo='entero',
+                                                   tipo=FieldFormulario.TIPO_NUMERO_ID,
+                                                   tipo_numero=FieldFormulario.TIPO_ENTERO)
+        self.campo_decimal = FieldFormularioFactory(formulario=self.formulario_completo,
+                                                    nombre_campo='decimal',
+                                                    tipo=FieldFormulario.TIPO_NUMERO_ID,
+                                                    tipo_numero=FieldFormulario.TIPO_DECIMAL,
+                                                    cifras_significativas=2)
+        self.opcion_calificacion_gestion_2 = OpcionCalificacionFactory.create(
+            campana=self.campana, nombre=self.nombre_opcion_gestion_2.nombre,
+            tipo=OpcionCalificacion.GESTION, formulario=self.formulario_completo)
+
+    def test_formulario_completo_ok(self):
+        calificacion = self.calificacion_cliente
+        calificacion.opcion_calificacion = self.opcion_calificacion_gestion_2
+        calificacion.save()
+        call_data = self.get_call_data()
+        call_data["call_type"] = str(self.campana.type)
+        url = reverse('formulario_venta', kwargs={'pk_calificacion': calificacion.id,
+                                                  'call_data_json': json.dumps(call_data)})
+        response = self.client.get(url)
+        # Verificar que figuran todos los campos
+        form = response.context_data['form']
+        self.assertEqual(
+            set(form.fields.keys()) - {'calificacion'},
+            {'texto', 'fecha', 'lista', 'texto_area', 'entero', 'decimal'})
+
+        # Verificar que valida bien cada campo si se envían valores incorrectos
+        post_data_invalido = {
+            'calificacion': calificacion.id,
+            'texto': 'algo',
+            'fecha': '2026-01-01',
+            'lista': 'opcion inexistente',
+            'texto_area': 'lorem ipsum',
+            'entero': '-5',
+            'decimal': '-1.25',
+            'contacto_form-telefono': self.contacto.telefono,
+        }
+        response = self.client.post(url, post_data_invalido)
+        self.assertEqual(response.status_code, 200)
+        form = response.context_data['form']
+        self.assertFalse(form.is_valid())
+        self.assertIn('lista', form.errors)
+        self.assertIn('entero', form.errors)
+        self.assertIn('decimal', form.errors)
+        self.assertFalse(
+            RespuestaFormularioGestion.objects.filter(calificacion=calificacion).exists())
+
+        # Verificar que se crea la RespuestaFormularioGestion al enviar bien los valores
+        post_data_valido = {
+            'calificacion': calificacion.id,
+            'texto': 'algo',
+            'fecha': '2026-01-01',
+            'lista': 'opc 1',
+            'texto_area': 'lorem ipsum',
+            'entero': '10',
+            'decimal': '5.25',
+            'contacto_form-telefono': self.contacto.telefono,
+        }
+        response = self.client.post(url, post_data_valido)
+        self.assertEqual(response.status_code, 302)
+        respuesta = RespuestaFormularioGestion.objects.get(calificacion=calificacion)
+        metadata = json.loads(respuesta.metadata)
+        self.assertEqual(metadata['texto'], 'algo')
+        self.assertEqual(metadata['fecha'], '2026-01-01')
+        self.assertEqual(metadata['lista'], 'opc 1')
+        self.assertEqual(metadata['texto_area'], 'lorem ipsum')
+        self.assertEqual(metadata['entero'], 10)
+        self.assertEqual(metadata['decimal'], '5.25')
