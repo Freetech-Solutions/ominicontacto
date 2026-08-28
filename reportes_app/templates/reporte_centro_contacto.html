@@ -2974,6 +2974,7 @@
                                                     <th scope="col" class="text-right">{% trans 'Duración agente' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Duración bot' %}</th>
                                                     <th scope="col">{% trans 'Quien cortó' %}</th>
+                                                    <th scope="col">{% trans 'Calificacion Tel' %}</th>
                                                     <th scope="col">{% trans 'Id calificación' %}</th>
                                                     <th scope="col">{% trans 'Nombre calificación' %}</th>
                                                     <th scope="col">{% trans 'Nombre subcalificación' %}</th>
@@ -3005,6 +3006,7 @@
                                                     <td class="text-right f-mono">{% if row.duracion_agente is not None %}{{ row.duracion_agente|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.duracion_bot is not None %}{{ row.duracion_bot|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td>{{ row.quien_corto }}</td>
+                                                    <td class="f-mono">{{ row.calificacion_tel }}</td>
                                                     <td class="f-mono">{% if row.id_calificacion is not None %}{{ row.id_calificacion }}{% else %}—{% endif %}</td>
                                                     <td>{{ row.nombre_calificacion }}</td>
                                                     <td>{{ row.nombre_subcalificacion }}</td>
@@ -3019,7 +3021,7 @@
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="18">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
+                                                    <td colspan="19">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>

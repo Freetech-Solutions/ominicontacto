@@ -4424,7 +4424,9 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
     Retorna un Page de Django con object_list siendo lista de dicts con columnas para la tabla
     (fecha_hora, id_contacto, telefono, id_campana, nombre_campana, id_agente, nombre_agente,
     username_agente, grupo_agente, is_transferred, tiempo_espera, duracion_agente, duracion_bot,
-    quien_corto, id_calificacion, nombre_calificacion, nombre_subcalificacion, url_grabacion).
+    quien_corto, calificacion_tel, id_calificacion, nombre_calificacion, nombre_subcalificacion,
+    url_grabacion).
+    calificacion_tel es el status telefónico (p. ej. EXIT_ANSWERED, EXIT_AMD).
     id_calificacion y nombre_calificacion provienen de CalificacionCliente (por callid=interaction_id).
     """
     queryset = InteractionsSummary.objects.filter(
@@ -4555,6 +4557,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
             'duracion_agente': agent_sec,
             'duracion_bot': bot_sec,
             'quien_corto': obj.hangup_cause or '—',
+            'calificacion_tel': obj.status or '—',
             'id_calificacion': id_calificacion,
             'nombre_calificacion': nombre_calificacion,
             'nombre_subcalificacion': subcalificacion,

@@ -2420,6 +2420,15 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
             ),
             1,
         )
+        amd_page = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=amd.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(amd_page.object_list[0]['calificacion_tel'], 'EXIT_AMD')
         self.assertEqual(
             self._count_in_listado(
                 obtener_listado_llamadas_atendidas, shortcall.interaction_id, 'OUTBOUND',
