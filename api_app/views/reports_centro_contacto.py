@@ -891,6 +891,10 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
     (EXIT_AMD/contactadas_pstn), pct_shortcall (EXIT_SHORTCALL/contactadas_pstn),
     pct_no_conectadas ((sent - contactadas_pstn)/sent),
     pct_transferencias (transferred/EXIT_ANSWERED).
+    Distribución (pct sobre sent): abandonadas_espera, timeout_espera, error_contactacion,
+    pct_dist_conectadas_ag, pct_dist_abandonadas_espera, pct_dist_timeout_espera,
+    pct_dist_shortcall, pct_dist_contestador, pct_dist_ocupado, pct_dist_cancel,
+    pct_dist_error_contactacion.
     """
     queryset = InteractionsSummary.objects.filter(
         direction__iexact='OUTBOUND',
@@ -941,6 +945,8 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
             ocupado=Count('id', filter=Q(status__iexact='BUSY')),
             contestador=Count('id', filter=Q(status__iexact='EXIT_AMD')),
             shortcall=Count('id', filter=Q(status__iexact='EXIT_SHORTCALL')),
+            abandonadas_espera=Count('id', filter=Q_ABANDONADAS_ESPERA_SALIENTE),
+            timeout_espera=Count('id', filter=Q_TIMEOUT_ESPERA_SALIENTE),
             congestion=Count('id', filter=Q(status__iexact='CONGESTION')),
             transferred=Count('id', filter=Q(is_transferred=True)),
             avg_wait=Avg('wait_conn_duration', filter=Q_answered),
@@ -967,8 +973,15 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
         ocupado = r['ocupado'] or 0
         contestador = r['contestador'] or 0
         shortcall = r['shortcall'] or 0
+        abandonadas_espera = r['abandonadas_espera'] or 0
+        timeout_espera = r['timeout_espera'] or 0
         congestion = r['congestion'] or 0
         transferred = r['transferred'] or 0
+        error_contactacion = max(
+            0,
+            sent - conectadas - abandonadas_espera - timeout_espera
+            - shortcall - contestador - ocupado - canceladas
+        )
         otro_error = max(
             0,
             sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
@@ -998,6 +1011,14 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
         pct_transferencias = (
             (100.0 * transferred / conectadas) if conectadas else 0.0
         )
+        pct_dist_conectadas_ag = (100.0 * conectadas / sent) if sent else 0.0
+        pct_dist_abandonadas_espera = (100.0 * abandonadas_espera / sent) if sent else 0.0
+        pct_dist_timeout_espera = (100.0 * timeout_espera / sent) if sent else 0.0
+        pct_dist_shortcall = (100.0 * shortcall / sent) if sent else 0.0
+        pct_dist_contestador = (100.0 * contestador / sent) if sent else 0.0
+        pct_dist_ocupado = (100.0 * ocupado / sent) if sent else 0.0
+        pct_dist_cancel = (100.0 * canceladas / sent) if sent else 0.0
+        pct_dist_error_contactacion = (100.0 * error_contactacion / sent) if sent else 0.0
 
         result.append({
             'campaign_id': cid,
@@ -1010,6 +1031,9 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
             'ocupado': ocupado,
             'contestador': contestador,
             'shortcall': shortcall,
+            'abandonadas_espera': abandonadas_espera,
+            'timeout_espera': timeout_espera,
+            'error_contactacion': error_contactacion,
             'congestion': congestion,
             'otro_error': otro_error,
             'transferred': transferred,
@@ -1022,6 +1046,14 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
             'pct_shortcall': round(pct_shortcall, 2),
             'pct_no_conectadas': round(pct_no_conectadas, 2),
             'pct_transferencias': round(pct_transferencias, 2),
+            'pct_dist_conectadas_ag': round(pct_dist_conectadas_ag, 2),
+            'pct_dist_abandonadas_espera': round(pct_dist_abandonadas_espera, 2),
+            'pct_dist_timeout_espera': round(pct_dist_timeout_espera, 2),
+            'pct_dist_shortcall': round(pct_dist_shortcall, 2),
+            'pct_dist_contestador': round(pct_dist_contestador, 2),
+            'pct_dist_ocupado': round(pct_dist_ocupado, 2),
+            'pct_dist_cancel': round(pct_dist_cancel, 2),
+            'pct_dist_error_contactacion': round(pct_dist_error_contactacion, 2),
         })
     return result
 
@@ -1078,6 +1110,10 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
     avg_wait_seconds, avg_talk_seconds, pct_conectadas, contactadas_pstn,
     pct_conectadas_pstn, pct_conectadas_ag, pct_contestador, pct_shortcall,
     pct_no_conectadas, pct_transferencias.
+    Distribución (pct sobre sent): abandonadas_espera, timeout_espera, error_contactacion,
+    pct_dist_conectadas_ag, pct_dist_abandonadas_espera, pct_dist_timeout_espera,
+    pct_dist_shortcall, pct_dist_contestador, pct_dist_ocupado, pct_dist_cancel,
+    pct_dist_error_contactacion.
     """
     queryset = _queryset_llamadas_salientes_voice(
         start_date=start_date, end_date=end_date,
@@ -1102,6 +1138,8 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
             ocupado=Count('id', filter=Q(status__iexact='BUSY')),
             contestador=Count('id', filter=Q(status__iexact='EXIT_AMD')),
             shortcall=Count('id', filter=Q(status__iexact='EXIT_SHORTCALL')),
+            abandonadas_espera=Count('id', filter=Q_ABANDONADAS_ESPERA_SALIENTE),
+            timeout_espera=Count('id', filter=Q_TIMEOUT_ESPERA_SALIENTE),
             congestion=Count('id', filter=Q(status__iexact='CONGESTION')),
             transferred=Count('id', filter=Q(is_transferred=True)),
             avg_wait=Avg('wait_conn_duration', filter=Q_answered),
@@ -1123,8 +1161,15 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
         ocupado = r['ocupado'] or 0
         contestador = r['contestador'] or 0
         shortcall = r['shortcall'] or 0
+        abandonadas_espera = r['abandonadas_espera'] or 0
+        timeout_espera = r['timeout_espera'] or 0
         congestion = r['congestion'] or 0
         transferred = r['transferred'] or 0
+        error_contactacion = max(
+            0,
+            sent - conectadas - abandonadas_espera - timeout_espera
+            - shortcall - contestador - ocupado - canceladas
+        )
         otro_error = max(
             0,
             sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
@@ -1148,6 +1193,14 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
         pct_transferencias = (
             (100.0 * transferred / conectadas) if conectadas else 0.0
         )
+        pct_dist_conectadas_ag = (100.0 * conectadas / sent) if sent else 0.0
+        pct_dist_abandonadas_espera = (100.0 * abandonadas_espera / sent) if sent else 0.0
+        pct_dist_timeout_espera = (100.0 * timeout_espera / sent) if sent else 0.0
+        pct_dist_shortcall = (100.0 * shortcall / sent) if sent else 0.0
+        pct_dist_contestador = (100.0 * contestador / sent) if sent else 0.0
+        pct_dist_ocupado = (100.0 * ocupado / sent) if sent else 0.0
+        pct_dist_cancel = (100.0 * canceladas / sent) if sent else 0.0
+        pct_dist_error_contactacion = (100.0 * error_contactacion / sent) if sent else 0.0
         data_by_hour[h] = {
             'sent': sent,
             'conectadas': conectadas,
@@ -1157,6 +1210,9 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
             'ocupado': ocupado,
             'contestador': contestador,
             'shortcall': shortcall,
+            'abandonadas_espera': abandonadas_espera,
+            'timeout_espera': timeout_espera,
+            'error_contactacion': error_contactacion,
             'congestion': congestion,
             'otro_error': otro_error,
             'transferred': transferred,
@@ -1169,6 +1225,14 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
             'pct_shortcall': round(pct_shortcall, 2),
             'pct_no_conectadas': round(pct_no_conectadas, 2),
             'pct_transferencias': round(pct_transferencias, 2),
+            'pct_dist_conectadas_ag': round(pct_dist_conectadas_ag, 2),
+            'pct_dist_abandonadas_espera': round(pct_dist_abandonadas_espera, 2),
+            'pct_dist_timeout_espera': round(pct_dist_timeout_espera, 2),
+            'pct_dist_shortcall': round(pct_dist_shortcall, 2),
+            'pct_dist_contestador': round(pct_dist_contestador, 2),
+            'pct_dist_ocupado': round(pct_dist_ocupado, 2),
+            'pct_dist_cancel': round(pct_dist_cancel, 2),
+            'pct_dist_error_contactacion': round(pct_dist_error_contactacion, 2),
         }
     result = []
     for h in range(24):
@@ -1189,6 +1253,9 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
                 'ocupado': 0,
                 'contestador': 0,
                 'shortcall': 0,
+                'abandonadas_espera': 0,
+                'timeout_espera': 0,
+                'error_contactacion': 0,
                 'congestion': 0,
                 'otro_error': 0,
                 'transferred': 0,
@@ -1201,6 +1268,14 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
                 'pct_shortcall': 0.0,
                 'pct_no_conectadas': 0.0,
                 'pct_transferencias': 0.0,
+                'pct_dist_conectadas_ag': 0.0,
+                'pct_dist_abandonadas_espera': 0.0,
+                'pct_dist_timeout_espera': 0.0,
+                'pct_dist_shortcall': 0.0,
+                'pct_dist_contestador': 0.0,
+                'pct_dist_ocupado': 0.0,
+                'pct_dist_cancel': 0.0,
+                'pct_dist_error_contactacion': 0.0,
             }
         result.append(row)
     return result
@@ -1217,6 +1292,10 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
     otro_error, transferred, avg_wait_seconds, avg_talk_seconds, pct_conectadas,
     contactadas_pstn, pct_conectadas_pstn, pct_conectadas_ag, pct_contestador,
     pct_shortcall, pct_no_conectadas, pct_transferencias.
+    Distribución (pct sobre sent): abandonadas_espera, timeout_espera, error_contactacion,
+    pct_dist_conectadas_ag, pct_dist_abandonadas_espera, pct_dist_timeout_espera,
+    pct_dist_shortcall, pct_dist_contestador, pct_dist_ocupado, pct_dist_cancel,
+    pct_dist_error_contactacion.
     """
     from datetime import timedelta
     queryset = _queryset_llamadas_salientes_voice(
@@ -1242,6 +1321,8 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
             ocupado=Count('id', filter=Q(status__iexact='BUSY')),
             contestador=Count('id', filter=Q(status__iexact='EXIT_AMD')),
             shortcall=Count('id', filter=Q(status__iexact='EXIT_SHORTCALL')),
+            abandonadas_espera=Count('id', filter=Q_ABANDONADAS_ESPERA_SALIENTE),
+            timeout_espera=Count('id', filter=Q_TIMEOUT_ESPERA_SALIENTE),
             congestion=Count('id', filter=Q(status__iexact='CONGESTION')),
             transferred=Count('id', filter=Q(is_transferred=True)),
             avg_wait=Avg('wait_conn_duration', filter=Q_answered),
@@ -1262,8 +1343,15 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
         ocupado = r['ocupado'] or 0
         contestador = r['contestador'] or 0
         shortcall = r['shortcall'] or 0
+        abandonadas_espera = r['abandonadas_espera'] or 0
+        timeout_espera = r['timeout_espera'] or 0
         congestion = r['congestion'] or 0
         transferred = r['transferred'] or 0
+        error_contactacion = max(
+            0,
+            sent - conectadas - abandonadas_espera - timeout_espera
+            - shortcall - contestador - ocupado - canceladas
+        )
         otro_error = max(
             0,
             sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
@@ -1287,6 +1375,14 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
         pct_transferencias = (
             (100.0 * transferred / conectadas) if conectadas else 0.0
         )
+        pct_dist_conectadas_ag = (100.0 * conectadas / sent) if sent else 0.0
+        pct_dist_abandonadas_espera = (100.0 * abandonadas_espera / sent) if sent else 0.0
+        pct_dist_timeout_espera = (100.0 * timeout_espera / sent) if sent else 0.0
+        pct_dist_shortcall = (100.0 * shortcall / sent) if sent else 0.0
+        pct_dist_contestador = (100.0 * contestador / sent) if sent else 0.0
+        pct_dist_ocupado = (100.0 * ocupado / sent) if sent else 0.0
+        pct_dist_cancel = (100.0 * canceladas / sent) if sent else 0.0
+        pct_dist_error_contactacion = (100.0 * error_contactacion / sent) if sent else 0.0
         data_by_day[day] = {
             'date': day,
             'date_label': day.strftime('%d/%m'),
@@ -1298,6 +1394,9 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
             'ocupado': ocupado,
             'contestador': contestador,
             'shortcall': shortcall,
+            'abandonadas_espera': abandonadas_espera,
+            'timeout_espera': timeout_espera,
+            'error_contactacion': error_contactacion,
             'congestion': congestion,
             'otro_error': otro_error,
             'transferred': transferred,
@@ -1310,6 +1409,14 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
             'pct_shortcall': round(pct_shortcall, 2),
             'pct_no_conectadas': round(pct_no_conectadas, 2),
             'pct_transferencias': round(pct_transferencias, 2),
+            'pct_dist_conectadas_ag': round(pct_dist_conectadas_ag, 2),
+            'pct_dist_abandonadas_espera': round(pct_dist_abandonadas_espera, 2),
+            'pct_dist_timeout_espera': round(pct_dist_timeout_espera, 2),
+            'pct_dist_shortcall': round(pct_dist_shortcall, 2),
+            'pct_dist_contestador': round(pct_dist_contestador, 2),
+            'pct_dist_ocupado': round(pct_dist_ocupado, 2),
+            'pct_dist_cancel': round(pct_dist_cancel, 2),
+            'pct_dist_error_contactacion': round(pct_dist_error_contactacion, 2),
         }
     result = []
     if start_date and end_date:
@@ -1331,6 +1438,9 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
                     'ocupado': 0,
                     'contestador': 0,
                     'shortcall': 0,
+                    'abandonadas_espera': 0,
+                    'timeout_espera': 0,
+                    'error_contactacion': 0,
                     'congestion': 0,
                     'otro_error': 0,
                     'transferred': 0,
@@ -1343,6 +1453,14 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
                     'pct_shortcall': 0.0,
                     'pct_no_conectadas': 0.0,
                     'pct_transferencias': 0.0,
+                    'pct_dist_conectadas_ag': 0.0,
+                    'pct_dist_abandonadas_espera': 0.0,
+                    'pct_dist_timeout_espera': 0.0,
+                    'pct_dist_shortcall': 0.0,
+                    'pct_dist_contestador': 0.0,
+                    'pct_dist_ocupado': 0.0,
+                    'pct_dist_cancel': 0.0,
+                    'pct_dist_error_contactacion': 0.0,
                 })
             d += timedelta(days=1)
     else:
@@ -1362,6 +1480,10 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
     transferred, avg_wait_seconds, avg_talk_seconds, pct_conectadas, contactadas_pstn,
     pct_conectadas_pstn, pct_conectadas_ag, pct_contestador, pct_shortcall,
     pct_no_conectadas, pct_transferencias.
+    Distribución (pct sobre sent): abandonadas_espera, timeout_espera, error_contactacion,
+    pct_dist_conectadas_ag, pct_dist_abandonadas_espera, pct_dist_timeout_espera,
+    pct_dist_shortcall, pct_dist_contestador, pct_dist_ocupado, pct_dist_cancel,
+    pct_dist_error_contactacion.
     """
     from datetime import date
     queryset = _queryset_llamadas_salientes_voice(
@@ -1387,6 +1509,8 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
             ocupado=Count('id', filter=Q(status__iexact='BUSY')),
             contestador=Count('id', filter=Q(status__iexact='EXIT_AMD')),
             shortcall=Count('id', filter=Q(status__iexact='EXIT_SHORTCALL')),
+            abandonadas_espera=Count('id', filter=Q_ABANDONADAS_ESPERA_SALIENTE),
+            timeout_espera=Count('id', filter=Q_TIMEOUT_ESPERA_SALIENTE),
             congestion=Count('id', filter=Q(status__iexact='CONGESTION')),
             transferred=Count('id', filter=Q(is_transferred=True)),
             avg_wait=Avg('wait_conn_duration', filter=Q_answered),
@@ -1407,8 +1531,15 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
         ocupado = r['ocupado'] or 0
         contestador = r['contestador'] or 0
         shortcall = r['shortcall'] or 0
+        abandonadas_espera = r['abandonadas_espera'] or 0
+        timeout_espera = r['timeout_espera'] or 0
         congestion = r['congestion'] or 0
         transferred = r['transferred'] or 0
+        error_contactacion = max(
+            0,
+            sent - conectadas - abandonadas_espera - timeout_espera
+            - shortcall - contestador - ocupado - canceladas
+        )
         otro_error = max(
             0,
             sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
@@ -1432,6 +1563,14 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
         pct_transferencias = (
             (100.0 * transferred / conectadas) if conectadas else 0.0
         )
+        pct_dist_conectadas_ag = (100.0 * conectadas / sent) if sent else 0.0
+        pct_dist_abandonadas_espera = (100.0 * abandonadas_espera / sent) if sent else 0.0
+        pct_dist_timeout_espera = (100.0 * timeout_espera / sent) if sent else 0.0
+        pct_dist_shortcall = (100.0 * shortcall / sent) if sent else 0.0
+        pct_dist_contestador = (100.0 * contestador / sent) if sent else 0.0
+        pct_dist_ocupado = (100.0 * ocupado / sent) if sent else 0.0
+        pct_dist_cancel = (100.0 * canceladas / sent) if sent else 0.0
+        pct_dist_error_contactacion = (100.0 * error_contactacion / sent) if sent else 0.0
         month_label = MONTHS[month_date.month] if 1 <= month_date.month <= 12 else month_date.strftime('%B')
         data_by_month[month_date] = {
             'month': month_date,
@@ -1444,6 +1583,9 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
             'ocupado': ocupado,
             'contestador': contestador,
             'shortcall': shortcall,
+            'abandonadas_espera': abandonadas_espera,
+            'timeout_espera': timeout_espera,
+            'error_contactacion': error_contactacion,
             'congestion': congestion,
             'otro_error': otro_error,
             'transferred': transferred,
@@ -1456,6 +1598,14 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
             'pct_shortcall': round(pct_shortcall, 2),
             'pct_no_conectadas': round(pct_no_conectadas, 2),
             'pct_transferencias': round(pct_transferencias, 2),
+            'pct_dist_conectadas_ag': round(pct_dist_conectadas_ag, 2),
+            'pct_dist_abandonadas_espera': round(pct_dist_abandonadas_espera, 2),
+            'pct_dist_timeout_espera': round(pct_dist_timeout_espera, 2),
+            'pct_dist_shortcall': round(pct_dist_shortcall, 2),
+            'pct_dist_contestador': round(pct_dist_contestador, 2),
+            'pct_dist_ocupado': round(pct_dist_ocupado, 2),
+            'pct_dist_cancel': round(pct_dist_cancel, 2),
+            'pct_dist_error_contactacion': round(pct_dist_error_contactacion, 2),
         }
     result = []
     if start_date and end_date:
@@ -1479,6 +1629,9 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
                     'ocupado': 0,
                     'contestador': 0,
                     'shortcall': 0,
+                    'abandonadas_espera': 0,
+                    'timeout_espera': 0,
+                    'error_contactacion': 0,
                     'congestion': 0,
                     'otro_error': 0,
                     'transferred': 0,
@@ -1491,6 +1644,14 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
                     'pct_shortcall': 0.0,
                     'pct_no_conectadas': 0.0,
                     'pct_transferencias': 0.0,
+                    'pct_dist_conectadas_ag': 0.0,
+                    'pct_dist_abandonadas_espera': 0.0,
+                    'pct_dist_timeout_espera': 0.0,
+                    'pct_dist_shortcall': 0.0,
+                    'pct_dist_contestador': 0.0,
+                    'pct_dist_ocupado': 0.0,
+                    'pct_dist_cancel': 0.0,
+                    'pct_dist_error_contactacion': 0.0,
                 })
             if m == 12:
                 y, m = y + 1, 1
@@ -4362,21 +4523,6 @@ Q_LISTADO_LLAMADAS_ATENDIDAS_CC = (
     | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
 )
 
-# Egresos voz: además de atendidas por agente/handoff, incluye contactación PSTN
-# por contestador (AMD) y shortcall.
-Q_LISTADO_LLAMADAS_ATENDIDAS_EGRESOS_CC = (
-    Q_LISTADO_LLAMADAS_ATENDIDAS_CC
-    | Q(status__iexact='EXIT_AMD')
-    | Q(status__iexact='EXIT_SHORTCALL')
-)
-
-
-def _q_listado_llamadas_atendidas_cc(direction_filter):
-    """Q de status para listado atendidas según dirección (INBOUND vs OUTBOUND)."""
-    if (direction_filter or 'INBOUND').upper() == 'OUTBOUND':
-        return Q_LISTADO_LLAMADAS_ATENDIDAS_EGRESOS_CC
-    return Q_LISTADO_LLAMADAS_ATENDIDAS_CC
-
 # Contactación PSTN (egresos voz): el cliente contestó (o hubo answer SIP),
 # con o sin atención de agente/bot.
 Q_CONTACTADAS_PSTN = (
@@ -4386,6 +4532,15 @@ Q_CONTACTADAS_PSTN = (
     | Q(status__iexact='EXIT_ABANDON')
     | Q(status__iexact='EXIT_TIMEOUT')
     | Q(status__iexact='EXIT_HANDOFF_ABANDON')
+    | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
+)
+
+Q_ABANDONADAS_ESPERA_SALIENTE = (
+    Q(status__iexact='EXIT_ABANDON')
+    | Q(status__iexact='EXIT_HANDOFF_ABANDON')
+)
+Q_TIMEOUT_ESPERA_SALIENTE = (
+    Q(status__iexact='EXIT_TIMEOUT')
     | Q(status__iexact='EXIT_HANDOFF_TIMEOUT')
 )
 
@@ -4418,21 +4573,20 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
                                        page=1, page_size=100):
     """
     Listado paginado de llamadas atendidas (voz): EXIT_ANSWERED y cierres post-handoff
-    EXIT_HANDOFF_ABANDON / EXIT_HANDOFF_TIMEOUT. En egresos (OUTBOUND) también incluye
-    EXIT_AMD y EXIT_SHORTCALL (contactación PSTN).
+    EXIT_HANDOFF_ABANDON / EXIT_HANDOFF_TIMEOUT (ingresos y egresos).
     direction_filter: 'INBOUND' o 'OUTBOUND'. Mismos filtros que obtener_llamadas_por_campana.
     Retorna un Page de Django con object_list siendo lista de dicts con columnas para la tabla
     (fecha_hora, id_contacto, telefono, id_campana, nombre_campana, id_agente, nombre_agente,
     username_agente, grupo_agente, is_transferred, tiempo_espera, duracion_agente, duracion_bot,
     quien_corto, calificacion_tel, id_calificacion, nombre_calificacion, nombre_subcalificacion,
     url_grabacion).
-    calificacion_tel es el status telefónico (p. ej. EXIT_ANSWERED, EXIT_AMD).
+    calificacion_tel es el status telefónico (p. ej. EXIT_ANSWERED).
     id_calificacion y nombre_calificacion provienen de CalificacionCliente (por callid=interaction_id).
     """
     queryset = InteractionsSummary.objects.filter(
         direction__iexact=direction_filter,
         channel_type__iexact='VOICE',
-    ).filter(_q_listado_llamadas_atendidas_cc(direction_filter)).exclude(Q_LISTADO_EXIT_ANSWERED_FANTASMA)
+    ).filter(Q_LISTADO_LLAMADAS_ATENDIDAS_CC).exclude(Q_LISTADO_EXIT_ANSWERED_FANTASMA)
 
     if allowed_campaigns is not None:
         queryset = queryset.filter(
@@ -4576,7 +4730,7 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
                                           page=1, page_size=100):
     """
     Listado paginado de llamadas no atendidas (voz): excluye los status del listado
-    atendidas (mismo criterio que obtener_listado_llamadas_atendidas por dirección).
+    atendidas (EXIT_ANSWERED y cierres post-handoff). Incluye EXIT_AMD y EXIT_SHORTCALL.
     direction_filter: 'INBOUND' o 'OUTBOUND'. Mismos filtros que obtener_listado_llamadas_atendidas.
     Retorna un Page con object_list de dicts con: fecha_hora, id_contacto, telefono,
     id_campana, nombre_campana, tiempo_espera, status.
@@ -4584,7 +4738,7 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
     queryset = InteractionsSummary.objects.filter(
         direction__iexact=direction_filter,
         channel_type__iexact='VOICE',
-    ).exclude(_q_listado_llamadas_atendidas_cc(direction_filter))
+    ).exclude(Q_LISTADO_LLAMADAS_ATENDIDAS_CC)
 
     if allowed_campaigns is not None:
         queryset = queryset.filter(
@@ -5777,6 +5931,9 @@ class ReporteCentroContactoFormView(FormView):
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_campana)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_campana)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_campana)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_campana)
+            total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_campana)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_campana)
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_campana)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_campana)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_campana)
@@ -5789,6 +5946,9 @@ class ReporteCentroContactoFormView(FormView):
                 'ocupado': total_ocupado,
                 'contestador': total_contestador,
                 'shortcall': total_shortcall,
+                'abandonadas_espera': total_abandonadas_espera,
+                'timeout_espera': total_timeout_espera,
+                'error_contactacion': total_error_contactacion,
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
@@ -5815,6 +5975,30 @@ class ReporteCentroContactoFormView(FormView):
                 'pct_transferencias': (
                     round(100.0 * total_transferred / total_conectadas, 2)
                     if total_conectadas else 0.0
+                ),
+                'pct_dist_conectadas_ag': (
+                    round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_abandonadas_espera': (
+                    round(100.0 * total_abandonadas_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_timeout_espera': (
+                    round(100.0 * total_timeout_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_shortcall': (
+                    round(100.0 * total_shortcall / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_contestador': (
+                    round(100.0 * total_contestador / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_ocupado': (
+                    round(100.0 * total_ocupado / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_cancel': (
+                    round(100.0 * total_canceladas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_error_contactacion': (
+                    round(100.0 * total_error_contactacion / total_sent, 2) if total_sent else 0.0
                 ),
             }
         egresos_llamadas_por_hora = obtener_llamadas_salientes_por_hora(
@@ -5855,6 +6039,9 @@ class ReporteCentroContactoFormView(FormView):
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_hora)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_hora)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_hora)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_hora)
+            total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_hora)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_hora)
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_hora)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_hora)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_hora)
@@ -5867,6 +6054,9 @@ class ReporteCentroContactoFormView(FormView):
                 'ocupado': total_ocupado,
                 'contestador': total_contestador,
                 'shortcall': total_shortcall,
+                'abandonadas_espera': total_abandonadas_espera,
+                'timeout_espera': total_timeout_espera,
+                'error_contactacion': total_error_contactacion,
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
@@ -5893,6 +6083,30 @@ class ReporteCentroContactoFormView(FormView):
                 'pct_transferencias': (
                     round(100.0 * total_transferred / total_conectadas, 2)
                     if total_conectadas else 0.0
+                ),
+                'pct_dist_conectadas_ag': (
+                    round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_abandonadas_espera': (
+                    round(100.0 * total_abandonadas_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_timeout_espera': (
+                    round(100.0 * total_timeout_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_shortcall': (
+                    round(100.0 * total_shortcall / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_contestador': (
+                    round(100.0 * total_contestador / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_ocupado': (
+                    round(100.0 * total_ocupado / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_cancel': (
+                    round(100.0 * total_canceladas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_error_contactacion': (
+                    round(100.0 * total_error_contactacion / total_sent, 2) if total_sent else 0.0
                 ),
             }
         egresos_llamadas_por_dia = obtener_llamadas_salientes_por_dia(
@@ -5918,6 +6132,9 @@ class ReporteCentroContactoFormView(FormView):
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_dia)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_dia)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_dia)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_dia)
+            total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_dia)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_dia)
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_dia)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_dia)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_dia)
@@ -5930,6 +6147,9 @@ class ReporteCentroContactoFormView(FormView):
                 'ocupado': total_ocupado,
                 'contestador': total_contestador,
                 'shortcall': total_shortcall,
+                'abandonadas_espera': total_abandonadas_espera,
+                'timeout_espera': total_timeout_espera,
+                'error_contactacion': total_error_contactacion,
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
@@ -5956,6 +6176,30 @@ class ReporteCentroContactoFormView(FormView):
                 'pct_transferencias': (
                     round(100.0 * total_transferred / total_conectadas, 2)
                     if total_conectadas else 0.0
+                ),
+                'pct_dist_conectadas_ag': (
+                    round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_abandonadas_espera': (
+                    round(100.0 * total_abandonadas_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_timeout_espera': (
+                    round(100.0 * total_timeout_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_shortcall': (
+                    round(100.0 * total_shortcall / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_contestador': (
+                    round(100.0 * total_contestador / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_ocupado': (
+                    round(100.0 * total_ocupado / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_cancel': (
+                    round(100.0 * total_canceladas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_error_contactacion': (
+                    round(100.0 * total_error_contactacion / total_sent, 2) if total_sent else 0.0
                 ),
             }
         egresos_llamadas_por_mes = obtener_llamadas_salientes_por_mes(
@@ -5981,6 +6225,9 @@ class ReporteCentroContactoFormView(FormView):
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_mes)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_mes)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_mes)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_mes)
+            total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_mes)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_mes)
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_mes)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_mes)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_mes)
@@ -5993,6 +6240,9 @@ class ReporteCentroContactoFormView(FormView):
                 'ocupado': total_ocupado,
                 'contestador': total_contestador,
                 'shortcall': total_shortcall,
+                'abandonadas_espera': total_abandonadas_espera,
+                'timeout_espera': total_timeout_espera,
+                'error_contactacion': total_error_contactacion,
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
@@ -6019,6 +6269,30 @@ class ReporteCentroContactoFormView(FormView):
                 'pct_transferencias': (
                     round(100.0 * total_transferred / total_conectadas, 2)
                     if total_conectadas else 0.0
+                ),
+                'pct_dist_conectadas_ag': (
+                    round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_abandonadas_espera': (
+                    round(100.0 * total_abandonadas_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_timeout_espera': (
+                    round(100.0 * total_timeout_espera / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_shortcall': (
+                    round(100.0 * total_shortcall / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_contestador': (
+                    round(100.0 * total_contestador / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_ocupado': (
+                    round(100.0 * total_ocupado / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_cancel': (
+                    round(100.0 * total_canceladas / total_sent, 2) if total_sent else 0.0
+                ),
+                'pct_dist_error_contactacion': (
+                    round(100.0 * total_error_contactacion / total_sent, 2) if total_sent else 0.0
                 ),
             }
         # Egresos Canalidades (Horas, Días, Mes): formato genérico received/answered para el panel Canalidades

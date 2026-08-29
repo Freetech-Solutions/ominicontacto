@@ -2470,122 +2470,22 @@
                                     </div>
                                 </div>
                                 {% if egresos_llamadas_por_campana %}
-                                {% if egresos_llamadas_por_campana_totals %}
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                                        <p class="text-xs text-gray-500 font-medium uppercase">{% trans 'Total enviadas' %}</p>
-                                        <p class="text-xl font-bold text-gray-900 f-mono mt-1">{{ egresos_llamadas_por_campana_totals.sent }}</p>
-                                    </div>
-                                    <div class="bg-white p-4 rounded-lg shadow-sm border-t-4 border-green-500">
-                                        <p class="text-xs text-gray-500 font-medium uppercase">{% trans 'Total conectadas' %}</p>
-                                        <p class="text-xl font-bold text-gray-900 f-mono mt-1">{{ egresos_llamadas_por_campana_totals.conectadas }}</p>
-                                    </div>
-                                    <div class="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                                        <p class="text-xs text-gray-500 font-medium uppercase">{% trans '% Conectadas Agente' %}</p>
-                                        <p class="text-xl font-bold text-gray-900 f-mono mt-1">{{ egresos_llamadas_por_campana_totals.pct_conectadas|floatformat:1 }}%</p>
-                                    </div>
-                                </div>
-                                {% endif %}
-                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{% trans 'Performance outbound: volumen por tipo de resultado y % Conectadas Agente' %}</h3>
-                                <div class="reporte-cc-egresos-voz-chart-wrapper bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-                                    <div class="overflow-x-auto">
-                                        <div class="reporte-cc-egresos-voz-chart" style="min-width: 600px;">
-                                            <canvas id="chartEgresosVozPorCampana"></canvas>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% with egresos_llamadas_por_campana|slice:":12" as chart_data %}
-                                {{ chart_data|json_script:"reporteCcEgresosVozPorCampanaData" }}
-                                {% endwith %}
-                                <script>
-                                (function() {
-                                    var dataEl = document.getElementById('reporteCcEgresosVozPorCampanaData');
-                                    if (!dataEl || typeof Chart === 'undefined') return;
-                                    var rows = dataEl.textContent ? JSON.parse(dataEl.textContent) : [];
-                                    rows = rows.slice(0, 12);
-                                    if (rows.length === 0) return;
-                                    var labels = rows.map(function(r) { return r.campaign_name || ''; });
-                                    var isWide = window.innerWidth >= 2560;
-                                    var xMaxRotation = isWide ? 0 : 45;
-                                    var xMinRotation = isWide ? 0 : 45;
-                                    var buildData = function() {
-                                        return {
-                                            labels: labels,
-                                            datasets: [
-                                                { label: '{% trans "Conectadas" %}', data: rows.map(function(r) { return r.conectadas || 0; }), backgroundColor: 'rgba(34, 197, 94, 0.85)', borderColor: 'rgb(34, 197, 94)', borderWidth: 1, stack: 'stackVolumen', type: 'bar' },
-                                                { label: '{% trans "Canceladas" %}', data: rows.map(function(r) { return r.canceladas || 0; }), backgroundColor: 'rgba(107, 114, 128, 0.85)', borderColor: 'rgb(107, 114, 128)', borderWidth: 1, stack: 'stackVolumen', type: 'bar' },
-                                                { label: '{% trans "Ocupado" %}', data: rows.map(function(r) { return r.ocupado || 0; }), backgroundColor: 'rgba(249, 115, 22, 0.85)', borderColor: 'rgb(249, 115, 22)', borderWidth: 1, stack: 'stackVolumen', type: 'bar' },
-                                                { label: '{% trans "Contestador" %}', data: rows.map(function(r) { return r.contestador || 0; }), backgroundColor: 'rgba(250, 204, 21, 0.85)', borderColor: 'rgb(250, 204, 21)', borderWidth: 1, stack: 'stackVolumen', type: 'bar' },
-                                                { label: '{% trans "Congestion" %}', data: rows.map(function(r) { return r.congestion || 0; }), backgroundColor: 'rgba(239, 68, 68, 0.85)', borderColor: 'rgb(239, 68, 68)', borderWidth: 1, stack: 'stackVolumen', type: 'bar' },
-                                                { label: '{% trans "Otro" %}', data: rows.map(function(r) { return (r.no_atiende || 0) + (r.shortcall || 0) + (r.otro_error || 0); }), backgroundColor: 'rgba(156, 163, 175, 0.85)', borderColor: 'rgb(156, 163, 175)', borderWidth: 1, stack: 'stackVolumen', type: 'bar' }
-                                            ]
-                                        };
-                                    };
-                                    var ctx = document.getElementById('chartEgresosVozPorCampana');
-                                    if (!ctx) return;
-                                    if (ctx._chartInstance) { ctx._chartInstance.destroy(); ctx._chartInstance = null; }
-                                    var chartData = buildData();
-                                    var chart = new Chart(ctx.getContext('2d'), {
-                                        type: 'bar',
-                                        data: chartData,
-                                        options: {
-                                            responsive: true,
-                                            maintainAspectRatio: false,
-                                            animation: { duration: 400 },
-                                            plugins: {
-                                                legend: { position: 'top', labels: { boxWidth: 14, padding: 12 } },
-                                                tooltip: {
-                                                    callbacks: {
-                                                        title: function(items) {
-                                                            if (items.length && items[0].dataIndex >= 0 && rows[items[0].dataIndex]) {
-                                                                return rows[items[0].dataIndex].campaign_name || '';
-                                                            }
-                                                            return items.length ? (labels[items[0].dataIndex] || '') : '';
-                                                        },
-                                                        afterBody: function(items) {
-                                                            if (items.length && items[0].dataIndex >= 0 && rows[items[0].dataIndex]) {
-                                                                var r = rows[items[0].dataIndex];
-                                                                return ['Enviadas: ' + (r.sent || 0), 'Conectadas: ' + (r.conectadas || 0), '% conexión: ' + (r.pct_conectadas != null ? r.pct_conectadas.toFixed(1) : '0') + '%'];
-                                                            }
-                                                            return [];
-                                                        }
-                                                    }
-                                                }
-                                            },
-                                            scales: {
-                                                x: {
-                                                    stacked: true,
-                                                    maxRotation: xMaxRotation,
-                                                    minRotation: xMinRotation,
-                                                    title: { display: true, text: '{% trans "Campaña" %}' }
-                                                },
-                                                y: {
-                                                    stacked: true,
-                                                    position: 'left',
-                                                    beginAtZero: true,
-                                                    title: { display: true, text: '{% trans "Cantidad" %}' }
-                                                }
-                                            }
-                                        }
-                                    });
-                                    ctx._chartInstance = chart;
-                                })();
-                                </script>
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{% trans 'Distribución de llamadas' %}</h3>
                                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 reporte-cc-tabla-llamadas-campana">
                                     <div class="overflow-x-auto">
                                         <table class="table table-sm table-bordered table-hover mb-0">
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Campaña' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Enviadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas PSTN' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas Ag' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Contestador' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Shortcall' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% No Conectadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Transferencias' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Llamadas enviadas (total)' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Conectadas Ag' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Abandonadas en espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Timeout de espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Short call' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Contestador Automático' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Ocupado' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Cancel' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Error de contactación' %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2593,28 +2493,28 @@
                                                 <tr>
                                                     <td>{{ row.campaign_name }}</td>
                                                     <td class="text-right f-mono">{{ row.sent }}</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{% if row.avg_wait_seconds is not None %}{{ row.avg_wait_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
-                                                    <td class="text-right f-mono">{% if row.avg_talk_seconds is not None %}{{ row.avg_talk_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endfor %}
                                                 {% if egresos_llamadas_por_campana_totals %}
                                                 <tr class="font-weight-bold bg-gray-50">
                                                     <td>{% trans 'Total' %}</td>
                                                     <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.sent }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right">—</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_campana_totals.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endif %}
                                             </tbody>
@@ -2646,15 +2546,15 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Hora' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Enviadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas PSTN' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas Ag' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Contestador' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Shortcall' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% No Conectadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Transferencias' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Llamadas enviadas (total)' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Conectadas Ag' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Abandonadas en espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Timeout de espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Short call' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Contestador Automático' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Ocupado' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Cancel' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Error de contactación' %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2662,28 +2562,28 @@
                                                 <tr>
                                                     <td>{{ row.hour_label }}</td>
                                                     <td class="text-right f-mono">{{ row.sent }}</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{% if row.avg_wait_seconds is not None %}{{ row.avg_wait_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
-                                                    <td class="text-right f-mono">{% if row.avg_talk_seconds is not None %}{{ row.avg_talk_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endfor %}
                                                 {% if egresos_llamadas_por_hora_totals %}
                                                 <tr class="font-weight-bold bg-gray-50">
                                                     <td>{% trans 'Total' %}</td>
                                                     <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.sent }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right">—</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_hora_totals.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endif %}
                                             </tbody>
@@ -2751,15 +2651,15 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Fecha' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Enviadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas PSTN' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas Ag' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Contestador' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Shortcall' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% No Conectadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Transferencias' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Llamadas enviadas (total)' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Conectadas Ag' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Abandonadas en espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Timeout de espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Short call' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Contestador Automático' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Ocupado' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Cancel' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Error de contactación' %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2767,28 +2667,28 @@
                                                 <tr>
                                                     <td>{{ row.date_label }}</td>
                                                     <td class="text-right f-mono">{{ row.sent }}</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{% if row.avg_wait_seconds is not None %}{{ row.avg_wait_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
-                                                    <td class="text-right f-mono">{% if row.avg_talk_seconds is not None %}{{ row.avg_talk_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endfor %}
                                                 {% if egresos_llamadas_por_dia_totals %}
                                                 <tr class="font-weight-bold bg-gray-50">
                                                     <td>{% trans 'Total' %}</td>
                                                     <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.sent }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right">—</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_dia_totals.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endif %}
                                             </tbody>
@@ -2856,15 +2756,15 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Mes' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Enviadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas PSTN' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Conectadas Ag' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Contestador' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Shortcall' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% No Conectadas' %}</th>
-                                                    <th scope="col" class="text-right">{% trans '% Transferencias' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
-                                                    <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Llamadas enviadas (total)' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Conectadas Ag' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Abandonadas en espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Timeout de espera' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Short call' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Contestador Automático' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Ocupado' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Cancel' %}</th>
+                                                    <th scope="col" class="text-right">{% trans 'Error de contactación' %}</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2872,28 +2772,28 @@
                                                 <tr>
                                                     <td>{{ row.month_label }}</td>
                                                     <td class="text-right f-mono">{{ row.sent }}</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ row.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{% if row.avg_wait_seconds is not None %}{{ row.avg_wait_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
-                                                    <td class="text-right f-mono">{% if row.avg_talk_seconds is not None %}{{ row.avg_talk_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ row.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endfor %}
                                                 {% if egresos_llamadas_por_mes_totals %}
                                                 <tr class="font-weight-bold bg-gray-50">
                                                     <td>{% trans 'Total' %}</td>
                                                     <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.sent }}</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_conectadas_pstn|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_conectadas_ag|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_contestador|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_shortcall|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_no_conectadas|floatformat:1 }}%</td>
-                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_transferencias|floatformat:1 }}%</td>
-                                                    <td class="text-right">—</td>
-                                                    <td class="text-right">—</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_conectadas_ag|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_abandonadas_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_timeout_espera|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_shortcall|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_contestador|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_ocupado|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_cancel|floatformat:1 }}%</td>
+                                                    <td class="text-right f-mono">{{ egresos_llamadas_por_mes_totals.pct_dist_error_contactacion|floatformat:1 }}%</td>
                                                 </tr>
                                                 {% endif %}
                                             </tbody>

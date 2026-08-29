@@ -2051,6 +2051,24 @@ class ObtenerLlamadasSalientesPorCampanaTest(OMLBaseTest):
         self.assertIn('canceladas', row)
         self.assertIn('contestador', row)
 
+        self.assertEqual(row['abandonadas_espera'], 2)
+        self.assertEqual(row['timeout_espera'], 2)
+        self.assertEqual(row['error_contactacion'], 1)
+        self.assertEqual(row['pct_dist_conectadas_ag'], 10.0)
+        self.assertEqual(row['pct_dist_abandonadas_espera'], 20.0)
+        self.assertEqual(row['pct_dist_timeout_espera'], 20.0)
+        self.assertEqual(row['pct_dist_shortcall'], 10.0)
+        self.assertEqual(row['pct_dist_contestador'], 10.0)
+        self.assertEqual(row['pct_dist_ocupado'], 10.0)
+        self.assertEqual(row['pct_dist_cancel'], 10.0)
+        self.assertEqual(row['pct_dist_error_contactacion'], 10.0)
+        suma_categorias = (
+            row['conectadas'] + row['abandonadas_espera'] + row['timeout_espera']
+            + row['shortcall'] + row['contestador'] + row['ocupado'] + row['canceladas']
+            + row['error_contactacion']
+        )
+        self.assertEqual(suma_categorias, row['sent'])
+
     def test_division_por_cero_sin_contactadas_pstn(self):
         self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
         self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
@@ -2138,8 +2156,11 @@ class ObtenerLlamadasSalientesPorHoraTest(OMLBaseTest):
         self._create_outbound('EXIT_ANSWERED', hour=10, is_transferred=True)
         self._create_outbound('EXIT_AMD', hour=10, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('EXIT_SHORTCALL', hour=10, agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', hour=10, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', hour=10, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('NOANSWER', hour=10, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
         self._create_outbound('BUSY', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('CANCEL', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
 
         rows = obtener_llamadas_salientes_por_hora(
             start_date=self.desde,
@@ -2150,28 +2171,48 @@ class ObtenerLlamadasSalientesPorHoraTest(OMLBaseTest):
         by_hour = {r['hour']: r for r in rows}
 
         h10 = by_hour[10]
-        self.assertEqual(h10['sent'], 4)
+        self.assertEqual(h10['sent'], 6)
         self.assertEqual(h10['conectadas'], 1)
-        self.assertEqual(h10['contactadas_pstn'], 3)
-        self.assertEqual(h10['pct_conectadas_pstn'], 75.0)
-        self.assertEqual(h10['pct_conectadas_ag'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(h10['pct_contestador'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(h10['pct_shortcall'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(h10['pct_no_conectadas'], 25.0)
+        self.assertEqual(h10['contactadas_pstn'], 5)
+        self.assertEqual(h10['pct_conectadas_pstn'], round(100.0 * 5 / 6, 2))
+        self.assertEqual(h10['pct_conectadas_ag'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(h10['pct_contestador'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(h10['pct_shortcall'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(h10['pct_no_conectadas'], round(100.0 * 1 / 6, 2))
         self.assertEqual(h10['pct_transferencias'], 100.0)
+        self.assertEqual(h10['abandonadas_espera'], 1)
+        self.assertEqual(h10['timeout_espera'], 1)
+        self.assertEqual(h10['error_contactacion'], 1)
+        self.assertEqual(h10['pct_dist_conectadas_ag'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_abandonadas_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_timeout_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_shortcall'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_contestador'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_error_contactacion'], round(100.0 * 1 / 6, 2))
+        suma_h10 = (
+            h10['conectadas'] + h10['abandonadas_espera'] + h10['timeout_espera']
+            + h10['shortcall'] + h10['contestador'] + h10['ocupado'] + h10['canceladas']
+            + h10['error_contactacion']
+        )
+        self.assertEqual(suma_h10, h10['sent'])
 
         h11 = by_hour[11]
-        self.assertEqual(h11['sent'], 1)
+        self.assertEqual(h11['sent'], 2)
         self.assertEqual(h11['contactadas_pstn'], 0)
         self.assertEqual(h11['pct_conectadas_pstn'], 0.0)
         self.assertEqual(h11['pct_contestador'], 0.0)
         self.assertEqual(h11['pct_shortcall'], 0.0)
         self.assertEqual(h11['pct_no_conectadas'], 100.0)
+        self.assertEqual(h11['pct_dist_ocupado'], 50.0)
+        self.assertEqual(h11['pct_dist_cancel'], 50.0)
+        self.assertEqual(h11['pct_dist_error_contactacion'], 0.0)
 
         h0 = by_hour[0]
         self.assertEqual(h0['sent'], 0)
         self.assertEqual(h0['pct_conectadas_pstn'], 0.0)
         self.assertEqual(h0['pct_transferencias'], 0.0)
+        self.assertEqual(h0['pct_dist_conectadas_ag'], 0.0)
+        self.assertEqual(h0['pct_dist_error_contactacion'], 0.0)
 
 
 @unittest.skipUnless(
@@ -2221,8 +2262,11 @@ class ObtenerLlamadasSalientesPorDiaTest(OMLBaseTest):
         self._create_outbound('EXIT_ANSWERED', day_offset=1, is_transferred=True)
         self._create_outbound('EXIT_AMD', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('EXIT_SHORTCALL', day_offset=1, agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('NOANSWER', day_offset=1, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
         self._create_outbound('BUSY', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('CANCEL', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
 
         rows = obtener_llamadas_salientes_por_dia(
             start_date=self.desde,
@@ -2240,24 +2284,44 @@ class ObtenerLlamadasSalientesPorDiaTest(OMLBaseTest):
         self.assertEqual(d0['sent'], 0)
         self.assertEqual(d0['contactadas_pstn'], 0)
         self.assertEqual(d0['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(d0['pct_dist_conectadas_ag'], 0.0)
+        self.assertEqual(d0['pct_dist_error_contactacion'], 0.0)
 
         d1 = by_date[dia1]
-        self.assertEqual(d1['sent'], 4)
+        self.assertEqual(d1['sent'], 6)
         self.assertEqual(d1['conectadas'], 1)
-        self.assertEqual(d1['contactadas_pstn'], 3)
-        self.assertEqual(d1['pct_conectadas_pstn'], 75.0)
-        self.assertEqual(d1['pct_conectadas_ag'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(d1['pct_contestador'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(d1['pct_shortcall'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(d1['pct_no_conectadas'], 25.0)
+        self.assertEqual(d1['contactadas_pstn'], 5)
+        self.assertEqual(d1['pct_conectadas_pstn'], round(100.0 * 5 / 6, 2))
+        self.assertEqual(d1['pct_conectadas_ag'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(d1['pct_contestador'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(d1['pct_shortcall'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(d1['pct_no_conectadas'], round(100.0 * 1 / 6, 2))
         self.assertEqual(d1['pct_transferencias'], 100.0)
+        self.assertEqual(d1['abandonadas_espera'], 1)
+        self.assertEqual(d1['timeout_espera'], 1)
+        self.assertEqual(d1['error_contactacion'], 1)
+        self.assertEqual(d1['pct_dist_conectadas_ag'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_abandonadas_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_timeout_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_shortcall'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_contestador'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_error_contactacion'], round(100.0 * 1 / 6, 2))
+        suma_d1 = (
+            d1['conectadas'] + d1['abandonadas_espera'] + d1['timeout_espera']
+            + d1['shortcall'] + d1['contestador'] + d1['ocupado'] + d1['canceladas']
+            + d1['error_contactacion']
+        )
+        self.assertEqual(suma_d1, d1['sent'])
 
         d2 = by_date[dia2]
-        self.assertEqual(d2['sent'], 1)
+        self.assertEqual(d2['sent'], 2)
         self.assertEqual(d2['contactadas_pstn'], 0)
         self.assertEqual(d2['pct_contestador'], 0.0)
         self.assertEqual(d2['pct_shortcall'], 0.0)
         self.assertEqual(d2['pct_no_conectadas'], 100.0)
+        self.assertEqual(d2['pct_dist_ocupado'], 50.0)
+        self.assertEqual(d2['pct_dist_cancel'], 50.0)
+        self.assertEqual(d2['pct_dist_error_contactacion'], 0.0)
 
 
 @unittest.skipUnless(
@@ -2308,12 +2372,18 @@ class ObtenerLlamadasSalientesPorMesTest(OMLBaseTest):
         self._create_outbound('EXIT_ANSWERED', 2025, 2, 10, is_transferred=True)
         self._create_outbound('EXIT_AMD', 2025, 2, 11, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('EXIT_SHORTCALL', 2025, 2, 12, agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', 2025, 2, 13, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', 2025, 2, 14, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound(
-            'NOANSWER', 2025, 2, 13, agent_id=-1,
+            'NOANSWER', 2025, 2, 15, agent_id=-1,
             agent_duration=Decimal('0'), total_duration=Decimal('0'),
         )
         self._create_outbound(
             'BUSY', 2025, 3, 5, agent_id=-1,
+            agent_duration=Decimal('0'), total_duration=Decimal('0'),
+        )
+        self._create_outbound(
+            'CANCEL', 2025, 3, 6, agent_id=-1,
             agent_duration=Decimal('0'), total_duration=Decimal('0'),
         )
 
@@ -2333,24 +2403,44 @@ class ObtenerLlamadasSalientesPorMesTest(OMLBaseTest):
         self.assertEqual(m0['sent'], 0)
         self.assertEqual(m0['contactadas_pstn'], 0)
         self.assertEqual(m0['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(m0['pct_dist_conectadas_ag'], 0.0)
+        self.assertEqual(m0['pct_dist_error_contactacion'], 0.0)
 
         m1 = by_month[mes_febrero]
-        self.assertEqual(m1['sent'], 4)
+        self.assertEqual(m1['sent'], 6)
         self.assertEqual(m1['conectadas'], 1)
-        self.assertEqual(m1['contactadas_pstn'], 3)
-        self.assertEqual(m1['pct_conectadas_pstn'], 75.0)
-        self.assertEqual(m1['pct_conectadas_ag'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(m1['pct_contestador'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(m1['pct_shortcall'], round(100.0 * 1 / 3, 2))
-        self.assertEqual(m1['pct_no_conectadas'], 25.0)
+        self.assertEqual(m1['contactadas_pstn'], 5)
+        self.assertEqual(m1['pct_conectadas_pstn'], round(100.0 * 5 / 6, 2))
+        self.assertEqual(m1['pct_conectadas_ag'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(m1['pct_contestador'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(m1['pct_shortcall'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(m1['pct_no_conectadas'], round(100.0 * 1 / 6, 2))
         self.assertEqual(m1['pct_transferencias'], 100.0)
+        self.assertEqual(m1['abandonadas_espera'], 1)
+        self.assertEqual(m1['timeout_espera'], 1)
+        self.assertEqual(m1['error_contactacion'], 1)
+        self.assertEqual(m1['pct_dist_conectadas_ag'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_abandonadas_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_timeout_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_shortcall'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_contestador'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_error_contactacion'], round(100.0 * 1 / 6, 2))
+        suma_m1 = (
+            m1['conectadas'] + m1['abandonadas_espera'] + m1['timeout_espera']
+            + m1['shortcall'] + m1['contestador'] + m1['ocupado'] + m1['canceladas']
+            + m1['error_contactacion']
+        )
+        self.assertEqual(suma_m1, m1['sent'])
 
         m2 = by_month[mes_marzo]
-        self.assertEqual(m2['sent'], 1)
+        self.assertEqual(m2['sent'], 2)
         self.assertEqual(m2['contactadas_pstn'], 0)
         self.assertEqual(m2['pct_contestador'], 0.0)
         self.assertEqual(m2['pct_shortcall'], 0.0)
         self.assertEqual(m2['pct_no_conectadas'], 100.0)
+        self.assertEqual(m2['pct_dist_ocupado'], 50.0)
+        self.assertEqual(m2['pct_dist_cancel'], 50.0)
+        self.assertEqual(m2['pct_dist_error_contactacion'], 0.0)
 
 
 @unittest.skipUnless(
@@ -2358,7 +2448,7 @@ class ObtenerLlamadasSalientesPorMesTest(OMLBaseTest):
     'Requiere tabla interactions_summary',
 )
 class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
-    """EXIT_AMD y EXIT_SHORTCALL en egresos van a atendidas, no a no atendidas."""
+    """EXIT_AMD y EXIT_SHORTCALL en egresos van a no atendidas, no a atendidas."""
 
     def setUp(self):
         super(ListadoLlamadasEgresosClasificacionTest, self).setUp()
@@ -2407,7 +2497,7 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
         )
         return len(page.object_list)
 
-    def test_amd_y_shortcall_en_atendidas_egresos(self):
+    def test_amd_y_shortcall_en_no_atendidas_egresos(self):
         amd = self._create_voice('EXIT_AMD', agent_id=-1, agent_duration=Decimal('0'))
         shortcall = self._create_voice('EXIT_SHORTCALL', agent_duration=Decimal('2'))
         noanswer = self._create_voice(
@@ -2418,9 +2508,21 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
             self._count_in_listado(
                 obtener_listado_llamadas_atendidas, amd.interaction_id, 'OUTBOUND',
             ),
+            0,
+        )
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_atendidas, shortcall.interaction_id, 'OUTBOUND',
+            ),
+            0,
+        )
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_no_atendidas, amd.interaction_id, 'OUTBOUND',
+            ),
             1,
         )
-        amd_page = obtener_listado_llamadas_atendidas(
+        amd_page = obtener_listado_llamadas_no_atendidas(
             start_date=self.desde,
             end_date=self.hasta,
             allowed_campaigns=[self.campana.pk],
@@ -2428,24 +2530,12 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
             callid=amd.interaction_id,
             page_size=100,
         )
-        self.assertEqual(amd_page.object_list[0]['calificacion_tel'], 'EXIT_AMD')
-        self.assertEqual(
-            self._count_in_listado(
-                obtener_listado_llamadas_atendidas, shortcall.interaction_id, 'OUTBOUND',
-            ),
-            1,
-        )
-        self.assertEqual(
-            self._count_in_listado(
-                obtener_listado_llamadas_no_atendidas, amd.interaction_id, 'OUTBOUND',
-            ),
-            0,
-        )
+        self.assertEqual(amd_page.object_list[0]['status'], 'EXIT_AMD')
         self.assertEqual(
             self._count_in_listado(
                 obtener_listado_llamadas_no_atendidas, shortcall.interaction_id, 'OUTBOUND',
             ),
-            0,
+            1,
         )
         self.assertEqual(
             self._count_in_listado(
