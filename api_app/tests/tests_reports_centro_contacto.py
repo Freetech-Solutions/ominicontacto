@@ -2550,6 +2550,34 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
             0,
         )
 
+    def test_listados_incluyen_interaction_id(self):
+        answered = self._create_voice('EXIT_ANSWERED')
+        noanswer = self._create_voice(
+            'NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'),
+        )
+
+        atendidas = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=answered.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(atendidas.object_list), 1)
+        self.assertEqual(atendidas.object_list[0]['interaction_id'], answered.interaction_id)
+
+        no_atendidas = obtener_listado_llamadas_no_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=noanswer.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(no_atendidas.object_list), 1)
+        self.assertEqual(no_atendidas.object_list[0]['interaction_id'], noanswer.interaction_id)
+
     def test_amd_inbound_sigue_en_no_atendidas(self):
         amd_in = self._create_voice(
             'EXIT_AMD', direction='INBOUND', agent_id=-1, agent_duration=Decimal('0'),

@@ -137,6 +137,7 @@ def generar_csv_llamadas_no_atendidas_centro_contacto(
     ruta = os.path.join(dir_abs, filename)
 
     header = [
+        _('interaction_id'),
         _('Fecha/Hora'),
         _('Id contacto'),
         _('Teléfono'),
@@ -152,6 +153,7 @@ def generar_csv_llamadas_no_atendidas_centro_contacto(
         for row in all_rows:
             fecha_str = _format_fecha_hora_csv(row.get('fecha_hora'))
             writer.writerow([
+                _to_str(row.get('interaction_id')),
                 fecha_str,
                 _to_str(row.get('id_contacto')),
                 _to_str(row.get('telefono')),

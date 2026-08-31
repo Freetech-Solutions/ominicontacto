@@ -122,6 +122,7 @@ def generar_csv_conversaciones_respondidas_egresos_centro_contacto(
     ruta = os.path.join(dir_abs, filename)
 
     header = [
+        _('interaction_id'),
         _('Id conversación'),
         _('Fecha/Hora'),
         _('Id contacto'),
@@ -183,6 +184,7 @@ def generar_csv_conversaciones_respondidas_egresos_centro_contacto(
                 conv.conversation_disposition.subcalificacion or ''
             )
         return [
+            _to_str(conv.id),
             _to_str(conv.id),
             timestamp_str,
             _to_str(client_id),

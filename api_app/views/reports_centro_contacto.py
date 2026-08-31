@@ -4792,6 +4792,7 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
         wait_sec = _decimal_to_float(obj.wait_conn_duration) if obj.wait_conn_duration is not None else None
         rows.append({
             'fecha_hora': obj.start_time,
+            'interaction_id': obj.interaction_id,
             'id_contacto': obj.customer_id,
             'telefono': _telefono_interaccion(obj),
             'id_campana': obj.campaign_id,
