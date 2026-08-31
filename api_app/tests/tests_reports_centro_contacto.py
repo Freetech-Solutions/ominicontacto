@@ -3,7 +3,7 @@
 from __future__ import unicode_literals
 
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta
 from decimal import Decimal
 
 from mock import MagicMock, Mock, patch
@@ -32,7 +32,13 @@ from api_app.views.reports_centro_contacto import (
     _segment_duration_seconds_for_transfer,
     get_omnichannel_share_data,
     obtener_llamadas_por_campana,
+    obtener_llamadas_salientes_por_campana,
+    obtener_llamadas_salientes_por_dia,
+    obtener_llamadas_salientes_por_hora,
+    obtener_llamadas_salientes_por_mes,
     obtener_kpis_centro_contacto,
+    obtener_listado_llamadas_atendidas,
+    obtener_listado_llamadas_no_atendidas,
 )
 from reportes_app.forms import ReporteCentroContactoForm
 
@@ -1965,3 +1971,627 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         self.assertEqual(row.get('transfer_in_count', 0), 0)
         self.assertEqual(row.get('transfer_out_count', 0), 0)
         self.assertEqual(row['pct_transferred'], 0.0)
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists(),
+    'Requiere tabla interactions_summary',
+)
+class ObtenerLlamadasSalientesPorCampanaTest(OMLBaseTest):
+    """Métricas de egresos voz por campaña: contactadas PSTN, % Ag, % No Conectadas, % Transferencias."""
+
+    def setUp(self):
+        super(ObtenerLlamadasSalientesPorCampanaTest, self).setUp()
+        self.crear_administrador()
+        self.hoy = timezone.now()
+        self.desde = self.hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.hasta = self.desde + timedelta(days=1) - timedelta(microseconds=1)
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CC outbound metrics',
+        )
+        self._seq = 0
+
+    def _create_outbound(self, status, agent_id=1, is_transferred=False,
+                         agent_duration=Decimal('10'), total_duration=Decimal('15')):
+        self._seq += 1
+        return InteractionsSummary.objects.create(
+            interaction_id='ob-camp-%s-%s' % (self.campana.pk, self._seq),
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction='OUTBOUND',
+            status=status,
+            hangup_cause='OTHER',
+            start_time=self.desde + timedelta(hours=10, minutes=self._seq),
+            end_time=self.desde + timedelta(hours=10, minutes=self._seq, seconds=30),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=agent_duration,
+            total_duration=total_duration,
+            bot_duration=Decimal('0'),
+            agent_id=agent_id,
+            is_transferred=is_transferred,
+        )
+
+    def test_metricas_contactadas_pstn_y_porcentajes(self):
+        # 7 contactadas PSTN (1 de cada status) + 3 no contactadas
+        self._create_outbound('EXIT_ANSWERED', is_transferred=True)
+        self._create_outbound('EXIT_AMD', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_SHORTCALL', agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_HANDOFF_ABANDON', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_HANDOFF_TIMEOUT', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('CANCEL', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        self.assertEqual(len(rows), 1)
+        row = rows[0]
+
+        self.assertEqual(row['sent'], 10)
+        self.assertEqual(row['conectadas'], 1)
+        self.assertEqual(row['contactadas_pstn'], 7)
+        self.assertEqual(row['transferred'], 1)
+        self.assertEqual(row['pct_conectadas_pstn'], 70.0)
+        self.assertEqual(row['pct_conectadas_ag'], round(100.0 * 1 / 7, 2))
+        self.assertEqual(row['pct_contestador'], round(100.0 * 1 / 7, 2))
+        self.assertEqual(row['pct_shortcall'], round(100.0 * 1 / 7, 2))
+        self.assertEqual(row['pct_no_conectadas'], 30.0)
+        self.assertEqual(row['pct_transferencias'], 100.0)
+        # Claves legacy conservadas para gráfico / tarjetas resumen
+        self.assertEqual(row['pct_conectadas'], 10.0)
+        self.assertIn('canceladas', row)
+        self.assertIn('contestador', row)
+
+        self.assertEqual(row['abandonadas_espera'], 2)
+        self.assertEqual(row['timeout_espera'], 2)
+        self.assertEqual(row['error_contactacion'], 1)
+        self.assertEqual(row['pct_dist_conectadas_ag'], 10.0)
+        self.assertEqual(row['pct_dist_abandonadas_espera'], 20.0)
+        self.assertEqual(row['pct_dist_timeout_espera'], 20.0)
+        self.assertEqual(row['pct_dist_shortcall'], 10.0)
+        self.assertEqual(row['pct_dist_contestador'], 10.0)
+        self.assertEqual(row['pct_dist_ocupado'], 10.0)
+        self.assertEqual(row['pct_dist_cancel'], 10.0)
+        self.assertEqual(row['pct_dist_error_contactacion'], 10.0)
+        suma_categorias = (
+            row['conectadas'] + row['abandonadas_espera'] + row['timeout_espera']
+            + row['shortcall'] + row['contestador'] + row['ocupado'] + row['canceladas']
+            + row['error_contactacion']
+        )
+        self.assertEqual(suma_categorias, row['sent'])
+
+    def test_division_por_cero_sin_contactadas_pstn(self):
+        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        row = rows[0]
+        self.assertEqual(row['sent'], 2)
+        self.assertEqual(row['contactadas_pstn'], 0)
+        self.assertEqual(row['conectadas'], 0)
+        self.assertEqual(row['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(row['pct_conectadas_ag'], 0.0)
+        self.assertEqual(row['pct_contestador'], 0.0)
+        self.assertEqual(row['pct_shortcall'], 0.0)
+        self.assertEqual(row['pct_no_conectadas'], 100.0)
+        self.assertEqual(row['pct_transferencias'], 0.0)
+
+    def test_pct_transferencias_cero_si_no_hay_exit_answered(self):
+        self._create_outbound('EXIT_AMD', agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_ABANDON', agent_id=-1, agent_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        row = rows[0]
+        self.assertEqual(row['conectadas'], 0)
+        self.assertEqual(row['contactadas_pstn'], 2)
+        self.assertEqual(row['pct_conectadas_ag'], 0.0)
+        self.assertEqual(row['pct_contestador'], 50.0)
+        self.assertEqual(row['pct_shortcall'], 0.0)
+        self.assertEqual(row['pct_transferencias'], 0.0)
+        self.assertEqual(row['pct_conectadas_pstn'], 100.0)
+        self.assertEqual(row['pct_no_conectadas'], 0.0)
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists(),
+    'Requiere tabla interactions_summary',
+)
+class ObtenerLlamadasSalientesPorHoraTest(OMLBaseTest):
+    """Métricas de egresos voz por hora: contactadas PSTN y porcentajes."""
+
+    def setUp(self):
+        super(ObtenerLlamadasSalientesPorHoraTest, self).setUp()
+        self.crear_administrador()
+        self.hoy = timezone.now()
+        self.desde = self.hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.hasta = self.desde + timedelta(days=1) - timedelta(microseconds=1)
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CC outbound hora',
+        )
+        self._seq = 0
+
+    def _create_outbound(self, status, hour, agent_id=1, is_transferred=False,
+                         agent_duration=Decimal('10'), total_duration=Decimal('15')):
+        self._seq += 1
+        start = self.desde.replace(hour=hour, minute=self._seq % 59, second=0, microsecond=0)
+        return InteractionsSummary.objects.create(
+            interaction_id='ob-hora-%s-%s' % (self.campana.pk, self._seq),
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction='OUTBOUND',
+            status=status,
+            hangup_cause='OTHER',
+            start_time=start,
+            end_time=start + timedelta(seconds=30),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=agent_duration,
+            total_duration=total_duration,
+            bot_duration=Decimal('0'),
+            agent_id=agent_id,
+            is_transferred=is_transferred,
+        )
+
+    def test_metricas_por_hora(self):
+        self._create_outbound('EXIT_ANSWERED', hour=10, is_transferred=True)
+        self._create_outbound('EXIT_AMD', hour=10, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_SHORTCALL', hour=10, agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', hour=10, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', hour=10, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('NOANSWER', hour=10, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('BUSY', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('CANCEL', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_hora(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        self.assertEqual(len(rows), 24)
+        by_hour = {r['hour']: r for r in rows}
+
+        h10 = by_hour[10]
+        self.assertEqual(h10['sent'], 6)
+        self.assertEqual(h10['conectadas'], 1)
+        self.assertEqual(h10['contactadas_pstn'], 5)
+        self.assertEqual(h10['pct_conectadas_pstn'], round(100.0 * 5 / 6, 2))
+        self.assertEqual(h10['pct_conectadas_ag'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(h10['pct_contestador'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(h10['pct_shortcall'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(h10['pct_no_conectadas'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_transferencias'], 100.0)
+        self.assertEqual(h10['abandonadas_espera'], 1)
+        self.assertEqual(h10['timeout_espera'], 1)
+        self.assertEqual(h10['error_contactacion'], 1)
+        self.assertEqual(h10['pct_dist_conectadas_ag'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_abandonadas_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_timeout_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_shortcall'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_contestador'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(h10['pct_dist_error_contactacion'], round(100.0 * 1 / 6, 2))
+        suma_h10 = (
+            h10['conectadas'] + h10['abandonadas_espera'] + h10['timeout_espera']
+            + h10['shortcall'] + h10['contestador'] + h10['ocupado'] + h10['canceladas']
+            + h10['error_contactacion']
+        )
+        self.assertEqual(suma_h10, h10['sent'])
+
+        h11 = by_hour[11]
+        self.assertEqual(h11['sent'], 2)
+        self.assertEqual(h11['contactadas_pstn'], 0)
+        self.assertEqual(h11['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(h11['pct_contestador'], 0.0)
+        self.assertEqual(h11['pct_shortcall'], 0.0)
+        self.assertEqual(h11['pct_no_conectadas'], 100.0)
+        self.assertEqual(h11['pct_dist_ocupado'], 50.0)
+        self.assertEqual(h11['pct_dist_cancel'], 50.0)
+        self.assertEqual(h11['pct_dist_error_contactacion'], 0.0)
+
+        h0 = by_hour[0]
+        self.assertEqual(h0['sent'], 0)
+        self.assertEqual(h0['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(h0['pct_transferencias'], 0.0)
+        self.assertEqual(h0['pct_dist_conectadas_ag'], 0.0)
+        self.assertEqual(h0['pct_dist_error_contactacion'], 0.0)
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists(),
+    'Requiere tabla interactions_summary',
+)
+class ObtenerLlamadasSalientesPorDiaTest(OMLBaseTest):
+    """Métricas de egresos voz por día: contactadas PSTN y porcentajes."""
+
+    def setUp(self):
+        super(ObtenerLlamadasSalientesPorDiaTest, self).setUp()
+        self.crear_administrador()
+        self.hoy = timezone.now()
+        self.desde = self.hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.hasta = self.desde + timedelta(days=2, hours=23, minutes=59, seconds=59)
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CC outbound dia',
+        )
+        self._seq = 0
+
+    def _create_outbound(self, status, day_offset, agent_id=1, is_transferred=False,
+                         agent_duration=Decimal('10'), total_duration=Decimal('15')):
+        self._seq += 1
+        start = self.desde + timedelta(days=day_offset, minutes=self._seq % 59)
+        return InteractionsSummary.objects.create(
+            interaction_id='ob-dia-%s-%s' % (self.campana.pk, self._seq),
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction='OUTBOUND',
+            status=status,
+            hangup_cause='OTHER',
+            start_time=start,
+            end_time=start + timedelta(seconds=30),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=agent_duration,
+            total_duration=total_duration,
+            bot_duration=Decimal('0'),
+            agent_id=agent_id,
+            is_transferred=is_transferred,
+        )
+
+    def test_metricas_por_dia(self):
+        self._create_outbound('EXIT_ANSWERED', day_offset=1, is_transferred=True)
+        self._create_outbound('EXIT_AMD', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_SHORTCALL', day_offset=1, agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('NOANSWER', day_offset=1, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('BUSY', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('CANCEL', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+
+        rows = obtener_llamadas_salientes_por_dia(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        self.assertEqual(len(rows), 3)
+        by_date = {r['date']: r for r in rows}
+
+        dia0 = self.desde.date()
+        dia1 = dia0 + timedelta(days=1)
+        dia2 = dia0 + timedelta(days=2)
+
+        d0 = by_date[dia0]
+        self.assertEqual(d0['sent'], 0)
+        self.assertEqual(d0['contactadas_pstn'], 0)
+        self.assertEqual(d0['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(d0['pct_dist_conectadas_ag'], 0.0)
+        self.assertEqual(d0['pct_dist_error_contactacion'], 0.0)
+
+        d1 = by_date[dia1]
+        self.assertEqual(d1['sent'], 6)
+        self.assertEqual(d1['conectadas'], 1)
+        self.assertEqual(d1['contactadas_pstn'], 5)
+        self.assertEqual(d1['pct_conectadas_pstn'], round(100.0 * 5 / 6, 2))
+        self.assertEqual(d1['pct_conectadas_ag'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(d1['pct_contestador'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(d1['pct_shortcall'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(d1['pct_no_conectadas'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_transferencias'], 100.0)
+        self.assertEqual(d1['abandonadas_espera'], 1)
+        self.assertEqual(d1['timeout_espera'], 1)
+        self.assertEqual(d1['error_contactacion'], 1)
+        self.assertEqual(d1['pct_dist_conectadas_ag'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_abandonadas_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_timeout_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_shortcall'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_contestador'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(d1['pct_dist_error_contactacion'], round(100.0 * 1 / 6, 2))
+        suma_d1 = (
+            d1['conectadas'] + d1['abandonadas_espera'] + d1['timeout_espera']
+            + d1['shortcall'] + d1['contestador'] + d1['ocupado'] + d1['canceladas']
+            + d1['error_contactacion']
+        )
+        self.assertEqual(suma_d1, d1['sent'])
+
+        d2 = by_date[dia2]
+        self.assertEqual(d2['sent'], 2)
+        self.assertEqual(d2['contactadas_pstn'], 0)
+        self.assertEqual(d2['pct_contestador'], 0.0)
+        self.assertEqual(d2['pct_shortcall'], 0.0)
+        self.assertEqual(d2['pct_no_conectadas'], 100.0)
+        self.assertEqual(d2['pct_dist_ocupado'], 50.0)
+        self.assertEqual(d2['pct_dist_cancel'], 50.0)
+        self.assertEqual(d2['pct_dist_error_contactacion'], 0.0)
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists(),
+    'Requiere tabla interactions_summary',
+)
+class ObtenerLlamadasSalientesPorMesTest(OMLBaseTest):
+    """Métricas de egresos voz por mes: contactadas PSTN y porcentajes."""
+
+    def setUp(self):
+        super(ObtenerLlamadasSalientesPorMesTest, self).setUp()
+        self.crear_administrador()
+        self.desde = timezone.make_aware(datetime(2025, 1, 15, 0, 0, 0))
+        self.hasta = timezone.make_aware(datetime(2025, 3, 15, 23, 59, 59))
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CC outbound mes',
+        )
+        self._seq = 0
+
+    def _create_outbound(self, status, year, month, day, agent_id=1, is_transferred=False,
+                         agent_duration=Decimal('10'), total_duration=Decimal('15')):
+        self._seq += 1
+        start = timezone.make_aware(
+            datetime(year, month, day, 10, self._seq % 59, 0)
+        )
+        return InteractionsSummary.objects.create(
+            interaction_id='ob-mes-%s-%s' % (self.campana.pk, self._seq),
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction='OUTBOUND',
+            status=status,
+            hangup_cause='OTHER',
+            start_time=start,
+            end_time=start + timedelta(seconds=30),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=agent_duration,
+            total_duration=total_duration,
+            bot_duration=Decimal('0'),
+            agent_id=agent_id,
+            is_transferred=is_transferred,
+        )
+
+    def test_metricas_por_mes(self):
+        self._create_outbound('EXIT_ANSWERED', 2025, 2, 10, is_transferred=True)
+        self._create_outbound('EXIT_AMD', 2025, 2, 11, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_SHORTCALL', 2025, 2, 12, agent_duration=Decimal('2'))
+        self._create_outbound('EXIT_ABANDON', 2025, 2, 13, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound('EXIT_TIMEOUT', 2025, 2, 14, agent_id=-1, agent_duration=Decimal('0'))
+        self._create_outbound(
+            'NOANSWER', 2025, 2, 15, agent_id=-1,
+            agent_duration=Decimal('0'), total_duration=Decimal('0'),
+        )
+        self._create_outbound(
+            'BUSY', 2025, 3, 5, agent_id=-1,
+            agent_duration=Decimal('0'), total_duration=Decimal('0'),
+        )
+        self._create_outbound(
+            'CANCEL', 2025, 3, 6, agent_id=-1,
+            agent_duration=Decimal('0'), total_duration=Decimal('0'),
+        )
+
+        rows = obtener_llamadas_salientes_por_mes(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+        )
+        self.assertEqual(len(rows), 3)
+        by_month = {r['month']: r for r in rows}
+
+        mes_enero = datetime(2025, 1, 1).date()
+        mes_febrero = datetime(2025, 2, 1).date()
+        mes_marzo = datetime(2025, 3, 1).date()
+
+        m0 = by_month[mes_enero]
+        self.assertEqual(m0['sent'], 0)
+        self.assertEqual(m0['contactadas_pstn'], 0)
+        self.assertEqual(m0['pct_conectadas_pstn'], 0.0)
+        self.assertEqual(m0['pct_dist_conectadas_ag'], 0.0)
+        self.assertEqual(m0['pct_dist_error_contactacion'], 0.0)
+
+        m1 = by_month[mes_febrero]
+        self.assertEqual(m1['sent'], 6)
+        self.assertEqual(m1['conectadas'], 1)
+        self.assertEqual(m1['contactadas_pstn'], 5)
+        self.assertEqual(m1['pct_conectadas_pstn'], round(100.0 * 5 / 6, 2))
+        self.assertEqual(m1['pct_conectadas_ag'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(m1['pct_contestador'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(m1['pct_shortcall'], round(100.0 * 1 / 5, 2))
+        self.assertEqual(m1['pct_no_conectadas'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_transferencias'], 100.0)
+        self.assertEqual(m1['abandonadas_espera'], 1)
+        self.assertEqual(m1['timeout_espera'], 1)
+        self.assertEqual(m1['error_contactacion'], 1)
+        self.assertEqual(m1['pct_dist_conectadas_ag'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_abandonadas_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_timeout_espera'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_shortcall'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_contestador'], round(100.0 * 1 / 6, 2))
+        self.assertEqual(m1['pct_dist_error_contactacion'], round(100.0 * 1 / 6, 2))
+        suma_m1 = (
+            m1['conectadas'] + m1['abandonadas_espera'] + m1['timeout_espera']
+            + m1['shortcall'] + m1['contestador'] + m1['ocupado'] + m1['canceladas']
+            + m1['error_contactacion']
+        )
+        self.assertEqual(suma_m1, m1['sent'])
+
+        m2 = by_month[mes_marzo]
+        self.assertEqual(m2['sent'], 2)
+        self.assertEqual(m2['contactadas_pstn'], 0)
+        self.assertEqual(m2['pct_contestador'], 0.0)
+        self.assertEqual(m2['pct_shortcall'], 0.0)
+        self.assertEqual(m2['pct_no_conectadas'], 100.0)
+        self.assertEqual(m2['pct_dist_ocupado'], 50.0)
+        self.assertEqual(m2['pct_dist_cancel'], 50.0)
+        self.assertEqual(m2['pct_dist_error_contactacion'], 0.0)
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists(),
+    'Requiere tabla interactions_summary',
+)
+class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
+    """EXIT_AMD y EXIT_SHORTCALL en egresos van a no atendidas, no a atendidas."""
+
+    def setUp(self):
+        super(ListadoLlamadasEgresosClasificacionTest, self).setUp()
+        self.crear_administrador()
+        self.hoy = timezone.now()
+        self.desde = self.hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.hasta = self.desde + timedelta(days=1) - timedelta(microseconds=1)
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CC listado egresos',
+        )
+        self._seq = 0
+
+    def _create_voice(self, status, direction='OUTBOUND', agent_id=1,
+                      agent_duration=Decimal('10'), total_duration=Decimal('15')):
+        self._seq += 1
+        start = self.desde + timedelta(minutes=self._seq)
+        return InteractionsSummary.objects.create(
+            interaction_id='list-eg-%s-%s' % (direction.lower(), self._seq),
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction=direction,
+            status=status,
+            hangup_cause='OTHER',
+            start_time=start,
+            end_time=start + timedelta(seconds=30),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=agent_duration,
+            total_duration=total_duration,
+            bot_duration=Decimal('0'),
+            agent_id=agent_id,
+            is_transferred=False,
+        )
+
+    def _count_in_listado(self, fn, interaction_id, direction_filter):
+        page = fn(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter=direction_filter,
+            callid=interaction_id,
+            page_size=100,
+        )
+        return len(page.object_list)
+
+    def test_amd_y_shortcall_en_no_atendidas_egresos(self):
+        amd = self._create_voice('EXIT_AMD', agent_id=-1, agent_duration=Decimal('0'))
+        shortcall = self._create_voice('EXIT_SHORTCALL', agent_duration=Decimal('2'))
+        noanswer = self._create_voice(
+            'NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'),
+        )
+
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_atendidas, amd.interaction_id, 'OUTBOUND',
+            ),
+            0,
+        )
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_atendidas, shortcall.interaction_id, 'OUTBOUND',
+            ),
+            0,
+        )
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_no_atendidas, amd.interaction_id, 'OUTBOUND',
+            ),
+            1,
+        )
+        amd_page = obtener_listado_llamadas_no_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=amd.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(amd_page.object_list[0]['status'], 'EXIT_AMD')
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_no_atendidas, shortcall.interaction_id, 'OUTBOUND',
+            ),
+            1,
+        )
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_no_atendidas, noanswer.interaction_id, 'OUTBOUND',
+            ),
+            1,
+        )
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_atendidas, noanswer.interaction_id, 'OUTBOUND',
+            ),
+            0,
+        )
+
+    def test_listados_incluyen_interaction_id(self):
+        answered = self._create_voice('EXIT_ANSWERED')
+        noanswer = self._create_voice(
+            'NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'),
+        )
+
+        atendidas = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=answered.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(atendidas.object_list), 1)
+        self.assertEqual(atendidas.object_list[0]['interaction_id'], answered.interaction_id)
+
+        no_atendidas = obtener_listado_llamadas_no_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=noanswer.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(no_atendidas.object_list), 1)
+        self.assertEqual(no_atendidas.object_list[0]['interaction_id'], noanswer.interaction_id)
+
+    def test_amd_inbound_sigue_en_no_atendidas(self):
+        amd_in = self._create_voice(
+            'EXIT_AMD', direction='INBOUND', agent_id=-1, agent_duration=Decimal('0'),
+        )
+
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_atendidas, amd_in.interaction_id, 'INBOUND',
+            ),
+            0,
+        )
+        self.assertEqual(
+            self._count_in_listado(
+                obtener_listado_llamadas_no_atendidas, amd_in.interaction_id, 'INBOUND',
+            ),
+            1,
+        )

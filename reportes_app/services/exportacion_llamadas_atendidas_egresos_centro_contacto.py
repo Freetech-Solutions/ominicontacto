@@ -137,6 +137,7 @@ def generar_csv_llamadas_atendidas_egresos_centro_contacto(
     ruta = os.path.join(dir_abs, filename)
 
     header = [
+        _('interaction_id'),
         _('Fecha/Hora'),
         _('Id contacto'),
         _('Teléfono'),
@@ -150,6 +151,7 @@ def generar_csv_llamadas_atendidas_egresos_centro_contacto(
         _('Duración agente'),
         _('Duración bot'),
         _('Quien cortó'),
+        _('Calificacion Tel'),
         _('Id calificación'),
         _('Nombre calificación'),
         _('Nombre subcalificación'),
@@ -162,6 +164,7 @@ def generar_csv_llamadas_atendidas_egresos_centro_contacto(
         for row in all_rows:
             fecha_str = _format_fecha_hora_csv(row.get('fecha_hora'))
             writer.writerow([
+                _to_str(row.get('interaction_id')),
                 fecha_str,
                 _to_str(row.get('id_contacto')),
                 _to_str(row.get('telefono')),
@@ -175,6 +178,7 @@ def generar_csv_llamadas_atendidas_egresos_centro_contacto(
                 _format_seconds(row.get('duracion_agente')),
                 _format_seconds(row.get('duracion_bot')),
                 _to_str(row.get('quien_corto')),
+                _to_str(row.get('calificacion_tel')),
                 _to_str(row.get('id_calificacion')),
                 _to_str(row.get('nombre_calificacion')),
                 _to_str(row.get('nombre_subcalificacion')),

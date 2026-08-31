@@ -46,15 +46,19 @@ def _to_str(value):
     return force_str(value)
 
 
-def _format_seconds(value):
-    """Formato de segundos para CSV (equivalente a format_seconds_int en template)."""
-    if value is None:
-        return ''
-    try:
-        sec = int(round(float(value)))
-        return str(sec)
-    except (TypeError, ValueError):
-        return ''
+def _dist_row_csv(row):
+    return [
+        _to_str(row.get('date_label')),
+        _to_str(row.get('sent')),
+        _to_str(row.get('pct_dist_conectadas_ag')),
+        _to_str(row.get('pct_dist_abandonadas_espera')),
+        _to_str(row.get('pct_dist_timeout_espera')),
+        _to_str(row.get('pct_dist_shortcall')),
+        _to_str(row.get('pct_dist_contestador')),
+        _to_str(row.get('pct_dist_ocupado')),
+        _to_str(row.get('pct_dist_cancel')),
+        _to_str(row.get('pct_dist_error_contactacion')),
+    ]
 
 
 def generar_csv_llamadas_por_dia_egresos_centro_contacto(
@@ -115,27 +119,30 @@ def generar_csv_llamadas_por_dia_egresos_centro_contacto(
     if rows:
         total_sent = sum(r['sent'] for r in rows)
         total_conectadas = sum(r['conectadas'] for r in rows)
-        total_canceladas = sum(r['canceladas'] for r in rows)
-        total_no_atiende = sum(r['no_atiende'] for r in rows)
-        total_ocupado = sum(r['ocupado'] for r in rows)
-        total_contestador = sum(r['contestador'] for r in rows)
+        total_abandonadas_espera = sum(r['abandonadas_espera'] for r in rows)
+        total_timeout_espera = sum(r['timeout_espera'] for r in rows)
         total_shortcall = sum(r['shortcall'] for r in rows)
-        total_congestion = sum(r['congestion'] for r in rows)
-        total_otro_error = sum(r['otro_error'] for r in rows)
-        total_transferred = sum(r['transferred'] for r in rows)
+        total_contestador = sum(r['contestador'] for r in rows)
+        total_ocupado = sum(r['ocupado'] for r in rows)
+        total_canceladas = sum(r['canceladas'] for r in rows)
+        total_error_contactacion = sum(r['error_contactacion'] for r in rows)
         totals = {
+            'date_label': _('Total'),
             'sent': total_sent,
-            'conectadas': total_conectadas,
-            'canceladas': total_canceladas,
-            'no_atiende': total_no_atiende,
-            'ocupado': total_ocupado,
-            'contestador': total_contestador,
-            'shortcall': total_shortcall,
-            'congestion': total_congestion,
-            'otro_error': total_otro_error,
-            'transferred': total_transferred,
-            'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,
-            'pct_no_conectadas': round(100.0 * (total_sent - total_conectadas) / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_conectadas_ag': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_abandonadas_espera': (
+                round(100.0 * total_abandonadas_espera / total_sent, 2) if total_sent else 0.0
+            ),
+            'pct_dist_timeout_espera': (
+                round(100.0 * total_timeout_espera / total_sent, 2) if total_sent else 0.0
+            ),
+            'pct_dist_shortcall': round(100.0 * total_shortcall / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_contestador': round(100.0 * total_contestador / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_ocupado': round(100.0 * total_ocupado / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_cancel': round(100.0 * total_canceladas / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_error_contactacion': (
+                round(100.0 * total_error_contactacion / total_sent, 2) if total_sent else 0.0
+            ),
         }
 
     dir_abs = os.path.join(settings.MEDIA_ROOT, DIRECTORIO_REPORTE)
@@ -146,61 +153,24 @@ def generar_csv_llamadas_por_dia_egresos_centro_contacto(
 
     header = [
         _('Fecha'),
-        _('Enviadas'),
-        _('Conectadas'),
-        _('Canceladas'),
-        _('Sin respuesta'),
+        _('Llamadas enviadas (total)'),
+        _('Conectadas Ag'),
+        _('Abandonadas en espera'),
+        _('Timeout de espera'),
+        _('Short call'),
+        _('Contestador Automático'),
         _('Ocupado'),
-        _('Contestador'),
-        _('Shortcall'),
-        _('Congestion'),
-        _('Otro'),
-        _('Transferidas'),
-        _('Espera prom.'),
-        _('Habla prom.'),
-        _('% Conectadas'),
-        _('% No conectadas'),
+        _('Cancel'),
+        _('Error de contactación'),
     ]
 
     with open(ruta, 'w', newline='', encoding='utf-8') as f:
         writer = csv.writer(f)
         writer.writerow(header)
         for row in rows:
-            writer.writerow([
-                _to_str(row.get('date_label')),
-                _to_str(row.get('sent')),
-                _to_str(row.get('conectadas')),
-                _to_str(row.get('canceladas')),
-                _to_str(row.get('no_atiende')),
-                _to_str(row.get('ocupado')),
-                _to_str(row.get('contestador')),
-                _to_str(row.get('shortcall')),
-                _to_str(row.get('congestion')),
-                _to_str(row.get('otro_error')),
-                _to_str(row.get('transferred')),
-                _format_seconds(row.get('avg_wait_seconds')),
-                _format_seconds(row.get('avg_talk_seconds')),
-                _to_str(row.get('pct_conectadas')),
-                _to_str(row.get('pct_no_conectadas')),
-            ])
+            writer.writerow(_dist_row_csv(row))
         if totals:
-            writer.writerow([
-                _('Total'),
-                _to_str(totals.get('sent')),
-                _to_str(totals.get('conectadas')),
-                _to_str(totals.get('canceladas')),
-                _to_str(totals.get('no_atiende')),
-                _to_str(totals.get('ocupado')),
-                _to_str(totals.get('contestador')),
-                _to_str(totals.get('shortcall')),
-                _to_str(totals.get('congestion')),
-                _to_str(totals.get('otro_error')),
-                _to_str(totals.get('transferred')),
-                '',
-                '',
-                _to_str(totals.get('pct_conectadas')),
-                _to_str(totals.get('pct_no_conectadas')),
-            ])
+            writer.writerow(_dist_row_csv(totals))
 
     try:
         redis_conn.publish(key_task, 100)
