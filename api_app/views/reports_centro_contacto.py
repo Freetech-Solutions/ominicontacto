@@ -4722,18 +4722,22 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
     return page_obj
 
 
-def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
-                                          allowed_campaigns=None, allowed_agent_ids=None,
-                                          customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
-                                          hora_desde=None, hora_hasta=None,
-                                          duracion_agente_min=None, duracion_bot_min=None,
-                                          page=1, page_size=100):
+# Colores para el gráfico de torta de status (llamadas no atendidas)
+NO_ATENDIDAS_STATUS_CHART_COLORS = [
+    '#3B82F6', '#22C55E', '#F97316', '#EF4444', '#8B5CF6',
+    '#06B6D4', '#EAB308', '#EC4899', '#64748B', '#14B8A6',
+]
+
+
+def _queryset_llamadas_no_atendidas(start_date=None, end_date=None,
+                                    allowed_campaigns=None, allowed_agent_ids=None,
+                                    customer_id=None, address_query=None, callid=None,
+                                    direction_filter='INBOUND',
+                                    hora_desde=None, hora_hasta=None,
+                                    duracion_agente_min=None, duracion_bot_min=None):
     """
-    Listado paginado de llamadas no atendidas (voz): excluye los status del listado
-    atendidas (EXIT_ANSWERED y cierres post-handoff). Incluye EXIT_AMD y EXIT_SHORTCALL.
-    direction_filter: 'INBOUND' o 'OUTBOUND'. Mismos filtros que obtener_listado_llamadas_atendidas.
-    Retorna un Page con object_list de dicts con: fecha_hora, id_contacto, telefono,
-    id_campana, nombre_campana, tiempo_espera, status.
+    Queryset base de llamadas no atendidas (voz): excluye status del listado atendidas.
+    direction_filter: 'INBOUND' o 'OUTBOUND'.
     """
     queryset = InteractionsSummary.objects.filter(
         direction__iexact=direction_filter,
@@ -4770,7 +4774,111 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
     if duracion_bot_min is not None:
         queryset = queryset.filter(bot_duration__gte=duracion_bot_min)
 
-    queryset = queryset.order_by('-start_time')
+    return queryset
+
+
+def obtener_distribucion_status_llamadas_no_atendidas(start_date=None, end_date=None,
+                                                      allowed_campaigns=None,
+                                                      allowed_agent_ids=None,
+                                                      customer_id=None, address_query=None,
+                                                      callid=None, direction_filter='INBOUND',
+                                                      hora_desde=None, hora_hasta=None,
+                                                      duracion_agente_min=None,
+                                                      duracion_bot_min=None):
+    """
+    Distribución por status de llamadas no atendidas (voz) para gráfico de torta.
+    Retorna total, chart_data (Chart.js) y shares (status, count, pct).
+    """
+    queryset = _queryset_llamadas_no_atendidas(
+        start_date=start_date,
+        end_date=end_date,
+        allowed_campaigns=allowed_campaigns,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        callid=callid,
+        direction_filter=direction_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
+    rows = (
+        queryset
+        .values('status')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    labels = []
+    data = []
+    colors = []
+    shares = []
+    total = 0
+
+    for row in rows:
+        count = row['count'] or 0
+        if count == 0:
+            continue
+        status_label = (row['status'] or '').strip() or '—'
+        total += count
+        labels.append(status_label)
+        data.append(count)
+        colors.append(
+            NO_ATENDIDAS_STATUS_CHART_COLORS[
+                (len(labels) - 1) % len(NO_ATENDIDAS_STATUS_CHART_COLORS)
+            ]
+        )
+        shares.append({
+            'status': status_label,
+            'count': count,
+            'pct': 0.0,
+        })
+
+    if total > 0:
+        for share in shares:
+            share['pct'] = round(100.0 * share['count'] / total, 1)
+
+    return {
+        'total': total,
+        'chart_data': {
+            'labels': labels,
+            'datasets': [{
+                'data': data,
+                'backgroundColor': colors,
+            }],
+        },
+        'shares': shares,
+    }
+
+
+def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
+                                          allowed_campaigns=None, allowed_agent_ids=None,
+                                          customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
+                                          hora_desde=None, hora_hasta=None,
+                                          duracion_agente_min=None, duracion_bot_min=None,
+                                          page=1, page_size=100):
+    """
+    Listado paginado de llamadas no atendidas (voz): excluye los status del listado
+    atendidas (EXIT_ANSWERED y cierres post-handoff). Incluye EXIT_AMD y EXIT_SHORTCALL.
+    direction_filter: 'INBOUND' o 'OUTBOUND'. Mismos filtros que obtener_listado_llamadas_atendidas.
+    Retorna un Page con object_list de dicts con: fecha_hora, id_contacto, telefono,
+    id_campana, nombre_campana, tiempo_espera, status.
+    """
+    queryset = _queryset_llamadas_no_atendidas(
+        start_date=start_date,
+        end_date=end_date,
+        allowed_campaigns=allowed_campaigns,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        callid=callid,
+        direction_filter=direction_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    ).order_by('-start_time')
     paginator = Paginator(queryset, page_size)
     try:
         page_obj = paginator.page(page)
@@ -6492,6 +6600,20 @@ class ReporteCentroContactoFormView(FormView):
             page=page_listado_no_atendidas_egresos,
             page_size=100,
         )
+        egresos_no_atendidas_status_chart = obtener_distribucion_status_llamadas_no_atendidas(
+            start_date=desde,
+            end_date=hasta,
+            allowed_campaigns=allowed_campaigns,
+            allowed_agent_ids=allowed_agent_ids,
+            customer_id=contacto_id,
+            address_query=address_query,
+            callid=callid,
+            direction_filter='OUTBOUND',
+            hora_desde=hora_desde,
+            hora_hasta=hora_hasta,
+            duracion_agente_min=duracion_agente_min,
+            duracion_bot_min=duracion_bot_min,
+        )
         num_pages_na_eg = listado_egresos_no_atendidas.paginator.num_pages
         page_no_na_eg = listado_egresos_no_atendidas.number
         if num_pages_na_eg <= 7 or page_no_na_eg <= 4:
@@ -6567,6 +6689,7 @@ class ReporteCentroContactoFormView(FormView):
             listado_pages_egresos=listado_pages_egresos,
             listado_egresos_no_atendidas=listado_egresos_no_atendidas,
             listado_pages_no_atendidas_egresos=listado_pages_no_atendidas_egresos,
+            egresos_no_atendidas_status_chart=egresos_no_atendidas_status_chart,
             whatsapp_frt_kpis=whatsapp_frt_kpis,
             listado_whatsapp_frt=listado_whatsapp_frt,
             listado_pages_whatsapp_frt=listado_pages_whatsapp_frt,
@@ -6640,6 +6763,7 @@ class ReporteCentroContactoFormView(FormView):
         context.setdefault('listado_pages_egresos', [])
         context.setdefault('listado_egresos_no_atendidas', None)
         context.setdefault('listado_pages_no_atendidas_egresos', [])
+        context.setdefault('egresos_no_atendidas_status_chart', None)
         context.setdefault('whatsapp_frt_kpis', None)
         context.setdefault('listado_whatsapp_frt', None)
         context.setdefault('listado_pages_whatsapp_frt', [])
@@ -7388,7 +7512,7 @@ def _parse_export_filters(request):
         visible_set = set(campanas_visibles_ids)
         if not set(selected_campaign_ids).issubset(visible_set):
             return None, Response({'error': _('Campaña inválida.')}, status=status.HTTP_400_BAD_REQUEST)
-            allowed_campaigns = selected_campaign_ids
+        allowed_campaigns = selected_campaign_ids
 
     campana_id_raw = data.get('campana_id')
     if campana_id_raw is not None and str(campana_id_raw).strip() != '':

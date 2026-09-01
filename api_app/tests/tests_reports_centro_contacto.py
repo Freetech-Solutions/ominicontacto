@@ -28,6 +28,7 @@ from api_app.views.reports_centro_contacto import (
     _format_duration_mmss,
     _interaction_transfer_to_dict,
     _parse_agent_segments,
+    _parse_export_filters,
     _segment_duration_display_for_transfer,
     _segment_duration_seconds_for_transfer,
     get_omnichannel_share_data,
@@ -39,6 +40,7 @@ from api_app.views.reports_centro_contacto import (
     obtener_kpis_centro_contacto,
     obtener_listado_llamadas_atendidas,
     obtener_listado_llamadas_no_atendidas,
+    obtener_distribucion_status_llamadas_no_atendidas,
 )
 from reportes_app.forms import ReporteCentroContactoForm
 
@@ -2595,3 +2597,130 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
             ),
             1,
         )
+
+
+@unittest.skipUnless(
+    _interactions_summary_table_exists(),
+    'Requiere tabla interactions_summary',
+)
+class DistribucionStatusLlamadasNoAtendidasEgresosTest(OMLBaseTest):
+    """Gráfico de torta: distribución por status en llamadas no atendidas (egresos voz)."""
+
+    def setUp(self):
+        super(DistribucionStatusLlamadasNoAtendidasEgresosTest, self).setUp()
+        self.crear_administrador()
+        self.hoy = timezone.now()
+        self.desde = self.hoy.replace(hour=0, minute=0, second=0, microsecond=0)
+        self.hasta = self.desde + timedelta(days=1) - timedelta(microseconds=1)
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CC status pie egresos',
+        )
+        self._seq = 0
+
+    def _create_voice(self, status, direction='OUTBOUND', agent_id=-1,
+                      agent_duration=Decimal('0'), total_duration=Decimal('0')):
+        self._seq += 1
+        start = self.desde + timedelta(minutes=self._seq)
+        return InteractionsSummary.objects.create(
+            interaction_id='status-pie-eg-%s' % self._seq,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana.pk,
+            channel_type='VOICE',
+            direction=direction,
+            status=status,
+            hangup_cause='OTHER',
+            start_time=start,
+            end_time=start + timedelta(seconds=30),
+            wait_conn_duration=Decimal('3'),
+            agent_duration=agent_duration,
+            total_duration=total_duration,
+            bot_duration=Decimal('0'),
+            agent_id=agent_id,
+            is_transferred=False,
+        )
+
+    def _get_chart(self):
+        return obtener_distribucion_status_llamadas_no_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+        )
+
+    def test_distribucion_status_con_porcentajes(self):
+        self._create_voice('NOANSWER')
+        self._create_voice('NOANSWER')
+        self._create_voice('BUSY')
+        self._create_voice('EXIT_AMD')
+        self._create_voice('EXIT_ANSWERED', agent_id=1, agent_duration=Decimal('10'),
+                           total_duration=Decimal('15'))
+
+        result = self._get_chart()
+        self.assertEqual(result['total'], 4)
+        self.assertEqual(result['chart_data']['labels'], ['NOANSWER', 'BUSY', 'EXIT_AMD'])
+        self.assertEqual(result['chart_data']['datasets'][0]['data'], [2, 1, 1])
+
+        shares_by_status = {s['status']: s for s in result['shares']}
+        self.assertEqual(shares_by_status['NOANSWER']['count'], 2)
+        self.assertEqual(shares_by_status['NOANSWER']['pct'], 50.0)
+        self.assertEqual(shares_by_status['BUSY']['count'], 1)
+        self.assertEqual(shares_by_status['BUSY']['pct'], 25.0)
+        self.assertEqual(shares_by_status['EXIT_AMD']['count'], 1)
+        self.assertEqual(shares_by_status['EXIT_AMD']['pct'], 25.0)
+
+    def test_distribucion_vacia_sin_llamadas_no_atendidas(self):
+        self._create_voice('EXIT_ANSWERED', agent_id=1, agent_duration=Decimal('10'),
+                           total_duration=Decimal('15'))
+
+        result = self._get_chart()
+        self.assertEqual(result['total'], 0)
+        self.assertEqual(result['chart_data']['labels'], [])
+        self.assertEqual(result['chart_data']['datasets'][0]['data'], [])
+        self.assertEqual(result['shares'], [])
+
+
+class ParseExportFiltersTest(OMLBaseTest):
+    """Regresión: _parse_export_filters debe asignar allowed_campaigns con campaña específica."""
+
+    def setUp(self):
+        super(ParseExportFiltersTest, self).setUp()
+        self.crear_administrador()
+        self.campana = CampanaFactory.create(
+            estado=Campana.ESTADO_ACTIVA,
+            type=Campana.TYPE_DIALER,
+            nombre='CSV export filters',
+        )
+        hoy = timezone.now().date()
+        self.desde_str = hoy.strftime('%d/%m/%Y')
+        self.hasta_str = self.desde_str
+
+    def _make_request(self, campana_ids):
+        request = Mock()
+        request.user = self.administrador
+        request.data = {
+            'task_id': 'test-export-task',
+            'desde': self.desde_str,
+            'hasta': self.hasta_str,
+            'campana': [str(cid) for cid in campana_ids],
+        }
+        return request
+
+    @patch('api_app.views.reports_centro_contacto._get_campanas_visibles')
+    def test_campana_especifica_asigna_allowed_campaigns(self, mock_visible):
+        mock_visible.return_value = Campana.objects.filter(pk=self.campana.pk)
+        parsed, err = _parse_export_filters(self._make_request([self.campana.pk]))
+        self.assertIsNone(err)
+        self.assertIsNotNone(parsed)
+        allowed_campaigns = parsed[3]
+        self.assertEqual(allowed_campaigns, [self.campana.pk])
+
+    @patch('api_app.views.reports_centro_contacto._get_campanas_visibles')
+    def test_campana_invalida_retorna_400(self, mock_visible):
+        mock_visible.return_value = Campana.objects.filter(pk=self.campana.pk)
+        parsed, err = _parse_export_filters(self._make_request([999999]))
+        self.assertIsNone(parsed)
+        self.assertIsNotNone(err)
+        self.assertEqual(err.status_code, 400)

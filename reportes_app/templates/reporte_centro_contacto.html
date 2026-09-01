@@ -2992,6 +2992,82 @@
                                     </div>
                                 </div>
                                 {% if listado_egresos_no_atendidas %}
+                                {% if egresos_no_atendidas_status_chart and egresos_no_atendidas_status_chart.total > 0 %}
+                                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">{% trans 'Distribución de status' %}</h3>
+                                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6" style="max-width: 640px;">
+                                    <div style="height: 320px; position: relative;">
+                                        <canvas id="chartEgresosVozNoAtendidasStatus"></canvas>
+                                    </div>
+                                </div>
+                                {{ egresos_no_atendidas_status_chart|json_script:"reporteCcEgresosVozNoAtendidasStatusData" }}
+                                <script>
+                                (function() {
+                                    var chartInstance = null;
+                                    function buildLegendLabels(chart) {
+                                        var data = chart.data;
+                                        if (!data.labels.length || !data.datasets.length) return [];
+                                        var ds = data.datasets[0];
+                                        var total = ds.data.reduce(function(a, b) { return a + b; }, 0);
+                                        return data.labels.map(function(label, i) {
+                                            var value = ds.data[i];
+                                            var pct = total > 0 ? (100 * value / total).toFixed(1) : '0.0';
+                                            return {
+                                                text: label + ' — ' + value + ' (' + pct + '%)',
+                                                fillStyle: ds.backgroundColor[i],
+                                                strokeStyle: ds.backgroundColor[i],
+                                                lineWidth: 0,
+                                                hidden: false,
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    function initEgresosNoAtendidasStatusChart() {
+                                        var dataEl = document.getElementById('reporteCcEgresosVozNoAtendidasStatusData');
+                                        var canvas = document.getElementById('chartEgresosVozNoAtendidasStatus');
+                                        if (!dataEl || !canvas || typeof Chart === 'undefined') return;
+                                        var payload = dataEl.textContent ? JSON.parse(dataEl.textContent) : null;
+                                        if (!payload || !payload.chart_data || !payload.total) return;
+                                        if (chartInstance) {
+                                            chartInstance.destroy();
+                                            chartInstance = null;
+                                        }
+                                        chartInstance = new Chart(canvas.getContext('2d'), {
+                                            type: 'pie',
+                                            data: payload.chart_data,
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                plugins: {
+                                                    legend: {
+                                                        position: 'bottom',
+                                                        labels: { generateLabels: buildLegendLabels }
+                                                    },
+                                                    tooltip: {
+                                                        callbacks: {
+                                                            label: function(context) {
+                                                                var label = context.label || '';
+                                                                var value = context.parsed || 0;
+                                                                var total = context.dataset.data.reduce(function(a, b) { return a + b; }, 0);
+                                                                var pct = total > 0 ? (100 * value / total).toFixed(1) : '0.0';
+                                                                return label + ' — ' + value + ' (' + pct + '%)';
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
+                                    initEgresosNoAtendidasStatusChart();
+                                    $(document).on('shown.bs.tab', 'a[href="#tab-egresos-voz-l3f"]', function() {
+                                        if (chartInstance && typeof chartInstance.resize === 'function') {
+                                            chartInstance.resize();
+                                        } else {
+                                            initEgresosNoAtendidasStatusChart();
+                                        }
+                                    });
+                                })();
+                                </script>
+                                {% endif %}
                                 <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6 reporte-cc-tabla-llamadas-campana">
                                     <div class="overflow-x-auto">
                                         <table class="table table-sm table-bordered table-hover mb-0">
