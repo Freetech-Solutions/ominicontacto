@@ -12,6 +12,11 @@ export type Account = {
   id: number
   name: string
   active: boolean
+  assigned_campaign: {
+    id: number
+    name: string
+    display: string
+  } | null
   inbound: {
     protocol: string
     host: string
@@ -106,6 +111,7 @@ const form = ref<Account>({
   id: 0,
   name: "",
   active: true,
+  assigned_campaign: null,
   inbound: {
     protocol: "",
     host: "",
@@ -197,7 +203,7 @@ watch(
 )
 
 const create = useMutation({
-  mutation({ id, ...data }: Account) {
+  mutation({ id, assigned_campaign: _assignedCampaign, ...data }: Account) {
     return api.post<Pick<Account, "id">, "json">(`${id}/template`, data, {
       headers: { "x-csrftoken": cookies.get("csrftoken") },
     })
@@ -228,7 +234,7 @@ const destroy = useMutation({
 })
 
 const update = useMutation({
-  mutation({ id, ...data }: Account) {
+  mutation({ id, assigned_campaign: _assignedCampaign, ...data }: Account) {
     return api.put<Account, "json">(id, data, {
       headers: { "x-csrftoken": cookies.get("csrftoken") },
     })
@@ -243,7 +249,7 @@ const update = useMutation({
 })
 
 const updatePartial = useMutation({
-  mutation({ id, ...data }: Account) {
+  mutation({ id, assigned_campaign: _assignedCampaign, ...data }: Account) {
     return api.put<Account, "json">(id, data, {
       headers: { "x-csrftoken": cookies.get("csrftoken") },
     })
@@ -287,7 +293,7 @@ const test = useMutation({
   },
 })
 
-function onSignatureImage(event: Event, model: { $value: string }) {
+function onSignatureImage(event: Event, model: { $value: string | undefined }) {
   const file = (event.target as HTMLInputElement).files?.[0]
   if (!file) return
   const reader = new FileReader()
@@ -520,6 +526,21 @@ async function handleSubmit({ submitter }: SubmitEvent) {
                   <FieldError class="text-xs" v-if="r$.active.$error" v-bind:errors="r$.active.$errors" />
                 </FieldContent>
               </Field>
+              <Alert>
+                <i-hugeicons-mail-at-sign-01 class="size-5" />
+                <AlertTitle>
+                  {{ "Canalidad email" }}
+                </AlertTitle>
+                <AlertDescription>
+                  <template v-if="form.assigned_campaign">
+                    {{ "Cuenta asignada a campaña" }}
+                    {{ form.assigned_campaign.display }}
+                  </template>
+                  <template v-else>
+                    {{ "Cuenta sin campaña asignada como canalidad email" }}
+                  </template>
+                </AlertDescription>
+              </Alert>
               <FieldSeparator />
               <div class="grid gap-6 lg:grid-cols-[1fr_auto_1fr]">
                 <FieldSet>

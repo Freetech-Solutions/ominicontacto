@@ -191,9 +191,14 @@ export default {
         },
         listenerEvents () {
             listenerStoreDataByAction(
-                'agtFacebookSetCoversationMessages',
-                this.agtFacebookSetCoversationMessages
+                'agtFacebookSetConversationMessages',
+                this.agtFacebookSetConversationMessages
             );
+            listenerStoreDataByAction(
+                'agtFacebookSetCoversationMessages',
+                this.agtFacebookSetConversationMessages
+            );
+            listenerStoreDataByAction('agtFacebookConversationDetailInit', this.initData);
             listenerStoreDataByAction('agtFacebookCoversationDetailInit', this.initData);
         },
         async updatedLocalStorage () {

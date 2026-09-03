@@ -92,30 +92,24 @@ class ReporteDeResultadosDeCampana(object):
 
     def _registrar_resultados_telefonicos(self, contactos_ids, calificados_ids):
         # Último evento telefónico (EXIT_ANSWERED, NOANSWER, etc.) por contacto.
-        filtro_contactos = " AND contacto_id IN ('"
-        filtro_contactos += "','".join([str(x) for x in contactos_ids])
-        filtro_contactos += "')"
-        filtro_eventos = " AND event IN ('"
-        filtro_eventos += "','".join(LlamadaResumen.EVENTOS_NO_CONEXION)
-        filtro_eventos += "','"
-        filtro_eventos += "','".join(LlamadaResumen.EVENTOS_FIN_CONEXION)
-        filtro_eventos += "')"
+        eventos = list(LlamadaResumen.EVENTOS_NO_CONEXION) + list(LlamadaResumen.EVENTOS_FIN_CONEXION)
         params = {'campana_id': self.campana.id,
-                  'filtro_contactos': filtro_contactos,
-                  'filtro_eventos': filtro_eventos}
+                  'contactos_ids': list(contactos_ids),
+                  'eventos': eventos}
         sql = """
             SELECT contacto_id, event
             FROM (
                 SELECT id, campana_id, event, numero_marcado, contacto_id, fecha_fin,
                        max(fecha_fin) OVER (PARTITION BY contacto_id) max_my_date
                 FROM public.reportes_app_llamada_resumen
-                WHERE campana_id = {campana_id} AND contacto_id != -1
-                {filtro_contactos}{filtro_eventos}
+                WHERE campana_id = %(campana_id)s AND contacto_id != -1
+                AND contacto_id = ANY(%(contactos_ids)s)
+                AND event = ANY(%(eventos)s)
             ) sub_query
-            WHERE fecha_fin = max_my_date """.format(**params)
+            WHERE fecha_fin = max_my_date """
 
         cursor = connection.cursor()
-        cursor.execute(sql)
+        cursor.execute(sql, params)
         values = cursor.fetchall()
         calificados = set(calificados_ids)
         for contacto_id, evento in values:

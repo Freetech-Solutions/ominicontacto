@@ -100,6 +100,21 @@
               >
             </div>
             <div class="field col-6">
+              <label>{{ $t("models.facebook.page.app_secret") }}</label>
+              <div class="p-inputgroup">
+                <span class="p-inputgroup-addon">
+                  <i class="pi pi-lock"></i>
+                </span>
+                <Password
+                  toggleMask
+                  :feedback="false"
+                  :placeholder="$t('forms.form.enter_value')"
+                  v-model="supInstagramAccount.app_secret"
+                />
+              </div>
+              <small>{{ $t("models.facebook.page.app_secret_help") }}</small>
+            </div>
+            <div class="field col-6">
               <label
                 :class="{
                   'p-error':

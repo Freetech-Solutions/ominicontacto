@@ -18,12 +18,14 @@
 from __future__ import unicode_literals
 
 import json
+from datetime import timedelta
 from email.utils import formataddr
 from unittest.mock import AsyncMock, patch
 
 from asgiref.sync import async_to_sync
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework import status
 
 from email_app import models
@@ -118,6 +120,23 @@ class EmailAgentChannelTest(OMLBaseTest):
         self.assertEqual(conv.status, models.ConversacionEmail.STATUS_REOPENED)
         self.assertIsNone(conv.agent_id)  # back to the general inbox
 
+    def test_ingest_assigns_campaign_to_legacy_null_campaign_conversation(self):
+        conv = self._conversation(
+            campana=None, agent=None, status=models.ConversacionEmail.STATUS_ANSWERED,
+            thread_key="<legacy-null@example.com>")
+        reply = self._inbound_message(
+            "<reply3@example.com>", references=["<legacy-null@example.com>"],
+            stamp="legacy-null")
+
+        conv2, created = ingest_inbound_message(reply)
+
+        self.assertFalse(created)
+        self.assertEqual(conv2.id, conv.id)
+        conv.refresh_from_db()
+        self.assertEqual(conv.status, models.ConversacionEmail.STATUS_REOPENED)
+        self.assertEqual(conv.campana_id, self.campana.id)
+        self.assertIsNone(conv.agent_id)
+
     # --- Inbox listing (Asignado / Inbox General) -------------------------
 
     def test_list_assigned_tab(self):
@@ -147,6 +166,25 @@ class EmailAgentChannelTest(OMLBaseTest):
         resp = self.client.get(reverse("email:api:v1:conversation-list"))
         row = next(c for c in resp.json()["general"]["new"] if c["id"] == conv.id)
         self.assertEqual(row["campaign_name"], self.campana.nombre)
+
+    def test_inbox_lists_conversations_newest_first(self):
+        now = timezone.now()
+        oldest = self._conversation(
+            status=models.ConversacionEmail.STATUS_NEW,
+            thread_key="<order-oldest@e>", timestamp=now - timedelta(hours=3))
+        middle = self._conversation(
+            status=models.ConversacionEmail.STATUS_NEW,
+            thread_key="<order-middle@e>", timestamp=now - timedelta(hours=2))
+        newest = self._conversation(
+            status=models.ConversacionEmail.STATUS_NEW,
+            thread_key="<order-newest@e>", timestamp=now - timedelta(hours=4),
+            date_last_interaction=now)
+
+        resp = self.client.get(reverse("email:api:v1:conversation-list"))
+
+        ids = [item["id"] for item in resp.json()["general"]["new"]]
+        relevant_ids = [pk for pk in ids if pk in {oldest.id, middle.id, newest.id}]
+        self.assertEqual(relevant_ids, [newest.id, middle.id, oldest.id])
 
     # --- Realtime notifications --------------------------------------------
 
@@ -210,6 +248,45 @@ class EmailAgentChannelTest(OMLBaseTest):
             self.client.get(url)
 
         self.assertEqual(len(first.captured_queries), len(second.captured_queries))
+
+    def test_detail_is_chronological_and_n_plus_1_free(self):
+        """A larger thread remains two bulk reads and is returned oldest first."""
+        from django.db import connection
+        from django.test.utils import CaptureQueriesContext
+
+        conv = self._conversation(
+            agent=self.agente, status=models.ConversacionEmail.STATUS_IN_PROGRESS,
+            thread_key="<detail-order@e>")
+        now = timezone.now()
+        newest = self._msg_in(conv, "<detail-newest@e>", "detail-newest")
+        oldest = self._msg_in(conv, "<detail-oldest@e>", "detail-oldest")
+        models.Message.objects.filter(pk=newest.pk).update(date=now)
+        models.Message.objects.filter(pk=oldest.pk).update(date=now - timedelta(hours=1))
+        url = reverse("email:api:v1:conversation-detail", args=[conv.pk])
+
+        with CaptureQueriesContext(connection) as first:
+            first_response = self.client.get(url)
+
+        middle_ids = []
+        for i in range(5):
+            message = self._msg_in(
+                conv, "<detail-{0}@e>".format(i), "detail-{0}".format(i))
+            models.Message.objects.filter(pk=message.pk).update(
+                date=now - timedelta(minutes=50 - i))
+            middle_ids.append(message.pk)
+
+        with CaptureQueriesContext(connection) as second:
+            second_response = self.client.get(url)
+
+        self.assertEqual(len(first.captured_queries), len(second.captured_queries))
+        self.assertEqual(
+            [message["id"] for message in first_response.json()["mensajes"]],
+            [oldest.id, newest.id],
+        )
+        self.assertEqual(
+            [message["id"] for message in second_response.json()["mensajes"]],
+            [oldest.id] + middle_ids + [newest.id],
+        )
 
     # --- Attend (asignar: inbox general -> personal) -----------------------
 

@@ -90,6 +90,8 @@ export default {
     exit: 'Sair',
     close: 'Fechar',
     download: 'Download',
+    download_file: 'Baixar arquivo',
+    attached_file: 'Arquivo anexado',
     back_to: 'De volta a {type}',
     back: 'De volta',
     yes: 'Sim',

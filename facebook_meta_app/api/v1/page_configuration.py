@@ -236,6 +236,8 @@ class MessengerMetaAppPageConfigurationCreateSerializer(serializers.ModelSeriali
     access_token = serializers.CharField(max_length=500)
     verify_token = serializers.CharField(max_length=255)
     app_id = serializers.CharField(max_length=255)
+    app_secret = serializers.CharField(
+        max_length=255, allow_blank=True, allow_null=True, required=False)
     page_id = serializers.CharField(max_length=255)
     schedule = serializers.PrimaryKeyRelatedField(
         queryset=GrupoHorario.objects.all(), allow_null=True, required=False, source='horario')
@@ -250,9 +252,9 @@ class MessengerMetaAppPageConfigurationCreateSerializer(serializers.ModelSeriali
 
     class Meta:
         model = PaginaMetaFacebook
-        fields = ['name', 'description', 'access_token', 'verify_token', 'app_id', 'page_id',
-                  'schedule', 'welcome_message', 'goodbye_message', 'out_of_hours_message',
-                  'allow_reply_comments', 'is_active']
+        fields = ['name', 'description', 'access_token', 'verify_token', 'app_id', 'app_secret',
+                  'page_id', 'schedule', 'welcome_message', 'goodbye_message',
+                  'out_of_hours_message', 'allow_reply_comments', 'is_active']
 
 
 class DestinoEntranteRelatedField(serializers.RelatedField):
@@ -328,6 +330,7 @@ class MessengerMetaAppPageConfigurationSerializer(serializers.Serializer):
     access_token = serializers.CharField()
     verify_token = serializers.CharField()
     app_id = serializers.CharField()
+    app_secret = serializers.CharField(allow_blank=True, allow_null=True, required=False)
     page_id = serializers.CharField()
     allow_reply_comments = serializers.BooleanField()
     is_active = serializers.BooleanField()
@@ -543,7 +546,8 @@ class ViewSet(viewsets.ViewSet):
                     data={'id': [_('No existe una página con este id')]}),
                 status=status.HTTP_404_NOT_FOUND
             )
-        instance.delete()
+        instance.is_active = False
+        instance.save(update_fields=['is_active'])
         StreamDePaginas().notificar_page_eliminada(instance)
         return Response(
             data=get_response_data(

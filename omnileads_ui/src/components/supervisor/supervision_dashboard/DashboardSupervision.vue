@@ -33,6 +33,9 @@ import { apiCall } from '@/hooks/apiCall';
 import DashboardSupervisionDetail from '@/components/supervisor/supervision_dashboard/DashboardSupervisionDetail.vue';
 import LineService from '@/services/supervisor/whatsapp/line_service';
 import PageService from '@/services/supervisor/facebook/page_service';
+import InstagramAccountService from '@/services/supervisor/instagram/account_service';
+import EmailAccountService from '@/services/supervisor/email/account_service';
+import OutboundRouteService from '@/services/supervisor/outbound_route_service';
 
 export default {
     components: {
@@ -41,28 +44,40 @@ export default {
     setup () {
         const lineService = new LineService();
         const pageService = new PageService();
+        const instagramAccountService = new InstagramAccountService();
+        const emailAccountService = new EmailAccountService();
+        const outboundRouteService = new OutboundRouteService();
 
         function getCollectionSize (response) {
-            const items = response?.data;
+            const items = Array.isArray(response) ? response : response?.data;
             return Array.isArray(items) ? items.length : 0;
         }
 
         async function fetchResourceCounts () {
             try {
-                const [linesResponse, pagesResponse] = await Promise.all([
+                const [voiceResponse, linesResponse, pagesResponse, instagramResponse, emailResponse] = await Promise.all([
+                    outboundRouteService.sipTrunks(),
                     lineService.list(),
-                    pageService.list()
+                    pageService.list(),
+                    instagramAccountService.list(),
+                    emailAccountService.list()
                 ]);
                 resourceCounts.value = {
+                    voiceLines: getCollectionSize(voiceResponse?.sipTrunks),
                     whatsappLines: getCollectionSize(linesResponse),
-                    metaLandingPages: getCollectionSize(pagesResponse)
+                    metaMessengerAccounts: getCollectionSize(pagesResponse),
+                    instagramAccounts: getCollectionSize(instagramResponse),
+                    emailAccounts: getCollectionSize(emailResponse)
                 };
             } catch (error) {
                 console.error('Error al obtener los contadores del dashboard');
                 console.error(error);
                 resourceCounts.value = {
+                    voiceLines: 0,
                     whatsappLines: 0,
-                    metaLandingPages: 0
+                    metaMessengerAccounts: 0,
+                    instagramAccounts: 0,
+                    emailAccounts: 0
                 };
             }
         }
@@ -161,8 +176,11 @@ export default {
         const loadingData = ref(false);
         const reportData = ref({ data: null });
         const resourceCounts = ref({
+            voiceLines: 0,
             whatsappLines: 0,
-            metaLandingPages: 0
+            metaMessengerAccounts: 0,
+            instagramAccounts: 0,
+            emailAccounts: 0
         });
         const { loading, response } = apiCall(apiUrls.DashboardSupervision);
         watch(loading, () => {

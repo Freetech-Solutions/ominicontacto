@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OMniLeads\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-25 00:00-0300\n"
+"POT-Creation-Date: 2026-08-23 21:17-0300\n"
 "PO-Revision-Date: 2026-06-25 00:00-0300\n"
 "Last-Translator: Freetech Solutions\n"
 "Language-Team: Spanish\n"
@@ -16,23 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: email_app/apps.py:26
-msgid "Optiene los detalles de la cuenta de correo"
-msgstr "Optiene los detalles de la cuenta de correo"
-
-#: email_app/apps.py:30
-msgid "Lista las cuentas de correo"
-msgstr "Lista las cuentas de correo"
-
-#: email_app/apps.py:34
-msgid "Prueba los datos de la cuenta de correo"
-msgstr "Prueba los datos de la cuenta de correo"
-
-#: email_app/api/v1/self.py:115
-msgid "Invalid credentials or deactivated Account."
-msgstr "Credenciales inválidas o cuenta desactivada."
-
-#: email_app/api/v1/account.py:221
+#: email_app/api/v1/account.py:274
 #, python-format
 msgid ""
 "This account cannot be deleted because it is configured in the following "
@@ -43,30 +27,62 @@ msgstr ""
 "siguiente(s) campaña(s): %(campaigns)s. Quite la cuenta de esas campañas "
 "antes de eliminarla."
 
-#: email_app/api/v1/conversation.py:121
-msgid "The conversation does not exist."
-msgstr "La conversación no existe."
-
-#: email_app/api/v1/conversation.py:126
-msgid "You do not have access to this conversation."
-msgstr "No tenés acceso a esta conversación."
-
-#: email_app/api/v1/conversation.py:156
-msgid "This conversation is already being attended by another agent."
-msgstr "Esta conversación ya está siendo atendida por otro agente."
-
-#: email_app/api/v1/conversation.py:112
+#: email_app/api/v1/conversation.py:183
 msgid "Provide a message body."
 msgstr "Indicá el cuerpo del mensaje."
 
-#: email_app/api/v1/conversation.py:213
+#: email_app/api/v1/conversation.py:208
+msgid "Error en los campos de contacto"
+msgstr ""
+
+#: email_app/api/v1/conversation.py:210
+msgid "Faltan campos requeridos"
+msgstr ""
+
+#: email_app/api/v1/conversation.py:238 email_app/api/v1/reporte.py:281
+msgid "The conversation does not exist."
+msgstr "La conversación no existe."
+
+#: email_app/api/v1/conversation.py:243
+msgid "You do not have access to this conversation."
+msgstr "No tenés acceso a esta conversación."
+
+#: email_app/api/v1/conversation.py:350
+msgid "You must take this conversation before reading it."
+msgstr "Debe asignarse esta conversación antes de leerla."
+
+#: email_app/api/v1/conversation.py:364
+msgid "This conversation is already being attended by another agent."
+msgstr "Esta conversación ya está siendo atendida por otro agente."
+
+#: email_app/api/v1/conversation.py:435
 msgid "The email could not be sent."
 msgstr "No se pudo enviar el correo."
 
-#: email_app/api/v1/conversation.py:277
+#: email_app/api/v1/conversation.py:458 email_app/api/v1/conversation.py:530
 msgid "The conversation has no campaign."
 msgstr "La conversación no tiene campaña."
 
-#: email_app/api/v1/conversation.py:281
-msgid "Save the contact before dispositioning the conversation."
-msgstr "Guardá el contacto antes de calificar la conversación."
+#: email_app/api/v1/reporte.py:145 email_app/api/v1/reporte.py:246
+#: email_app/api/v1/reporte.py:275 email_app/api/v1/reporte.py:295
+msgid "The campaign does not exist."
+msgstr "La campaña no existe."
+
+#: email_app/api/v1/self.py:115
+msgid "Invalid credentials or deactivated Account."
+msgstr "Credenciales inválidas o cuenta desactivada."
+
+#: email_app/apps.py:26
+msgid "Obtiene los detalles de la cuenta de correo"
+msgstr "Obtiene los detalles de la cuenta de correo"
+
+#: email_app/apps.py:30
+msgid "Lista las cuentas de correo"
+msgstr "Lista las cuentas de correo"
+
+#: email_app/apps.py:34
+msgid "Prueba los datos de la cuenta de correo"
+msgstr "Prueba los datos de la cuenta de correo"
+
+#~ msgid "Save the contact before dispositioning the conversation."
+#~ msgstr "Guardá el contacto antes de calificar la conversación."

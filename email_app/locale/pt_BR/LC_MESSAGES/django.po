@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OMniLeads\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-06-25 00:00-0300\n"
+"POT-Creation-Date: 2026-08-23 21:17-0300\n"
 "PO-Revision-Date: 2026-06-25 00:00-0300\n"
 "Last-Translator: Freetech Solutions\n"
 "Language-Team: Portuguese-Br\n"
@@ -16,8 +16,64 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
+#: email_app/api/v1/account.py:274
+#, python-format
+msgid ""
+"This account cannot be deleted because it is configured in the following "
+"campaign(s): %(campaigns)s. Remove the account from those campaigns before "
+"deleting it."
+msgstr ""
+"Esta conta não pode ser excluída porque está configurada na(s) seguinte(s) "
+"campanha(s): %(campaigns)s. Remova a conta dessas campanhas antes de excluí-"
+"la."
+
+#: email_app/api/v1/conversation.py:183
+msgid "Provide a message body."
+msgstr "Forneça o corpo da mensagem."
+
+#: email_app/api/v1/conversation.py:208
+msgid "Error en los campos de contacto"
+msgstr "Erro nos campos de contato"
+
+#: email_app/api/v1/conversation.py:210
+msgid "Faltan campos requeridos"
+msgstr "Faltam campos obrigatórios"
+
+#: email_app/api/v1/conversation.py:238 email_app/api/v1/reporte.py:281
+msgid "The conversation does not exist."
+msgstr "A conversa não existe."
+
+#: email_app/api/v1/conversation.py:243
+msgid "You do not have access to this conversation."
+msgstr "Você não tem acesso a esta conversa."
+
+#: email_app/api/v1/conversation.py:350
+msgid "You must take this conversation before reading it."
+msgstr "Deve obter a conversa antes de lê-la"
+
+#: email_app/api/v1/conversation.py:364
+msgid "This conversation is already being attended by another agent."
+msgstr "Esta conversa já está sendo atendida por outro agente."
+
+#: email_app/api/v1/conversation.py:435
+msgid "The email could not be sent."
+msgstr "Não foi possível enviar o e-mail."
+
+#: email_app/api/v1/conversation.py:458 email_app/api/v1/conversation.py:530
+msgid "The conversation has no campaign."
+msgstr "A conversa não tem campanha."
+
+#: email_app/api/v1/reporte.py:145 email_app/api/v1/reporte.py:246
+#: email_app/api/v1/reporte.py:275 email_app/api/v1/reporte.py:295
+msgid "The campaign does not exist."
+msgstr "A campanha não existe."
+
+#: email_app/api/v1/self.py:115
+msgid "Invalid credentials or deactivated Account."
+msgstr "Credenciais inválidas ou conta desativada."
+
 #: email_app/apps.py:26
-msgid "Optiene los detalles de la cuenta de correo"
+msgid "Obtiene los detalles de la cuenta de correo"
 msgstr "Obtém os detalhes da conta de e-mail"
 
 #: email_app/apps.py:30
@@ -27,46 +83,3 @@ msgstr "Lista as contas de e-mail"
 #: email_app/apps.py:34
 msgid "Prueba los datos de la cuenta de correo"
 msgstr "Testa os dados da conta de e-mail"
-
-#: email_app/api/v1/self.py:115
-msgid "Invalid credentials or deactivated Account."
-msgstr "Credenciais inválidas ou conta desativada."
-
-#: email_app/api/v1/account.py:221
-#, python-format
-msgid ""
-"This account cannot be deleted because it is configured in the following "
-"campaign(s): %(campaigns)s. Remove the account from those campaigns before "
-"deleting it."
-msgstr ""
-"Esta conta não pode ser excluída porque está configurada na(s) seguinte(s) "
-"campanha(s): %(campaigns)s. Remova a conta dessas campanhas antes de "
-"excluí-la."
-
-#: email_app/api/v1/conversation.py:121
-msgid "The conversation does not exist."
-msgstr "A conversa não existe."
-
-#: email_app/api/v1/conversation.py:126
-msgid "You do not have access to this conversation."
-msgstr "Você não tem acesso a esta conversa."
-
-#: email_app/api/v1/conversation.py:156
-msgid "This conversation is already being attended by another agent."
-msgstr "Esta conversa já está sendo atendida por outro agente."
-
-#: email_app/api/v1/conversation.py:112
-msgid "Provide a message body."
-msgstr "Forneça o corpo da mensagem."
-
-#: email_app/api/v1/conversation.py:213
-msgid "The email could not be sent."
-msgstr "Não foi possível enviar o e-mail."
-
-#: email_app/api/v1/conversation.py:277
-msgid "The conversation has no campaign."
-msgstr "A conversa não tem campanha."
-
-#: email_app/api/v1/conversation.py:281
-msgid "Save the contact before dispositioning the conversation."
-msgstr "Salve o contato antes de qualificar a conversa."

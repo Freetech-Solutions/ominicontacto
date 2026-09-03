@@ -101,12 +101,13 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
         if 'instagram_accounts_configuration' in permissions or True:  # TEMPORAL
             messenger.append({
                 'label': _('Instagram'),
+                'class': 'main-menu-new',
                 'url': reverse('instagram_accounts_configuration')
             })
         if messenger:
             conexiones.append({
                 'label': _('Meta/Facebook'),
-                'class': "main-menu-beta",
+                'class': "main-menu-new",
                 'icon': 'icon-audio-file',
                 'id': 'menuMessenger',
                 'children': messenger
@@ -125,7 +126,7 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
             conexiones.append(
                 {
                     "label": _("Email"),
-                    "class": "",
+                    "class": "main-menu-beta",
                     "id": "menuEmail",
                     "children": email,
                 }
@@ -200,7 +201,7 @@ class ConfiguracionTelefoniaAppConfig(AppConfig):
                 {
                     'order': 700,
                     'label': _('Conexiones'),
-                    'class': "main-menu-beta",
+                    'class': "main-menu-new",
                     'icon': 'fas fa-sitemap',
                     'id': 'menuConexiones',
                     'children': conexiones,

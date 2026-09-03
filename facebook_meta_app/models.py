@@ -52,7 +52,8 @@ class PaginaMetaFacebook(models.Model):
     # Channel data (Meta App)
     access_token = models.CharField(max_length=500)   # Page Access Token
     verify_token = models.CharField(max_length=255)   # Used for webhook verification
-    app_id = models.CharField(max_length=255)     # App Secret from Meta App
+    app_id = models.CharField(max_length=255)
+    app_secret = models.CharField(max_length=255, blank=True, null=True)
     page_id = models.CharField(max_length=255)        # Facebook Page ID
     destination = models.ForeignKey(
         'configuracion_telefonia_app.DestinoEntrante', on_delete=models.PROTECT,
@@ -95,7 +96,8 @@ class ConfiguracionMetaFacebookCampana(models.Model):
         'ominicontacto_app.Campana', on_delete=models.CASCADE,
         related_name='configuracion_meta_facebook')
     pagina = models.ForeignKey(
-        PaginaMetaFacebook, on_delete=models.PROTECT, related_name='campanas')
+        PaginaMetaFacebook, on_delete=models.PROTECT, related_name='campanas',
+        blank=True, null=True)
     grupo_plantilla_facebook = models.ForeignKey(
         GrupoPlantillaMessenger, related_name="configuracion_facebook",
         blank=True, null=True, on_delete=models.PROTECT)
@@ -107,7 +109,8 @@ class ConfiguracionMetaFacebookCampana(models.Model):
         verbose_name_plural = "Configuraciones Meta Facebook Campaña"
 
     def __str__(self):
-        return f"Configuración de {self.campana.nombre} - Página: {self.pagina.name}"
+        pagina = self.pagina.name if self.pagina else '-'
+        return f"Configuración de {self.campana.nombre} - Página: {pagina}"
 
 
 class ConversationMessengerMetaApp(models.Model):

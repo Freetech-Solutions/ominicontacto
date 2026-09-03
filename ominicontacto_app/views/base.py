@@ -35,6 +35,7 @@ from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.conf import settings
 from django.views.generic import TemplateView
+from django.views.decorators.http import require_http_methods
 
 from constance import config as config_constance
 
@@ -56,6 +57,7 @@ from utiles_globales import AddSettingsContextMixin
 logger = logging.getLogger(__name__)
 
 
+@require_http_methods(["GET", "HEAD"])
 def index_view(request):
     template_name = "base.html"
     if not request.user.is_authenticated:
@@ -99,6 +101,7 @@ def custom_authenticate(username, password):
     return authentication
 
 
+@require_http_methods(["GET", "POST"])
 def login_view(request):
     detail = None
     user_is_blocked = False

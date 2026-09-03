@@ -918,7 +918,7 @@ class IMAP4:
             raise self.abort('TLS not supported by server')
         # Generate a default SSL context if none was passed.
         if ssl_context is None:
-            ssl_context = ssl._create_stdlib_context()
+            ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
         typ, dat = self._simple_command(name)
         if typ == 'OK':
             self.sock = ssl_context.wrap_socket(self.sock,
@@ -1633,7 +1633,7 @@ if HAVE_SSL:
         def __init__(self, host='', port=IMAP4_SSL_PORT,
                      *, ssl_context=None, timeout=None):
             if ssl_context is None:
-                ssl_context = ssl._create_stdlib_context()
+                ssl_context = ssl.create_default_context(ssl.Purpose.SERVER_AUTH)
             self.ssl_context = ssl_context
             IMAP4.__init__(self, host, port, timeout)
 

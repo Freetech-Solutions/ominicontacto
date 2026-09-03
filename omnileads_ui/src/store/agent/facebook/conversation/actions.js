@@ -28,10 +28,28 @@ const getMessageInfo = ({ $t, data = null, itsMine = true }) => {
     };
 };
 
+const appendSentMessage = async ({ commit, state, message, messages = null }) => {
+    const baseMessages = Array.isArray(messages)
+        ? messages
+        : state.agtFacebookConversationMessages || [];
+    const messageIndex = baseMessages.findIndex((item) => item.id === message.id);
+    const updatedMessages = [...baseMessages];
+    if (messageIndex >= 0) {
+        updatedMessages.splice(messageIndex, 1, message);
+    } else {
+        updatedMessages.push(message);
+    }
+    commit('agtFacebookConversationInitMessages', updatedMessages);
+    await resetStoreDataByAction({
+        action: 'agtFacebookSetConversationMessages',
+        data: updatedMessages
+    });
+};
+
 export default {
     async agtFacebookConversationSendAttachmentMessage(
-        { commit },
-        { conversationId = null, formData, pageId = null, messages, $t}
+        { commit, state },
+        { conversationId = null, formData, pageId = null, messages = null, $t}
     ) {
         try {
             console.log('Sending attachment message with formData:', formData);
@@ -49,13 +67,8 @@ export default {
             if (status === HTTP_STATUS.SUCCESS) {
                 const itsMine = data.origin === pageId;
                 const message = getMessageInfo({ $t, data, itsMine });
-                messages.push(message);
-                await commit('agtFacebookConversationSendMessage', message);
+                await appendSentMessage({ commit, state, message, messages });
             }
-            await resetStoreDataByAction({
-                action: 'agtFacebookSetConversationMessages',
-                data: messages
-            });
             return response;
         } catch (error) {
             console.error('===> ERROR al enviar mensaje multimedia');

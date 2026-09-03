@@ -7,7 +7,11 @@ html {
 }
 body {
     height: 100%;
-    font-family: 'Asap', sans-serif;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 0.9375rem;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
     color: $dark-grey;
 }
 a {
@@ -37,16 +41,23 @@ button:hover {
 */
 
 h1 {
-    font-size: 1.4rem;
+    font-size: 1.25rem;
 }
 h2 {
-    font-size: 1.2rem;
+    font-size: 1.125rem;
 }
 h3 {
     font-size: 1rem;
 }
 h4 {
-    font-size: 0.8rem;
+    font-size: 0.875rem;
+}
+h1, h2, h3, h4 {
+    font-weight: 600;
+    line-height: 1.25;
+}
+.btn, .form-control, .dropdown-menu {
+    font-size: 0.9375rem;
 }
 
 /* ///// Button styles */
@@ -473,7 +484,7 @@ input[type=file].form-control {
     display: block;
     padding: 10px 14px 10px 38px;
     color: $grey;
-    font-size: 1rem;
+    font-size: 0.9375rem;
     line-height: 1.35;
     letter-spacing: 0.01em;
 	}
@@ -497,12 +508,12 @@ input[type=file].form-control {
 	
 	.submenu a {
     padding-left: 34px;
-    font-size: 1rem;
+    font-size: 0.9375rem;
 	}
 	
 	.submenu-two a {
     padding-left: 50px;
-    font-size: 1rem;
+    font-size: 0.9375rem;
 	}
 	
 	ul a.active {
@@ -695,8 +706,7 @@ input[type=file].form-control {
 	}
 }
 .wrapper-info > h1:first-of-type {
-    font-size: 1.2rem;
-    text-transform: uppercase;
+    font-size: 1.25rem;
     margin-bottom: 32px;
 }
 
@@ -824,7 +834,7 @@ table.campana-reglas .td-remove .btn {
     max-height: 450px;
 	}
 	text {
-    font-family: 'Asap', sans-serif !important;
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif !important;
 	}
 	.titles text {
     font-size: 1.5rem !important;
@@ -1015,6 +1025,18 @@ body.wrapper-page-error {
     background-color: #15ff00;
     padding: 2px 5px;
     border-radius: 3px;
+}
+
+.main-menu-new::after {
+  content: "New";
+  float: right;
+  margin-left: 5px;
+  margin-right: 15px;
+  color: #000000;
+  font-size: 12px;
+  background-color: #15ff00;
+  padding: 2px 5px;
+  border-radius: 3px;
 }
 
 /* --- Dark Mode Variables and Overrides --- */

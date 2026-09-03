@@ -90,6 +90,8 @@ export default {
     exit: 'برو بیرون',
     close: 'بستن',
     download: 'دانلود',
+    download_file: 'دانلود فایل',
+    attached_file: 'فایل پیوست‌شده',
     back_to: 'بازگشت به {type}',
     back: 'بازگشت',
     yes: 'آره',

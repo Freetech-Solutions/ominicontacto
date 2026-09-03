@@ -187,6 +187,7 @@ export default {
                         access_token: page.access_token,
                         verify_token: page.verify_token,
                         app_id: page.app_id,
+                        app_secret: page.app_secret,
                         page_id: page.page_id,
                         destination: page.destination,
                         horario: page.horario,

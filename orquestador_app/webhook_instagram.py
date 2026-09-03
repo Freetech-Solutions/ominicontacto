@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from instagram_app.models import CuentaInstagram
 from ominicontacto_app.services.redis.redis_streams import RedisStreams
+from orquestador_app.meta_webhook_signature import verify_meta_webhook_signature
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +60,9 @@ class WebhookInstagramView(APIView):
         if account is None:
             logger.warning("Webhook Instagram: no se encontro cuenta para app_id=%s", app_id)
             return HttpResponse(status=status.HTTP_200_OK)
+        if not verify_meta_webhook_signature(
+                request, account.app_secret, app_id, 'Instagram'):
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         self.redis_stream.write_stream(
             account.get_stream_name, request.body.decode("utf-8"), max_stream_length=100000)
         return HttpResponse(status=status.HTTP_200_OK)

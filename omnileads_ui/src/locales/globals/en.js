@@ -110,6 +110,8 @@ export default {
     exit: 'Exit',
     close: 'Close',
     download: 'Download | Download',
+    download_file: 'Download file',
+    attached_file: 'Attached file',
     back_to: 'Back to {type}',
     back: 'Back',
     yes: 'Yes',

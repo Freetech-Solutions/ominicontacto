@@ -80,6 +80,17 @@ def ingest_inbound_message(message):
         conversation.atendida = False
         conversation.is_disposition = False
         update_fields += ["status", "agent", "atendida", "is_disposition"]
+    if (
+        conversation.campana_id is None
+        and campana is not None
+        and conversation.agent_id is None
+        and conversation.status in models.ConversacionEmail.GENERAL_INBOX_QUEUED
+    ):
+        conversation.campana = campana
+        update_fields.append("campana")
+        if conversation.contacto_id is None:
+            conversation.contacto = _match_contacto(campana, message.from_mail)
+            update_fields.append("contacto")
     conversation.save(update_fields=update_fields)
     return conversation, created
 

@@ -79,8 +79,9 @@ class CreacionBlacklistService(object):
                 cursor.execute('DELETE FROM ominicontacto_app_blacklist;')
         else:
             with connection.cursor() as cursor:
-                cursor.execute('DELETE FROM ominicontacto_app_contactoblacklist WHERE '
-                               f'black_list_id={object.id}')
+                cursor.execute(
+                    'DELETE FROM ominicontacto_app_contactoblacklist WHERE black_list_id=%s',
+                    [object.id])
                 object.delete()
 
     def importa_contactos(self, blacklist):

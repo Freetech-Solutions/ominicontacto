@@ -81,6 +81,9 @@ RUN npm run build
 # 2.1) Stage build WebUI
 FROM node:22-alpine as webuibuilder
 
+# Build no interactivo: pnpm no debe pedir confirmación para purgar node_modules
+ENV CI=true
+
 RUN corepack enable
 
 WORKDIR /webui-app

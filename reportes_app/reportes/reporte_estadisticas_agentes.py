@@ -254,7 +254,6 @@ class ReporteEstadisticasDiariaAgente(object):
     def adicionar_log(
             self, numero_marcado, callid, agente_id, campana_id, tipo_campana, contacto_id,
             sort_time=None):
-        numero_marcado = numero_marcado
         datos = ''
         es_gestion = ''
         calificacion_nombre = ''

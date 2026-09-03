@@ -19,7 +19,7 @@ import logging
 import re
 
 from django.core.files.storage import default_storage
-from django.db.models import F, Func, IntegerField, OuterRef, Subquery
+from django.db.models import F, Func, IntegerField, OuterRef, Prefetch, Subquery
 from django.db.models.functions import Coalesce
 from django.utils.translation import gettext as _
 from rest_framework import decorators
@@ -158,7 +158,13 @@ class ConversationListSerializer(serializers.Serializer):
 
 
 class ConversationDetailSerializer(ConversationListSerializer):
-    mensajes = MessageSerializer(many=True)
+    mensajes = serializers.SerializerMethodField()
+
+    def get_mensajes(self, conversation):
+        messages = getattr(conversation, "ordered_messages", None)
+        if messages is None:
+            messages = conversation.mensajes.order_by("date", "id")
+        return MessageSerializer(messages, many=True).data
 
 
 class ReplySerializer(serializers.Serializer):
@@ -220,12 +226,14 @@ class ViewSet(viewsets.ViewSet):
             "queue_name__campana_id", flat=True
         )
 
-    def _get_scoped(self, request, pk):
+    def _get_scoped(self, request, pk, with_detail=False):
         """Fetch the conversation ensuring the agent may access it (belongs to
         one of the agent's campaigns, or is already assigned to the agent)."""
         agente = self._agente(request)
         try:
-            conversation = models.ConversacionEmail.objects.get(pk=pk)
+            queryset = self._detail_queryset() if with_detail \
+                else models.ConversacionEmail.objects.all()
+            conversation = queryset.get(pk=pk)
         except models.ConversacionEmail.DoesNotExist:
             raise exceptions.NotFound(_("The conversation does not exist."))
         campana_ids = set(self._agente_campana_ids(agente))
@@ -293,6 +301,19 @@ class ViewSet(viewsets.ViewSet):
         ).annotate(
             messages_count=count(),
             unread_count=count(direction=Msg.DIRECTION_INBOUND, is_read=False),
+            sort_date=Coalesce("date_last_interaction", "timestamp"),
+        )
+
+    def _detail_queryset(self):
+        """Conversation and its chronologically ordered thread in two queries.
+
+        The list annotations avoid follow-up count queries in the detail
+        serializer, while the ordered prefetch keeps serialization constant as
+        the thread grows.
+        """
+        messages = models.Message.objects.order_by("date", "id")
+        return self._inbox_queryset().prefetch_related(
+            Prefetch("mensajes", queryset=messages, to_attr="ordered_messages")
         )
 
     def list(self, request):
@@ -300,10 +321,13 @@ class ViewSet(viewsets.ViewSet):
         campana_ids = list(self._agente_campana_ids(agente))
         Conv = models.ConversacionEmail
         base = self._inbox_queryset()
-        assigned = base.filter(agent=agente).exclude(status=Conv.STATUS_CLOSED)
+        assigned = base.filter(agent=agente).exclude(
+            status=Conv.STATUS_CLOSED).order_by("-sort_date", "-id")
         general = base.filter(agent=None, campana_id__in=campana_ids)
-        general_new = general.filter(status__in=Conv.GENERAL_INBOX_QUEUED)
-        general_waiting = general.filter(status__in=Conv.GENERAL_INBOX_WAITING)
+        general_new = general.filter(
+            status__in=Conv.GENERAL_INBOX_QUEUED).order_by("-sort_date", "-id")
+        general_waiting = general.filter(
+            status__in=Conv.GENERAL_INBOX_WAITING).order_by("-sort_date", "-id")
         return response.Response(
             data={
                 "assigned": ConversationListSerializer(assigned, many=True).data,
@@ -316,7 +340,7 @@ class ViewSet(viewsets.ViewSet):
         )
 
     def retrieve(self, request, pk):
-        conversation, agente = self._get_scoped(request, pk)
+        conversation, agente = self._get_scoped(request, pk, with_detail=True)
         # SECURITY: an agent may only read the full thread of a conversation it
         # owns. Reading a conversation in the general inbox requires taking it
         # first (attend), which assigns it — otherwise an agent could read mail
@@ -334,7 +358,7 @@ class ViewSet(viewsets.ViewSet):
 
     @decorators.action(detail=True, methods=["post"])
     def attend(self, request, pk):
-        conversation, agente = self._get_scoped(request, pk)
+        conversation, agente = self._get_scoped(request, pk, with_detail=True)
         if conversation.agent_id not in (None, agente.id):
             return response.Response(
                 data={"detail": _("This conversation is already being attended by "

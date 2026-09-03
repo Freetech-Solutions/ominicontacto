@@ -308,6 +308,7 @@ export default {
             access_token: 'Token de acceso',
             app_id: 'App ID',
             app_secret: 'App Secret',
+            app_secret_help: 'Recomendado para securizar webhook',
             schedule: 'Grupo horario',
             destino: 'Destino',
             tipo_de_destino: 'Tipo de destino',

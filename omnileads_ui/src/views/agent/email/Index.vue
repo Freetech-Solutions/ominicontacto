@@ -119,7 +119,7 @@
               <span class="bubble-date">{{ fmtDate(m.date) }}</span>
             </div>
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="bubble-body" v-html="m.body_html || m.body_text"></div>
+            <div class="bubble-body" v-html="sanitizedBody(m)"></div>
             <div v-if="m.attachments && m.attachments.length" class="bubble-attachments">
               <a v-for="a in m.attachments" :key="a.cid || a.name" :href="a.url" target="_blank" class="attachment">
                 <i class="pi pi-paperclip"></i> {{ a.name }}
@@ -260,6 +260,7 @@
 <script>
 import Editor from 'primevue/editor';
 import 'quill/dist/quill.snow.css';
+import DOMPurify from 'dompurify';
 import EmailConversationService from '@/services/agent/email/conversation_service';
 import { EmailConsumer } from '@/web_sockets/email_consumer';
 import ConversationInfo from '@/components/agent/email/shared/ConversationInfo';
@@ -356,6 +357,10 @@ export default {
             } catch (error) {
                 return value;
             }
+        },
+        // inbound email bodies are attacker-controlled; sanitize before v-html
+        sanitizedBody (m) {
+            return DOMPurify.sanitize(m.body_html || m.body_text || '');
         },
         totalUnread () {
             const lists = [
@@ -523,8 +528,10 @@ export default {
             } else {
                 // "Desasignar" y "Seguir gestionando": enviar y cerrar la ventana
                 this.$toast.add({
-                    severity: 'success', summary: 'Enviado',
-                    detail: 'El correo fue enviado.', life: 2500
+                    severity: 'success',
+                    summary: 'Enviado',
+                    detail: 'El correo fue enviado.',
+                    life: 2500
                 });
                 this.closeThread();
             }
@@ -637,9 +644,12 @@ export default {
 
 <style scoped>
 .email-agent-panel {
-  height: 100%;
+  height: 100vh;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
   font-size: 13px;
   background: #fff;
 }
@@ -654,12 +664,29 @@ export default {
   min-height: 0;
   overflow: hidden;
 }
-.list {
-  overflow-y: auto;
-  height: calc(100% - 4px);
+.email-agent-panel :deep(.p-tabview) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.email-agent-panel :deep(.p-tabview-nav-container) {
+  flex: 0 0 auto;
 }
 .email-agent-panel :deep(.p-tabview-panels) {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
   padding: 0;
+}
+.email-agent-panel :deep(.p-tabview-panel) {
+  height: 100%;
+  min-height: 0;
+}
+.list {
+  overflow-y: auto;
+  height: 100%;
+  overscroll-behavior: contain;
 }
 .email-agent-panel :deep(.p-tabview-nav) {
   font-size: 0.82rem;

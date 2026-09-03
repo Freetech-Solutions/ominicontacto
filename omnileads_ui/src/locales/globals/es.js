@@ -96,6 +96,8 @@ export default {
     exit: 'Salir',
     close: 'Cerrar',
     download: 'Descarga | Descargar',
+    download_file: 'Descargar archivo',
+    attached_file: 'Archivo adjunto',
     back_to: 'De regreso a {type}',
     back: 'Atras',
     yes: 'Si',
