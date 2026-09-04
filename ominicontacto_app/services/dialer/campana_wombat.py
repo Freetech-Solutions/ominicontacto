@@ -115,6 +115,10 @@ class CampanaService():
         for campaign in campanas:
             if campaign['campaignId'] in ids_wombat:
                 campana = campanas_por_id_wombat[campaign['campaignId']]
+                # Wombat devuelve, las corridas historicas con el mismo campaignId. Utilizar la
+                # primera (más reciente), idem obtener_datos_campana_json_de_wombat.
+                if campana.id in datos_campanas:
+                    continue
                 if campana.ESTADO_ACTIVA and campaign['state'] == 'RUNNING':
                     datos_campanas[campana.id] = campaign
                 elif campana.ESTADO_PAUSADA and campaign['state'] == 'PAUSED':
