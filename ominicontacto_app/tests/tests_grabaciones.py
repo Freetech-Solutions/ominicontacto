@@ -23,15 +23,15 @@ Tests relacionados con las grabaciones
 from __future__ import unicode_literals
 
 import json
-
+import os
 from urllib.parse import urlencode
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from channels.db import database_sync_to_async
 from django.conf import settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from django.contrib.auth.models import Group
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 
 from simple_history.utils import update_change_reason
 
@@ -43,7 +43,7 @@ from ominicontacto_app.tests.factories import CalificacionClienteFactory, Campan
     OpcionCalificacionFactory, QueueFactory, QueueMemberFactory
 from ominicontacto_app.tests.utiles import OMLTestUtilsMixin
 
-from ominicontacto_app.utiles import fecha_hora_local
+from ominicontacto_app.utiles import fecha_hora_local, fecha_local
 from reportes_app.models import InteractionsSummary, LlamadaLog
 from reportes_app.tests.utiles import (
     crear_interaction_summary_desde_llamada_log,
@@ -241,6 +241,8 @@ class GrabacionesTests(BaseGrabacionesTests):
         self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
 
     def test_vista_creacion_grabaciones_marcadas(self):
+        if not interactions_summary_table_exists():
+            self.skipTest("Tabla interactions_summary no existe (migración 0012)")
         url = reverse('grabacion_marcar')
         descripcion = 'descripcion de prueba'
         post_data = {'callid': self.llamada_log3.callid,
@@ -267,12 +269,16 @@ class GrabacionesTests(BaseGrabacionesTests):
         self.assertEqual(response.template_name, 'registration/login.html')
 
     def test_respuesta_api_descripciones_grabaciones_marcadas(self):
+        if not interactions_summary_table_exists():
+            self.skipTest("Tabla interactions_summary no existe (migración 0012)")
         url = reverse('grabacion_descripcion', kwargs={'callid': self.llamada_log2.callid})
         response = self.client.get(url, follow=True)
         data_response = json.loads(response.content)
         self.assertEqual(data_response['result'], 'Descripción')
 
     def test_respuesta_api_descripciones_grabaciones_no_marcadas(self):
+        if not interactions_summary_table_exists():
+            self.skipTest("Tabla interactions_summary no existe (migración 0012)")
         url = reverse('grabacion_descripcion', kwargs={'callid': self.llamada_log3.callid})
         response = self.client.get(url, follow=True)
         data_response = json.loads(response.content)
@@ -452,3 +458,209 @@ class FiltrosBusquedaGrabacionesAgenteTests(BaseGrabacionesTests):
         self.assertIn(self.llamada_log2.numero_marcado, response["fragments"]["#table-body"])
         self.assertIn(self.llamada_log3.numero_marcado, response["fragments"]["#table-body"])
         self.assertNotIn(llamada_log3_3.numero_marcado, response["fragments"]["#table-body"])
+
+
+def _filename_desde_log(llamada_log):
+    dia = fecha_local(llamada_log.time).strftime('%Y-%m-%d')
+    return f'/{dia}/{llamada_log.callid}.{settings.MONITORFORMAT}'
+
+
+class AutorizacionGrabacionesTests(BaseGrabacionesTests):
+    """IDOR/BFLA: oráculo de firma, call_record, descripción y exportación."""
+
+    def setUp(self):
+        if not interactions_summary_table_exists():
+            self.skipTest("Tabla interactions_summary no existe (migración 0012)")
+        super(AutorizacionGrabacionesTests, self).setUp()
+
+    def _filename_propia_agente1(self):
+        return _filename_desde_log(self.llamada_log1)
+
+    def _filename_ajena(self):
+        return _filename_desde_log(self.llamada_log2_1)
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_agente_firma_grabacion_propia_ok(self, mock_storage_cls):
+        mock_storage = MagicMock()
+        mock_storage.get_file_url.return_value = 'https://example.test/signed'
+        mock_storage_cls.return_value = mock_storage
+        self.client.login(username=self.agente1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_archivo')
+        response = self.client.get(url, {'filename': self._filename_propia_agente1()})
+        self.assertEqual(response.status_code, 302)
+        mock_storage.get_file_url.assert_called_once()
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_agente_no_firma_grabacion_ajena(self, mock_storage_cls):
+        self.client.login(username=self.agente1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_archivo')
+        response = self.client.get(url, {'filename': self._filename_ajena()})
+        self.assertEqual(response.status_code, 404)
+        mock_storage_cls.return_value.get_file_url.assert_not_called()
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_supervisor_firma_campana_asignada_ok(self, mock_storage_cls):
+        mock_storage = MagicMock()
+        mock_storage.get_file_url.return_value = 'https://example.test/signed'
+        mock_storage_cls.return_value = mock_storage
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_archivo')
+        response = self.client.get(url, {'filename': self._filename_propia_agente1()})
+        self.assertEqual(response.status_code, 302)
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_supervisor_no_firma_campana_ajena(self, mock_storage_cls):
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_archivo')
+        response = self.client.get(url, {'filename': self._filename_ajena()})
+        self.assertEqual(response.status_code, 404)
+        mock_storage_cls.return_value.get_file_url.assert_not_called()
+
+    def test_filename_invalido_o_traversal_devuelve_404(self):
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_archivo')
+        for bad in ('', '../etc/passwd', '/secret/key.txt', '/zip/../etc/passwd'):
+            response = self.client.get(url, {'filename': bad} if bad else {})
+            self.assertEqual(response.status_code, 404, msg=repr(bad))
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_firma_fecha_historica_sin_guiones_ok(self, mock_storage_cls):
+        mock_storage = MagicMock()
+        mock_storage.get_file_url.return_value = 'https://example.test/signed'
+        mock_storage_cls.return_value = mock_storage
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        dia = fecha_local(self.llamada_log1.time).strftime('%Y%m%d')
+        filename = f'/{dia}/{self.llamada_log1.callid}.{settings.MONITORFORMAT}'
+        url = reverse('api_grabacion_archivo')
+        response = self.client.get(url, {'filename': filename})
+        self.assertEqual(response.status_code, 302)
+        mock_storage.get_file_url.assert_called_once()
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_firma_artefactos_speech_analytics_ok(self, mock_storage_cls):
+        mock_storage = MagicMock()
+        mock_storage.get_file_url.return_value = 'https://example.test/signed'
+        mock_storage_cls.return_value = mock_storage
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        dia = fecha_local(self.llamada_log1.time).strftime('%Y-%m-%d')
+        url = reverse('api_grabacion_archivo')
+        for ext in ('json', 'txt'):
+            mock_storage.reset_mock()
+            filename = f'/{dia}/{self.llamada_log1.callid}.{ext}'
+            response = self.client.get(url, {'filename': filename})
+            self.assertEqual(response.status_code, 302, msg=ext)
+            mock_storage.get_file_url.assert_called_once()
+
+    def test_zip_de_otro_usuario_devuelve_404(self):
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_archivo')
+        response = self.client.get(
+            url, {'filename': f'/zip/{self.supervisor2.user.username}-grabaciones.zip'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_call_record_agente_propia_ok(self):
+        self.client.login(username=self.agente1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_call_record_url', kwargs={'callid': self.llamada_log1.callid})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'OK')
+
+    def test_call_record_agente_ajena_404(self):
+        self.client.login(username=self.agente1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_call_record_url', kwargs={'callid': self.llamada_log2_1.callid})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_call_record_supervisor_campana_ajena_404(self):
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_call_record_url', kwargs={'callid': self.llamada_log2_1.callid})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_descripcion_agente_ajena_indistinguible(self):
+        self.client.login(username=self.agente1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('grabacion_descripcion', kwargs={'callid': self.llamada_log2_1.callid})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        data = json.loads(response.content)
+        self.assertEqual(data['result'], 'No encontrada')
+
+    def test_descripcion_supervisor_propia_ok(self):
+        self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('grabacion_descripcion', kwargs={'callid': self.llamada_log2.callid})
+        response = self.client.get(url)
+        data = json.loads(response.content)
+        self.assertEqual(data['result'], 'Descripción')
+
+    def test_agente_no_exporta_grabacion_ajena(self):
+        self.client.login(username=self.agente1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_descarga_masiva')
+        payload = {
+            'files': json.dumps([{
+                'archivo': self._filename_ajena().lstrip('/'),
+                'fecha': '',
+                'tipo_llamada': '',
+                'telefono_cliente': '',
+                'agente': '',
+                'campana': '',
+                'calificacion': '',
+            }]),
+        }
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 404)
+
+    def test_agente_sin_permiso_oml_descarga_masiva(self):
+        from django.apps import apps as django_apps
+        api_app = django_apps.get_app_config('api_app')
+        roles_descarga = None
+        for conf in api_app.configuraciones_de_permisos():
+            if conf['nombre'] == 'api_grabacion_descarga_masiva':
+                roles_descarga = conf['roles']
+                break
+        self.assertIsNotNone(roles_descarga)
+        self.assertNotIn('Agente', roles_descarga)
+
+        self.client.login(username=self.agente1.user, password=self.DEFAULT_PASSWORD)
+        url = reverse('api_grabacion_descarga_masiva')
+        payload = {
+            'files': json.dumps([{
+                'archivo': self._filename_propia_agente1().lstrip('/'),
+                'fecha': '',
+                'tipo_llamada': '',
+                'telefono_cliente': '',
+                'agente': '',
+                'campana': '',
+                'calificacion': '',
+            }]),
+        }
+        with patch.object(User, 'tiene_permiso_oml', return_value=False):
+            response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, 403)
+
+
+class StoragePresignedUrlTtlTests(TransactionTestCase):
+
+    @override_settings(STORAGE_PRESIGNED_URL_TTL=120, SESSION_COOKIE_AGE=600)
+    @patch('api_app.services.storage_service.boto3.client')
+    def test_get_file_url_usa_ttl_de_settings(self, mock_boto_client):
+        from api_app.services.storage_service import StorageService
+
+        mock_client = MagicMock()
+        mock_client.generate_presigned_url.return_value = (
+            'http://minio:9000/bucket/key?X-Amz-Signature=x'
+        )
+        mock_boto_client.return_value = mock_client
+
+        with patch.dict(os.environ, {
+            'BUCKET_ACCESS_KEY_ID': 'k',
+            'BUCKET_SECRET_ACCESS_KEY': 's',
+            'BUCKET_NAME': 'bucket',
+            'BUCKET_ENDPOINT': 'http://public',
+            'BUCKET_ENDPOINT_INTERNAL': 'http://minio:9000',
+            'CALLREC_DEVICE': 's3',
+        }):
+            service = StorageService()
+            service.get_file_url('/2024-01-01/abc.mp3')
+
+        kwargs = mock_client.generate_presigned_url.call_args.kwargs
+        self.assertEqual(kwargs['ExpiresIn'], 120)

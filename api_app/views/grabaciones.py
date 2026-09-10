@@ -25,7 +25,7 @@ import json
 from django.conf import settings
 from django_sendfile import sendfile
 from django.utils.translation import gettext as _
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, HttpResponseNotFound
 from reportes_app.models import InteractionsSummary, SpeechAnalysis
 
 from rest_framework.authentication import SessionAuthentication
@@ -36,6 +36,13 @@ from rest_framework import status
 
 from api_app.services.storage_service import StorageService
 from api_app.views.permissions import TienePermisoOML
+from ominicontacto_app.services.grabaciones.autorizacion import (
+    auditar_acceso_grabacion,
+    path_zip_canonico,
+    resolver_grabacion_autorizada,
+    resolver_grabacion_desde_filename,
+    zip_filename_permitido,
+)
 from ominicontacto_app.services.grabaciones.generacion_zip_grabaciones \
     import GeneracionZipGrabaciones
 from ominicontacto_app.services.grabaciones.speech_analysis import SpeechAnalysisService
@@ -50,14 +57,42 @@ class ObtenerArchivoGrabacionView(APIView):
 
     def get(self, request):
         filename = request.query_params.get("filename")
-        # Si es el comprimido de grabaciones no se busca en S3
-        iszip = filename.find("/zip/", 0)
+        if not filename:
+            return HttpResponseNotFound()
 
-        if iszip == -1:
-            s3_handler = StorageService()
-            return HttpResponseRedirect(s3_handler.get_file_url(filename))
+        # ZIP de exportación masiva: solo el del usuario autenticado
+        if '/zip/' in filename:
+            zip_rel = zip_filename_permitido(request.user, filename)
+            if zip_rel is None:
+                auditar_acceso_grabacion(
+                    request.user, filename=filename, granted=False)
+                return HttpResponseNotFound()
+            zip_abs = path_zip_canonico(zip_rel)
+            if zip_abs is None:
+                auditar_acceso_grabacion(
+                    request.user, filename=filename, granted=False)
+                return HttpResponseNotFound()
+            auditar_acceso_grabacion(
+                request.user, filename=zip_rel, granted=True)
+            return sendfile(request, zip_abs)
 
-        return sendfile(request, settings.SENDFILE_ROOT + filename)
+        interaction = resolver_grabacion_desde_filename(request.user, filename)
+        if interaction is None:
+            auditar_acceso_grabacion(
+                request.user, filename=filename, granted=False)
+            return HttpResponseNotFound()
+
+        auditar_acceso_grabacion(
+            request.user,
+            filename=filename,
+            callid=interaction.interaction_id,
+            granted=True,
+        )
+        s3_handler = StorageService()
+        signed_url = s3_handler.get_file_url(filename)
+        if not signed_url:
+            return HttpResponseNotFound()
+        return HttpResponseRedirect(signed_url)
 
 
 class ObtenerArchivosGrabacionView(APIView):
@@ -77,7 +112,30 @@ class ObtenerArchivosGrabacionView(APIView):
         params = request.POST
         supervisor_id = request.user.id
         TASK_ID = 'zip'
-        listado_archivos = json.loads(params.get('files'))
+        try:
+            listado_archivos = json.loads(params.get('files') or '[]')
+        except (TypeError, ValueError, json.JSONDecodeError):
+            return Response(
+                data={'status': 'ERROR', 'msg': _('Listado de archivos inválido')},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        if not isinstance(listado_archivos, list) or not listado_archivos:
+            return Response(
+                data={'status': 'ERROR', 'msg': _('Listado de archivos inválido')},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        for archivo in listado_archivos:
+            path = archivo.get('archivo') if isinstance(archivo, dict) else None
+            if not path or resolver_grabacion_desde_filename(request.user, path) is None:
+                auditar_acceso_grabacion(
+                    request.user, filename=path, granted=False)
+                return Response(
+                    data={'status': 'ERROR'},
+                    status=status.HTTP_404_NOT_FOUND,
+                )
+
         mostrar_datos_contacto = params.get('mostrar_datos_contacto') == 'true'
         key_task = 'OML:STATUS_DOWNLOAD:RECORDINGS:{0}:{1}'.format(supervisor_id, TASK_ID)
 
@@ -102,10 +160,7 @@ class ObtenerUrlGrabacionView(APIView):
     renderer_classes = (JSONRenderer, )
 
     def get(self, request, callid):
-        obj = InteractionsSummary.objects.filter(
-            interaction_id=callid,
-            status='EXIT_ANSWERED',
-        ).first()
+        obj = resolver_grabacion_autorizada(request.user, callid)
         if obj and obj.url_archivo_grabacion:
             return Response(data={
                 'status': 'OK',

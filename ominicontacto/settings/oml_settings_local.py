@@ -32,6 +32,9 @@ POSTGRES_USER = os.getenv('PGUSER')
 POSTGRES_PORT = os.getenv('PGPORT')
 REDIS_HOSTNAME = os.getenv('REDIS_HOSTNAME')
 SESSION_COOKIE_AGE = int(os.getenv('SESSION_COOKIE_AGE'))
+STORAGE_PRESIGNED_URL_TTL = int(
+    os.getenv('STORAGE_PRESIGNED_URL_TTL', SESSION_COOKIE_AGE)
+)
 TIME_ZONE = os.getenv('TZ')
 # Configuración de Gearman
 GEARMAN_JOB_SERVERS = os.getenv('GEARMAN_JOB_SERVERS', '').split('|') if os.getenv('GEARMAN_JOB_SERVERS') else []
