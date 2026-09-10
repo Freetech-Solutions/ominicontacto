@@ -182,6 +182,9 @@ SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 600
 SESSION_SAVE_EVERY_REQUEST = True
 
+# TTL de URLs prefirmadas S3/MinIO (no debe superar la sesión por defecto)
+STORAGE_PRESIGNED_URL_TTL = SESSION_COOKIE_AGE
+
 DTMF_DURATION = 50  # Duración de cada tono en ms
 DTMF_INTER_TONE_GAP = 100  # Intervalo entre tonos en ms
 

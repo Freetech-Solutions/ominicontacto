@@ -194,7 +194,7 @@ class ApiAppConfig(AppConfig):
             {'nombre': 'api_grabacion_archivo',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Agente']},
             {'nombre': 'api_grabacion_descarga_masiva',
-             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Agente']},
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_call_record_url',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Agente']},
             {'nombre': 'api_call_record_analysis',

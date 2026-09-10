@@ -61,7 +61,7 @@ class StorageService(object):
             verify=verify_ssl
         )
 
-    def get_file_url(self, filename):
+    def get_file_url(self, filename, expires_in=None):
         """
         Genera la URL firmada usando el cliente INTERNO y reemplaza el dominio.
         """
@@ -69,6 +69,12 @@ class StorageService(object):
             # Validación de seguridad
             if not filename:
                 return None
+
+            if expires_in is None:
+                from django.conf import settings
+                expires_in = getattr(
+                    settings, 'STORAGE_PRESIGNED_URL_TTL', settings.SESSION_COOKIE_AGE
+                )
 
             # Key: Aseguramos que no tenga slash inicial
             key = filename[1:] if filename.startswith('/') else filename
@@ -78,7 +84,7 @@ class StorageService(object):
             url = self.op_client.generate_presigned_url(
                 'get_object',
                 Params={'Bucket': self.bucket_name, 'Key': key},
-                ExpiresIn=3600
+                ExpiresIn=expires_in
             )
 
             # 2. REEMPLAZAMOS el dominio interno por el público

@@ -96,6 +96,7 @@ MEDIA_ROOT = "/opt/omnileads/media_root"
 
 # Tiempo de session en segundo por ejemplo 10 minutos=600
 SESSION_COOKIE_AGE = 600
+STORAGE_PRESIGNED_URL_TTL = SESSION_COOKIE_AGE
 
 #  para hacer un include de este archivo
 # **** RECORDAR: revisar permisos y que existan los directorios ****
