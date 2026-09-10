@@ -139,7 +139,8 @@ def _get_agent_whatsapp_in_out_counts(
         }
         if group_by == 'day' and row.get('local_date') is not None:
             local_date = row['local_date']
-            out['date'] = local_date.isoformat() if hasattr(local_date, 'isoformat') else str(local_date)
+            out['date'] = local_date.isoformat() if hasattr(
+                local_date, 'isoformat') else str(local_date)
         result.append(out)
 
     return result
@@ -164,7 +165,8 @@ def _get_agent_voice_interactions_kpis(
         'agent_id': agent_id,
     }
 
-    # Interacciones que se solapan con [since, until]: start_time < until AND (end_time IS NULL OR end_time > since)
+    # Interacciones que se solapan con [since, until]: start_time < until AND (end_time IS NULL OR
+    # end_time > since)
     # Solo filas con agent_id no nulo para poder agrupar por agente
     where_clause = """
         start_time < %(until)s
@@ -180,12 +182,19 @@ def _get_agent_voice_interactions_kpis(
             ((start_time AT TIME ZONE %(tz)s)::date) AS local_date,
             COUNT(*)::int AS interactions_total,
             COUNT(*) FILTER (WHERE UPPER(TRIM(direction)) = 'INBOUND')::int AS interactions_inbound,
-            COUNT(*) FILTER (WHERE UPPER(TRIM(direction)) = 'OUTBOUND')::int AS interactions_outbound,
+            COUNT(*) FILTER (
+                WHERE UPPER(TRIM(direction)) = 'OUTBOUND'
+            )::int AS interactions_outbound,
             COUNT(*) FILTER (WHERE UPPER(TRIM(status)) = 'EXIT_ANSWERED')::int AS answered_count,
             COUNT(*) FILTER (WHERE UPPER(TRIM(status)) = 'CANCEL')::int AS cancel_count,
             COUNT(*) FILTER (WHERE outcome = true)::int AS sales_count,
             COALESCE(SUM(agent_duration), 0)::numeric(12,3) AS talk_seconds,
-            COALESCE(AVG(agent_duration) FILTER (WHERE UPPER(TRIM(status)) = 'EXIT_ANSWERED'), 0)::numeric(12,3) AS avg_talk_seconds_answered,
+            COALESCE(
+                AVG(agent_duration) FILTER (
+                    WHERE UPPER(TRIM(status)) = 'EXIT_ANSWERED'
+                ),
+                0
+            )::numeric(12,3) AS avg_talk_seconds_answered,
             COALESCE(SUM(wait_conn_duration), 0)::numeric(12,3) AS wait_conn_duration,
             COALESCE(AVG(wait_conn_duration), 0)::numeric(12,3) AS avg_wait_conn_duration
         """
@@ -195,12 +204,19 @@ def _get_agent_voice_interactions_kpis(
             agent_id,
             COUNT(*)::int AS interactions_total,
             COUNT(*) FILTER (WHERE UPPER(TRIM(direction)) = 'INBOUND')::int AS interactions_inbound,
-            COUNT(*) FILTER (WHERE UPPER(TRIM(direction)) = 'OUTBOUND')::int AS interactions_outbound,
+            COUNT(*) FILTER (
+                WHERE UPPER(TRIM(direction)) = 'OUTBOUND'
+            )::int AS interactions_outbound,
             COUNT(*) FILTER (WHERE UPPER(TRIM(status)) = 'EXIT_ANSWERED')::int AS answered_count,
             COUNT(*) FILTER (WHERE UPPER(TRIM(status)) = 'CANCEL')::int AS cancel_count,
             COUNT(*) FILTER (WHERE outcome = true)::int AS sales_count,
             COALESCE(SUM(agent_duration), 0)::numeric(12,3) AS talk_seconds,
-            COALESCE(AVG(agent_duration) FILTER (WHERE UPPER(TRIM(status)) = 'EXIT_ANSWERED'), 0)::numeric(12,3) AS avg_talk_seconds_answered,
+            COALESCE(
+                AVG(agent_duration) FILTER (
+                    WHERE UPPER(TRIM(status)) = 'EXIT_ANSWERED'
+                ),
+                0
+            )::numeric(12,3) AS avg_talk_seconds_answered,
             COALESCE(SUM(wait_conn_duration), 0)::numeric(12,3) AS wait_conn_duration,
             COALESCE(AVG(wait_conn_duration), 0)::numeric(12,3) AS avg_wait_conn_duration
         """
@@ -234,7 +250,8 @@ def _get_agent_voice_interactions_kpis(
             'avg_wait_conn_duration': float(row.get('avg_wait_conn_duration') or 0),
         }
         if group_by == 'day' and 'local_date' in row and row['local_date'] is not None:
-            out['date'] = row['local_date'].isoformat() if hasattr(row['local_date'], 'isoformat') else str(row['local_date'])
+            out['date'] = row['local_date'].isoformat() if hasattr(
+                row['local_date'], 'isoformat') else str(row['local_date'])
         result.append(out)
 
     return result
@@ -473,7 +490,8 @@ def get_agent_hold_counts(since, until, agent_id=None):
     )
     if agent_id is not None:
         qs = qs.filter(agente_id=agent_id)
-    rows = qs.values('agente_id').annotate(hold_count=Count('id')).values_list('agente_id', 'hold_count')
+    rows = qs.values('agente_id').annotate(hold_count=Count('id')
+                                           ).values_list('agente_id', 'hold_count')
     return [{'agent_id': aid, 'hold_count': count or 0} for aid, count in rows]
 
 

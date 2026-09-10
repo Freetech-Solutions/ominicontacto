@@ -62,7 +62,7 @@ def generar_csv_canalidades_por_mes_egresos_centro_contacto(
 ):
     """
     Genera el archivo CSV de Canalidades por mes (Egresos) y publica
-    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:CANALIDADES_POR_MES_EGRESOS_CC:cc:{task_id}.
+    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:CANALIDADES_POR_MES_EGRESOS_CC:cc:{task_id}.  # noqa: E501
     """
     from api_app.views.reports_centro_contacto import obtener_canalidades_por_mes
 

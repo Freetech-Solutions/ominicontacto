@@ -191,7 +191,7 @@ class CampaignStatsReportView(APIView):
             sales=Count('id', filter=Q(is_sale=True)),
             answered_by_agent=Count(
                 'id',
-                filter=Q(status='EXIT_ANSWERED') & (Q(agent_id__isnull=False) | Q(agent_duration__gt=0))
+                filter=Q(status='EXIT_ANSWERED') & (Q(agent_id__isnull=False) | Q(agent_duration__gt=0))  # noqa: E501
             ),
             answered_agent_gt_10s=Count(
                 'id',
@@ -248,9 +248,9 @@ class CampaignStatsReportView(APIView):
         # ASA: promedio wait_conn_duration solo Inbound Answered (en segundos)
         asa = round(float(sum_queue_ib_answered / count_ib_answered), 3) if count_ib_answered else 0
         # Abandon Rate: (Inbound Abandoned wait_conn_duration>5s / Total Inbound) * 100
-        abandon_rate = round((inbound_abandoned_gt5 / total_inbound * 100), 2) if total_inbound else 0
+        abandon_rate = round((inbound_abandoned_gt5 / total_inbound * 100), 2) if total_inbound else 0  # noqa: E501
         # Transfer Rate: (is_transferred / atendidas por agente) * 100
-        transfer_rate = round((transferred_count / answered_by_agent * 100), 2) if answered_by_agent else 0
+        transfer_rate = round((transferred_count / answered_by_agent * 100), 2) if answered_by_agent else 0  # noqa: E501
         # Bot Containment Rate: (agent_duration=0 y bot_duration>0 y EXIT_ANSWERED / total) * 100
         bot_containment_rate = round((bot_contained / total * 100), 2) if total else 0
         # Bot Total Hours: suma bot_duration / 3600

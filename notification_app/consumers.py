@@ -279,7 +279,7 @@ class SupervisionConsumer(AsyncJsonWebsocketConsumer):
         await self.send_json(event['payload'])
 
 
-import asyncio
+import asyncio  # noqa: E402
 
 SUBSCRIBED_MESSAGE = 'Subscribed!'
 
@@ -601,7 +601,7 @@ class ReporteCentroContactoCanalidadesPorDiaEgresosCSVConsumer(AsyncJsonWebsocke
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logger.exception("ReporteCentroContactoCanalidadesPorDiaEgresosCSVConsumer redis: %s", e)
+            logger.exception("ReporteCentroContactoCanalidadesPorDiaEgresosCSVConsumer redis: %s", e)  # noqa: E501
         finally:
             if pubsub is not None:
                 try:
@@ -735,7 +735,7 @@ class ReporteCentroContactoCanalidadesPorMesEgresosCSVConsumer(AsyncJsonWebsocke
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logger.exception("ReporteCentroContactoCanalidadesPorMesEgresosCSVConsumer redis: %s", e)
+            logger.exception("ReporteCentroContactoCanalidadesPorMesEgresosCSVConsumer redis: %s", e)  # noqa: E501
         finally:
             if pubsub is not None:
                 try:
@@ -802,7 +802,7 @@ class ReporteCentroContactoCanalidadesPorHoraEgresosCSVConsumer(AsyncJsonWebsock
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logger.exception("ReporteCentroContactoCanalidadesPorHoraEgresosCSVConsumer redis: %s", e)
+            logger.exception("ReporteCentroContactoCanalidadesPorHoraEgresosCSVConsumer redis: %s", e)  # noqa: E501
         finally:
             if pubsub is not None:
                 try:
@@ -869,7 +869,7 @@ class ReporteCentroContactoWhatsappMensajesPorHoraEgresosCSVConsumer(AsyncJsonWe
         except asyncio.CancelledError:
             pass
         except Exception as e:
-            logger.exception("ReporteCentroContactoWhatsappMensajesPorHoraEgresosCSVConsumer redis: %s", e)
+            logger.exception("ReporteCentroContactoWhatsappMensajesPorHoraEgresosCSVConsumer redis: %s", e)  # noqa: E501
         finally:
             if pubsub is not None:
                 try:
@@ -1907,7 +1907,7 @@ class ReporteCentroContactoConversacionesNoRespondidasCSVConsumer(AsyncJsonWebso
                 pass
 
 
-class ReporteCentroContactoConversacionesNoRespondidasEgresosCSVConsumer(AsyncJsonWebsocketConsumer):
+class ReporteCentroContactoConversacionesNoRespondidasEgresosCSVConsumer(AsyncJsonWebsocketConsumer):  # noqa: E501
     """
     WebSocket para progreso de exportación CSV Conversaciones no respondidas (Egresos WhatsApp).
     URL: channels/reporte_centro_contacto_conversaciones_no_respondidas_egresos/<task_id>

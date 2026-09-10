@@ -26,7 +26,6 @@ import traceback as tb_module
 from datetime import datetime
 
 from django.conf import settings
-from django.utils import timezone
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -224,7 +223,7 @@ class AgentKpisV2ReportView(APIView):
         if group_by not in ('agent', 'day'):
             group_by = 'day'
 
-        include_pause_breakdown = _parse_bool_param(request.GET.get('include_pause_breakdown'), True)
+        include_pause_breakdown = _parse_bool_param(request.GET.get('include_pause_breakdown'), True)  # noqa: E501
         include_interactions = _parse_bool_param(request.GET.get('include_interactions'), True)
         include_derived = _parse_bool_param(request.GET.get('include_derived'), True)
 
@@ -257,7 +256,8 @@ class AgentKpisV2ReportView(APIView):
 
         availability_raw = availability_response.get('agents') or []
         try:
-            # Normalizar filas: el servicio devuelve agente_id y puede no incluir pauses_count/acw_count
+            # Normalizar filas: el servicio devuelve agente_id y puede no incluir
+            # pauses_count/acw_count
             availability_rows = []
             for row in availability_raw:
                 normalized = {
@@ -273,7 +273,7 @@ class AgentKpisV2ReportView(APIView):
                     'sessions_count': row.get('sessions_count', 0),
                     'pauses_count': row.get('pauses_count', 0),
                     'acw_count': row.get('acw_count', 0),
-                    'pause_breakdown': row.get('pause_breakdown', []) if include_pause_breakdown else [],
+                    'pause_breakdown': row.get('pause_breakdown', []) if include_pause_breakdown else [],  # noqa: E501
                 }
                 availability_rows.append(normalized)
 
@@ -289,7 +289,8 @@ class AgentKpisV2ReportView(APIView):
                     timezone_name=tz_name,
                 )
 
-            # 3) Merge por (agent_id, date) o (agent_id, None); date normalizado a string para coincidir
+            # 3) Merge por (agent_id, date) o (agent_id, None); date normalizado a string para
+            # coincidir
             merged = {}
             for row in availability_rows:
                 key = (row['agent_id'], row.get('date'))
@@ -321,7 +322,7 @@ class AgentKpisV2ReportView(APIView):
             agent_names = {}
             if agent_ids:
                 for ap in AgenteProfile.objects.filter(id__in=agent_ids).select_related('user'):
-                    agent_names[ap.id] = (ap.user.get_full_name() or ap.user.get_username() or '').strip() or 'Agente %s' % ap.id
+                    agent_names[ap.id] = (ap.user.get_full_name() or ap.user.get_username() or '').strip() or 'Agente %s' % ap.id  # noqa: E501
 
             strict_validation = getattr(settings, 'REPORTES_KPIS_V2_STRICT_VALIDATION', False)
             data = []
@@ -329,7 +330,7 @@ class AgentKpisV2ReportView(APIView):
                 item = merged[key]
                 if include_derived:
                     item['derived'] = _build_derived(item['availability'], item['interactions'])
-                item['agent_name'] = agent_names.get(item['agent_id'], 'Agente %s' % item['agent_id'])
+                item['agent_name'] = agent_names.get(item['agent_id'], 'Agente %s' % item['agent_id'])  # noqa: E501
                 try:
                     validate_agent_kpis_v2_invariants(item, strict=strict_validation)
                 except ValueError as e:

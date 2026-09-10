@@ -74,7 +74,7 @@ def generar_csv_llamadas_por_mes_centro_contacto(
 ):
     """
     Genera el archivo CSV de Llamadas por mes (Ingresos/Voz/Mes) y publica
-    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:LLAMADAS_POR_MES_CC:cc:{task_id}.
+    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:LLAMADAS_POR_MES_CC:cc:{task_id}.  # noqa: E501
     """
     from api_app.views.reports_centro_contacto import obtener_llamadas_por_mes
 
@@ -125,10 +125,10 @@ def generar_csv_llamadas_por_mes_centro_contacto(
             'unanswered': total_unanswered,
             'abandoned': total_abandoned,
             'transferred': total_transferred,
-            'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-            'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-            'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-            'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+            'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+            'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+            'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+            'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
         }
 
     dir_abs = os.path.join(settings.MEDIA_ROOT, DIRECTORIO_REPORTE)

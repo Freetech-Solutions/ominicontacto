@@ -80,7 +80,7 @@ class Command(BaseCommand):
         if campaign_type is None:
             self.stdout.write(
                 self.style.WARNING(
-                    f'Campaña {campaign_id} no encontrada en Campana. Se aplicará inferencia por fila.'
+                    f'Campaña {campaign_id} no encontrada en Campana. Se aplicará inferencia por fila.'  # noqa: E501
                 )
             )
 
@@ -175,7 +175,7 @@ class Command(BaseCommand):
             self.stdout.write(f'... ({len(ordered_preview) - 40} campos adicionales)')
 
         if dry_run:
-            self.stdout.write(self.style.WARNING('Dry-run: no se escribieron cambios en Redis DB2.'))
+            self.stdout.write(self.style.WARNING('Dry-run: no se escribieron cambios en Redis DB2.'))  # noqa: E501
             return
 
         redis_connection = create_redis_connection(2)
@@ -215,7 +215,7 @@ class Command(BaseCommand):
                 return campaign_type
             return Campana.TYPE_MANUAL
 
-        if campaign_type in (Campana.TYPE_MANUAL, Campana.TYPE_DIALER, Campana.TYPE_ENTRANTE, Campana.TYPE_PREVIEW):
+        if campaign_type in (Campana.TYPE_MANUAL, Campana.TYPE_DIALER, Campana.TYPE_ENTRANTE, Campana.TYPE_PREVIEW):  # noqa: E501
             return campaign_type
         if direction == 'OUTBOUND':
             return Campana.TYPE_DIALER

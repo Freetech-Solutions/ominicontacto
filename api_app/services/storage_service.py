@@ -7,6 +7,7 @@ from botocore.client import Config
 
 logger = logging.getLogger(__name__)
 
+
 class StorageService(object):
 
     def __init__(self):
@@ -15,11 +16,11 @@ class StorageService(object):
         self.bucket_name = os.getenv('BUCKET_NAME')
         self.region_name = os.getenv('BUCKET_DEFAULT_REGION') or 'us-east-1'
         self.storage_type = os.getenv('CALLREC_DEVICE')
-        
+
         # 1. Definición de Endpoints
         # Endpoint Público (Para el navegador JS) -> https://localhost/minio
         self.public_endpoint = os.getenv('BUCKET_ENDPOINT')
-        
+
         # Endpoint Interno (Para Django) -> http://minio:9000
         # Si no está definida la interna, usamos la pública como fallback
         self.internal_endpoint = os.getenv('BUCKET_ENDPOINT_INTERNAL') or self.public_endpoint
@@ -71,7 +72,7 @@ class StorageService(object):
 
             # Key: Aseguramos que no tenga slash inicial
             key = filename[1:] if filename.startswith('/') else filename
-            
+
             # 1. FIRMAMOS usando el cliente INTERNO (op_client)
             # Esto usa la configuración de self.internal_endpoint definida en __init__
             url = self.op_client.generate_presigned_url(
@@ -85,12 +86,12 @@ class StorageService(object):
             if self.internal_endpoint and self.public_endpoint:
                 internal_base = self.internal_endpoint.rstrip('/')
                 public_base = self.public_endpoint.rstrip('/')
-                
+
                 # Reemplazo seguro
                 url = url.replace(internal_base, public_base)
 
             return url
-            
+
         except Exception as e:
             logger.error(f'Error generando URL firmada: {e}')
             return None
@@ -102,21 +103,21 @@ class StorageService(object):
         """
         file_dest = os.path.join(local_destination, file_name)
         full_local_path = os.path.dirname(file_dest)
-        
+
         if not os.path.exists(full_local_path):
             try:
                 os.makedirs(full_local_path, mode=0o755)
             except Exception:
                 pass
-        
+
         try:
             s3_file_path = file_name
             if root_s3_folder is not None:
                 s3_file_path = f'{root_s3_folder}/{s3_file_path}'
-            
+
             # Usamos el cliente operativo (interno)
             self.op_client.download_file(self.bucket_name, s3_file_path, file_dest)
-            
+
         except Exception as e:
             logger.error(f'Error descargando archivo {s3_file_path} desde S3 {e.__str__()}')
             return False

@@ -144,7 +144,7 @@ class ReporteSupervisoresFamily(AbstractRedisFamily):
         for agent_id, metadata in dict_nuevo.items():
             agent_id_str = str(agent_id)
             actual_value = dict_actual.get(agent_id_str)
-            if actual_value is None or not self._metadata_semantically_equal(actual_value, metadata):
+            if actual_value is None or not self._metadata_semantically_equal(actual_value, metadata):  # noqa: E501
                 hset_mapping[agent_id_str] = metadata
 
         dict_nuevo_keys = {str(agent_id) for agent_id in dict_nuevo}

@@ -211,7 +211,7 @@ urlpatterns += [
          login_required(DescargarCSVConversacionesRespondidasCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_conversaciones_respondidas_csv',
          ),
-    path('reporte/centro_de_contacto/exportar_conversaciones_respondidas_egresos_csv/<str:task_id>/',
+    path('reporte/centro_de_contacto/exportar_conversaciones_respondidas_egresos_csv/<str:task_id>/',  # noqa: E501
          login_required(DescargarCSVConversacionesRespondidasEgresosCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_conversaciones_respondidas_egresos_csv',
          ),
@@ -219,7 +219,7 @@ urlpatterns += [
          login_required(DescargarCSVConversacionesNoRespondidasCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_conversaciones_no_respondidas_csv',
          ),
-    path('reporte/centro_de_contacto/exportar_conversaciones_no_respondidas_egresos_csv/<str:task_id>/',
+    path('reporte/centro_de_contacto/exportar_conversaciones_no_respondidas_egresos_csv/<str:task_id>/',  # noqa: E501
          login_required(DescargarCSVConversacionesNoRespondidasEgresosCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_conversaciones_no_respondidas_egresos_csv',
          ),
@@ -227,7 +227,7 @@ urlpatterns += [
          login_required(DescargarCSVWhatsappMensajesPorHoraCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_hora_csv',
          ),
-    path('reporte/centro_de_contacto/exportar_whatsapp_mensajes_por_hora_egresos_csv/<str:task_id>/',
+    path('reporte/centro_de_contacto/exportar_whatsapp_mensajes_por_hora_egresos_csv/<str:task_id>/',  # noqa: E501
          login_required(DescargarCSVWhatsappMensajesPorHoraEgresosCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_hora_egresos_csv',
          ),
@@ -235,7 +235,7 @@ urlpatterns += [
          login_required(DescargarCSVWhatsappMensajesPorCampanaCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_campana_csv',
          ),
-    path('reporte/centro_de_contacto/exportar_whatsapp_mensajes_por_campana_egresos_csv/<str:task_id>/',
+    path('reporte/centro_de_contacto/exportar_whatsapp_mensajes_por_campana_egresos_csv/<str:task_id>/',  # noqa: E501
          login_required(DescargarCSVWhatsappMensajesPorCampanaEgresosCentroContactoView.as_view()),
          name='reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_campana_egresos_csv',
          ),

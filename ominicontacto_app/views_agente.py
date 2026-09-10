@@ -314,6 +314,7 @@ class LiberarContactoAsignado(View):
     """
     Libera un contacto Asignado en AgenteEnContacto
     """
+
     def post(self, request, *args, **kwargs):
         # TODO: Validar que el supervisor tiene permisos sobre la campaña
         campana_id = request.POST.get('campana_id')
@@ -352,6 +353,7 @@ class CampanasActivasView(View):
     """
     Devuelve un JSON con información de las campañas activas del sistema
     """
+
     def get(self, request):
         campanas_activas = Campana.objects.obtener_activas().values('id', 'nombre', 'type')
         return JsonResponse(data={'campanas': list(campanas_activas)})
@@ -362,6 +364,7 @@ class AgentesLogueadosCampana(View):
     Devuelve un JSON con la información de los agentes logueados por campaña
     """
     # TODO: pasar este servicio a DRF si es posible
+
     def _get_all_logged_in_users(self, campana_id):
         # devuelve las sesiones que aún no han expirado
         sessions = Session.objects.filter(expire_date__gte=timezone.now())

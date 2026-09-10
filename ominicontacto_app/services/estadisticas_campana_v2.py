@@ -48,7 +48,7 @@ Calificaciones CRM:
   por llamada (la última por history_date, luego history_id). Impacto: total_calificados,
   total_ventas y totales por agente reflejan una calificación por llamada, no por cada
   versión histórica en el rango (evita inflar números cuando hay varias actualizaciones).
-- Entrantes: callid no nulo, no vacío y no solo espacios (Trim(callid)!=''). El "último por callid" se elige
+- Entrantes: callid no nulo, no vacío y no solo espacios (Trim(callid)!=''). El "último por callid" se elige  # noqa: E501
   incluyendo todos los history_type; luego se excluyen history_type='-' (create+delete
   en rango cuenta 0).
 - Rango temporal: __range es inclusivo en ambos extremos (fecha_desde <= x <= fecha_hasta).
@@ -93,7 +93,6 @@ from ominicontacto_app.models import (
     Campana,
     AgenteProfile,
     HistoricalCalificacionCliente,
-    OpcionCalificacion,
 )
 from ominicontacto_app.services.dialer import get_dialer_service
 from reportes_app.models import (
@@ -127,6 +126,8 @@ _NO_ATENDIDO_LABELS = (
 
 # Mapeo (status, hangup_cause) -> índice en _NO_ATENDIDO_LABELS (0..13). "Otro" = 6.
 # Preferir hangup_cause cuando exista; si no, derivar de status.
+
+
 def _build_no_atendido_mapping():
     idx_otro = 6
     mapping = {}
@@ -155,6 +156,7 @@ def _build_no_atendido_mapping():
         mapping[(key, '')] = idx
     mapping[(None, None)] = idx_otro
     return mapping, idx_otro
+
 
 _HANGUP_STATUS_TO_NO_ATENDIDO_IDX, _IDX_OTRO = _build_no_atendido_mapping()
 
@@ -210,10 +212,10 @@ class EstadisticasServiceV2:
         self.reporte_no_atendidos = None  # OrderedDict, total_no_atendidos
         self.llamadas_atendidas_sin_calificacion = 0
         self.reporte_calificaciones_atendidas = None  # dict nombre -> count
-        self.reporte_calificaciones_agentes_dict = {}  # agente_id -> {nombre, totales_calificaciones, total_calificados, total_gestionados}
+        self.reporte_calificaciones_agentes_dict = {}  # agente_id -> {nombre, totales_calificaciones, total_calificados, total_gestionados}  # noqa: E501
         self.total_calificados = 0
         self.total_ventas = 0
-        self.estadisticas_llamadas_por_agente = None  # dict agente_id -> {ofrecidas, atendidas, no_atendidas, nombre}
+        self.estadisticas_llamadas_por_agente = None  # dict agente_id -> {ofrecidas, atendidas, no_atendidas, nombre}  # noqa: E501
         # Agent vs Bot (EXIT_ANSWERED only): human_only, ai_only, colaboración
         self._llamadas_humano_only = 0
         self._llamadas_ai_only = 0
@@ -666,7 +668,8 @@ class EstadisticasServiceV2:
         ).count()
 
     def _detalle_llamadas(self, qs):
-        # Para dialer se usa una sola aggregate(); para el resto, values+annotate por direction/status
+        # Para dialer se usa una sola aggregate(); para el resto, values+annotate por
+        # direction/status
         if self.campana.type != Campana.TYPE_DIALER:
             by_status = list(
                 qs.values('direction', 'effective_status').annotate(cantidad=Count('id'))
@@ -724,7 +727,8 @@ class EstadisticasServiceV2:
                     reporte[_('Abandonadas durante anuncio')] += c
             # Manuales* = 0 (documentado)
         elif self.campana.type == Campana.TYPE_DIALER:
-            # Una sola query agregada: Discadas, Atendidas, Conectadas al agente, Perdidas, Contestador
+            # Una sola query agregada: Discadas, Atendidas, Conectadas al agente, Perdidas,
+            # Contestador
             q_out = Q(direction__iexact='OUTBOUND')
             q_answered = q_out & Q(effective_status__iexact='EXIT_ANSWERED')
             q_conectadas_agente = q_answered & (
@@ -919,7 +923,8 @@ class EstadisticasServiceV2:
                 .annotate(cantidad=Count('id'))
             )
 
-        # reporte_calificaciones_atendidas: orden de opciones + "Llamadas Atendidas sin calificación"
+        # reporte_calificaciones_atendidas: orden de opciones + "Llamadas Atendidas sin
+        # calificación"
         reporte_atendidas = OrderedDict()
         for opcion in opciones_orden:
             reporte_atendidas[opcion.nombre] = opcion_counts.get(opcion.pk, 0)
@@ -980,7 +985,8 @@ class EstadisticasServiceV2:
         self.total_ventas = total_ventas
 
     def _estadisticas_por_agente(self, qs):
-        # Nota: Si el usuario descomentó la validación de es_dialer para usar Inbound, la mantenemos comentada.
+        # Nota: Si el usuario descomentó la validación de es_dialer para usar Inbound, la mantenemos
+        # comentada.
         # if not self.campana.es_dialer:
         #     self.estadisticas_llamadas_por_agente = None
         #     return

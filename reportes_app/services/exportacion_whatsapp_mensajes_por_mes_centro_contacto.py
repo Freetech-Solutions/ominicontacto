@@ -132,8 +132,10 @@ def generar_csv_whatsapp_mensajes_por_mes(
                 _to_str(row.get('no_respondidos')),
                 _format_seconds_csv(row.get('avg_frt_segundos')),
                 _format_seconds_csv(row.get('avg_duracion_segundos')),
-                _to_str(row.get('pct_respondidas')) if row.get('pct_respondidas') is not None else '',
-                _to_str(row.get('pct_no_respondidos')) if row.get('pct_no_respondidos') is not None else '',
+                _to_str(row.get('pct_respondidas')) if row.get(
+                    'pct_respondidas') is not None else '',
+                _to_str(row.get('pct_no_respondidos')) if row.get(
+                    'pct_no_respondidos') is not None else '',
             ])
         if totals:
             writer.writerow([
@@ -143,8 +145,10 @@ def generar_csv_whatsapp_mensajes_por_mes(
                 _to_str(totals.get('no_respondidos')),
                 _format_seconds_csv(totals.get('avg_frt_segundos')),
                 _format_seconds_csv(totals.get('avg_duracion_segundos')),
-                _to_str(totals.get('pct_respondidas')) if totals.get('pct_respondidas') is not None else '',
-                _to_str(totals.get('pct_no_respondidos')) if totals.get('pct_no_respondidos') is not None else '',
+                _to_str(totals.get('pct_respondidas')) if totals.get(
+                    'pct_respondidas') is not None else '',
+                _to_str(totals.get('pct_no_respondidos')) if totals.get(
+                    'pct_no_respondidos') is not None else '',
             ])
 
     try:

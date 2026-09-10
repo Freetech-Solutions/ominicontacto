@@ -43,7 +43,7 @@ from rest_framework.authentication import SessionAuthentication
 
 from api_app.authentication import ExpiringTokenAuthentication
 
-from ominicontacto_app.models import Campana, Grupo, AgenteProfile, OpcionCalificacion, CalificacionCliente
+from ominicontacto_app.models import Campana, Grupo, AgenteProfile, CalificacionCliente
 from ominicontacto_app.utiles import (
     fecha_hora_local,
     fecha_local,
@@ -149,7 +149,7 @@ def _obtener_transferencias_entre_campanas_por_campana(
     `Transfer In` agrupa por `destination_campaign_id`.
     Solo cuenta transferencias OK con destination_type CAMPAIGN y transfer_type BLIND o CONSULT.
     """
-    source_campaign_scope = visible_campaigns if visible_campaigns is not None else selected_campaigns
+    source_campaign_scope = visible_campaigns if visible_campaigns is not None else selected_campaigns  # noqa: E501
     base_queryset = _apply_interactions_summary_filters(
         InteractionsSummary.objects.all(),
         start_date=start_date,
@@ -254,8 +254,8 @@ def _obtener_metricas_inbound_transferidas_por_campana(
     status_by_interaction = {}
     summary_campaign_by_interaction = {}
     channel_data_by_interaction = {}
-    for interaction_id, campaign_id, status, channel_data in interaction_summary_rows:
-        status_by_interaction[interaction_id] = (status or '').strip().upper()
+    for interaction_id, campaign_id, status_val, channel_data in interaction_summary_rows:
+        status_by_interaction[interaction_id] = (status_val or '').strip().upper()
         summary_campaign_by_interaction[interaction_id] = campaign_id
         channel_data_by_interaction[interaction_id] = channel_data
 
@@ -415,13 +415,13 @@ OMNICHANNEL_CHART_COLORS = {
 
 
 def get_omnichannel_share_data(start_date=None, end_date=None, duracion_agente_min=None,
-                              duracion_bot_min=None):
+                               duracion_bot_min=None):
     """
     Calcula la distribución de interacciones por canal (Voz, WhatsApp, Facebook, Email)
     en un rango de fechas para el gráfico Donut (Market Share Omnicanal).
-    Retorna un diccionario con total_volume, chart_data (listo para Chart.js) y shares (porcentajes).
+    Retorna un diccionario con total_volume, chart_data (listo para Chart.js) y shares (porcentajes).  # noqa: E501
     Si start_date o end_date son None, se usa el día actual (hoy) en timezone del servidor.
-    - duracion_agente_min: si se indica (entero > 0), solo cuenta voz con agent_duration >= ese valor.
+    - duracion_agente_min: si se indica (entero > 0), solo cuenta voz con agent_duration >= ese valor.  # noqa: E501
     - duracion_bot_min: si se indica (entero > 0), solo cuenta voz con bot_duration >= ese valor.
     """
     hoy = fecha_local(timezone.now())
@@ -496,9 +496,9 @@ def get_omnichannel_share_data(start_date=None, end_date=None, duracion_agente_m
 
 
 def obtener_kpis_centro_contacto(campaign_id=None, start_date=None, end_date=None,
-                                allowed_campaigns=None, allowed_agent_ids=None,
-                                customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None, duracion_agente_min=None,
-                                duracion_bot_min=None):
+                                 allowed_campaigns=None, allowed_agent_ids=None,
+                                 customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None, duracion_agente_min=None,  # noqa: E501
+                                 duracion_bot_min=None):
     """
     Calcula los KPIs de centro de contacto para una campaña (o conjunto) y rango de fechas.
     Retorna un diccionario con contact_rate_pct, conversion_rate_pct, ..., totals.
@@ -646,7 +646,7 @@ def obtener_kpis_centro_contacto(campaign_id=None, start_date=None, end_date=Non
         'count_agent_gt0': count_agent_gt0,
         'count_asa': count_asa,
         'sum_agent_duration': _decimal_to_float(sum_agent_duration) if sum_agent_duration else 0,
-        'sum_wait_conn_duration_asa': _decimal_to_float(sum_wait_conn_duration_asa) if sum_wait_conn_duration_asa else 0,
+        'sum_wait_conn_duration_asa': _decimal_to_float(sum_wait_conn_duration_asa) if sum_wait_conn_duration_asa else 0,  # noqa: E501
         'sum_bot_duration': _decimal_to_float(sum_bot_duration),
     }
 
@@ -667,7 +667,7 @@ def obtener_kpis_centro_contacto(campaign_id=None, start_date=None, end_date=Non
 
 def obtener_llamadas_por_campana(start_date=None, end_date=None,
                                  allowed_campaigns=None, allowed_agent_ids=None,
-                                 customer_id=None, address_query=None, callid=None, direction_filter=None,
+                                 customer_id=None, address_query=None, callid=None, direction_filter=None,  # noqa: E501
                                  channel_filter=None,
                                  visible_campaigns=None,
                                  hora_desde=None, hora_hasta=None,
@@ -862,10 +862,10 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
             'transferred': transferred,
             'avg_wait_seconds': None,
             'avg_talk_seconds': None,
-            'pct_answered': round((100.0 * answered / effective_received), 2) if effective_received else 0.0,
-            'pct_unanswered': round((100.0 * unanswered / effective_received), 2) if effective_received else 0.0,
-            'pct_expired': round((100.0 * expired / effective_received), 2) if effective_received else 0.0,
-            'pct_abandoned': round((100.0 * abandoned / effective_received), 2) if effective_received else 0.0,
+            'pct_answered': round((100.0 * answered / effective_received), 2) if effective_received else 0.0,  # noqa: E501
+            'pct_unanswered': round((100.0 * unanswered / effective_received), 2) if effective_received else 0.0,  # noqa: E501
+            'pct_expired': round((100.0 * expired / effective_received), 2) if effective_received else 0.0,  # noqa: E501
+            'pct_abandoned': round((100.0 * abandoned / effective_received), 2) if effective_received else 0.0,  # noqa: E501
             'pct_transferred': round(
                 (100.0 * transferred / effective_received), 2,
             ) if effective_received else 0.0,
@@ -879,7 +879,7 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
                                            allowed_campaigns=None, allowed_agent_ids=None,
-                                           customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
+                                           customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,  # noqa: E501
                                            duracion_agente_min=None, duracion_bot_min=None):
     """
     KPIs de llamadas salientes (OUTBOUND, VOICE) por campaña para el reporte Egresos/Voz/Campañas.
@@ -984,7 +984,7 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
         )
         otro_error = max(
             0,
-            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
+            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion  # noqa: E501
         )
         avg_wait = r['avg_wait']
         avg_talk = r['avg_talk']
@@ -1060,9 +1060,9 @@ def obtener_llamadas_salientes_por_campana(start_date=None, end_date=None,
 
 def _queryset_llamadas_salientes_voice(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
+                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,  # noqa: E501
                                        duracion_agente_min=None, duracion_bot_min=None):
-    """Base queryset OUTBOUND + VOICE con filtros opcionales (reutilizado por salientes por hora/día/mes)."""
+    """Base queryset OUTBOUND + VOICE con filtros opcionales (reutilizado por salientes por hora/día/mes)."""  # noqa: E501
     queryset = InteractionsSummary.objects.filter(
         direction__iexact='OUTBOUND',
         channel_type__iexact='VOICE',
@@ -1101,7 +1101,7 @@ def _queryset_llamadas_salientes_voice(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
                                         allowed_campaigns=None, allowed_agent_ids=None,
-                                        customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
+                                        customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,  # noqa: E501
                                         duracion_agente_min=None, duracion_bot_min=None):
     """
     Llamadas salientes (OUTBOUND, VOICE) agregadas por hora del día.
@@ -1119,7 +1119,7 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
         start_date=start_date, end_date=end_date,
         allowed_campaigns=allowed_campaigns, allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id, address_query=address_query,
-            callid=callid,
+        callid=callid,
         hora_desde=hora_desde, hora_hasta=hora_hasta,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
@@ -1172,7 +1172,7 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
         )
         otro_error = max(
             0,
-            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
+            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion  # noqa: E501
         )
         avg_wait = r['avg_wait']
         avg_talk = r['avg_talk']
@@ -1283,7 +1283,7 @@ def obtener_llamadas_salientes_por_hora(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
+                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,  # noqa: E501
                                        duracion_agente_min=None, duracion_bot_min=None):
     """
     Llamadas salientes (OUTBOUND, VOICE) agregadas por día.
@@ -1302,7 +1302,7 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
         start_date=start_date, end_date=end_date,
         allowed_campaigns=allowed_campaigns, allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id, address_query=address_query,
-            callid=callid,
+        callid=callid,
         hora_desde=hora_desde, hora_hasta=hora_hasta,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
@@ -1354,7 +1354,7 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
         )
         otro_error = max(
             0,
-            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
+            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion  # noqa: E501
         )
         avg_wait = r['avg_wait']
         avg_talk = r['avg_talk']
@@ -1471,7 +1471,7 @@ def obtener_llamadas_salientes_por_dia(start_date=None, end_date=None,
 
 def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,
+                                       customer_id=None, address_query=None, callid=None, hora_desde=None, hora_hasta=None,  # noqa: E501
                                        duracion_agente_min=None, duracion_bot_min=None):
     """
     Llamadas salientes (OUTBOUND, VOICE) agregadas por mes.
@@ -1490,7 +1490,7 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
         start_date=start_date, end_date=end_date,
         allowed_campaigns=allowed_campaigns, allowed_agent_ids=allowed_agent_ids,
         customer_id=customer_id, address_query=address_query,
-            callid=callid,
+        callid=callid,
         hora_desde=hora_desde, hora_hasta=hora_hasta,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
@@ -1542,7 +1542,7 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
         )
         otro_error = max(
             0,
-            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion
+            sent - conectadas - canceladas - no_atiende - ocupado - contestador - shortcall - congestion  # noqa: E501
         )
         avg_wait = r['avg_wait']
         avg_talk = r['avg_talk']
@@ -1571,7 +1571,7 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
         pct_dist_ocupado = (100.0 * ocupado / sent) if sent else 0.0
         pct_dist_cancel = (100.0 * canceladas / sent) if sent else 0.0
         pct_dist_error_contactacion = (100.0 * error_contactacion / sent) if sent else 0.0
-        month_label = MONTHS[month_date.month] if 1 <= month_date.month <= 12 else month_date.strftime('%B')
+        month_label = MONTHS[month_date.month] if 1 <= month_date.month <= 12 else month_date.strftime('%B')  # noqa: E501
         data_by_month[month_date] = {
             'month': month_date,
             'month_label': month_label,
@@ -1665,7 +1665,7 @@ def obtener_llamadas_salientes_por_mes(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_campana(start_date=None, end_date=None,
                                           allowed_campaigns=None, allowed_agent_ids=None,
-                                          address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                          address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
     Agrupa conversaciones WhatsApp entrantes por campaña para el reporte centro de contacto.
     Retorna lista de dicts con: nombre_campana, recibidos, respondidos, no_respondidos,
@@ -1796,10 +1796,10 @@ def obtener_whatsapp_mensajes_por_campana(start_date=None, end_date=None,
 
 
 def obtener_whatsapp_egresos_mensajes_por_campana(start_date=None, end_date=None,
-                                                    allowed_campaigns=None, allowed_agent_ids=None,
-                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                                  allowed_campaigns=None, allowed_agent_ids=None,
+                                                  address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
-    Agrupa conversaciones WhatsApp salientes (egresos) por campaña para el reporte centro de contacto.
+    Agrupa conversaciones WhatsApp salientes (egresos) por campaña para el reporte centro de contacto.  # noqa: E501
     Retorna lista de dicts con: nombre_campana, enviados, respondidos, no_respondidos,
     avg_frt_segundos, avg_duracion_segundos, pct_respondidos, pct_no_respondidos.
     """
@@ -1843,7 +1843,8 @@ def obtener_whatsapp_egresos_mensajes_por_campana(start_date=None, end_date=None
             Campana.objects.filter(pk__in=campaign_ids).values_list('id', 'nombre')
         )
 
-    # T Espera prom. (egresos): tiempo hasta primera respuesta del cliente = timestamp_primer_mensaje_cliente - timestamp
+    # T Espera prom. (egresos): tiempo hasta primera respuesta del cliente =
+    # timestamp_primer_mensaje_cliente - timestamp
     qs_espera = reporte_tiempos_respuesta_whatsapp(start_date, end_date, sla_segundos=120)
     qs_espera = qs_espera.filter(saliente=True)
     qs_espera = qs_espera.filter(timestamp_primer_mensaje_cliente__isnull=False)
@@ -1940,8 +1941,8 @@ def obtener_whatsapp_egresos_mensajes_por_campana(start_date=None, end_date=None
 
 
 def obtener_whatsapp_egresos_mensajes_por_hora(start_date=None, end_date=None,
-                                                allowed_campaigns=None, allowed_agent_ids=None,
-                                                address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                               allowed_campaigns=None, allowed_agent_ids=None,
+                                               address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
     Agrupa conversaciones WhatsApp salientes (egresos) por hora del día (0-23) para el reporte
     centro de contacto. Sin discriminar por campaña. Retorna (lista de 24 dicts, dict_totals) con:
@@ -2131,12 +2132,12 @@ def obtener_whatsapp_egresos_mensajes_por_hora(start_date=None, end_date=None,
 
 
 def obtener_whatsapp_egresos_mensajes_por_dia(start_date=None, end_date=None,
-                                               allowed_campaigns=None, allowed_agent_ids=None,
-                                               address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                              allowed_campaigns=None, allowed_agent_ids=None,
+                                              address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
     Agrupa conversaciones WhatsApp salientes (egresos) por día (fecha) para el reporte centro de
     contacto. Sin discriminar por campaña. Retorna (lista de dicts por día, dict_totals) con:
-    fecha, fecha_label, enviados, respondidos, no_respondidos, avg_frt_segundos, avg_duracion_segundos,
+    fecha, fecha_label, enviados, respondidos, no_respondidos, avg_frt_segundos, avg_duracion_segundos,  # noqa: E501
     pct_respondidos, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
@@ -2331,8 +2332,8 @@ def obtener_whatsapp_egresos_mensajes_por_dia(start_date=None, end_date=None,
 
 
 def obtener_whatsapp_egresos_mensajes_por_mes(start_date=None, end_date=None,
-                                               allowed_campaigns=None, allowed_agent_ids=None,
-                                               address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                              allowed_campaigns=None, allowed_agent_ids=None,
+                                              address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
     Agrupa conversaciones WhatsApp salientes (egresos) por mes para el reporte centro de
     contacto. Sin discriminar por campaña. Retorna (lista de dicts por mes, dict_totals) con:
@@ -2544,10 +2545,10 @@ def obtener_whatsapp_egresos_mensajes_por_mes(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_hora(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                       address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
-    Agrupa conversaciones WhatsApp entrantes por hora del día (0-23) para el reporte centro de contacto.
-    Retorna (lista de 24 dicts, dict_totals) con: hour_label, recibidos, respondidos, no_respondidos,
+    Agrupa conversaciones WhatsApp entrantes por hora del día (0-23) para el reporte centro de contacto.  # noqa: E501
+    Retorna (lista de 24 dicts, dict_totals) con: hour_label, recibidos, respondidos, no_respondidos,  # noqa: E501
     avg_frt_segundos, avg_duracion_segundos, pct_respondidas, pct_no_respondidos.
     """
     if start_date is None or end_date is None:
@@ -2722,12 +2723,12 @@ def obtener_whatsapp_mensajes_por_hora(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_dia(start_date=None, end_date=None,
                                       allowed_campaigns=None, allowed_agent_ids=None,
-                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                      address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
     Agrupa conversaciones WhatsApp entrantes por día (fecha) para el reporte centro de contacto.
     Sin discriminar por campaña. Retorna (lista de dicts por día, dict_totals) con: fecha,
     fecha_label, recibidos, respondidos, no_respondidos, avg_frt_segundos, avg_duracion_segundos,
-    pct_respondidas, pct_no_respondidos. Similar a obtener_whatsapp_mensajes_por_hora pero por fecha.
+    pct_respondidas, pct_no_respondidos. Similar a obtener_whatsapp_mensajes_por_hora pero por fecha.  # noqa: E501
     """
     if start_date is None or end_date is None:
         return [], None
@@ -2908,7 +2909,7 @@ def obtener_whatsapp_mensajes_por_dia(start_date=None, end_date=None,
 
 def obtener_whatsapp_mensajes_por_mes(start_date=None, end_date=None,
                                       allowed_campaigns=None, allowed_agent_ids=None,
-                                                    address_query=None, callid=None, hora_desde=None, hora_hasta=None):
+                                      address_query=None, callid=None, hora_desde=None, hora_hasta=None):  # noqa: E501
     """
     Agrupa conversaciones WhatsApp entrantes por mes para el reporte centro de contacto.
     Sin discriminar por campaña. Retorna (lista de dicts por mes, dict_totals) con: mes,
@@ -3106,7 +3107,7 @@ def obtener_whatsapp_mensajes_por_mes(start_date=None, end_date=None,
 
 def obtener_canalidades_por_campana(start_date=None, end_date=None,
                                     allowed_campaigns=None, allowed_agent_ids=None,
-                                    customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
+                                    customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',  # noqa: E501
                                     hora_desde=None, hora_hasta=None,
                                     duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3301,7 +3302,7 @@ def obtener_canalidades_por_campana(start_date=None, end_date=None,
 
 def obtener_canalidades_por_hora(start_date=None, end_date=None,
                                  allowed_campaigns=None, allowed_agent_ids=None,
-                                 customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
+                                 customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',  # noqa: E501
                                  hora_desde=None, hora_hasta=None,
                                  duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3566,7 +3567,7 @@ def obtener_canalidades_por_hora(start_date=None, end_date=None,
 
 def obtener_canalidades_por_dia(start_date=None, end_date=None,
                                 allowed_campaigns=None, allowed_agent_ids=None,
-                                customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
+                                customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',  # noqa: E501
                                 hora_desde=None, hora_hasta=None,
                                 duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -3859,10 +3860,10 @@ def _next_month(year, month):
 
 
 def obtener_canalidades_por_mes(start_date=None, end_date=None,
-                               allowed_campaigns=None, allowed_agent_ids=None,
-                               customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
-                               hora_desde=None, hora_hasta=None,
-                               duracion_agente_min=None, duracion_bot_min=None):
+                                allowed_campaigns=None, allowed_agent_ids=None,
+                                customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',  # noqa: E501
+                                hora_desde=None, hora_hasta=None,
+                                duracion_agente_min=None, duracion_bot_min=None):
     """
     Agrupa interacciones por mes por canal (Voz, WhatsApp, Facebook)
     sin diferenciar campañas. Mismos criterios que obtener_canalidades_por_dia:
@@ -4114,7 +4115,7 @@ def obtener_canalidades_por_mes(start_date=None, end_date=None,
 
 def obtener_llamadas_por_hora(start_date=None, end_date=None,
                               allowed_campaigns=None, allowed_agent_ids=None,
-                              customer_id=None, address_query=None, callid=None, direction_filter=None,
+                              customer_id=None, address_query=None, callid=None, direction_filter=None,  # noqa: E501
                               hora_desde=None, hora_hasta=None,
                               duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -4243,7 +4244,7 @@ def obtener_llamadas_por_hora(start_date=None, end_date=None,
 
 def obtener_llamadas_por_dia(start_date=None, end_date=None,
                              allowed_campaigns=None, allowed_agent_ids=None,
-                             customer_id=None, address_query=None, callid=None, direction_filter=None,
+                             customer_id=None, address_query=None, callid=None, direction_filter=None,  # noqa: E501
                              hora_desde=None, hora_hasta=None,
                              duracion_agente_min=None, duracion_bot_min=None):
     """
@@ -4377,14 +4378,14 @@ def obtener_llamadas_por_dia(start_date=None, end_date=None,
 
 
 def obtener_llamadas_por_mes(start_date=None, end_date=None,
-                              allowed_campaigns=None, allowed_agent_ids=None,
-                              customer_id=None, address_query=None, callid=None, direction_filter=None,
-                              hora_desde=None, hora_hasta=None,
-                              duracion_agente_min=None, duracion_bot_min=None):
+                             allowed_campaigns=None, allowed_agent_ids=None,
+                             customer_id=None, address_query=None, callid=None, direction_filter=None,  # noqa: E501
+                             hora_desde=None, hora_hasta=None,
+                             duracion_agente_min=None, duracion_bot_min=None):
     """
     Agrupa interacciones por mes con los mismos filtros que obtener_llamadas_por_dia.
     Retorna lista de dicts (una fila por mes) con month, month_label (nombre traducido),
-    received, answered, unanswered, abandoned, transferred, avg_wait_seconds, avg_talk_seconds, pct_*.
+    received, answered, unanswered, abandoned, transferred, avg_wait_seconds, avg_talk_seconds, pct_*.  # noqa: E501
     """
     from datetime import date
     queryset = InteractionsSummary.objects.all()
@@ -4462,7 +4463,7 @@ def obtener_llamadas_por_mes(start_date=None, end_date=None,
         pct_unanswered = (100.0 * unanswered / received) if received else 0.0
         pct_abandoned = (100.0 * abandoned / received) if received else 0.0
         pct_transferred = (100.0 * transferred / received) if received else 0.0
-        month_label = MONTHS[month_date.month] if 1 <= month_date.month <= 12 else month_date.strftime('%B')
+        month_label = MONTHS[month_date.month] if 1 <= month_date.month <= 12 else month_date.strftime('%B')  # noqa: E501
         data_by_month[month_date] = {
             'month': month_date,
             'month_label': month_label,
@@ -4567,7 +4568,7 @@ def _telefono_interaccion(obj):
 
 def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
                                        allowed_campaigns=None, allowed_agent_ids=None,
-                                       customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
+                                       customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',  # noqa: E501
                                        hora_desde=None, hora_hasta=None,
                                        duracion_agente_min=None, duracion_bot_min=None,
                                        page=1, page_size=100):
@@ -4581,7 +4582,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
     quien_corto, calificacion_tel, id_calificacion, nombre_calificacion, nombre_subcalificacion,
     url_grabacion).
     calificacion_tel es el status telefónico (p. ej. EXIT_ANSWERED).
-    id_calificacion y nombre_calificacion provienen de CalificacionCliente (por callid=interaction_id).
+    id_calificacion y nombre_calificacion provienen de CalificacionCliente (por callid=interaction_id).  # noqa: E501
     """
     queryset = InteractionsSummary.objects.filter(
         direction__iexact=direction_filter,
@@ -4687,12 +4688,12 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
 
         subcalificacion = '—'
         if obj.channel_data and isinstance(obj.channel_data, dict):
-            subcalificacion = obj.channel_data.get('subcalificacion') or obj.channel_data.get('subcalificacion_nombre') or '—'
+            subcalificacion = obj.channel_data.get('subcalificacion') or obj.channel_data.get('subcalificacion_nombre') or '—'  # noqa: E501
 
         url_grabacion = obj.url_archivo_grabacion_url_encoded if obj.end_time else ''
 
-        wait_sec = _decimal_to_float(obj.wait_conn_duration) if obj.wait_conn_duration is not None else None
-        agent_sec = _decimal_to_float(obj.agent_duration) if obj.agent_duration is not None else None
+        wait_sec = _decimal_to_float(obj.wait_conn_duration) if obj.wait_conn_duration is not None else None  # noqa: E501
+        agent_sec = _decimal_to_float(obj.agent_duration) if obj.agent_duration is not None else None  # noqa: E501
         bot_sec = _decimal_to_float(obj.bot_duration) if obj.bot_duration is not None else None
 
         rows.append({
@@ -4854,7 +4855,7 @@ def obtener_distribucion_status_llamadas_no_atendidas(start_date=None, end_date=
 
 def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
                                           allowed_campaigns=None, allowed_agent_ids=None,
-                                          customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',
+                                          customer_id=None, address_query=None, callid=None, direction_filter='INBOUND',  # noqa: E501
                                           hora_desde=None, hora_hasta=None,
                                           duracion_agente_min=None, duracion_bot_min=None,
                                           page=1, page_size=100):
@@ -4885,7 +4886,7 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
     except Exception:
         page_obj = paginator.page(1)
 
-    campaign_ids = set(obj.campaign_id for obj in page_obj.object_list if obj.campaign_id is not None)
+    campaign_ids = set(obj.campaign_id for obj in page_obj.object_list if obj.campaign_id is not None)  # noqa: E501
     campana_names = {}
     if campaign_ids:
         campana_names = dict(
@@ -4897,7 +4898,7 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
         nombre_campana = campana_names.get(obj.campaign_id) if obj.campaign_id else '—'
         if obj.campaign_id and nombre_campana is None:
             nombre_campana = str(obj.campaign_id)
-        wait_sec = _decimal_to_float(obj.wait_conn_duration) if obj.wait_conn_duration is not None else None
+        wait_sec = _decimal_to_float(obj.wait_conn_duration) if obj.wait_conn_duration is not None else None  # noqa: E501
         rows.append({
             'fecha_hora': obj.start_time,
             'interaction_id': obj.interaction_id,
@@ -5173,11 +5174,11 @@ class ReporteCentroContactoFormView(FormView):
                 'expired': total_expired,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-                'pct_expired': round(100.0 * total_expired / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_expired': round(100.0 * total_expired / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
             }
         ingresos_voz_por_campana = obtener_llamadas_por_campana(
             start_date=desde,
@@ -5219,10 +5220,10 @@ class ReporteCentroContactoFormView(FormView):
                 'transferred': total_transferred,
                 'transfer_in_count': total_transfer_in_count,
                 'transfer_out_count': total_transfer_out_count,
-                'pct_answered': round(100.0 * total_answered / total_effective_received, 2) if total_effective_received else 0.0,
-                'pct_expired': round(100.0 * total_expired / total_effective_received, 2) if total_effective_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_effective_received, 2) if total_effective_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_effective_received, 2) if total_effective_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_effective_received, 2) if total_effective_received else 0.0,  # noqa: E501
+                'pct_expired': round(100.0 * total_expired / total_effective_received, 2) if total_effective_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_effective_received, 2) if total_effective_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_effective_received, 2) if total_effective_received else 0.0,  # noqa: E501
             }
         canalidades_por_campana, canalidades_por_campana_totals = obtener_canalidades_por_campana(
             start_date=desde,
@@ -5256,14 +5257,14 @@ class ReporteCentroContactoFormView(FormView):
             hour_begin = hora_desde.hour
             hour_end = hora_hasta.hour
             if hour_begin <= hour_end:
-                llamadas_por_hora = [r for r in llamadas_por_hora if hour_begin <= r['hour'] <= hour_end]
+                llamadas_por_hora = [r for r in llamadas_por_hora if hour_begin <= r['hour'] <= hour_end]  # noqa: E501
             else:
                 # rango cruzado (ej. 22:00 a 06:00): incluir hour >= hour_begin o hour <= hour_end
                 llamadas_por_hora = [
                     r for r in llamadas_por_hora
                     if r['hour'] >= hour_begin or r['hour'] <= hour_end
                 ]
-                llamadas_por_hora.sort(key=lambda r: (r['hour'] + 24) if r['hour'] < hour_begin else r['hour'])
+                llamadas_por_hora.sort(key=lambda r: (r['hour'] + 24) if r['hour'] < hour_begin else r['hour'])  # noqa: E501
         llamadas_por_hora_totals = None
         if llamadas_por_hora:
             total_received = sum(r['received'] for r in llamadas_por_hora)
@@ -5277,10 +5278,10 @@ class ReporteCentroContactoFormView(FormView):
                 'unanswered': total_unanswered,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
             }
         canalidades_por_hora, canalidades_por_hora_totals = obtener_canalidades_por_hora(
             start_date=desde,
@@ -5351,10 +5352,10 @@ class ReporteCentroContactoFormView(FormView):
                 'unanswered': total_unanswered,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
             }
         llamadas_por_mes = obtener_llamadas_por_mes(
             start_date=desde,
@@ -5383,10 +5384,10 @@ class ReporteCentroContactoFormView(FormView):
                 'unanswered': total_unanswered,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
             }
         page_listado = 1
         try:
@@ -5565,7 +5566,7 @@ class ReporteCentroContactoFormView(FormView):
             inbound_answered = qs_wa_base.filter(
                 saliente=False, atendida=True, agent_id__isnull=False
             ).count()
-            qs_inbound_no_atendidas = ConversacionWhatsapp.objects.conversaciones_entrantes_no_atendidas(
+            qs_inbound_no_atendidas = ConversacionWhatsapp.objects.conversaciones_entrantes_no_atendidas(  # noqa: E501
                 desde, hasta
             )
             if allowed_campaigns is not None:
@@ -5817,7 +5818,7 @@ class ReporteCentroContactoFormView(FormView):
         listado_conv_no_respondidas_wa_egresos = None
         listado_pages_conv_no_respondidas_wa_egresos = []
         if desde is not None and hasta is not None:
-            qs_conv_no_wa_egresos = ConversacionWhatsapp.objects.conversaciones_salientes_no_atendidas(
+            qs_conv_no_wa_egresos = ConversacionWhatsapp.objects.conversaciones_salientes_no_atendidas(  # noqa: E501
                 desde, hasta
             )
             if allowed_campaigns is not None:
@@ -5925,7 +5926,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5939,7 +5940,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5953,7 +5954,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5967,7 +5968,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5981,7 +5982,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -5995,7 +5996,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_campaigns=allowed_campaigns,
                 allowed_agent_ids=allowed_agent_ids,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
             )
@@ -6010,7 +6011,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_agent_ids=allowed_agent_ids,
                 customer_id=contacto_id,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 direction_filter='OUTBOUND',
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
@@ -6034,15 +6035,15 @@ class ReporteCentroContactoFormView(FormView):
         if egresos_llamadas_por_campana:
             total_sent = sum(r['sent'] for r in egresos_llamadas_por_campana)
             total_conectadas = sum(r['conectadas'] for r in egresos_llamadas_por_campana)
-            total_contactadas_pstn = sum(r['contactadas_pstn'] for r in egresos_llamadas_por_campana)
+            total_contactadas_pstn = sum(r['contactadas_pstn'] for r in egresos_llamadas_por_campana)  # noqa: E501
             total_canceladas = sum(r['canceladas'] for r in egresos_llamadas_por_campana)
             total_no_atiende = sum(r['no_atiende'] for r in egresos_llamadas_por_campana)
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_campana)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_campana)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_campana)
-            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_campana)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_campana)  # noqa: E501
             total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_campana)
-            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_campana)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_campana)  # noqa: E501
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_campana)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_campana)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_campana)
@@ -6061,7 +6062,7 @@ class ReporteCentroContactoFormView(FormView):
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
-                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,
+                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,  # noqa: E501
                 'pct_conectadas_pstn': (
                     round(100.0 * total_contactadas_pstn / total_sent, 2) if total_sent else 0.0
                 ),
@@ -6148,9 +6149,9 @@ class ReporteCentroContactoFormView(FormView):
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_hora)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_hora)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_hora)
-            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_hora)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_hora)  # noqa: E501
             total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_hora)
-            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_hora)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_hora)  # noqa: E501
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_hora)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_hora)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_hora)
@@ -6169,7 +6170,7 @@ class ReporteCentroContactoFormView(FormView):
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
-                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,
+                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,  # noqa: E501
                 'pct_conectadas_pstn': (
                     round(100.0 * total_contactadas_pstn / total_sent, 2) if total_sent else 0.0
                 ),
@@ -6241,9 +6242,9 @@ class ReporteCentroContactoFormView(FormView):
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_dia)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_dia)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_dia)
-            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_dia)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_dia)  # noqa: E501
             total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_dia)
-            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_dia)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_dia)  # noqa: E501
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_dia)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_dia)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_dia)
@@ -6262,7 +6263,7 @@ class ReporteCentroContactoFormView(FormView):
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
-                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,
+                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,  # noqa: E501
                 'pct_conectadas_pstn': (
                     round(100.0 * total_contactadas_pstn / total_sent, 2) if total_sent else 0.0
                 ),
@@ -6334,9 +6335,9 @@ class ReporteCentroContactoFormView(FormView):
             total_ocupado = sum(r['ocupado'] for r in egresos_llamadas_por_mes)
             total_contestador = sum(r['contestador'] for r in egresos_llamadas_por_mes)
             total_shortcall = sum(r['shortcall'] for r in egresos_llamadas_por_mes)
-            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_mes)
+            total_abandonadas_espera = sum(r['abandonadas_espera'] for r in egresos_llamadas_por_mes)  # noqa: E501
             total_timeout_espera = sum(r['timeout_espera'] for r in egresos_llamadas_por_mes)
-            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_mes)
+            total_error_contactacion = sum(r['error_contactacion'] for r in egresos_llamadas_por_mes)  # noqa: E501
             total_congestion = sum(r['congestion'] for r in egresos_llamadas_por_mes)
             total_otro_error = sum(r['otro_error'] for r in egresos_llamadas_por_mes)
             total_transferred = sum(r['transferred'] for r in egresos_llamadas_por_mes)
@@ -6355,7 +6356,7 @@ class ReporteCentroContactoFormView(FormView):
                 'congestion': total_congestion,
                 'otro_error': total_otro_error,
                 'transferred': total_transferred,
-                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,
+                'pct_conectadas': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,  # noqa: E501
                 'pct_conectadas_pstn': (
                     round(100.0 * total_contactadas_pstn / total_sent, 2) if total_sent else 0.0
                 ),
@@ -6404,7 +6405,8 @@ class ReporteCentroContactoFormView(FormView):
                     round(100.0 * total_error_contactacion / total_sent, 2) if total_sent else 0.0
                 ),
             }
-        # Egresos Canalidades (Horas, Días, Mes): formato genérico received/answered para el panel Canalidades
+        # Egresos Canalidades (Horas, Días, Mes): formato genérico received/answered para el panel
+        # Canalidades
         egresos_canalidades_llamadas_por_hora = obtener_llamadas_por_hora(
             start_date=desde,
             end_date=hasta,
@@ -6432,12 +6434,12 @@ class ReporteCentroContactoFormView(FormView):
                 'unanswered': total_unanswered,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
             }
-        egresos_canalidades_por_hora, egresos_canalidades_por_hora_totals = obtener_canalidades_por_hora(
+        egresos_canalidades_por_hora, egresos_canalidades_por_hora_totals = obtener_canalidades_por_hora(  # noqa: E501
             start_date=desde,
             end_date=hasta,
             allowed_campaigns=allowed_campaigns,
@@ -6451,7 +6453,7 @@ class ReporteCentroContactoFormView(FormView):
             duracion_agente_min=duracion_agente_min,
             duracion_bot_min=duracion_bot_min,
         )
-        egresos_canalidades_por_dia, egresos_canalidades_por_dia_totals = obtener_canalidades_por_dia(
+        egresos_canalidades_por_dia, egresos_canalidades_por_dia_totals = obtener_canalidades_por_dia(  # noqa: E501
             start_date=desde,
             end_date=hasta,
             allowed_campaigns=allowed_campaigns,
@@ -6492,10 +6494,10 @@ class ReporteCentroContactoFormView(FormView):
                 'unanswered': total_unanswered,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
             }
         egresos_canalidades_por_mes, egresos_canalidades_por_mes_totals = (
             obtener_canalidades_por_mes(
@@ -6505,7 +6507,7 @@ class ReporteCentroContactoFormView(FormView):
                 allowed_agent_ids=allowed_agent_ids,
                 customer_id=contacto_id,
                 address_query=address_query,
-            callid=callid,
+                callid=callid,
                 direction_filter='OUTBOUND',
                 hora_desde=hora_desde,
                 hora_hasta=hora_hasta,
@@ -6539,10 +6541,10 @@ class ReporteCentroContactoFormView(FormView):
                 'unanswered': total_unanswered,
                 'abandoned': total_abandoned,
                 'transferred': total_transferred,
-                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,
-                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,
-                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,
-                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,
+                'pct_answered': round(100.0 * total_answered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_unanswered': round(100.0 * total_unanswered / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_abandoned': round(100.0 * total_abandoned / total_received, 2) if total_received else 0.0,  # noqa: E501
+                'pct_transferred': round(100.0 * total_transferred / total_received, 2) if total_received else 0.0,  # noqa: E501
             }
         page_listado_egresos = 1
         try:
@@ -6674,7 +6676,7 @@ class ReporteCentroContactoFormView(FormView):
             egresos_llamadas_por_mes=egresos_llamadas_por_mes,
             egresos_llamadas_por_mes_totals=egresos_llamadas_por_mes_totals,
             egresos_canalidades_llamadas_por_hora=egresos_canalidades_llamadas_por_hora,
-            egresos_canalidades_llamadas_por_hora_totals=egresos_canalidades_llamadas_por_hora_totals,
+            egresos_canalidades_llamadas_por_hora_totals=egresos_canalidades_llamadas_por_hora_totals,  # noqa: E501
             egresos_canalidades_por_hora=egresos_canalidades_por_hora,
             egresos_canalidades_por_hora_totals=egresos_canalidades_por_hora_totals,
             egresos_canalidades_por_dia=egresos_canalidades_por_dia,
@@ -6701,7 +6703,7 @@ class ReporteCentroContactoFormView(FormView):
             listado_conv_respondidas_wa_egresos=listado_conv_respondidas_wa_egresos,
             listado_pages_conv_respondidas_wa_egresos=listado_pages_conv_respondidas_wa_egresos,
             listado_conv_no_respondidas_wa_egresos=listado_conv_no_respondidas_wa_egresos,
-            listado_pages_conv_no_respondidas_wa_egresos=listado_pages_conv_no_respondidas_wa_egresos,
+            listado_pages_conv_no_respondidas_wa_egresos=listado_pages_conv_no_respondidas_wa_egresos,  # noqa: E501
             whatsapp_mensajes_por_campana=whatsapp_mensajes_por_campana,
             whatsapp_egresos_mensajes_por_campana=whatsapp_egresos_mensajes_por_campana,
             whatsapp_egresos_mensajes_por_hora=whatsapp_egresos_mensajes_por_hora,
@@ -6880,139 +6882,139 @@ class GetOmnichannelShareDataView(APIView):
 
 # --- Export CSV Canalidades por campaña (mismo flujo que reporte_grafico contactados) ---
 
-import threading
-from datetime import datetime as dt_datetime
+import threading  # noqa: E402,E501
+from datetime import datetime as dt_datetime  # noqa: E402,E501
 
-from ominicontacto_app.utiles import convert_fecha_datetime
-from reportes_app.services.exportacion_canalidades_centro_contacto import (
+from ominicontacto_app.utiles import convert_fecha_datetime  # noqa: E402,E501
+from reportes_app.services.exportacion_canalidades_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE,
     generar_csv_canalidades_centro_contacto,
 )
-from reportes_app.services.exportacion_canalidades_egresos_centro_contacto import (
+from reportes_app.services.exportacion_canalidades_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CANALIDADES_EGRESOS,
     generar_csv_canalidades_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_canalidades_por_hora_centro_contacto import (
+from reportes_app.services.exportacion_canalidades_por_hora_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CANALIDADES_POR_HORA,
     generar_csv_canalidades_por_hora_centro_contacto,
 )
-from reportes_app.services.exportacion_canalidades_por_hora_egresos_centro_contacto import (
+from reportes_app.services.exportacion_canalidades_por_hora_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CANALIDADES_POR_HORA_EGRESOS,
     generar_csv_canalidades_por_hora_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_canalidades_por_dia_centro_contacto import (
+from reportes_app.services.exportacion_canalidades_por_dia_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CANALIDADES_POR_DIA,
     generar_csv_canalidades_por_dia_centro_contacto,
 )
-from reportes_app.services.exportacion_canalidades_por_dia_egresos_centro_contacto import (
+from reportes_app.services.exportacion_canalidades_por_dia_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CANALIDADES_POR_DIA_EGRESOS,
     generar_csv_canalidades_por_dia_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_canalidades_por_mes_centro_contacto import (
+from reportes_app.services.exportacion_canalidades_por_mes_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CANALIDADES_POR_MES,
     generar_csv_canalidades_por_mes_centro_contacto,
 )
-from reportes_app.services.exportacion_canalidades_por_mes_egresos_centro_contacto import (
+from reportes_app.services.exportacion_canalidades_por_mes_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CANALIDADES_POR_MES_EGRESOS,
     generar_csv_canalidades_por_mes_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_atendidas_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_atendidas_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_ATENDIDAS,
     generar_csv_llamadas_atendidas_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_atendidas_egresos_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_atendidas_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_ATENDIDAS_EGRESOS,
     generar_csv_llamadas_atendidas_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_no_atendidas_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_no_atendidas_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_NO_ATENDIDAS,
     generar_csv_llamadas_no_atendidas_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_no_atendidas_egresos_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_no_atendidas_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_NO_ATENDIDAS_EGRESOS,
     generar_csv_llamadas_no_atendidas_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_voz_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_voz_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_VOZ,
     generar_csv_llamadas_voz_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_voz_egresos_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_voz_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_VOZ_EGRESOS,
     generar_csv_llamadas_voz_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_por_hora_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_por_hora_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_POR_HORA,
     generar_csv_llamadas_por_hora_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_por_hora_egresos_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_por_hora_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_POR_HORA_EGRESOS,
     generar_csv_llamadas_por_hora_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_por_dia_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_por_dia_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_POR_DIA,
     generar_csv_llamadas_por_dia_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_por_dia_egresos_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_por_dia_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_POR_DIA_EGRESOS,
     generar_csv_llamadas_por_dia_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_por_mes_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_por_mes_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_POR_MES,
     generar_csv_llamadas_por_mes_centro_contacto,
 )
-from reportes_app.services.exportacion_llamadas_por_mes_egresos_centro_contacto import (
+from reportes_app.services.exportacion_llamadas_por_mes_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_LLAMADAS_POR_MES_EGRESOS,
     generar_csv_llamadas_por_mes_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_conversaciones_respondidas_centro_contacto import (
+from reportes_app.services.exportacion_conversaciones_respondidas_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CONV_RESP,
     generar_csv_conversaciones_respondidas_centro_contacto,
 )
-from reportes_app.services.exportacion_conversaciones_respondidas_egresos_centro_contacto import (
+from reportes_app.services.exportacion_conversaciones_respondidas_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CONV_RESP_EGRESOS,
     generar_csv_conversaciones_respondidas_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_conversaciones_no_respondidas_centro_contacto import (
+from reportes_app.services.exportacion_conversaciones_no_respondidas_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CONV_NO_RESP,
     generar_csv_conversaciones_no_respondidas_centro_contacto,
 )
-from reportes_app.services.exportacion_conversaciones_no_respondidas_egresos_centro_contacto import (
+from reportes_app.services.exportacion_conversaciones_no_respondidas_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_CONV_NO_RESP_EGRESOS,
     generar_csv_conversaciones_no_respondidas_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_HORA,
     generar_csv_whatsapp_mensajes_por_hora,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_egresos_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_HORA_EGRESOS,
     generar_csv_whatsapp_mensajes_por_hora_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_CAMPANA,
     generar_csv_whatsapp_mensajes_por_campana,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_egresos_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_CAMPANA_EGRESOS,
     generar_csv_whatsapp_mensajes_por_campana_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_dia_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_dia_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_DIA,
     generar_csv_whatsapp_mensajes_por_dia,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_dia_egresos_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_dia_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_DIA_EGRESOS,
     generar_csv_whatsapp_mensajes_por_dia_egresos_centro_contacto,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_mes_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_mes_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_MES,
     generar_csv_whatsapp_mensajes_por_mes,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_mes_egresos_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_mes_egresos_centro_contacto import (  # noqa: E402,E501
     KEY_TASK_TEMPLATE as KEY_TASK_TEMPLATE_WA_MSG_MES_EGRESOS,
     generar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto,
 )
-from api_app.views.permissions import (
+from api_app.views.permissions import (  # noqa: E402,E501
     TienePermisoInteractionTransfersOGrabacionBuscar,
     TienePermisoOML,
 )
@@ -7460,6 +7462,7 @@ def _parse_export_filters(request):
     if hasattr(request, 'data'):
         data = request.data
     # Normalizar listas (DRF puede devolver dict o QueryDict)
+
     def _get_list(key):
         val = data.get(key)
         if val is None and hasattr(data, 'getlist'):
@@ -7508,10 +7511,10 @@ def _parse_export_filters(request):
         try:
             selected_campaign_ids = [int(c) for c in campanas_seleccionadas]
         except (TypeError, ValueError):
-            return None, Response({'error': _('Campaña inválida.')}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({'error': _('Campaña inválida.')}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         visible_set = set(campanas_visibles_ids)
         if not set(selected_campaign_ids).issubset(visible_set):
-            return None, Response({'error': _('Campaña inválida.')}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({'error': _('Campaña inválida.')}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         allowed_campaigns = selected_campaign_ids
 
     campana_id_raw = data.get('campana_id')
@@ -7546,9 +7549,9 @@ def _parse_export_filters(request):
         try:
             selected_group_ids = [int(g) for g in grupos_seleccionados]
         except (TypeError, ValueError):
-            return None, Response({'error': _('Grupo de agentes inválido.')}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({'error': _('Grupo de agentes inválido.')}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         if not set(selected_group_ids).issubset(grupos_visibles_ids):
-            return None, Response({'error': _('Grupo de agentes inválido.')}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({'error': _('Grupo de agentes inválido.')}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         allowed_agent_ids_by_group = list(
             AgenteProfile.objects.filter(
                 grupo_id__in=selected_group_ids,
@@ -7558,7 +7561,7 @@ def _parse_export_filters(request):
 
     agentes_visibles_ids = set(
         AgenteProfile.objects.filter(
-            campana_member__queue_name__campana__in=campanas_visibles.filter(pk__in=allowed_campaigns)
+            campana_member__queue_name__campana__in=campanas_visibles.filter(pk__in=allowed_campaigns)  # noqa: E501
         ).distinct().values_list('id', flat=True)
     )
     agentes_seleccionados = _get_list('agente')
@@ -7572,9 +7575,9 @@ def _parse_export_filters(request):
         try:
             selected_agent_ids = [int(a) for a in agentes_seleccionados]
         except (TypeError, ValueError):
-            return None, Response({'error': _('Agente inválido.')}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({'error': _('Agente inválido.')}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         if not set(selected_agent_ids).issubset(agentes_visibles_ids):
-            return None, Response({'error': _('Agente inválido.')}, status=status.HTTP_400_BAD_REQUEST)
+            return None, Response({'error': _('Agente inválido.')}, status=status.HTTP_400_BAD_REQUEST)  # noqa: E501
         if allowed_agent_ids_by_group is None:
             allowed_agent_ids = selected_agent_ids
         else:
@@ -7985,7 +7988,7 @@ class ExportarCSVCanalidadesPorMesEgresosCentroContacto(ExportarCSVCentroContact
 
 
 class ExportarCSVLlamadasAtendidasCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Listado de llamadas atendidas (Ingresos/Voz)."""
+    """POST: inicia generación en background del CSV Listado de llamadas atendidas (Ingresos/Voz)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8065,7 +8068,7 @@ class ExportarCSVLlamadasAtendidasEgresosCentroContacto(ExportarCSVCentroContact
         return Response(
             data={
                 'status': 'OK',
-                'msg': _('Exportación de Listado de llamadas atendidas (Egresos) a CSV en proceso.'),
+                'msg': _('Exportación de Listado de llamadas atendidas (Egresos) a CSV en proceso.'),  # noqa: E501
                 'id': task_id,
             },
             status=status.HTTP_200_OK,
@@ -8073,7 +8076,7 @@ class ExportarCSVLlamadasAtendidasEgresosCentroContacto(ExportarCSVCentroContact
 
 
 class ExportarCSVLlamadasNoAtendidasCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Listado de llamadas no atendidas (Ingresos/Voz)."""
+    """POST: inicia generación en background del CSV Listado de llamadas no atendidas (Ingresos/Voz)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8153,7 +8156,7 @@ class ExportarCSVLlamadasNoAtendidasEgresosCentroContacto(ExportarCSVCentroConta
         return Response(
             data={
                 'status': 'OK',
-                'msg': _('Exportación de Listado de llamadas no atendidas (Egresos) a CSV en proceso.'),
+                'msg': _('Exportación de Listado de llamadas no atendidas (Egresos) a CSV en proceso.'),  # noqa: E501
                 'id': task_id,
             },
             status=status.HTTP_200_OK,
@@ -8246,7 +8249,7 @@ class ExportarCSVLlamadasVozEgresosCentroContacto(ExportarCSVCentroContactoAPIVi
 
 
 class ExportarCSVLlamadasPorHoraCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Llamadas por hora de día (Ingresos/Voz/Horas)."""
+    """POST: inicia generación en background del CSV Llamadas por hora de día (Ingresos/Voz/Horas)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8288,7 +8291,7 @@ class ExportarCSVLlamadasPorHoraCentroContacto(ExportarCSVCentroContactoAPIView)
 
 
 class ExportarCSVLlamadasPorHoraEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Llamadas por hora de día (Egresos/Voz/Horas)."""
+    """POST: inicia generación en background del CSV Llamadas por hora de día (Egresos/Voz/Horas)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8498,7 +8501,7 @@ class ExportarCSVLlamadasPorMesEgresosCentroContacto(ExportarCSVCentroContactoAP
 
 
 class ExportarCSVConversacionesRespondidasCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Conversaciones Respondidas (Ingresos WhatsApp)."""
+    """POST: inicia generación en background del CSV Conversaciones Respondidas (Ingresos WhatsApp)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8540,7 +8543,7 @@ class ExportarCSVConversacionesRespondidasCentroContacto(ExportarCSVCentroContac
 
 
 class ExportarCSVConversacionesRespondidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Conversaciones Respondidas (Egresos WhatsApp)."""
+    """POST: inicia generación en background del CSV Conversaciones Respondidas (Egresos WhatsApp)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8582,7 +8585,7 @@ class ExportarCSVConversacionesRespondidasEgresosCentroContacto(ExportarCSVCentr
 
 
 class ExportarCSVConversacionesNoRespondidasCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Conversaciones no respondidas (Ingresos WhatsApp)."""
+    """POST: inicia generación en background del CSV Conversaciones no respondidas (Ingresos WhatsApp)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8624,7 +8627,7 @@ class ExportarCSVConversacionesNoRespondidasCentroContacto(ExportarCSVCentroCont
 
 
 class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Conversaciones no respondidas (Egresos WhatsApp)."""
+    """POST: inicia generación en background del CSV Conversaciones no respondidas (Egresos WhatsApp)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)
@@ -8658,7 +8661,7 @@ class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(ExportarCSVCen
         return Response(
             data={
                 'status': 'OK',
-                'msg': _('Exportación de Conversaciones no respondidas (Egresos) a CSV en proceso.'),
+                'msg': _('Exportación de Conversaciones no respondidas (Egresos) a CSV en proceso.'),  # noqa: E501
                 'id': task_id,
             },
             status=status.HTTP_200_OK,
@@ -8666,7 +8669,7 @@ class ExportarCSVConversacionesNoRespondidasEgresosCentroContacto(ExportarCSVCen
 
 
 class ExportarCSVWhatsappMensajesPorHoraCentroContacto(ExportarCSVCentroContactoAPIView):
-    """POST: inicia generación en background del CSV Mensajes por hora de día (WhatsApp Ingresos)."""
+    """POST: inicia generación en background del CSV Mensajes por hora de día (WhatsApp Ingresos)."""  # noqa: E501
 
     def post(self, request):
         parsed, err_response = _parse_export_filters(request)

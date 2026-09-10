@@ -22,10 +22,7 @@ import os
 import logging
 import re
 import json
-import redis
-from django.conf import settings
 from django.utils import timezone
-from django.utils.translation import gettext as _
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -74,32 +71,32 @@ def _safe_int(value, default=0):
 def _resolve_channel(r_client, agent_id=None):
     """
     Resuelve el canal de Redis al cual enviar el comando.
-    
+
     Si se proporciona agent_id, intenta buscar en qué nodo (NODE_ID)
     está logueado el agente y devuelve el canal específico de ese nodo.
-    
-    Si no se encuentra el agente o no tiene NODE_ID, devuelve el canal 
+
+    Si no se encuentra el agente o no tiene NODE_ID, devuelve el canal
     configurado localmente (CHANNEL_KEY).
     """
     if not agent_id:
         return CHANNEL_KEY
-    
+
     try:
         # Buscar NODE_ID del agente
         # El hash OML:AGENT:{id} contiene un campo NODE_ID si está logueado
         agent_key = f"OML:AGENT:{agent_id}"
         agent_node = r_client.hget(agent_key, "NODE_ID")
-        
+
         if agent_node:
             # Normalizar a string por si acaso
             node_str = str(agent_node)
             target_channel = f"{BASE_CHANNEL_KEY}:{node_str}"
             logger.debug(f"🎯 Agente {agent_id} en nodo {node_str} -> Canal {target_channel}")
             return target_channel
-        
+
     except Exception as e:
         logger.warning(f"⚠️ Error resolviendo nodo para agente {agent_id}: {e}")
-            
+
     # Fallback al canal local si no se encuentra
     logger.debug(f"⚠️ Agente {agent_id} no tiene NODE_ID o error -> Fallback local {CHANNEL_KEY}")
     return CHANNEL_KEY
@@ -122,7 +119,7 @@ def _normalize_id(value):
 def _get_campaign_cfg(r_client, camp_id):
     """Recupera la configuración de la campaña desde Redis."""
     data = r_client.hgetall(f"OML:CAMP:{camp_id}") or {}
-    
+
     return {
         "strategy": data.get("STRATEGY", "random"),
         "queuetime": _safe_int(data.get("QUEUETIME"), 30),
@@ -136,21 +133,21 @@ def _get_sorted_agents(r_client, camp_id, strategy, exclude_set):
     Retorna lista de dicts con 'id', 'sip', 'calls', 'last_change'.
     """
     import random
-    
+
     # Obtener agentes de la campaña desde Redis
     key_members = f"OML:CAMPAIGN-AGENTS:{camp_id}"
     agent_ids = list(r_client.smembers(key_members))
-    
+
     if not agent_ids:
         logger.debug(f"⚠️ No hay agentes asignados en {key_members}")
         return []
-    
+
     # Filtrar agentes excluidos
     valid_query_ids = [aid for aid in agent_ids if aid not in exclude_set]
-    
+
     if not valid_query_ids:
         return []
-    
+
     # Usar pipeline para obtener múltiples valores eficientemente
     pipe = r_client.pipeline()
     for aid in valid_query_ids:
@@ -160,11 +157,11 @@ def _get_sorted_agents(r_client, camp_id, strategy, exclude_set):
         pipe.hget(key, "sys_class")
         pipe.hget(key, "calls_count")
         pipe.hget(key, "last_state_change")
-    
+
     results = pipe.execute()
     candidates = []
     step = 5
-    
+
     for i, aid in enumerate(valid_query_ids):
         base = i * step
         status_val = results[base]
@@ -172,10 +169,10 @@ def _get_sorted_agents(r_client, camp_id, strategy, exclude_set):
         sys_class_val = results[base + 2]
         calls_count = results[base + 3]
         last_change = results[base + 4]
-        
+
         # Usar SIP o sys_class como fallback
         sip = sip_val if sip_val else sys_class_val
-        
+
         if status_val == "READY" and sip:
             candidates.append({
                 'id': aid,
@@ -183,10 +180,10 @@ def _get_sorted_agents(r_client, camp_id, strategy, exclude_set):
                 'calls': _safe_int(calls_count, 0),
                 'last_change': float(last_change) if last_change else 0.0
             })
-    
+
     if not candidates:
         return []
-    
+
     # Aplicar estrategia de ordenamiento
     if strategy == 'random' or strategy == 'ringall':
         random.shuffle(candidates)
@@ -211,7 +208,7 @@ def _get_sorted_agents(r_client, camp_id, strategy, exclude_set):
                     candidates = rotated
             except ValueError:
                 pass
-    
+
     return candidates
 
 
@@ -222,16 +219,16 @@ def _find_ready_agent_in_campaign(r_client, camp_id, exclude_agent_id=None):
     """
     cfg = _get_campaign_cfg(r_client, camp_id)
     strategy = cfg.get("strategy", "random")
-    
+
     exclude_set = set()
     if exclude_agent_id:
         exclude_set.add(str(exclude_agent_id))
-    
+
     candidates = _get_sorted_agents(r_client, camp_id, strategy, exclude_set)
-    
+
     if not candidates:
         return None
-    
+
     # Retornar el primer candidato (ya está ordenado según la estrategia)
     return candidates[0]['id']
 
@@ -241,7 +238,7 @@ class TransferBlindAgentView(APIView):
     Blind transfer hacia un agente lógico (target_agent_id).
     El endpoint SIP/PJSIP se resolverá del lado del ACD usando Redis
     (OML:AGENT:STATUS:<target_agent_id>).
-    
+
     Espera:
       - call_id: OMLUNIQUEID de la llamada
       - target_agent_id: ID lógico del agente destino
@@ -411,7 +408,7 @@ class TransferBlindCampaignView(APIView):
 
             channel = _resolve_channel(r_client, agent_id)
             subscribers = r_client.publish(channel, json.dumps(payload))
-            
+
             logger.info(
                 f"📨 Transferencia a Campaña {target_camp} enviada a {channel} "
                 f"para {unique_id}. Agent: {agent_id} Subscribers: {subscribers}"
@@ -435,13 +432,13 @@ class TransferBlindCampaignView(APIView):
 class TransferBlindCampaignAgentView(APIView):
     """
     Blind transfer a cualquier agente READY de la propia campaña.
-    
+
     Busca automáticamente un agente disponible en la campaña de la llamada
     usando la estrategia configurada (random, fewestcalls, leastrecent, rrmemory).
-    
+
     Si no se proporciona campaign_id, intentará obtenerlo de la llamada activa
     (requiere que la información esté disponible en Redis).
-    
+
     Espera:
       - call_id: OMLUNIQUEID de la llamada (obligatorio)
       - campaign_id: ID de la campaña (opcional, se intentará obtener automáticamente)
@@ -481,8 +478,8 @@ class TransferBlindCampaignAgentView(APIView):
             # Buscar un agente READY en la campaña
             exclude_agent_id = agent_id if agent_id else None
             target_agent_id = _find_ready_agent_in_campaign(
-                r_client, 
-                campaign_id, 
+                r_client,
+                campaign_id,
                 exclude_agent_id=exclude_agent_id
             )
 
@@ -591,13 +588,13 @@ class HangupLegView(APIView):
     Endpoint para cortar una llamada con lógica dual:
     1. Si el ID es un CallID/UniqueID de negocio -> Termina la sesión completa (Cliente + Agente)
     2. Si el ID es un Channel ID específico -> Termina solo ese canal
-    
+
     Parámetros (al menos uno es obligatorio):
     - call_id: ID único de la llamada (CallID de negocio o UniqueID técnico)
     - asterisk_id: ID técnico de Asterisk (alternativa a call_id)
     - unique_id: ID único de Asterisk (alternativa a call_id)
     - channel_id: ID específico del canal a cortar (modo precisión)
-    
+
     La función determina automáticamente el modo según el ID proporcionado.
     """
     permission_classes = (TienePermisoOML,)
@@ -615,19 +612,19 @@ class HangupLegView(APIView):
 
         try:
             data = request.data
-            
+
             # Obtener el ID objetivo (puede venir como call_id, asterisk_id, unique_id o channel_id)
             target_id = _normalize_id(
-                data.get("call_id") or 
-                data.get("asterisk_id") or 
-                data.get("unique_id") or 
+                data.get("call_id") or
+                data.get("asterisk_id") or
+                data.get("unique_id") or
                 data.get("channel_id")
             )
 
             if not target_id:
                 return Response(
                     {
-                        "error": "Debe proporcionar al menos uno de los siguientes parámetros: call_id, asterisk_id, unique_id o channel_id"
+                        "error": "Debe proporcionar al menos uno de los siguientes parámetros: call_id, asterisk_id, unique_id o channel_id"  # noqa: E501
                     },
                     status=status.HTTP_400_BAD_REQUEST
                 )
@@ -650,7 +647,7 @@ class HangupLegView(APIView):
                 payload["unique_id"] = target_id
 
             subscribers = r_client.publish(CHANNEL_KEY, json.dumps(payload))
-            
+
             logger.info(
                 f"📨 Hangup call {target_id} enviada. "
                 f"Subscribers: {subscribers} Channel: {CHANNEL_KEY}"
@@ -663,7 +660,7 @@ class HangupLegView(APIView):
                 "channel": CHANNEL_KEY,
                 "node_id": NODE_ID,
                 "target_id": target_id,
-                "mode": "auto"  # La función determinará automáticamente el modo (nuclear o precisión)
+                "mode": "auto"  # La función determinará automáticamente el modo (nuclear o precisión)  # noqa: E501
             }, status=status.HTTP_202_ACCEPTED)
 
         except Exception as e:
@@ -694,7 +691,7 @@ class SpyChannelView(APIView):
     {"action": "spy", "supervisor_sip": "<sip_number>", "callid": "<callid>", "whisper": "none"}
 
     Parámetros:
-    - supervisor_id (obligatorio): ID del supervisor que va a espiar (se resuelve a SIP para el mensaje)
+    - supervisor_id (obligatorio): ID del supervisor que va a espiar (se resuelve a SIP para el mensaje)  # noqa: E501
     - agent_id (obligatorio): ID del agente a espiar (debe estar en llamada ONCALL)
     - whisper (opcional): Modo whisper ('none', 'out', 'both', 'in'). Default: 'none'
     """
@@ -834,7 +831,8 @@ class SpyChannelView(APIView):
             # Canal acd:commands:{NODE_ID}
             channel = f"{BASE_CHANNEL_KEY}:{node_id}"
 
-            # Payload estándar esperado por el ACD CommandDispatcher: action, supervisor_sip, callid, whisper
+            # Payload estándar esperado por el ACD CommandDispatcher: action, supervisor_sip,
+            # callid, whisper
             payload = {
                 "action": "spy",
                 "supervisor_sip": supervisor_sip,
@@ -1183,11 +1181,11 @@ class ThreeWayConfView(APIView):
 class TransferConsultStartView(APIView):
     """
     Inicia una transferencia consultativa.
-    
+
     El agente A inicia una consulta con el agente B mientras el cliente queda en hold.
     El agente A y B hablan en un bridge privado, y luego el agente A puede confirmar
     o cancelar la transferencia.
-    
+
     Espera:
       - call_id: OMLUNIQUEID de la llamada (obligatorio)
       - endpoint: Endpoint SIP/PJSIP del agente destino (opcional si se proporciona target_agent_id)
@@ -1268,10 +1266,10 @@ class TransferConsultStartView(APIView):
 class TransferConsultCompleteView(APIView):
     """
     Completa una transferencia consultativa (Agente A confirma).
-    
+
     El agente A confirma la transferencia después de consultar con el agente B.
     El agente A se cuelga y el agente B queda con el cliente.
-    
+
     Espera:
       - call_id: OMLUNIQUEID de la llamada (obligatorio)
       - agent_id: (opcional) ID del agente que confirma la transferencia
@@ -1335,10 +1333,10 @@ class TransferConsultCompleteView(APIView):
 class TransferConsultCancelView(APIView):
     """
     Cancela una transferencia consultativa (Agente A cancela).
-    
+
     El agente A cancela la transferencia después de consultar con el agente B.
     El agente B se cuelga y el agente A vuelve con el cliente.
-    
+
     Espera:
       - call_id: OMLUNIQUEID de la llamada (obligatorio)
       - agent_id: (opcional) ID del agente que cancela la transferencia
@@ -1397,4 +1395,3 @@ class TransferConsultCancelView(APIView):
                 {"error": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-

@@ -814,8 +814,8 @@ class ReporteTipoDeLlamadasDeCampana(ReporteDeLlamadas):
 
     def __init__(self, desde, hasta, id_campana):
         self.logs = LlamadaResumen.objects.using('replica').filter(fecha_fin__gte=desde,
-                                                               fecha_fin__lte=hasta,
-                                                               campana_id=id_campana)
+                                                                   fecha_fin__lte=hasta,
+                                                                   campana_id=id_campana)
 
         self.campana = Campana.objects.get(id=id_campana)
         tipo = str(self.campana.type)

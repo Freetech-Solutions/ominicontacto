@@ -233,7 +233,7 @@ class ReporteDeResultadosView(TemplateView):
 
 class AgentsActivityV2ReportView(TemplateView):
     """
-    Vista HTML para actividad de agentes (v2). Incluye filtro de agentes y grupos (Todos / uno o varios).
+    Vista HTML para actividad de agentes (v2). Incluye filtro de agentes y grupos (Todos / uno o varios).  # noqa: E501
     """
     template_name = 'agents_activity_v2.html'
     TODOS_LOS_AGENTES_VALUE = '__all_agents__'

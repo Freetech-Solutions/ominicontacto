@@ -31,6 +31,7 @@ from ominicontacto_app.tests.factories import (
     CANTIDAD_PSTN_QA_RELAY_ITSP,
     PREFIJOS_PSTN_EMULATOR,
     PSTN_QA_PREFIX_COUNTS,
+    TELEFONOS_CONTACTO_FACTORY,
 )
 
 
@@ -44,7 +45,7 @@ class TestsInicializarEntorno (OMLBaseTest):
 
     @patch('ominicontacto_app.management.commands.inicializar_entorno.wombat_habilitado')
     @patch('redis.Redis.sadd')
-    @patch('ominicontacto_app.services.queue_member_service.obtener_status_agentes_sesiones_activas')
+    @patch('ominicontacto_app.services.queue_member_service.obtener_status_agentes_sesiones_activas')  # noqa: E501
     @patch('ominicontacto_app.management.commands.inicializar_entorno.'
            'escribir_ruta_entrante_config')
     @patch('configuracion_telefonia_app.regeneracion_configuracion_telefonia.'
@@ -75,7 +76,7 @@ class TestsInicializarEntorno (OMLBaseTest):
         self.assertEqual(2, template_campanas.filter(type=Campana.TYPE_PREVIEW).count())
 
         contactos = list(inicializar_entorno.bd_contacto.contactos.all())
-        self.assertEqual(len(contactos), 100)
+        self.assertEqual(len(contactos), len(TELEFONOS_CONTACTO_FACTORY))
         telefonos = [c.telefono for c in contactos]
         prefijos_encontrados = []
         sin_prefijo = 0
@@ -86,7 +87,7 @@ class TestsInicializarEntorno (OMLBaseTest):
             else:
                 sin_prefijo += 1
         self.assertEqual(sorted(prefijos_encontrados), sorted(PREFIJOS_PSTN_EMULATOR))
-        self.assertEqual(len(prefijos_encontrados), 15)
+        self.assertEqual(len(prefijos_encontrados), len(PREFIJOS_PSTN_EMULATOR))
         self.assertEqual(sin_prefijo, 75)
 
         contactos_pstn = list(inicializar_entorno.bd_contacto_pstn_qa.contactos.all())

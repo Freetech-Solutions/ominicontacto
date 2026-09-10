@@ -185,7 +185,7 @@ class RecicladoTest(OMLBaseTest):
             contactados_dict.update({contactado.id: contactado.cantidad})
         for contactacion in calificaciones_query:
             self.assertEqual(contactacion['opcion_calificacion__count'],
-                              contactados_dict[contactacion['opcion_calificacion__id']])
+                             contactados_dict[contactacion['opcion_calificacion__id']])
 
     def _generar_interacciones_y_calificaciones(self, estados):
         contactos = self.campana.bd_contacto.contactos.all()

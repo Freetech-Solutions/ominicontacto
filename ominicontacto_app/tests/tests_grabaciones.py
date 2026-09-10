@@ -149,7 +149,7 @@ class BaseGrabacionesTests(TransactionTestCase, OMLTestUtilsMixin):
         self.assertTrue(ws_communicator_connected)
         CHANNEL_LAYER_BACKEND = settings.CHANNEL_LAYERS['default']['BACKEND']
         with patch(f"{CHANNEL_LAYER_BACKEND}.send") as channel_layer_send, \
-             patch(f"{CHANNEL_LAYER_BACKEND}.group_send") as channel_layer_group_send:
+                patch(f"{CHANNEL_LAYER_BACKEND}.group_send") as channel_layer_group_send:
             formdata.setdefault("pagina", "1")
             formdata.setdefault("grabaciones_x_pagina", "10")
             formdata.setdefault("BASE_URL", "/")

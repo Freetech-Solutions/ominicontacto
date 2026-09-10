@@ -105,16 +105,16 @@ class AgentsDataManager(AbstractDataManager):
 class DialerDataManager(AbstractDataManager):
     ID = 'DIALER'
     EVENTOS_ATENDIDAS = ('EXIT_ANSWERED_HUMAN', 'EXIT_ANSWERED_BOT', 'EXIT_ANSWERED_MIX')
-    # Eventos que suman en la columna "Perdidas" (Redis CALL_TYPE:2:*) y se actualizan en tiempo real
+    # Eventos de columna "Perdidas" (Redis CALL_TYPE:2:*), actualizados en tiempo real
     PERDIDAS_DIALER_EVENTS = (
         'EXIT_TIMEOUT',
         'EXIT_ABANDON',
         'EXIT_HANDOFF_TIMEOUT',
         'EXIT_HANDOFF_ABANDON',
     )
-    # Eventos extra en CALLDATA del panel (no están en EVENTOS_NO_CONTACTACION / NO_DIALOGO)
+    # Eventos extra en CALLDATA del panel (no en EVENTOS_NO_CONTACTACION / NO_DIALOGO)
     EXTRA_PANEL_CALL_EVENTS = ('EXIT_BUSY', 'EXIT_CONGESTION')
-    # Mapeo fino hacia keys de Llamadas Outbound (panel-general); campanas_dialers ignora outbound_field
+    # Mapeo a keys Outbound (panel-general); campanas_dialers ignora outbound_field
     OUTBOUND_FIELD_BY_EVENT = {
         'DIAL': 'discadas',
         'EXIT_ANSWERED_HUMAN': 'atendidas_human',
@@ -136,8 +136,8 @@ class DialerDataManager(AbstractDataManager):
         'OTHER': 'errores',
         'BLACKLIST': 'errores',
     }
-    # EXIT_SHORTCALL: escrito por el logger ACD; contar como fin de llamada para canales y como no atendida en tiempo real
-    # EXIT_AMD: contestador (columna "Contestador"); el logger publica CAMP en CALLEVENTS para tiempo real
+    # EXIT_SHORTCALL: fin de llamada (canales) y no atendida en tiempo real
+    # EXIT_AMD: contestador; el logger publica CAMP en CALLEVENTS para tiempo real
     CALL_EVENTS = ('DIAL', 'CONNECT') + EVENTOS_ATENDIDAS + ('EXIT_SHORTCALL', 'EXIT_AMD') \
         + LlamadaLog.EVENTOS_NO_CONEXION \
         + LlamadaLog.EVENTOS_NO_CONTACTACION \
@@ -145,7 +145,7 @@ class DialerDataManager(AbstractDataManager):
         + EXTRA_PANEL_CALL_EVENTS
     PENDING_RETRIES = 'NO CONTACTS WITH PENDING ATTEMPTS'
     PENDING_INITIAL = 'PENDING_INITIAL_CONTACT_ATTEMPTS'
-    # Eventos que el logger ACD escribe en Redis como fin de llamada (sin EVENTOS_FIN_CONEXION legacy)
+    # Eventos ACD en Redis como fin de llamada (sin EVENTOS_FIN_CONEXION legacy)
     ENDING_EVENTS = [f'CALL_TYPE:{Campana.TYPE_DIALER}:{event}' for event in
                      list(EVENTOS_ATENDIDAS) + ['EXIT_SHORTCALL']
                      + list(LlamadaLog.EVENTOS_NO_CONEXION) + list(EXTRA_PANEL_CALL_EVENTS)]
@@ -283,7 +283,11 @@ class DialerDataManager(AbstractDataManager):
         # Get CALLDATA sums
         for key, value in calldata.items():
             _key = key.split(':')  # CALL_TYPE:<call_type>:<event>
-            if len(_key) >= 3 and _key[0] == 'CALL_TYPE' and _key[1] == str(LlamadaLog.LLAMADA_DIALER):
+            if (
+                len(_key) >= 3
+                and _key[0] == 'CALL_TYPE'
+                and _key[1] == str(LlamadaLog.LLAMADA_DIALER)
+            ):
                 event = _key[-1]
                 if event == 'DIAL':
                     dialed = value
@@ -574,7 +578,11 @@ class InboundDataManager(AbstractDataManager):
         # OML:CALLDATA:QUEUE-SIZE lo escribe ari-app en Redis DB 0
         CALLDATA_QUEUE_SIZE_KEY = 'OML:CALLDATA:QUEUE-SIZE:{0}'
         keys = [CALLDATA_QUEUE_SIZE_KEY.format(campaign_id) for campaign_id in campaigns_ids]
-        sizes = self.redis_oml_connection.mget(keys) if self.redis_oml_connection else [None] * len(keys)
+        sizes = (
+            self.redis_oml_connection.mget(keys)
+            if self.redis_oml_connection
+            else [None] * len(keys)
+        )
         i = 0
         for campaign_id in campaigns_ids:
             size = sizes[i]
@@ -638,9 +646,9 @@ class OutboundDataManager(AbstractDataManager):
 
     def _count_dialed_from_calldata(self, response):
         """
-        Discadas salientes: suma de CALL_TYPE:<tipo>:DIAL (manual, dialer, preview, etc.).
-        Si no hay claves CALL_TYPE:*:DIAL, mismo fallback que _get_campaign_call_metrics: DIAL_OUT.
-        (La clave plana DIAL_OUT no termina en ':DIAL', por eso no basta con mirar el último segmento.)
+        Discadas salientes: suma de CALL_TYPE:<tipo>:DIAL (manual, dialer, preview…).
+        Si no hay CALL_TYPE:*:DIAL, mismo fallback que _get_campaign_call_metrics:
+        DIAL_OUT. (DIAL_OUT no termina en ':DIAL', no alcanza mirar el último segmento.)
         """
         total = 0
         for key, value in response.items():

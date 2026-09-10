@@ -131,7 +131,7 @@ websocket_urlpatterns = [
     path('consumers/reporte_grafico_campana/agents_activity_listado/cc/<str:task_id>',
          consumers.ReporteAgentsActivityListadoCSVConsumer.as_asgi(),
          name='reporte_agents_activity_listado_csv'),
-    path('consumers/reporte_grafico_campana/interacciones_por_agente/<str:campana_id>/<str:task_id>',
+    path('consumers/reporte_grafico_campana/interacciones_por_agente/<str:campana_id>/<str:task_id>',  # noqa: E501
          consumers.ReporteInteraccionesPorAgenteCSVConsumer.as_asgi(),
          name='reporte_interacciones_por_agente_csv'),
     path('consumers/reporte_grafico_campana/performance_agentes/<str:campana_id>/<str:task_id>',

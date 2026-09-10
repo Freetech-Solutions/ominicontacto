@@ -30,14 +30,14 @@ class ReportesAppConfig(AppConfig):
         items = []
         # Ocultar reporte_llamadas cuando OML_DIALER_ENGINE=omnidialer
         if ('reporte_llamadas' in permissions and
-                not (hasattr(settings, 'OML_DIALER_ENGINE') and settings.OML_DIALER_ENGINE == 'omnidialer')):
+                not (hasattr(settings, 'OML_DIALER_ENGINE') and settings.OML_DIALER_ENGINE == 'omnidialer')):  # noqa: E501
             items.append({
                 'label': _('Llamadas'),
                 'url': reverse('reporte_llamadas'),
             })
         # Ocultar reportes_agentes_tiempos cuando OML_DIALER_ENGINE=omnidialer
         if ('reportes_agentes_tiempos' in permissions and
-                not (hasattr(settings, 'OML_DIALER_ENGINE') and settings.OML_DIALER_ENGINE == 'omnidialer')):
+                not (hasattr(settings, 'OML_DIALER_ENGINE') and settings.OML_DIALER_ENGINE == 'omnidialer')):  # noqa: E501
             items.append({
                 'label': _('Agentes'),
                 'url': reverse('reportes_agentes_tiempos'),
@@ -163,19 +163,19 @@ class ReportesAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'reporte_centro_de_contacto_descargar_conversaciones_respondidas_csv',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
-            {'nombre': 'reporte_centro_de_contacto_descargar_conversaciones_respondidas_egresos_csv',
+            {'nombre': 'reporte_centro_de_contacto_descargar_conversaciones_respondidas_egresos_csv',  # noqa: E501
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'reporte_centro_de_contacto_descargar_conversaciones_no_respondidas_csv',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
-            {'nombre': 'reporte_centro_de_contacto_descargar_conversaciones_no_respondidas_egresos_csv',
+            {'nombre': 'reporte_centro_de_contacto_descargar_conversaciones_no_respondidas_egresos_csv',  # noqa: E501
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_hora_csv',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
-            {'nombre': 'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_hora_egresos_csv',
+            {'nombre': 'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_hora_egresos_csv',  # noqa: E501
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_campana_csv',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
-            {'nombre': 'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_campana_egresos_csv',
+            {'nombre': 'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_campana_egresos_csv',  # noqa: E501
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_dia_csv',
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
@@ -269,109 +269,109 @@ class ReportesAppConfig(AppConfig):
             {'descripcion': _('Vista de reporte general de Whatsapp para una Campaña'),
              'version': '1.19.0'},
         'reporte_centro_de_contacto':
-            {'descripcion': _('Reporte de Nivel de Servicio (Service Level) del Centro de Contacto'),
+            {'descripcion': _('Reporte de Nivel de Servicio (Service Level) del Centro de Contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por campaña del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por campaña del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_egresos_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por campaña (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por campaña (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_por_hora_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por hora del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por hora del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_por_hora_egresos_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por hora (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por hora (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_por_dia_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por día del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por día del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_por_dia_egresos_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por día (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por día (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_por_mes_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por mes del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por mes del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_canalidades_por_mes_egresos_csv':
-            {'descripcion': _('Descargar CSV de Canalidades por mes (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Canalidades por mes (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_atendidas_csv':
-            {'descripcion': _('Descargar CSV de Listado de llamadas atendidas del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Listado de llamadas atendidas del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_atendidas_egresos_csv':
-            {'descripcion': _('Descargar CSV de Listado de llamadas atendidas (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Listado de llamadas atendidas (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_no_atendidas_csv':
-            {'descripcion': _('Descargar CSV de Listado de llamadas no atendidas del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Listado de llamadas no atendidas del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_no_atendidas_egresos_csv':
-            {'descripcion': _('Descargar CSV de Listado de llamadas no atendidas (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Listado de llamadas no atendidas (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_voz_csv':
-            {'descripcion': _('Descargar CSV de Llamadas de voz por campaña del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas de voz por campaña del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_voz_egresos_csv':
-            {'descripcion': _('Descargar CSV de Llamadas de voz por campaña (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas de voz por campaña (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_por_hora_csv':
-            {'descripcion': _('Descargar CSV de Llamadas por hora de día (Voz) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas por hora de día (Voz) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_por_hora_egresos_csv':
-            {'descripcion': _('Descargar CSV de Llamadas por hora de día (Egresos) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas por hora de día (Egresos) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_por_dia_csv':
-            {'descripcion': _('Descargar CSV de Llamadas por día (Voz) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas por día (Voz) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_por_dia_egresos_csv':
-            {'descripcion': _('Descargar CSV de Llamadas por día (Egresos/Voz) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas por día (Egresos/Voz) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_por_mes_csv':
-            {'descripcion': _('Descargar CSV de Llamadas por mes (Voz) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas por mes (Voz) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_llamadas_por_mes_egresos_csv':
-            {'descripcion': _('Descargar CSV de Llamadas por mes (Egresos/Voz) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Llamadas por mes (Egresos/Voz) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_conversaciones_respondidas_csv':
-            {'descripcion': _('Descargar CSV de Conversaciones Respondidas (WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Conversaciones Respondidas (WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_conversaciones_respondidas_egresos_csv':
-            {'descripcion': _('Descargar CSV de Conversaciones Respondidas (Egresos/WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Conversaciones Respondidas (Egresos/WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_conversaciones_no_respondidas_csv':
-            {'descripcion': _('Descargar CSV de Conversaciones no respondidas (WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Conversaciones no respondidas (WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_conversaciones_no_respondidas_egresos_csv':
-            {'descripcion': _('Descargar CSV de Conversaciones no respondidas (Egresos/WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Conversaciones no respondidas (Egresos/WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_hora_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por hora de día (WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por hora de día (WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_hora_egresos_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por hora (Egresos/WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por hora (Egresos/WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_campana_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por campaña del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por campaña del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_campana_egresos_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por campaña (Egresos/WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por campaña (Egresos/WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_dia_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por día (WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por día (WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_dia_egresos_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por día (Egresos/WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por día (Egresos/WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_mes_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por mes (WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por mes (WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reporte_centro_de_contacto_descargar_whatsapp_mensajes_por_mes_egresos_csv':
-            {'descripcion': _('Descargar CSV de Mensajes por mes (Egresos/WhatsApp) del reporte centro de contacto'),
+            {'descripcion': _('Descargar CSV de Mensajes por mes (Egresos/WhatsApp) del reporte centro de contacto'),  # noqa: E501
              'version': '1.19.0'},
         'reportes_agents_activity_v2':
             {'descripcion': _('KPIs de actividad de agentes (sesión, ready, pausa, ACW)'),
              'version': '1.19.0'},
         'reportes_agents_activity_v2_descargar_listado_csv':
-            {'descripcion': _('Descargar CSV de la tabla Listado del reporte de actividad de agentes (v2)'),
+            {'descripcion': _('Descargar CSV de la tabla Listado del reporte de actividad de agentes (v2)'),  # noqa: E501
              'version': '1.19.0'},
         'agente_reporte_grafico':
             {'descripcion': _('Vista gráfica de KPIs por agente en rango de tiempo'),

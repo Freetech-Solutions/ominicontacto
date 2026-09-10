@@ -496,106 +496,106 @@ class ApiAppConfig(AppConfig):
             {'descripcion': _('API para exportar resultados de base contactados a csv'),
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por campaña del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por campaña del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por campaña (Egresos) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por campaña (Egresos) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_por_hora_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por hora del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por hora del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_por_hora_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por hora (Egresos) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por hora (Egresos) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_por_dia_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por día del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por día del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_por_dia_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por día (Egresos) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por día (Egresos) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_por_mes_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por mes del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por mes del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_canalidades_por_mes_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Canalidades por mes (Egresos) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Canalidades por mes (Egresos) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_atendidas_centro_contacto':
-            {'descripcion': _('Exportar tabla Listado de llamadas atendidas del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Listado de llamadas atendidas del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_interaction_transfers_centro_contacto':
             {'descripcion': _('Listar transferencias de una llamada (reporte centro de contacto)'),
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_atendidas_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Listado de llamadas atendidas (Egresos) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Listado de llamadas atendidas (Egresos) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_no_atendidas_centro_contacto':
-            {'descripcion': _('Exportar tabla Listado de llamadas no atendidas del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Listado de llamadas no atendidas del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_no_atendidas_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Listado de llamadas no atendidas (Egresos) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Listado de llamadas no atendidas (Egresos) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_voz_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas de voz por campaña del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas de voz por campaña del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_voz_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas de voz por campaña (Egresos) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas de voz por campaña (Egresos) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_por_hora_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas por hora de día (Voz) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas por hora de día (Voz) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_por_hora_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas por hora de día (Egresos/Voz) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas por hora de día (Egresos/Voz) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_por_dia_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas por día (Voz) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas por día (Voz) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_por_dia_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas por día (Egresos/Voz) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas por día (Egresos/Voz) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_por_mes_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas por mes (Voz) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas por mes (Voz) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_llamadas_por_mes_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Llamadas por mes (Egresos/Voz) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Llamadas por mes (Egresos/Voz) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_conversaciones_respondidas_centro_contacto':
-            {'descripcion': _('Exportar tabla Conversaciones Respondidas (WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Conversaciones Respondidas (WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_conversaciones_respondidas_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Conversaciones Respondidas (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Conversaciones Respondidas (Egresos/WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_conversaciones_no_respondidas_centro_contacto':
-            {'descripcion': _('Exportar tabla Conversaciones no respondidas (WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Conversaciones no respondidas (WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_conversaciones_no_respondidas_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Conversaciones no respondidas (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Conversaciones no respondidas (Egresos/WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_hora_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por hora de día (WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por hora de día (WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_hora_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por hora (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por hora (Egresos/WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_campana_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por campaña (WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por campaña (WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_campana_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por campaña (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por campaña (Egresos/WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_dia_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por día (WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por día (WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_dia_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por día (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por día (Egresos/WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_mes_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por mes (WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por mes (WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto':
-            {'descripcion': _('Exportar tabla Mensajes por mes (Egresos/WhatsApp) del reporte centro de contacto a CSV'),
+            {'descripcion': _('Exportar tabla Mensajes por mes (Egresos/WhatsApp) del reporte centro de contacto a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_exportar_csv_agents_activity_v2_listado':
-            {'descripcion': _('Exportar tabla Listado del reporte de actividad de agentes (v2) a CSV'),
+            {'descripcion': _('Exportar tabla Listado del reporte de actividad de agentes (v2) a CSV'),  # noqa: E501
              'version': '1.19.0'},
         'api_contactos_campana':
             {'descripcion': _('Contactos de una campaña'), 'version': '1.7.0'},

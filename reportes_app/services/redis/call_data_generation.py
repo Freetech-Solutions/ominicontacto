@@ -138,7 +138,7 @@ class CallDataGenerator(object):
             .filter(fecha_fin__gt=self.desde,
                     event__in=self.EVENTOS_ABANDONO)\
             .exclude(campana_id__isnull=True)
-        
+
         for log in llamadas_fin:
             if log.event in self.EVENTOS_FIN_CONEXION_ORIGINAL and log.agente_id != -1:
                 if log.campana_id is None:
@@ -148,7 +148,7 @@ class CallDataGenerator(object):
                 # bridge_wait_time es DecimalField en LlamadaResumen, convertir a int para Redis
                 wait_time = int(float(log.bridge_wait_time)) if log.bridge_wait_time else 0
                 wait_times_por_campana[log.campana_id].append(wait_time)
-        
+
         for log in llamadas_abandon:
             if log.event in self.EVENTOS_ABANDONO:
                 if log.campana_id is None:

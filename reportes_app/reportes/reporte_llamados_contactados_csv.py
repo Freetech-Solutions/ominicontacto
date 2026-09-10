@@ -569,6 +569,7 @@ class ReporteCalificacionesPorAgenteCSV(ReporteCSV):
 
 class ReporteInteraccionesPorAgenteCSV(ReporteCSV):
     """Reporte CSV de interacciones por agente (tel/wa/fbmsn/email outbound-inbound)."""
+
     def __init__(self, campana, key_task, fecha_desde, fecha_hasta):
         self.campana = campana
         self.fecha_desde = fecha_desde
@@ -627,6 +628,7 @@ class ReporteInteraccionesPorAgenteCSV(ReporteCSV):
 
 class ReportePerformanceAgentesCSV(ReporteCSV):
     """Reporte CSV de performance de agentes (Telefonía + Chat)."""
+
     def __init__(self, campana, key_task, fecha_desde, fecha_hasta):
         self.campana = campana
         self.fecha_desde = fecha_desde

@@ -386,6 +386,7 @@ class CampanaManualTemplateCreateCampanaView(
     """
     Crea una campaña manual a partir de una campaña de template existente
     """
+
     def get_form_initial(self, step):
         initial = super(CampanaManualTemplateCreateCampanaView, self).get_form_initial(step)
         if step == self.INICIAL:

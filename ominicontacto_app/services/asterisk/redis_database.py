@@ -248,10 +248,10 @@ class CampanaFamily(AbstractRedisFamily):
                         })
                     else:
                         logger.warning(
-                            f"Destino REMOTE_AGENT {destino_dialer.id} no tiene un TroncalSIP como content_object")
+                            f"Destino REMOTE_AGENT {destino_dialer.id} no tiene un TroncalSIP como content_object")  # noqa: E501
                         dict_campana.update({'CUSTOMDIALERDST': str(0)})
                 except Exception as e:
-                    logger.error(f"Error al obtener troncal SIP para destino_dialer {destino_dialer.id}: {e}")
+                    logger.error(f"Error al obtener troncal SIP para destino_dialer {destino_dialer.id}: {e}")  # noqa: E501
                     dict_campana.update({'CUSTOMDIALERDST': str(0)})
             else:
                 # Para otros tipos de destino (SURVEY, etc.), mantener comportamiento original
@@ -844,6 +844,7 @@ class BlacklistFamily(object):
 
 class CampanasDeAgenteFamily(object):
     """ Mantiene información de a que campañas está asociado cada agente """
+
     def __init__(self, redis_connection=None) -> None:
         self.redis_connection = redis_connection
 

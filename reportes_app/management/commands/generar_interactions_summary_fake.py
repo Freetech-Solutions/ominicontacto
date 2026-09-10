@@ -75,12 +75,12 @@ class Command(BaseCommand):
             type=int,
             nargs='*',
             default=None,
-            help='Usar solo estos campaign_id; si no se indica, se usan campañas existentes o IDs por defecto.',
+            help='Usar solo estos campaign_id; si no se indica, se usan campañas existentes o IDs por defecto.',  # noqa: E501
         )
         parser.add_argument(
             '--solo-campanas-existentes',
             action='store_true',
-            help='Tomar solo IDs de campañas existentes en Campana (ignorado si se pasa --campana-ids).',
+            help='Tomar solo IDs de campañas existentes en Campana (ignorado si se pasa --campana-ids).',  # noqa: E501
         )
         parser.add_argument(
             '--incluir-agentes',
@@ -102,7 +102,7 @@ class Command(BaseCommand):
         parser.add_argument(
             '--dry-run',
             action='store_true',
-            help='Solo mostrar cuántos se crearían y con qué rango de fechas/campañas, sin escribir.',
+            help='Solo mostrar cuántos se crearían y con qué rango de fechas/campañas, sin escribir.',  # noqa: E501
         )
 
     def _get_campaign_ids(self, options):
@@ -160,7 +160,7 @@ class Command(BaseCommand):
         if status == STATUS_CONTESTADA:
             agent_duration = Decimal(str(random.randint(min(10, total_sec), total_sec)))
             wait_conn_duration = Decimal(str(random.randint(0, 120)))
-            bot_duration = Decimal('0') if random.random() > 0.1 else Decimal(str(random.randint(1, min(60, total_sec))))
+            bot_duration = Decimal('0') if random.random() > 0.1 else Decimal(str(random.randint(1, min(60, total_sec))))  # noqa: E501
         else:
             agent_duration = Decimal('0')
             wait_conn_duration = Decimal(str(random.randint(0, 300)))
@@ -240,7 +240,7 @@ class Command(BaseCommand):
                 f'  Rango de fechas: últimos {self.days} días (desde ~{start_range.date()}).'
             )
             self.stdout.write(f'  campaign_id: {campaign_ids}.')
-            self.stdout.write(f'  agent_id: {len(agent_ids)} agentes o null.' if agent_ids else '  agent_id: null en todos.')
+            self.stdout.write(f'  agent_id: {len(agent_ids)} agentes o null.' if agent_ids else '  agent_id: null en todos.')  # noqa: E501
             return
 
         if clear:
@@ -248,7 +248,7 @@ class Command(BaseCommand):
                 interaction_id__startswith=FAKE_PREFIX
             ).delete()
             self.stdout.write(
-                self.style.WARNING(f'Eliminados {deleted} registros con interaction_id empezando por "{FAKE_PREFIX}".')
+                self.style.WARNING(f'Eliminados {deleted} registros con interaction_id empezando por "{FAKE_PREFIX}".')  # noqa: E501
             )
 
         created = 0

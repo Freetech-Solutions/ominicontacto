@@ -26,29 +26,30 @@ class LlamadaResumenService:
     Servicio para actualizar la tabla de resumen de llamadas
     cuando se califica una llamada.
     """
-    
+
     def actualizar_desde_calificacion(self, calificacion):
         """
         Actualiza el registro en reportes_app_llamada_resumen
         con los datos de la calificación.
-        
+
         Args:
             calificacion: Instancia de CalificacionCliente
         """
         if not calificacion:
             logger.warning("Calificacion es None, omitiendo actualización de resumen")
             return False
-        
+
         callid = calificacion.callid
         if not callid:
-            logger.warning(f"Calificacion {calificacion.id} no tiene callid, omitiendo actualización")
+            logger.warning(
+                f"Calificacion {calificacion.id} no tiene callid, omitiendo actualización")
             return False
-        
+
         try:
             opcion_calificacion = calificacion.opcion_calificacion
             # Determinar si es venta: es_gestion() retorna True cuando tipo == GESTION
             es_venta = opcion_calificacion.es_gestion() if opcion_calificacion else False
-            
+
             with connection.cursor() as cursor:
                 cursor.execute("""
                     UPDATE public.reportes_app_llamada_resumen
@@ -70,7 +71,7 @@ class LlamadaResumenService:
                     es_venta,
                     callid
                 ])
-                
+
                 rows_updated = cursor.rowcount
                 if rows_updated == 0:
                     logger.warning(
@@ -78,17 +79,16 @@ class LlamadaResumenService:
                         "La llamada puede no haber finalizado aún o el registro no existe."
                     )
                     return False
-                
+
                 logger.debug(
                     f"Actualizado resumen para callid={callid}, "
                     f"calificacion_id={calificacion.id}, es_venta={es_venta}"
                 )
                 return True
-                
+
         except Exception as e:
             logger.error(
                 f"Error actualizando resumen desde calificación {calificacion.id}: {e}",
                 exc_info=True
             )
             return False
-

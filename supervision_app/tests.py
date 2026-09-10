@@ -42,7 +42,7 @@ class DialerDataManagerGetInitialDataTests(TestCase):
 
     @patch('supervision_app.services.data_management.wombat_habilitado')
     def test_get_initial_data_ignores_non_call_type_keys(self, mock_wombat):
-        """Calldata hash can contain TOTAL_CALL_TIME, DIAL_IN, etc.; only CALL_TYPE:* keys are used."""
+        """Calldata puede tener TOTAL_CALL_TIME, DIAL_IN, etc.; solo se usan CALL_TYPE:*."""
         mock_wombat.return_value = True
         redis_oml = MagicMock()
         redis_calldata = MagicMock()

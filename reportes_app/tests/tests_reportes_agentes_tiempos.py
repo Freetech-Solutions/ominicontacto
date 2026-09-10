@@ -910,16 +910,26 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         # Creacion de Hold para el agente 1
         t_hold2 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=10)
         t_unhold2 = self.inicio_sesion_agente1.time + timezone.timedelta(minutes=30)
-        self.hold2 = crear_llamada_log_y_resumen(agente_id=self.agente1.id, event='HOLD', time=t_hold2)
-        self.unhold2 = crear_llamada_log_y_resumen(agente_id=self.agente1.id, event='UNHOLD',
-                                         callid=self.hold2.callid, time=t_unhold2)
+        self.hold2 = crear_llamada_log_y_resumen(
+            agente_id=self.agente1.id, event='HOLD', time=t_hold2)
+        self.unhold2 = crear_llamada_log_y_resumen(
+            agente_id=self.agente1.id,
+            event='UNHOLD',
+            callid=self.hold2.callid,
+            time=t_unhold2,
+        )
 
         # Creacion de Hold para el agente
         t_hold1 = self.inicio_sesion_agente.time + timezone.timedelta(minutes=15)
         t_fin_conexion = self.inicio_sesion_agente.time + timezone.timedelta(minutes=30)
-        self.hold1 = crear_llamada_log_y_resumen(agente_id=self.agente.id, event='HOLD', time=t_hold1)
-        self.fin_conexion = crear_llamada_log_y_resumen(agente_id=self.agente.id, event="COMPLETEAGENT",
-                                              time=t_fin_conexion, callid=self.hold1.callid)
+        self.hold1 = crear_llamada_log_y_resumen(
+            agente_id=self.agente.id, event='HOLD', time=t_hold1)
+        self.fin_conexion = crear_llamada_log_y_resumen(
+            agente_id=self.agente.id,
+            event="COMPLETEAGENT",
+            time=t_fin_conexion,
+            callid=self.hold1.callid,
+        )
         f_limite_1 = datetime_hora_maxima_dia(t_fin_conexion.date())
         reportes_agente = ActividadAgente(self.agente, f_limite_1)
         f_limite_2 = datetime_hora_maxima_dia(t_unhold2.date())
@@ -982,9 +992,14 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
         # Evento de Hold terminando la llamada sin hacer UNHOLD
         t_hold1 = self.inicio_sesion_agente.time + timezone.timedelta(minutes=15)
         t_fin_conexion = self.inicio_sesion_agente.time + timezone.timedelta(minutes=30)
-        self.hold1 = crear_llamada_log_y_resumen(agente_id=self.agente.id, event='HOLD', time=t_hold1)
-        self.fin_conexion = crear_llamada_log_y_resumen(agente_id=self.agente.id, event="COMPLETEAGENT",
-                                              time=t_fin_conexion, callid=self.hold1.callid)
+        self.hold1 = crear_llamada_log_y_resumen(
+            agente_id=self.agente.id, event='HOLD', time=t_hold1)
+        self.fin_conexion = crear_llamada_log_y_resumen(
+            agente_id=self.agente.id,
+            event="COMPLETEAGENT",
+            time=t_fin_conexion,
+            callid=self.hold1.callid,
+        )
         f_limite = datetime_hora_maxima_dia(t_fin_conexion.date())
         reportes_agente = ActividadAgente(self.agente, f_limite)
         reportes_agente._procesa_tiempo_hold(t_hold1, t_fin_conexion)
@@ -1008,8 +1023,12 @@ class ReportesAgenteTiemposTest(OMLBaseTest):
             time=t_hold2, event='HOLD', campana_id=self.preview.id,
             numero_marcado='456892344', tipo_campana=self.preview.type,
             tipo_llamada=self.preview.type, agente_id=self.agente1.id, callid=evento_hold_1.callid)
-        self.fin_conexion = crear_llamada_log_y_resumen(agente_id=self.agente1.id, event="COMPLETEAGENT",
-                                              time=t_fin_conexion, callid=evento_hold_1.callid)
+        self.fin_conexion = crear_llamada_log_y_resumen(
+            agente_id=self.agente1.id,
+            event="COMPLETEAGENT",
+            time=t_fin_conexion,
+            callid=evento_hold_1.callid,
+        )
         f_limite = datetime_hora_maxima_dia(t_fin_conexion.date())
         reportes_agente = ActividadAgente(self.agente1, f_limite)
         reportes_agente._procesa_tiempo_hold(t_hold1, t_fin_conexion)

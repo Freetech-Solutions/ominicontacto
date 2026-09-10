@@ -63,7 +63,7 @@ def generar_csv_conversaciones_respondidas_egresos_centro_contacto(
 ):
     """
     Genera el archivo CSV de Conversaciones Respondidas (Egresos WhatsApp) y publica
-    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:CONV_RESP_EGRESOS_CC:cc:{task_id}.
+    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:CONV_RESP_EGRESOS_CC:cc:{task_id}.  # noqa: E501
     """
     from whatsapp_app.models import ConversacionWhatsapp
     from reportes_app.services.whatsapp_tiempos_respuesta import anotar_frt_y_duracion

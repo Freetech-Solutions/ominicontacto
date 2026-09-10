@@ -403,7 +403,7 @@ class CustomerUserUpdateView(UpdateView):
                     cd = form.cleaned_data
                     agente_profile.sip_remote = cd.get('sip_remote', False)
                     agente_profile.voicebot = cd.get('voicebot', False)
-                    agente_profile.voicebot_trunk_id = cd.get('voicebot_trunk').pk if cd.get('voicebot_trunk') else None
+                    agente_profile.voicebot_trunk_id = cd.get('voicebot_trunk').pk if cd.get('voicebot_trunk') else None  # noqa: E501
                     agente_profile.voicebot_extension = cd.get('voicebot_extension') or None
                     agente_profile.save()
                     agente_family = AgenteFamily()

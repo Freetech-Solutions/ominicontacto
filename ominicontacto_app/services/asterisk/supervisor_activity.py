@@ -26,7 +26,6 @@ from ominicontacto_app.services.asterisk.asterisk_ami import AMIManagerConnector
 from ominicontacto_app.services.asterisk.agent_activity import AgentActivityAmiManager
 from ominicontacto_app.services.agent.presence import AgentPresenceManager
 from ominicontacto_app.services.redis.connection import create_redis_connection
-from ominicontacto_app.models import AgenteProfile
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +147,7 @@ class SupervisorActivityAmiManager(object):
             supervisor_agente = supervisor.user.get_agente_profile()
         if not supervisor_agente:
             logger.warning("three_way_add: supervisor sin perfil de agente")
-            return _("El supervisor debe tener perfil de agente para realizar conferencia de tres vías")
+            return _("El supervisor debe tener perfil de agente para realizar conferencia de tres vías")  # noqa: E501
 
         channel = "acd:commands:{}".format(node_id.strip())
         payload = {

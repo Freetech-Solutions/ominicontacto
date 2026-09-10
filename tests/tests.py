@@ -26,6 +26,7 @@ class ManagedModelTestRunner(DiscoverRunner):
     project managed for the duration of the test run, so that one doesn't need
     to execute the SQL manually to create them.
     """
+
     def __init__(self, *args, **kwargs):
         settings.OML_TESTING_MODE = True
         super(ManagedModelTestRunner, self).__init__(*args, **kwargs)

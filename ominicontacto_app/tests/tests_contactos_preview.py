@@ -448,7 +448,6 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
         metadata = self.campana_preview.bd_contacto.get_metadata()
         nombre_col = metadata.nombres_de_columnas[1]
         apellido_col = metadata.nombres_de_columnas[2]
-        telefono_col = metadata.nombre_campo_telefono
         url = reverse('actualizar_contactos_preview', args=[self.campana_preview.pk, ])
         export_url = reverse('descargar_datos_contactos_preview', args=[self.campana_preview.pk, ])
         export_response = self.client.post(export_url, {})

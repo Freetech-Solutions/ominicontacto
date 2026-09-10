@@ -21,7 +21,6 @@ import logging as _logging
 
 from asterisk.manager import Manager, ManagerSocketException, ManagerAuthException, ManagerException
 
-from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 
 from ominicontacto_app.errors import OmlError

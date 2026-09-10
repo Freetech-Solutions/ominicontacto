@@ -315,7 +315,6 @@ class GeneradorDeLlamadaLogs():
     def _generar_logs_queue(self, campana, tipo_llamada, finalizacion, numero_marcado, agente_id,
                             contacto_id, bridge_wait_time, duracion_llamada, archivo_grabacion,
                             time, callid=None, es_transfer=False):
-
         """
         Genera logs para la pata de la conexion desde el ENTERQUEUE
         """

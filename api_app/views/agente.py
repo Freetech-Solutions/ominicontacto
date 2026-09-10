@@ -148,7 +148,7 @@ class ApiCalificacionClienteView(viewsets.ModelViewSet):
         agente = self.request.user.agenteprofile
         calificaciones_agente = CalificacionCliente.objects.filter(agente=agente)
         return calificaciones_agente
-    
+
     def perform_create(self, serializer):
         """Actualizar resumen después de crear calificación"""
         calificacion = serializer.save()
@@ -158,7 +158,7 @@ class ApiCalificacionClienteView(viewsets.ModelViewSet):
         except Exception:
             # No fallar la calificación si falla la actualización del resumen
             pass
-    
+
     def perform_update(self, serializer):
         """Actualizar resumen después de actualizar calificación"""
         calificacion = serializer.save()
@@ -176,7 +176,7 @@ class ApiCalificacionClienteCreateView(viewsets.ModelViewSet):
     authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     serializer_class = CalificacionClienteNuevoContactoSerializer
     http_method_names = ['post']
-    
+
     def perform_create(self, serializer):
         """Actualizar resumen después de crear calificación"""
         calificacion = serializer.save()
@@ -391,7 +391,7 @@ class HangUpCallView(APIView):
                 }
                 r_client.publish(channel, json.dumps(payload))
                 logger.info(
-                    "HangUpCallView: comando HANGUP publicado para call_id=%s (agente=%s), canal=%s",
+                    "HangUpCallView: comando HANGUP publicado para call_id=%s (agente=%s), canal=%s",  # noqa: E501
                     call_id, agente_profile.id, channel,
                 )
                 return Response(data={"status": "OK"})
@@ -428,7 +428,7 @@ class AgentPresenceHeartbeatView(APIView):
             browser_id = self._validate_id(data.get('browser_id'), 'browser_id')
             tab_id = self._validate_id(data.get('tab_id'), 'tab_id')
         except ValueError as e:
-            return Response(data={'status': 'ERROR', 'message': str(e)}, status=HTTP_400_BAD_REQUEST)
+            return Response(data={'status': 'ERROR', 'message': str(e)}, status=HTTP_400_BAD_REQUEST)  # noqa: E501
 
         ui_state = str(data.get('ui_state') or '')[:64]
         sent_at_ms = data.get('sent_at_ms')
@@ -481,6 +481,7 @@ class AgentLoginAsterisk(APIView):
     """
         Vista para ejecutar el login de agente Redis
     """
+
     def post(self, request):
         agente_profile = self.request.user.get_agente_profile()
         agent_login_manager = AgentActivityAmiManager()

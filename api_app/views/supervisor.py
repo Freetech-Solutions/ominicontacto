@@ -443,6 +443,7 @@ class CalificacionesDeCampanaView(View):
     """
     Devuelve un JSON con cantidades de cada tipo de calificación de una campaña del dia de la fecha
     """
+
     def get(self, request, pk_campana):
 
         try:

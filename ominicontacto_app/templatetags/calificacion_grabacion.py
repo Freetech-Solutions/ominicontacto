@@ -41,7 +41,7 @@ def select_contacto_id(grabacion):
         if llamada_log and llamada_log.contacto_id is not None:
             return llamada_log.contacto_id
         return None
-    
+
     # Convertir a int de forma segura
     try:
         contacto_id_int = int(grabacion.contacto_id)

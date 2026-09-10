@@ -121,6 +121,7 @@ class PlayCampanaDialerView(View):
     """
     Esta vista actualiza la campañana activándola.
     """
+
     def post(self, request, *args, **kwargs):
         campana = Campana.objects.get(pk=request.POST['campana_pk'])
         try:
@@ -429,6 +430,7 @@ class FinalizarCampanaDialerView(View):
     """
     Esta vista actualiza la campañana finalizandola.
     """
+
     def post(self, request, *args, **kwargs):
         campana_id = request.POST.get('campana_pk')
         campana = Campana.objects.get(pk=campana_id)
@@ -621,7 +623,7 @@ class ReglasDeIncidenciaDeCalificacionesUpdateView(UpdateView, VerificarPremisoE
         return super(ReglasDeIncidenciaDeCalificacionesUpdateView, self).form_valid(form)
 
 
-class ReglasDeIncidenciaDeleteView(CustomDeleteViewMixin, DeleteView, VerificarPremisoEnCampanaMixin):
+class ReglasDeIncidenciaDeleteView(CustomDeleteViewMixin, DeleteView, VerificarPremisoEnCampanaMixin):  # noqa: E501
     model = ReglasIncidencia
     template_name = 'campanas/campana_dialer/reglas_incidencia_calificacion_delete.html'
 

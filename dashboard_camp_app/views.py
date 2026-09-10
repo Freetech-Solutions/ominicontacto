@@ -190,7 +190,7 @@ def _safe_float(value, default=0.0):
 def _normalize_redis_dict(redis_dict):
     """
     Normaliza un diccionario de Redis convirtiendo bytes a strings.
-    
+
     Maneja valores None y otros tipos inesperados de forma segura.
     """
     if not redis_dict:
@@ -204,7 +204,7 @@ def _normalize_redis_dict(redis_dict):
             elif key is None:
                 # Si la clave es None, usar string vacío como fallback
                 key = ''
-            
+
             # Convertir valor de bytes a string si es necesario
             if isinstance(value, bytes):
                 value = value.decode('utf-8')
@@ -219,33 +219,33 @@ def _normalize_redis_dict(redis_dict):
                 except Exception:
                     # Si la conversión falla, usar string vacío
                     value = ''
-                    logger.warning(f"Error normalizando valor de tipo {type(value)} en Redis dict, usando string vacío")
-            
+                    logger.warning(f"Error normalizando valor de tipo {type(value)} en Redis dict, usando string vacío")  # noqa: E501
+
             normalized[key] = value
         except Exception as e:
             # Si hay un error procesando esta clave/valor, loguear y continuar
             logger.warning(f"Error normalizando clave/valor de Redis: {e}", exc_info=False)
             continue
-    
+
     return normalized
 
 
 def _get_all_agent_ids_scan(redis_agent_connection):
     """
     Obtiene todos los IDs de agentes usando SCAN (no bloqueante) en lugar de KEYS.
-    
+
     Usa SCAN iterativo con count=100 para balance entre rendimiento y memoria.
     Extrae los IDs de las keys que coinciden con el patrón 'OML:AGENT:*'.
-    
+
     Args:
         redis_agent_connection: Conexión a Redis
-        
+
     Returns:
         set: Set de strings con los IDs de agentes
     """
     agent_ids = set()
     cursor = 0
-    
+
     while True:
         # SCAN retorna (next_cursor, [keys])
         cursor, keys = redis_agent_connection.scan(
@@ -253,7 +253,7 @@ def _get_all_agent_ids_scan(redis_agent_connection):
             match='OML:AGENT:*',
             count=100
         )
-        
+
         # Procesar las keys encontradas en esta iteración
         for key in keys:
             try:
@@ -266,24 +266,24 @@ def _get_all_agent_ids_scan(redis_agent_connection):
             except (ValueError, IndexError):
                 # Ignorar keys que no tienen el formato esperado
                 continue
-        
+
         # Si el cursor es 0, hemos terminado de escanear
         if cursor == 0:
             break
-    
+
     return agent_ids
 
 
 def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_connection=None):
     """
     Obtiene métricas de agentes desde Redis.
-    
+
     Si campaign_id se especifica, obtiene solo los agentes asignados a esa campaña
     usando OML:CAMPAIGN-AGENTS:{campaign_id} y luego OML:AGENT:{id_agente}.
-    
+
     También obtiene datos estadísticos desde OML:AGENTDATA:AGENT:{id_agente} si se
     proporciona redis_calldata_connection (Redis db=2).
-    
+
     Retorna un diccionario con:
     - Métricas agregadas (logueados, ready, oncall, etc.)
     - Lista de agentes individuales con sus datos
@@ -291,7 +291,7 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
     try:
         agents = []
         agent_ids = set()
-        
+
         if campaign_id:
             # Obtener agentes asignados a la campaña desde OML:CAMPAIGN-AGENTS:{campaign_id}
             campaign_agents_key = f'OML:CAMPAIGN-AGENTS:{campaign_id}'
@@ -312,9 +312,9 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                         if voicebot_raw:
                             voicebot_value = _safe_int(voicebot_raw, 0)
                     except Exception as e:
-                        logger.warning(f"Error obteniendo valor de VOICEBOT-CALLS para campaña {campaign_id}: {e}")
+                        logger.warning(f"Error obteniendo valor de VOICEBOT-CALLS para campaña {campaign_id}: {e}")  # noqa: E501
                         voicebot_value = 0
-                
+
                 return {
                     'logueados': 0,
                     'ready': 0,
@@ -327,11 +327,11 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
         else:
             # Si no se especifica campaña, obtener todos los agentes usando SCAN (no bloqueante)
             agent_ids = _get_all_agent_ids_scan(redis_agent_connection)
-        
+
         # Obtener datos de cada agente usando pipelines de Redis para optimizar rendimiento
         # Convertir agent_ids a lista para mantener orden y poder indexar resultados
         agent_ids_list = list(agent_ids)
-        
+
         if not agent_ids_list:
             # Si no hay agentes, retornar métricas vacías
             return {
@@ -343,28 +343,29 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                 'voicebot': 0,
                 'lista_agentes': [],
             }
-        
+
         # Crear pipeline para obtener datos de agentes desde OML:AGENT:{id}
         agent_pipeline = redis_agent_connection.pipeline()
         for agent_id in agent_ids_list:
             agent_key = f'OML:AGENT:{agent_id}'
             agent_pipeline.hgetall(agent_key)
-        
-        # Crear pipeline para obtener datos estadísticos desde OML:AGENTDATA:AGENT:{id} si está disponible
+
+        # Crear pipeline para obtener datos estadísticos desde OML:AGENTDATA:AGENT:{id} si está
+        # disponible
         agentdata_pipeline = None
         if redis_calldata_connection:
             agentdata_pipeline = redis_calldata_connection.pipeline()
             for agent_id in agent_ids_list:
                 agentdata_key = f'OML:AGENTDATA:AGENT:{agent_id}'
                 agentdata_pipeline.hgetall(agentdata_key)
-        
+
         # Ejecutar pipelines en paralelo (2 round-trips en lugar de 2N)
         try:
             agent_results = agent_pipeline.execute()
         except Exception as e:
             logger.error(f"Error ejecutando pipeline de agentes: {e}", exc_info=True)
             agent_results = []
-        
+
         # Validar que el número de resultados coincida con el número de requests
         if len(agent_results) != len(agent_ids_list):
             logger.error(
@@ -376,13 +377,13 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                 agent_results.extend([None] * (len(agent_ids_list) - len(agent_results)))
             else:
                 agent_results = agent_results[:len(agent_ids_list)]
-        
+
         try:
-            agentdata_results = agentdata_pipeline.execute() if agentdata_pipeline else [None] * len(agent_ids_list)
+            agentdata_results = agentdata_pipeline.execute() if agentdata_pipeline else [None] * len(agent_ids_list)  # noqa: E501
         except Exception as e:
             logger.error(f"Error ejecutando pipeline de agentdata: {e}", exc_info=True)
             agentdata_results = [None] * len(agent_ids_list)
-        
+
         # Validar que el número de resultados de agentdata coincida con el número de requests
         if agentdata_pipeline and len(agentdata_results) != len(agent_ids_list):
             logger.error(
@@ -394,7 +395,7 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                 agentdata_results.extend([None] * (len(agent_ids_list) - len(agentdata_results)))
             else:
                 agentdata_results = agentdata_results[:len(agent_ids_list)]
-        
+
         # Procesar resultados de los pipelines
         for idx, agent_id in enumerate(agent_ids_list):
             try:
@@ -402,30 +403,31 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                 if agent_data:
                     # Normalizar datos de Redis (convertir bytes a strings si es necesario)
                     agent_data = _normalize_redis_dict(agent_data)
-                    
+
                     # Agregar el ID del agente a los datos
                     agent_data['id'] = int(agent_id)
-                    
-                    # Procesar datos estadísticos desde OML:AGENTDATA:AGENT:{id_agente} si está disponible
+
+                    # Procesar datos estadísticos desde OML:AGENTDATA:AGENT:{id_agente} si está
+                    # disponible
                     if redis_calldata_connection:
                         try:
                             agentdata = agentdata_results[idx]
                             if agentdata:
                                 # Normalizar datos de Redis
                                 agentdata = _normalize_redis_dict(agentdata)
-                                
+
                                 # Agregar ANSWERED_TOTAL_CALLS:IN a los datos del agente
-                                answered_total_calls_in = agentdata.get('ANSWERED_TOTAL_CALLS:IN', '0')
-                                agent_data['ANSWERED_TOTAL_CALLS_IN'] = _safe_int(answered_total_calls_in, 0)
+                                answered_total_calls_in = agentdata.get('ANSWERED_TOTAL_CALLS:IN', '0')  # noqa: E501
+                                agent_data['ANSWERED_TOTAL_CALLS_IN'] = _safe_int(answered_total_calls_in, 0)  # noqa: E501
                                 # Agregar ANSWERED_TOTAL_CALLS:DIALER a los datos del agente
-                                answered_total_calls_dialer = agentdata.get('ANSWERED_TOTAL_CALLS:DIALER', '0')
-                                agent_data['ANSWERED_TOTAL_CALLS_DIALER'] = _safe_int(answered_total_calls_dialer, 0)
+                                answered_total_calls_dialer = agentdata.get('ANSWERED_TOTAL_CALLS:DIALER', '0')  # noqa: E501
+                                agent_data['ANSWERED_TOTAL_CALLS_DIALER'] = _safe_int(answered_total_calls_dialer, 0)  # noqa: E501
                                 # Agregar ANSWERED_TOTAL_CALLS:MANUAL a los datos del agente
-                                answered_total_calls_manual = agentdata.get('ANSWERED_TOTAL_CALLS:MANUAL', '0')
-                                agent_data['ANSWERED_TOTAL_CALLS_MANUAL'] = _safe_int(answered_total_calls_manual, 0)
+                                answered_total_calls_manual = agentdata.get('ANSWERED_TOTAL_CALLS:MANUAL', '0')  # noqa: E501
+                                agent_data['ANSWERED_TOTAL_CALLS_MANUAL'] = _safe_int(answered_total_calls_manual, 0)  # noqa: E501
                                 # Obtener ANSWERED_TOTAL_TIME y calcular ATT
-                                answered_total_time = _safe_float(agentdata.get('ANSWERED_TOTAL_TIME', '0'))
-                                total_calls = agent_data['ANSWERED_TOTAL_CALLS_IN'] + agent_data['ANSWERED_TOTAL_CALLS_DIALER'] + agent_data['ANSWERED_TOTAL_CALLS_MANUAL']
+                                answered_total_time = _safe_float(agentdata.get('ANSWERED_TOTAL_TIME', '0'))  # noqa: E501
+                                total_calls = agent_data['ANSWERED_TOTAL_CALLS_IN'] + agent_data['ANSWERED_TOTAL_CALLS_DIALER'] + agent_data['ANSWERED_TOTAL_CALLS_MANUAL']  # noqa: E501
                                 if total_calls > 0:
                                     agent_data['ATT'] = answered_total_time / total_calls
                                 else:
@@ -437,7 +439,7 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                                 agent_data['ANSWERED_TOTAL_CALLS_MANUAL'] = 0
                                 agent_data['ATT'] = 0.0
                         except Exception as e:
-                            logger.warning(f"Error procesando datos de AGENTDATA para agente {agent_id}: {e}")
+                            logger.warning(f"Error procesando datos de AGENTDATA para agente {agent_id}: {e}")  # noqa: E501
                             agent_data['ANSWERED_TOTAL_CALLS_IN'] = 0
                             agent_data['ANSWERED_TOTAL_CALLS_DIALER'] = 0
                             agent_data['ANSWERED_TOTAL_CALLS_MANUAL'] = 0
@@ -448,7 +450,7 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                         agent_data['ANSWERED_TOTAL_CALLS_DIALER'] = 0
                         agent_data['ANSWERED_TOTAL_CALLS_MANUAL'] = 0
                         agent_data['ATT'] = 0.0
-                    
+
                     agents.append(agent_data)
             except (ValueError, TypeError) as e:
                 logger.warning(f"Error procesando agente {agent_id}: {e}")
@@ -463,15 +465,15 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
                 if voicebot_raw:
                     voicebot_value = _safe_int(voicebot_raw, 0)
             except Exception as e:
-                logger.warning(f"Error obteniendo valor de VOICEBOT-CALLS para campaña {campaign_id}: {e}")
+                logger.warning(f"Error obteniendo valor de VOICEBOT-CALLS para campaña {campaign_id}: {e}")  # noqa: E501
                 voicebot_value = 0
-        
+
         # Contar por estado
         status_counts = {
             'logueados': len([a for a in agents if a.get('STATUS')]),
             'ready': len([a for a in agents if a.get('STATUS') == 'READY']),
             'oncall': len([a for a in agents if a.get('STATUS') == 'ONCALL']),
-            'paused': len([a for a in agents if a.get('STATUS') and a.get('STATUS').startswith('PAUSE')]),
+            'paused': len([a for a in agents if a.get('STATUS') and a.get('STATUS').startswith('PAUSE')]),  # noqa: E501
             'onconfer': len([a for a in agents if 'CONFER' in a.get('STATUS', '')]),
             'voicebot': voicebot_value,  # Valor desde Redis DB 2
             'lista_agentes': agents,
@@ -490,7 +492,7 @@ def _get_agent_metrics(redis_agent_connection, campaign_id=None, redis_calldata_
         }
 
 
-def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dialer_connection=None):
+def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dialer_connection=None):  # noqa: E501
     """Obtiene métricas de llamadas desde Redis para una campaña."""
     if not campaign_id:
         return {}
@@ -500,7 +502,7 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         calldata_raw = redis_calldata_connection.hgetall(calldata_key)
         # Normalizar datos de Redis (convertir bytes a strings si es necesario)
         calldata = _normalize_redis_dict(calldata_raw)
-        
+
         # Log de depuración para verificar datos leídos
         logger.debug(f"[DEBUG] Datos de Redis para campaña {campaign_id}: {calldata}")
 
@@ -529,7 +531,7 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         exit_timeout_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_TIMEOUT', 0))
         exit_handoff_timeout_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_HANDOFF_TIMEOUT', 0))
         exit_amd_type5 = _safe_int(calldata.get('CALL_TYPE:5:EXIT_AMD', 0))
-        
+
         # También leer datos de CALL_TYPE:1 para sumar métricas
         dial_type1 = _safe_int(calldata.get('CALL_TYPE:1:DIAL', 0))
         exit_answered_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_ANSWERED', 0))
@@ -544,14 +546,15 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         exit_handoff_timeout_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_HANDOFF_TIMEOUT', 0))
         exit_congestion_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_CONGESTION', 0))
         exit_congestion_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_CONGESTION', 0))
-        
+
         # Calcular ocupado como suma de BUSY y EXIT_BUSY de ambos tipos
         ocupado_total = busy_type2 + exit_busy_type2 + busy_type1 + exit_busy_type1
-        
+
         # Calcular congestion como suma de ambos tipos
         congestion_total = exit_congestion_type2 + exit_congestion_type1
-        
-        # Calcular timeout como suma de NOANSWER y EXIT_TIMEOUT (+ post-handoff voicebot) de ambos tipos
+
+        # Calcular timeout como suma de NOANSWER y EXIT_TIMEOUT (+ post-handoff voicebot) de ambos
+        # tipos
         timeout_total = (
             noanswer_type2
             + noanswer_type1
@@ -560,7 +563,7 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
             + exit_handoff_timeout_type2
             + exit_handoff_timeout_type1
         )
-        
+
         # Calcular atendidas separadas por tipo (Human, Bot, Mixta)
         atendidas_human = exit_answered_human_type2 + exit_answered_human_type1
         atendidas_bot = exit_answered_bot_type2 + exit_answered_bot_type1
@@ -571,28 +574,28 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
             atendidas_total = exit_answered_type2 + exit_answered_type1
         else:
             atendidas_total = atendidas_human + atendidas_bot + atendidas_mix
-        
+
         # Calcular discadas como suma de ambos tipos, con fallback a DIAL_OUT
         discadas_total = dial_type2 + dial_type1
         if discadas_total == 0:
             discadas_total = _safe_int(calldata.get('DIAL_OUT', 0))
-        
+
         outbound = {
             'discadas': discadas_total,  # CALL_TYPE:2:DIAL + CALL_TYPE:1:DIAL o DIAL_OUT
             'atendidas': atendidas_total,  # Total de atendidas (Human + Bot + Mixta)
-            'atendidas_human': atendidas_human,  # CALL_TYPE:2:EXIT_ANSWERED_HUMAN + CALL_TYPE:1:EXIT_ANSWERED_HUMAN
-            'atendidas_bot': atendidas_bot,  # CALL_TYPE:2:EXIT_ANSWERED_BOT + CALL_TYPE:1:EXIT_ANSWERED_BOT
-            'atendidas_mix': atendidas_mix,  # CALL_TYPE:2:EXIT_ANSWERED_MIX + CALL_TYPE:1:EXIT_ANSWERED_MIX
+            'atendidas_human': atendidas_human,  # CALL_TYPE:2:EXIT_ANSWERED_HUMAN + CALL_TYPE:1:EXIT_ANSWERED_HUMAN  # noqa: E501
+            'atendidas_bot': atendidas_bot,  # CALL_TYPE:2:EXIT_ANSWERED_BOT + CALL_TYPE:1:EXIT_ANSWERED_BOT  # noqa: E501
+            'atendidas_mix': atendidas_mix,  # CALL_TYPE:2:EXIT_ANSWERED_MIX + CALL_TYPE:1:EXIT_ANSWERED_MIX  # noqa: E501
             'positivas': atendidas_total,  # CALL_TYPE:2:EXIT_ANSWERED + CALL_TYPE:1:EXIT_ANSWERED
-            'llamadas_discando': llamadas_discando,  # Valor desde Redis DB3 OML:CALLS:{id_camp}:DIALER
+            'llamadas_discando': llamadas_discando,  # Valor desde Redis DB3 OML:CALLS:{id_camp}:DIALER  # noqa: E501
             'contestadores': exit_amd_type5,  # CALL_TYPE:5:EXIT_AMD
-            'ocupado': ocupado_total,  # CALL_TYPE:2:BUSY + CALL_TYPE:2:EXIT_BUSY + CALL_TYPE:1:BUSY + CALL_TYPE:1:EXIT_BUSY
-            'timeout': timeout_total,  # CALL_TYPE:2:NOANSWER + CALL_TYPE:1:NOANSWER + CALL_TYPE:2:EXIT_TIMEOUT + CALL_TYPE:1:EXIT_TIMEOUT
+            'ocupado': ocupado_total,  # CALL_TYPE:2:BUSY + CALL_TYPE:2:EXIT_BUSY + CALL_TYPE:1:BUSY + CALL_TYPE:1:EXIT_BUSY  # noqa: E501
+            'timeout': timeout_total,  # CALL_TYPE:2:NOANSWER + CALL_TYPE:1:NOANSWER + CALL_TYPE:2:EXIT_TIMEOUT + CALL_TYPE:1:EXIT_TIMEOUT  # noqa: E501
             'canceladas': 0,  # No disponible directamente, placeholder
-            'congestion': congestion_total,  # CALL_TYPE:2:EXIT_CONGESTION + CALL_TYPE:1:EXIT_CONGESTION
+            'congestion': congestion_total,  # CALL_TYPE:2:EXIT_CONGESTION + CALL_TYPE:1:EXIT_CONGESTION  # noqa: E501
             'errores': 0,  # No disponible directamente, placeholder
         }
-        
+
         # Log de depuración para verificar métricas calculadas
         logger.debug(f"[DEBUG] Métricas outbound calculadas para campaña {campaign_id}: {outbound}")
 
@@ -616,7 +619,7 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
 
         # Calcular total de entrantes como suma de abandonadas + timeout + atendidas
         entrantes = abandonadas + timeout + atendidas
-        
+
         inbound = {
             'entrantes': entrantes,
             'atendidas': atendidas,
@@ -633,15 +636,16 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         inbound['en_cola'] = _safe_int(queue_size, 0)
 
         # Calcular tiempos (AHT, más extensa)
-        # T. Promedio (AHT) = OML:CALLDATA:CAMP:{id_camp} (Key: TOTAL_CALL_TIME) / OML:CALLDATA:CAMP:{id_camp} (Key: EXIT_ANSWERED)
+        # T. Promedio (AHT) = OML:CALLDATA:CAMP:{id_camp} (Key: TOTAL_CALL_TIME) /
+        # OML:CALLDATA:CAMP:{id_camp} (Key: EXIT_ANSWERED)
         total_call_time = _safe_float(calldata.get('TOTAL_CALL_TIME', 0))
         exit_answered = _safe_int(calldata.get('EXIT_ANSWERED', 0))
-        
+
         if exit_answered > 0:
             aht = total_call_time / exit_answered
         else:
             aht = 0
-        
+
         # Obtener Gestión positiva desde Redis: OML:DISPOSITIONDATA:CAMP:{campaign_id} -> ENGAGED
         gestion_positiva = 0
         try:
@@ -652,11 +656,11 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         except Exception as e:
             logger.warning(f"Error obteniendo ENGAGED desde Redis para campaña {campaign_id}: {e}")
             gestion_positiva = 0
-        
+
         call_times = {
             'aht': aht,  # Average Handle Time calculado desde Redis
             'mas_extensa': 0,  # Requiere cálculo desde timestamps
-            'gestion_positiva': gestion_positiva,  # ENGAGED desde OML:DISPOSITIONDATA:CAMP:{campaign_id}
+            'gestion_positiva': gestion_positiva,  # ENGAGED desde OML:DISPOSITIONDATA:CAMP:{campaign_id}  # noqa: E501
         }
 
         # Gestiones (human, bot, mixed) - placeholders hasta confirmar fuente
@@ -685,7 +689,7 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
         logger.error(f"Error obteniendo métricas de campaña {campaign_id}: {e}")
         return {
             'outbound': {
-                'discadas': 0, 'atendidas': 0, 'positivas': 0, 'llamadas_discando': 0, 'contestadores': 0,
+                'discadas': 0, 'atendidas': 0, 'positivas': 0, 'llamadas_discando': 0, 'contestadores': 0,  # noqa: E501
                 'ocupado': 0, 'timeout': 0, 'canceladas': 0, 'congestion': 0, 'errores': 0,
             },
             'inbound': {
@@ -701,11 +705,11 @@ def _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dia
 def _get_dialer_status_metrics(redis_dialer_connection, campaign_id):
     """
     Obtiene métricas del estado del discador desde Redis DB3.
-    
+
     Args:
         redis_dialer_connection: Conexión a Redis DB3
         campaign_id: ID de la campaña
-    
+
     Returns:
         dict: Diccionario con las métricas del estado del discador:
             - pending_initial: Contactos pendientes
@@ -726,15 +730,15 @@ def _get_dialer_status_metrics(redis_dialer_connection, campaign_id):
             'answered_pstn': 0,
             'answered_agent': 0,
         }
-    
+
     try:
         # Obtener datos desde Redis DB3 usando HGETALL
         counter_key = f'CAMP:{campaign_id}:COUNTER'
         stats_raw = redis_dialer_connection.hgetall(counter_key)
-        
+
         # Normalizar datos de Redis (convertir bytes a strings si es necesario)
         stats = _normalize_redis_dict(stats_raw)
-        
+
         # Extraer las métricas requeridas
         estado_discador = {
             'pending_initial': _safe_int(stats.get('PENDING_INITIAL_CONTACT_ATTEMPTS', 0), 0),
@@ -745,10 +749,10 @@ def _get_dialer_status_metrics(redis_dialer_connection, campaign_id):
             'answered_pstn': _safe_int(stats.get('ANSWERED_PSTN', 0), 0),
             'answered_agent': _safe_int(stats.get('ANSWERED_AGENT', 0), 0),
         }
-        
+
         return estado_discador
     except Exception as e:
-        logger.error(f"Error obteniendo métricas del estado del discador para campaña {campaign_id}: {e}", exc_info=True)
+        logger.error(f"Error obteniendo métricas del estado del discador para campaña {campaign_id}: {e}", exc_info=True)  # noqa: E501
         return {
             'pending_initial': 0,
             'pending_retries': 0,
@@ -764,27 +768,27 @@ def _enrich_agent_list(lista_agentes):
     """Enriquece la lista de agentes con información de la base de datos."""
     if not lista_agentes:
         return []
-    
+
     agent_ids = [agente.get('id') for agente in lista_agentes if agente.get('id')]
     if not agent_ids:
         return lista_agentes
-    
+
     try:
         agentes_db = AgenteProfile.objects.filter(
             id__in=agent_ids
         ).select_related('user', 'grupo').values(
-            'id', 'user__first_name', 'user__last_name', 
+            'id', 'user__first_name', 'user__last_name',
             'user__username', 'grupo__nombre'
         )
         # Crear diccionario de agentes por ID para acceso rápido
         agentes_dict = {ag['id']: ag for ag in agentes_db}
-        
+
         # Enriquecer cada agente con información de la BD
         for agente in lista_agentes:
             agente_id = agente.get('id')
             if agente_id in agentes_dict:
                 agente_db = agentes_dict[agente_id]
-                agente['nombre'] = f"{agente_db.get('user__first_name', '')} {agente_db.get('user__last_name', '')}".strip()
+                agente['nombre'] = f"{agente_db.get('user__first_name', '')} {agente_db.get('user__last_name', '')}".strip()  # noqa: E501
                 agente['username'] = agente_db.get('user__username', '')
                 agente['grupo'] = agente_db.get('grupo__nombre', '')
             else:
@@ -797,55 +801,55 @@ def _enrich_agent_list(lista_agentes):
         for agente in lista_agentes:
             if not agente.get('nombre'):
                 agente['nombre'] = f"Agente {agente.get('id', 'N/A')}"
-    
+
     return lista_agentes
 
 
 def validate_campaign_id(request, required=False):
     """
     Valida y retorna el campaign_id del request.
-    
+
     Args:
         request: Django request object
         required: Si True, retorna error si campaign_id no está presente
-    
+
     Returns:
         tuple: (campaign_id, error_response)
         - campaign_id: int o None si no se proporciona
         - error_response: JsonResponse con error o None si es válido
     """
     campaign_id = request.GET.get('campaign_id')
-    
+
     if not campaign_id:
         if required:
             return None, JsonResponse({
                 'error': 'campaign_id es requerido',
             }, status=400)
         return None, None
-    
+
     try:
         campaign_id = int(campaign_id)
     except (ValueError, TypeError):
         return None, JsonResponse({
             'error': 'campaign_id debe ser un número válido',
         }, status=400)
-    
+
     # Validar que campaign_id sea positivo
     if campaign_id <= 0:
         return None, JsonResponse({
             'error': 'campaign_id debe ser un número positivo',
         }, status=400)
-    
+
     return campaign_id, None
 
 
 def dashboard_contact_center_agentes(request):
     """
     Endpoint API que retorna solo métricas agregadas de agentes (sin lista detallada).
-    
+
     Parámetros GET:
     - campaign_id: ID de la campaña (opcional, si no se especifica se obtienen todos los agentes)
-    
+
     Retorna JSON con:
     - logueados, ready, oncall, ringing, onconfer, voicebot
     - timestamp
@@ -873,7 +877,7 @@ def dashboard_contact_center_agentes(request):
 
         agent_metrics = {}
         if redis_agent_connection:
-            full_metrics = _get_agent_metrics(redis_agent_connection, campaign_id, redis_calldata_connection)
+            full_metrics = _get_agent_metrics(redis_agent_connection, campaign_id, redis_calldata_connection)  # noqa: E501
             # Retornar solo métricas agregadas, sin lista_agentes
             agent_metrics = {
                 'logueados': full_metrics.get('logueados', 0),
@@ -905,10 +909,10 @@ def dashboard_contact_center_agentes(request):
 def dashboard_contact_center_agentes_lista(request):
     """
     Endpoint API que retorna solo la lista detallada de agentes.
-    
+
     Parámetros GET:
     - campaign_id: ID de la campaña (opcional, si no se especifica se obtienen todos los agentes)
-    
+
     Retorna JSON con:
     - lista_agentes: array de agentes con información enriquecida
     - timestamp
@@ -936,7 +940,7 @@ def dashboard_contact_center_agentes_lista(request):
 
         lista_agentes = []
         if redis_agent_connection:
-            full_metrics = _get_agent_metrics(redis_agent_connection, campaign_id, redis_calldata_connection)
+            full_metrics = _get_agent_metrics(redis_agent_connection, campaign_id, redis_calldata_connection)  # noqa: E501
             lista_agentes = full_metrics.get('lista_agentes', [])
             # Enriquecer con información de la base de datos
             lista_agentes = _enrich_agent_list(lista_agentes)
@@ -957,10 +961,10 @@ def dashboard_contact_center_agentes_lista(request):
 def dashboard_contact_center_llamadas(request):
     """
     Endpoint API que retorna solo métricas de llamadas.
-    
+
     Parámetros GET:
     - campaign_id: ID de la campaña (requerido para métricas de llamadas)
-    
+
     Retorna JSON con:
     - outbound, inbound, call_times, gestiones, sentimiento
     - timestamp
@@ -988,11 +992,11 @@ def dashboard_contact_center_llamadas(request):
 
         campaign_metrics = {}
         if redis_calldata_connection and campaign_id:
-            campaign_metrics = _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dialer_connection)
+            campaign_metrics = _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dialer_connection)  # noqa: E501
         else:
             campaign_metrics = {
                 'outbound': {
-                    'discadas': 0, 'atendidas': 0, 'atendidas_human': 0, 'atendidas_bot': 0, 'atendidas_mix': 0,
+                    'discadas': 0, 'atendidas': 0, 'atendidas_human': 0, 'atendidas_bot': 0, 'atendidas_mix': 0,  # noqa: E501
                     'positivas': 0, 'llamadas_discando': 0, 'contestadores': 0,
                     'ocupado': 0, 'timeout': 0, 'canceladas': 0, 'congestion': 0, 'errores': 0,
                 },
@@ -1037,10 +1041,10 @@ def dashboard_contact_center_llamadas(request):
 def dashboard_contact_center_data(request):
     """
     Endpoint API que retorna datos del contact center desde Redis.
-    
+
     Parámetros GET:
     - campaign_id: ID de la campaña (opcional, si no se especifica se obtienen todos los agentes)
-    
+
     Retorna JSON con:
     - agentes: métricas de agentes (logueados, ready, oncall, ringing, onconfer, voicebot)
     - llamadas: métricas de llamadas (outbound, inbound, tiempos, gestiones, sentimiento)
@@ -1072,7 +1076,7 @@ def dashboard_contact_center_data(request):
         # Obtener métricas de agentes
         agent_metrics = {}
         if redis_agent_connection:
-            agent_metrics = _get_agent_metrics(redis_agent_connection, campaign_id, redis_calldata_connection)
+            agent_metrics = _get_agent_metrics(redis_agent_connection, campaign_id, redis_calldata_connection)  # noqa: E501
             # Enriquecer lista de agentes con nombres desde la base de datos
             lista_agentes = agent_metrics.get('lista_agentes', [])
             if lista_agentes:
@@ -1097,11 +1101,11 @@ def dashboard_contact_center_data(request):
         # Obtener métricas de campaña
         campaign_metrics = {}
         if redis_calldata_connection and campaign_id:
-            campaign_metrics = _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dialer_connection)
+            campaign_metrics = _get_campaign_call_metrics(redis_calldata_connection, campaign_id, redis_dialer_connection)  # noqa: E501
         else:
             campaign_metrics = {
                 'outbound': {
-                    'discadas': 0, 'atendidas': 0, 'atendidas_human': 0, 'atendidas_bot': 0, 'atendidas_mix': 0,
+                    'discadas': 0, 'atendidas': 0, 'atendidas_human': 0, 'atendidas_bot': 0, 'atendidas_mix': 0,  # noqa: E501
                     'positivas': 0, 'llamadas_discando': 0, 'contestadores': 0,
                     'ocupado': 0, 'timeout': 0, 'canceladas': 0, 'congestion': 0, 'errores': 0,
                 },
@@ -1150,7 +1154,7 @@ def dashboard_contact_center_data(request):
 def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connection, campaign_id):
     """
     Obtiene métricas detalladas de inbound para una campaña.
-    
+
     Retorna un diccionario con:
     - nombre_camp: Nombre de la campaña
     - ag_ready: Cantidad de agentes en estado READY
@@ -1166,7 +1170,7 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
     """
     if not campaign_id:
         return None
-    
+
     try:
         # Obtener nombre de la campaña desde la base de datos
         try:
@@ -1174,33 +1178,34 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
             nombre_camp = campana.nombre
         except Campana.DoesNotExist:
             nombre_camp = f"Campaña {campaign_id}"
-        
+
         # Obtener agentes de la campaña y contar por estado
         ag_ready = 0
         ag_oncall = 0
         ag_pause = 0
-        
+
         if redis_agent_connection:
             campaign_agents_key = f'OML:CAMPAIGN-AGENTS:{campaign_id}'
             agent_ids = redis_agent_connection.smembers(campaign_agents_key)
-            
-            # Optimización: usar pipeline para obtener STATUS de todos los agentes en una sola operación
+
+            # Optimización: usar pipeline para obtener STATUS de todos los agentes en una sola
+            # operación
             if agent_ids:
                 pipeline = redis_agent_connection.pipeline()
                 for agent_id in agent_ids:
                     agent_key = f'OML:AGENT:{agent_id}'
                     pipeline.hget(agent_key, 'STATUS')
-                
+
                 # Ejecutar pipeline y obtener todos los STATUS en una sola operación
                 try:
                     statuses = pipeline.execute()
-                    
+
                     # Procesar resultados
                     for status in statuses:
                         if not status:
                             continue
                         status = status.decode('utf-8') if isinstance(status, bytes) else status
-                        
+
                         if status == 'READY':
                             ag_ready += 1
                         elif status == 'ONCALL':
@@ -1208,16 +1213,17 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
                         elif status.startswith('PAUSE'):
                             ag_pause += 1
                 except Exception:
-                    # Fallback: si el pipeline falla, usar método individual con hget (más eficiente que hgetall)
+                    # Fallback: si el pipeline falla, usar método individual con hget (más eficiente
+                    # que hgetall)
                     for agent_id in agent_ids:
                         try:
                             agent_key = f'OML:AGENT:{agent_id}'
                             status = redis_agent_connection.hget(agent_key, 'STATUS')
-                            
+
                             if not status:
                                 continue
                             status = status.decode('utf-8') if isinstance(status, bytes) else status
-                            
+
                             if status == 'READY':
                                 ag_ready += 1
                             elif status == 'ONCALL':
@@ -1226,7 +1232,7 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
                                 ag_pause += 1
                         except Exception:
                             continue
-        
+
         # Obtener métricas de llamadas desde Redis
         llamadas_ofrecidas = 0
         llamadas_atendidas = 0
@@ -1235,17 +1241,17 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
         tiempo_prom_abandono = 0
         tiempo_prom_espera = 0
         gestiones_positivas = 0
-        
+
         if redis_calldata_connection:
             # Obtener datos del hash CALLDATA:CAMP
             calldata_key = f'OML:CALLDATA:CAMP:{campaign_id}'
             calldata_raw = redis_calldata_connection.hgetall(calldata_key)
             # Normalizar datos de Redis (convertir bytes a strings si es necesario)
             calldata = _normalize_redis_dict(calldata_raw)
-            
+
             # Para inbound, usar CALL_TYPE:3 (TYPE_ENTRANTE = 3)
             # El logger escribe EXIT_ANSWERED_HUMAN/BOT/MIX, no EXIT_ANSWERED genérico
-            llamadas_abandonadas = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ABANDON', 0)) + _safe_int(
+            llamadas_abandonadas = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ABANDON', 0)) + _safe_int(  # noqa: E501
                 calldata.get('CALL_TYPE:3:EXIT_HANDOFF_ABANDON', 0)
             )
             llamadas_timeout = _safe_int(calldata.get('CALL_TYPE:3:EXIT_TIMEOUT', 0)) + _safe_int(
@@ -1259,27 +1265,27 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
                 llamadas_atendidas = exit_answered_human + exit_answered_bot + exit_answered_mix
             else:
                 llamadas_atendidas = exit_answered
-            
+
             # Llamadas ofrecidas = suma de todas las que entraron a la cola
             # Intentar obtener desde ENTERQUEUE, si no está disponible, usar suma
             llamadas_ofrecidas = llamadas_atendidas + llamadas_abandonadas + llamadas_timeout
-            
+
             # Intentar obtener desde ENTERQUEUE si está disponible
             try:
                 # Buscar todas las keys que coincidan con CALL_TYPE:*:ENTERQUEUE
-                scan_result = redis_calldata_connection.hscan(calldata_key, 0, match='CALL_TYPE:*:ENTERQUEUE')
+                scan_result = redis_calldata_connection.hscan(calldata_key, 0, match='CALL_TYPE:*:ENTERQUEUE')  # noqa: E501
                 if scan_result and scan_result[1]:
                     llamadas_ofrecidas = sum([int(v) for v in scan_result[1].values()])
             except Exception:
                 # Si falla, usar la suma calculada anteriormente
                 pass
-            
+
             # Gestiones positivas = llamadas atendidas (EXIT_ANSWERED)
             gestiones_positivas = llamadas_atendidas
-            
+
             # Calcular tiempo promedio de abandono
             # Fórmula: CALL_TYPE:3:ABANDON_WAIT_TOTAL_TIME / CALL_TYPE:3:EXIT_ABANDON
-            abandon_wait_total_time = _safe_float(calldata.get('CALL_TYPE:3:ABANDON_WAIT_TOTAL_TIME', 0))
+            abandon_wait_total_time = _safe_float(calldata.get('CALL_TYPE:3:ABANDON_WAIT_TOTAL_TIME', 0))  # noqa: E501
             exit_abandon = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ABANDON', 0)) + _safe_int(
                 calldata.get('CALL_TYPE:3:EXIT_HANDOFF_ABANDON', 0)
             )
@@ -1287,15 +1293,15 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
                 tiempo_prom_abandono = abandon_wait_total_time / exit_abandon
             else:
                 tiempo_prom_abandono = 0
-            
+
             # Calcular tiempo promedio de espera
             # Fórmula: CALL_TYPE:3:BRIDGE_WAIT_TOTAL_TIME / llamadas_atendidas
-            bridge_wait_total_time = _safe_float(calldata.get('CALL_TYPE:3:BRIDGE_WAIT_TOTAL_TIME', 0))
+            bridge_wait_total_time = _safe_float(calldata.get('CALL_TYPE:3:BRIDGE_WAIT_TOTAL_TIME', 0))  # noqa: E501
             if llamadas_atendidas > 0:
                 tiempo_prom_espera = bridge_wait_total_time / llamadas_atendidas
             else:
                 tiempo_prom_espera = 0
-        
+
         return {
             'nombre_camp': nombre_camp,
             'ag_ready': ag_ready,
@@ -1310,17 +1316,17 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
             'gestiones_positivas': gestiones_positivas,
         }
     except Exception as e:
-        logger.error(f"Error obteniendo métricas detalladas de inbound para campaña {campaign_id}: {e}", exc_info=True)
+        logger.error(f"Error obteniendo métricas detalladas de inbound para campaña {campaign_id}: {e}", exc_info=True)  # noqa: E501
         return None
 
 
 def dashboard_contact_center_inbound_detalle(request):
     """
     Endpoint API que retorna métricas detalladas de inbound para la campaña seleccionada.
-    
+
     Parámetros GET:
     - campaign_id: ID de la campaña (requerido)
-    
+
     Retorna JSON con métricas detalladas de inbound.
     """
     try:
@@ -1348,11 +1354,11 @@ def dashboard_contact_center_inbound_detalle(request):
         inbound_detalle = None
         if redis_agent_connection or redis_calldata_connection:
             inbound_detalle = _get_inbound_detalle_metrics(
-                redis_agent_connection, 
-                redis_calldata_connection, 
+                redis_agent_connection,
+                redis_calldata_connection,
                 campaign_id
             )
-        
+
         if inbound_detalle is None:
             inbound_detalle = {
                 'nombre_camp': '',
@@ -1384,7 +1390,7 @@ def dashboard_contact_center_inbound_detalle(request):
 def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connection, campaign_id):
     """
     Obtiene métricas detalladas de outbound para una campaña.
-    
+
     Retorna un diccionario con:
     - nombre_camp: Nombre de la campaña
     - ag_ready: Cantidad de agentes en estado READY
@@ -1403,7 +1409,7 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
     """
     if not campaign_id:
         return None
-    
+
     try:
         # Obtener nombre de la campaña desde la base de datos
         try:
@@ -1411,33 +1417,34 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
             nombre_camp = campana.nombre
         except Campana.DoesNotExist:
             nombre_camp = f"Campaña {campaign_id}"
-        
+
         # Obtener agentes de la campaña y contar por estado
         ag_ready = 0
         ag_oncall = 0
         ag_pause = 0
-        
+
         if redis_agent_connection:
             campaign_agents_key = f'OML:CAMPAIGN-AGENTS:{campaign_id}'
             agent_ids = redis_agent_connection.smembers(campaign_agents_key)
-            
-            # Optimización: usar pipeline para obtener STATUS de todos los agentes en una sola operación
+
+            # Optimización: usar pipeline para obtener STATUS de todos los agentes en una sola
+            # operación
             if agent_ids:
                 pipeline = redis_agent_connection.pipeline()
                 for agent_id in agent_ids:
                     agent_key = f'OML:AGENT:{agent_id}'
                     pipeline.hget(agent_key, 'STATUS')
-                
+
                 # Ejecutar pipeline y obtener todos los STATUS en una sola operación
                 try:
                     statuses = pipeline.execute()
-                    
+
                     # Procesar resultados
                     for status in statuses:
                         if not status:
                             continue
                         status = status.decode('utf-8') if isinstance(status, bytes) else status
-                        
+
                         if status == 'READY':
                             ag_ready += 1
                         elif status == 'ONCALL':
@@ -1445,16 +1452,17 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
                         elif status.startswith('PAUSE'):
                             ag_pause += 1
                 except Exception:
-                    # Fallback: si el pipeline falla, usar método individual con hget (más eficiente que hgetall)
+                    # Fallback: si el pipeline falla, usar método individual con hget (más eficiente
+                    # que hgetall)
                     for agent_id in agent_ids:
                         try:
                             agent_key = f'OML:AGENT:{agent_id}'
                             status = redis_agent_connection.hget(agent_key, 'STATUS')
-                            
+
                             if not status:
                                 continue
                             status = status.decode('utf-8') if isinstance(status, bytes) else status
-                            
+
                             if status == 'READY':
                                 ag_ready += 1
                             elif status == 'ONCALL':
@@ -1463,7 +1471,7 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
                                 ag_pause += 1
                         except Exception:
                             continue
-        
+
         # Obtener métricas de llamadas desde Redis
         # Inicializar con valores por defecto
         att = 0
@@ -1476,17 +1484,17 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
         tiempo_prom_abandono = 0
         tiempo_prom_espera = 0
         gestiones_positivas = 0
-        
+
         if redis_calldata_connection:
             # Obtener datos del hash CALLDATA:CAMP desde Redis DB2
             calldata_key = f'OML:CALLDATA:CAMP:{campaign_id}'
             calldata_raw = redis_calldata_connection.hgetall(calldata_key)
             # Normalizar datos de Redis (convertir bytes a strings si es necesario)
             calldata = _normalize_redis_dict(calldata_raw)
-            
+
             # Para outbound, leer CALL_TYPE:2 (llamadas salientes manuales) y CALL_TYPE:1
             # También considerar CALL_TYPE:5 para AMD (Answering Machine Detection)
-            
+
             # Discadas = total de llamadas discadas
             # Sumar CALL_TYPE:2:DIAL (manual) y CALL_TYPE:1:DIAL
             dial_type2 = _safe_int(calldata.get('CALL_TYPE:2:DIAL', 0))
@@ -1495,77 +1503,77 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
             discadas = dial_type2 + dial_type1
             if discadas == 0:
                 discadas = dial_out
-            
+
             # Contactadas = llamadas atendidas (EXIT_ANSWERED)
             # Sumar CALL_TYPE:2:EXIT_ANSWERED y CALL_TYPE:1:EXIT_ANSWERED
             exit_answered_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_ANSWERED', 0))
             exit_answered_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_ANSWERED', 0))
             contactadas = exit_answered_type2 + exit_answered_type1
-            
+
             # Contestadores = llamadas que fueron a contestador (AMD - Answering Machine Detection)
             # Usar CALL_TYPE:5:EXIT_AMD
             contestadores = _safe_int(calldata.get('CALL_TYPE:5:EXIT_AMD', 0))
-            
+
             # Busy = llamadas que encontraron ocupado
             # Sumar CALL_TYPE:2:BUSY, CALL_TYPE:2:EXIT_BUSY, CALL_TYPE:1:EXIT_BUSY
             busy_type2 = _safe_int(calldata.get('CALL_TYPE:2:BUSY', 0))
             exit_busy_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_BUSY', 0))
             exit_busy_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_BUSY', 0))
             busy = busy_type2 + exit_busy_type2 + exit_busy_type1
-            
+
             # Congestion = llamadas con congestión
             # Buscar EXIT_CONGESTION en ambos tipos
             exit_congestion_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_CONGESTION', 0))
             exit_congestion_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_CONGESTION', 0))
             congestion = exit_congestion_type2 + exit_congestion_type1
-            
+
             # NOANSWER = llamadas sin respuesta
             noanswer_type2 = _safe_int(calldata.get('CALL_TYPE:2:NOANSWER', 0))
             noanswer_type1 = _safe_int(calldata.get('CALL_TYPE:1:NOANSWER', 0))
             noanswer = noanswer_type2 + noanswer_type1
-            
+
             # Otro Error = calcular como diferencia entre discadas y todas las salidas conocidas
             exit_timeout_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_TIMEOUT', 0))
             exit_timeout_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_TIMEOUT', 0))
-            exit_handoff_timeout_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_HANDOFF_TIMEOUT', 0))
-            exit_handoff_timeout_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_HANDOFF_TIMEOUT', 0))
+            exit_handoff_timeout_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_HANDOFF_TIMEOUT', 0))  # noqa: E501
+            exit_handoff_timeout_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_HANDOFF_TIMEOUT', 0))  # noqa: E501
             exit_abandon_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_ABANDON', 0))
             exit_abandon_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_ABANDON', 0))
-            exit_handoff_abandon_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_HANDOFF_ABANDON', 0))
-            exit_handoff_abandon_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_HANDOFF_ABANDON', 0))
-            
-            total_exits = (exit_answered_type2 + exit_answered_type1 + 
-                          exit_timeout_type2 + exit_timeout_type1 +
-                          exit_handoff_timeout_type2 + exit_handoff_timeout_type1 +
-                          exit_abandon_type2 + exit_abandon_type1 +
-                          exit_handoff_abandon_type2 + exit_handoff_abandon_type1 +
-                          exit_busy_type2 + exit_busy_type1 +
-                          exit_congestion_type2 + exit_congestion_type1 +
-                          noanswer + contestadores)
-            
+            exit_handoff_abandon_type2 = _safe_int(calldata.get('CALL_TYPE:2:EXIT_HANDOFF_ABANDON', 0))  # noqa: E501
+            exit_handoff_abandon_type1 = _safe_int(calldata.get('CALL_TYPE:1:EXIT_HANDOFF_ABANDON', 0))  # noqa: E501
+
+            total_exits = (exit_answered_type2 + exit_answered_type1 +
+                           exit_timeout_type2 + exit_timeout_type1 +
+                           exit_handoff_timeout_type2 + exit_handoff_timeout_type1 +
+                           exit_abandon_type2 + exit_abandon_type1 +
+                           exit_handoff_abandon_type2 + exit_handoff_abandon_type1 +
+                           exit_busy_type2 + exit_busy_type1 +
+                           exit_congestion_type2 + exit_congestion_type1 +
+                           noanswer + contestadores)
+
             otro_error = discadas - total_exits
             if otro_error < 0:
                 otro_error = 0
-            
+
             # Gestiones positivas = llamadas atendidas (EXIT_ANSWERED)
             gestiones_positivas = exit_answered_type2 + exit_answered_type1
-            
+
             # Calcular ATT (Average Talk Time)
             # Sumar tiempos de ambos tipos y dividir por total de atendidas
-            answered_total_time_type2 = _safe_float(calldata.get('CALL_TYPE:2:ANSWERED_TOTAL_TIME', 0))
-            answered_total_time_type1 = _safe_float(calldata.get('CALL_TYPE:1:ANSWERED_TOTAL_TIME', 0))
+            answered_total_time_type2 = _safe_float(calldata.get('CALL_TYPE:2:ANSWERED_TOTAL_TIME', 0))  # noqa: E501
+            answered_total_time_type1 = _safe_float(calldata.get('CALL_TYPE:1:ANSWERED_TOTAL_TIME', 0))  # noqa: E501
             total_answered_time = answered_total_time_type2 + answered_total_time_type1
             total_exit_answered = exit_answered_type2 + exit_answered_type1
-            
+
             if total_exit_answered > 0:
                 att = total_answered_time / total_exit_answered
             else:
                 att = 0
-            
+
             # Calcular tiempo promedio de abandono
             # Sumar tiempos de abandono de ambos tipos
-            abandon_wait_total_time_type2 = _safe_float(calldata.get('CALL_TYPE:2:ABANDON_WAIT_TOTAL_TIME', 0))
-            abandon_wait_total_time_type1 = _safe_float(calldata.get('CALL_TYPE:1:ABANDON_WAIT_TOTAL_TIME', 0))
+            abandon_wait_total_time_type2 = _safe_float(calldata.get('CALL_TYPE:2:ABANDON_WAIT_TOTAL_TIME', 0))  # noqa: E501
+            abandon_wait_total_time_type1 = _safe_float(calldata.get('CALL_TYPE:1:ABANDON_WAIT_TOTAL_TIME', 0))  # noqa: E501
             total_abandon_wait_time = abandon_wait_total_time_type2 + abandon_wait_total_time_type1
             total_exit_abandon = (
                 exit_abandon_type2
@@ -1573,23 +1581,23 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
                 + exit_handoff_abandon_type2
                 + exit_handoff_abandon_type1
             )
-            
+
             if total_exit_abandon > 0:
                 tiempo_prom_abandono = total_abandon_wait_time / total_exit_abandon
             else:
                 tiempo_prom_abandono = 0
-            
+
             # Calcular tiempo promedio de espera
             # Sumar tiempos de espera de ambos tipos
-            bridge_wait_total_time_type2 = _safe_float(calldata.get('CALL_TYPE:2:BRIDGE_WAIT_TOTAL_TIME', 0))
-            bridge_wait_total_time_type1 = _safe_float(calldata.get('CALL_TYPE:1:BRIDGE_WAIT_TOTAL_TIME', 0))
+            bridge_wait_total_time_type2 = _safe_float(calldata.get('CALL_TYPE:2:BRIDGE_WAIT_TOTAL_TIME', 0))  # noqa: E501
+            bridge_wait_total_time_type1 = _safe_float(calldata.get('CALL_TYPE:1:BRIDGE_WAIT_TOTAL_TIME', 0))  # noqa: E501
             total_bridge_wait_time = bridge_wait_total_time_type2 + bridge_wait_total_time_type1
-            
+
             if total_exit_answered > 0:
                 tiempo_prom_espera = total_bridge_wait_time / total_exit_answered
             else:
                 tiempo_prom_espera = 0
-        
+
         return {
             'nombre_camp': nombre_camp,
             'ag_ready': ag_ready,
@@ -1607,14 +1615,15 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
             'gestiones_positivas': gestiones_positivas,
         }
     except Exception as e:
-        logger.error(f"Error obteniendo métricas detalladas de outbound para campaña {campaign_id}: {e}", exc_info=True)
-        # En caso de error, retornar un objeto con valores por defecto pero con el nombre de la campaña
+        logger.error(f"Error obteniendo métricas detalladas de outbound para campaña {campaign_id}: {e}", exc_info=True)  # noqa: E501
+        # En caso de error, retornar un objeto con valores por defecto pero con el nombre de la
+        # campaña
         try:
             campana = Campana.objects.get(id=campaign_id)
             nombre_camp = campana.nombre
         except Campana.DoesNotExist:
             nombre_camp = f"Campaña {campaign_id}"
-        
+
         return {
             'nombre_camp': nombre_camp,
             'ag_ready': 0,
@@ -1636,10 +1645,10 @@ def _get_outbound_detalle_metrics(redis_agent_connection, redis_calldata_connect
 def dashboard_contact_center_outbound_detalle(request):
     """
     Endpoint API que retorna métricas detalladas de outbound para la campaña seleccionada.
-    
+
     Parámetros GET:
     - campaign_id: ID de la campaña (requerido)
-    
+
     Retorna JSON con métricas detalladas de outbound.
     """
     try:
@@ -1667,11 +1676,11 @@ def dashboard_contact_center_outbound_detalle(request):
         # Siempre intentar obtener métricas, incluso si no hay conexión a Redis
         # La función manejará internamente la falta de conexión
         outbound_detalle = _get_outbound_detalle_metrics(
-            redis_agent_connection, 
-            redis_calldata_connection, 
+            redis_agent_connection,
+            redis_calldata_connection,
             campaign_id
         )
-        
+
         # Si la función retorna None (por error), usar valores por defecto
         if outbound_detalle is None:
             # Intentar obtener al menos el nombre de la campaña
@@ -1680,7 +1689,7 @@ def dashboard_contact_center_outbound_detalle(request):
                 nombre_camp = campana.nombre
             except Campana.DoesNotExist:
                 nombre_camp = f"Campaña {campaign_id}"
-            
+
             outbound_detalle = {
                 'nombre_camp': nombre_camp,
                 'ag_ready': 0,
