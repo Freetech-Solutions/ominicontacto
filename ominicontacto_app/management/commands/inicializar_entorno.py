@@ -47,7 +47,7 @@ from configuracion_telefonia_app.regeneracion_configuracion_telefonia import (
     SincronizadorDeConfiguracionTroncalSipEnAsterisk,
     SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk)
 
-from configuracion_telefonia_app.models import DestinoEntrante, TroncalSIP
+from configuracion_telefonia_app.models import DestinoEntrante
 
 from ominicontacto_app.services.creacion_queue import ActivacionQueueService
 from ominicontacto_app.services.asterisk_service import ActivacionAgenteService
@@ -240,7 +240,7 @@ class Command(BaseCommand):
         cantidad = max(2, cantidad)
         agentes_creados = []
         for i in range(0, cantidad):
-            username = f'ag{i+1}'
+            username = f'ag{i + 1}'
             agente = self._crear_agente(grupo, username, PASSWORD)
             agentes_creados.append(agente)
 
@@ -273,14 +273,14 @@ class Command(BaseCommand):
         agente.user.save()
         agente.save()
         agente.user.groups.add(Group.objects.get(name='Agente'))
-        
+
         # Crear DestinoEntrante para el agente (necesario para voicebot)
         DestinoEntrante.objects.create(
             nombre=username,
             tipo=DestinoEntrante.AGENTE,
             content_object=agente
         )
-        
+
         return agente
 
     def _crear_gerente(self, username):
@@ -304,7 +304,7 @@ class Command(BaseCommand):
 
     def _crear_supervisores(self, cantidad):
         for i in range(0, cantidad):
-            username = f'ftsup{i+1}'
+            username = f'ftsup{i + 1}'
             self._crear_supervisor(username)
 
     def _crear_supervisor(self, username):
@@ -342,8 +342,10 @@ class Command(BaseCommand):
         return user
 
     def _crear_dbs_contactos(self):
-        # crear BD default (100 contactos: 1 por prefijo SIP QA + 75 sin prefijo)
-        self.bd_contacto = BaseDatosContactoFactory(cantidad_contactos=100)
+        # crear BD default (1 contacto por prefijo SIP QA + 75 sin prefijo)
+        self.bd_contacto = BaseDatosContactoFactory(
+            cantidad_contactos=len(TELEFONOS_CONTACTO_FACTORY)
+        )
         for telefono in TELEFONOS_CONTACTO_FACTORY:
             ContactoFactory(bd_contacto=self.bd_contacto, telefono=telefono)
 
@@ -424,7 +426,7 @@ class Command(BaseCommand):
         caller_id_saliente = '01177660010'
         remote_host_saliente = 'pbxemulator:5070'
         text_config_ruta_saliente = (
-            "remote_hosts=" + remote_host_saliente + "\n"        
+            "remote_hosts=" + remote_host_saliente + "\n"
             "outbound_auth/username=" + caller_id_saliente + "\n"
             "outbound_auth/password=omnileads\n"
             "registration/contact_user=" + caller_id_saliente + "\n"
@@ -439,7 +441,7 @@ class Command(BaseCommand):
         # 2) Troncal para el voicebot Verloop
         caller_id_voicebot = ''
         remote_host_voicebot = 'pbxemulator:5070'
-        text_config_voicebot = (        
+        text_config_voicebot = (
             "remote_hosts=" + remote_host_voicebot + "\n"
             "outbound_auth/username=" + caller_id_saliente + "\n"
             "outbound_auth/password=omnileads\n"
@@ -538,15 +540,16 @@ class Command(BaseCommand):
         def _agentes(*nombres):
             return [agentes_por_nombre[n] for n in nombres if n in agentes_por_nombre]
 
-        # Inbound: inbound-1 (ag1, ag2, ag3), inbound-2 (ag2, ag3, ag4), inbound-3 (ag5..ag8), inbound-4 (ag9, ag10)
+        # Inbound: inbound-1 (ag1, ag2, ag3), inbound-2 (ag2, ag3, ag4), inbound-3 (ag5..ag8),
+        # inbound-4 (ag9, ag10)
         queue_service.agregar_agentes_en_cola(campana_inbound_1, _agentes('ag1', 'ag2', 'ag3'))
         queue_service.agregar_agentes_en_cola(campana_inbound_2, _agentes('ag2', 'ag3', 'ag4'))
-        queue_service.agregar_agentes_en_cola(campana_inbound_3, _agentes('ag5', 'ag6', 'ag7', 'ag8'))
+        queue_service.agregar_agentes_en_cola(campana_inbound_3, _agentes('ag5', 'ag6', 'ag7', 'ag8'))  # noqa: E501
         queue_service.agregar_agentes_en_cola(campana_inbound_4, _agentes('ag9', 'ag10'))
 
         # Preview: preview-1 (ag1..ag4), preview-2 (ag5..ag8)
-        queue_service.agregar_agentes_en_cola(campana_preview_1, _agentes('ag1', 'ag2', 'ag3', 'ag4'))
-        queue_service.agregar_agentes_en_cola(campana_preview_2, _agentes('ag5', 'ag6', 'ag7', 'ag8'))
+        queue_service.agregar_agentes_en_cola(campana_preview_1, _agentes('ag1', 'ag2', 'ag3', 'ag4'))  # noqa: E501
+        queue_service.agregar_agentes_en_cola(campana_preview_2, _agentes('ag5', 'ag6', 'ag7', 'ag8'))  # noqa: E501
 
         # Campaña manual con agentes base
         queue_service.agregar_agentes_en_cola(campana_manual, agentes_base)

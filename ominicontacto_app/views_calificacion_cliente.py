@@ -30,7 +30,7 @@ from django.utils.translation import gettext as _
 from django.contrib import messages
 from django.urls import reverse
 from django.http.response import HttpResponseRedirect
-from django.shortcuts import redirect, get_object_or_404
+from django.shortcuts import redirect
 from django.views.generic import FormView, CreateView, DetailView, TemplateView
 
 from simple_history.utils import update_change_reason
@@ -103,7 +103,7 @@ class CalificacionClienteFormView(FormView):
                 return None
             # En lugar de lanzar 404, retornamos None para mostrar el formulario de creación
             message = _('El contacto con ID {0} no existe. '
-                        'Se mostrará el formulario para crear un nuevo contacto.'.format(id_contacto))
+                        'Se mostrará el formulario para crear un nuevo contacto.'.format(id_contacto))  # noqa: E501
             messages.info(self.request, message)
             return None
         return contacto
@@ -524,7 +524,7 @@ class CalificacionClienteFormView(FormView):
         # modificamos la entrada de la modificación en la instancia para así diferenciar
         # cambios realizados directamente desde una llamada de las otras modificaciones
         update_change_reason(self.object_calificacion, self.kwargs.get('from'))
-        
+
         # Actualizar tabla de resumen de llamadas
         try:
             from reportes_app.services.llamada_resumen import LlamadaResumenService

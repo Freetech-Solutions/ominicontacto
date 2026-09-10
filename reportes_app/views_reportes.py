@@ -121,7 +121,7 @@ from reportes_app.services.exportacion_conversaciones_respondidas_egresos_centro
 from reportes_app.services.exportacion_conversaciones_no_respondidas_centro_contacto import (
     obtener_url_descarga_conversaciones_no_respondidas,
 )
-from reportes_app.services.exportacion_conversaciones_no_respondidas_egresos_centro_contacto import (
+from reportes_app.services.exportacion_conversaciones_no_respondidas_egresos_centro_contacto import (  # noqa: E501
     obtener_url_descarga_conversaciones_no_respondidas_egresos,
 )
 from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_centro_contacto import (
@@ -133,7 +133,7 @@ from reportes_app.services.exportacion_whatsapp_mensajes_por_hora_egresos_centro
 from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_centro_contacto import (
     obtener_url_descarga_whatsapp_mensajes_por_campana,
 )
-from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_egresos_centro_contacto import (
+from reportes_app.services.exportacion_whatsapp_mensajes_por_campana_egresos_centro_contacto import (  # noqa: E501
     obtener_url_descarga_whatsapp_mensajes_por_campana_egresos,
 )
 from reportes_app.services.exportacion_whatsapp_mensajes_por_dia_centro_contacto import (
@@ -431,8 +431,8 @@ class CampanaReporteGraficoView(FormView):
         context['campana_entrante'] = (self.campana.type == Campana.TYPE_ENTRANTE)
         context['task_id'] = get_random_string(8)
         # Agregar setting para verificar si es omnidialer
-        context['es_omnidialer'] = (hasattr(settings, 'OML_DIALER_ENGINE') and 
-                                     settings.OML_DIALER_ENGINE == 'omnidialer')
+        context['es_omnidialer'] = (hasattr(settings, 'OML_DIALER_ENGINE') and
+                                    settings.OML_DIALER_ENGINE == 'omnidialer')
         return context
 
     def form_valid(self, form):
@@ -676,14 +676,14 @@ class ReporteNivelServicioView(FormView):
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         user = self.request.user
-        
+
         # Obtener campañas asignadas según el tipo de usuario
         if user.get_is_administrador():
             campanas_asignadas = Campana.objects.obtener_actuales()
         else:
             supervisor = user.get_supervisor_profile()
             campanas_asignadas = supervisor.campanas_asignadas_actuales()
-        
+
         kwargs['campanas_asignadas'] = campanas_asignadas
         return kwargs
 
@@ -700,7 +700,7 @@ class ReporteNivelServicioView(FormView):
         hoy = hoy_ahora.date()
         fecha_desde = datetime.datetime.combine(hoy, datetime.time.min)
         fecha_hasta = datetime.datetime.combine(hoy_ahora, datetime.time.max)
-        
+
         # Obtener campañas entrantes y Dialer
         user = request.user
         if user.get_is_administrador():
@@ -710,7 +710,7 @@ class ReporteNivelServicioView(FormView):
             supervisor = user.get_supervisor_profile()
             campanas = supervisor.campanas_asignadas_actuales().filter(
                 type__in=[Campana.TYPE_ENTRANTE, Campana.TYPE_DIALER])
-        
+
         # Generar reporte
         reporte = ReporteNivelServicio(
             fecha_desde=fecha_desde,
@@ -718,7 +718,7 @@ class ReporteNivelServicioView(FormView):
             campanas=campanas,
             tiempo_objetivo=20
         )
-        
+
         return self.render_to_response(self.get_context_data(
             desde=fecha_desde,
             hasta=fecha_hasta,
@@ -733,7 +733,7 @@ class ReporteNivelServicioView(FormView):
         fecha_hasta = form.hasta
         tiempo_objetivo = form.cleaned_data.get('tiempo_objetivo', 20)
         campana_id = form.cleaned_data.get('campana')
-        
+
         # Obtener campañas según filtro (entrantes y Dialer)
         user = self.request.user
         if user.get_is_administrador():
@@ -743,11 +743,11 @@ class ReporteNivelServicioView(FormView):
             supervisor = user.get_supervisor_profile()
             campanas = supervisor.campanas_asignadas_actuales().filter(
                 type__in=[Campana.TYPE_ENTRANTE, Campana.TYPE_DIALER])
-        
+
         # Filtrar por campaña específica si se seleccionó
         if campana_id:
             campanas = campanas.filter(id=campana_id)
-        
+
         # Generar reporte
         reporte = ReporteNivelServicio(
             fecha_desde=fecha_desde,
@@ -755,7 +755,7 @@ class ReporteNivelServicioView(FormView):
             campanas=campanas,
             tiempo_objetivo=tiempo_objetivo
         )
-        
+
         return self.render_to_response(self.get_context_data(
             desde=fecha_desde,
             hasta=fecha_hasta,
@@ -776,6 +776,7 @@ class DescargarCSVCanalidadesCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por campaña generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -795,6 +796,7 @@ class DescargarCSVCanalidadesEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por campaña (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -814,6 +816,7 @@ class DescargarCSVCanalidadesPorHoraCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por hora generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -833,6 +836,7 @@ class DescargarCSVCanalidadesPorHoraEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por hora (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -852,6 +856,7 @@ class DescargarCSVCanalidadesPorDiaCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por día generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -871,6 +876,7 @@ class DescargarCSVCanalidadesPorDiaEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por día (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -890,6 +896,7 @@ class DescargarCSVCanalidadesPorMesCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por mes generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -909,6 +916,7 @@ class DescargarCSVCanalidadesPorMesEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Canalidades por mes (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -928,6 +936,7 @@ class DescargarCSVLlamadasAtendidasCentroContactoView(View):
     GET: redirige al archivo CSV de Listado de llamadas atendidas generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -947,6 +956,7 @@ class DescargarCSVLlamadasAtendidasEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Listado de llamadas atendidas (Egresos/Voz)
     generado para task_id. El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -966,6 +976,7 @@ class DescargarCSVLlamadasNoAtendidasCentroContactoView(View):
     GET: redirige al archivo CSV de Listado de llamadas no atendidas generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -982,9 +993,10 @@ class DescargarCSVLlamadasNoAtendidasCentroContactoView(View):
 
 class DescargarCSVLlamadasNoAtendidasEgresosCentroContactoView(View):
     """
-    GET: redirige al archivo CSV de Listado de llamadas no atendidas (Egresos) generado para task_id.
+    GET: redirige al archivo CSV de Listado de llamadas no atendidas (Egresos) generado para task_id.  # noqa: E501
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1004,6 +1016,7 @@ class DescargarCSVLlamadasVozCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas de voz por campaña generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1023,6 +1036,7 @@ class DescargarCSVLlamadasVozEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas de voz por campaña (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1042,6 +1056,7 @@ class DescargarCSVLlamadasPorHoraCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas por hora de día generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1061,6 +1076,7 @@ class DescargarCSVLlamadasPorHoraEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas por hora de día (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1080,6 +1096,7 @@ class DescargarCSVLlamadasPorDiaCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas por día generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1099,6 +1116,7 @@ class DescargarCSVLlamadasPorDiaEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas por día (Egresos/Voz) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1118,6 +1136,7 @@ class DescargarCSVLlamadasPorMesCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas por mes generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1137,6 +1156,7 @@ class DescargarCSVLlamadasPorMesEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Llamadas por mes (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1156,6 +1176,7 @@ class DescargarCSVConversacionesRespondidasCentroContactoView(View):
     GET: redirige al archivo CSV de Conversaciones Respondidas generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1175,6 +1196,7 @@ class DescargarCSVConversacionesRespondidasEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Conversaciones Respondidas (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1194,6 +1216,7 @@ class DescargarCSVConversacionesNoRespondidasCentroContactoView(View):
     GET: redirige al archivo CSV de Conversaciones no respondidas generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1213,6 +1236,7 @@ class DescargarCSVConversacionesNoRespondidasEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Conversaciones no respondidas (Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1232,6 +1256,7 @@ class DescargarCSVWhatsappMensajesPorHoraCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por hora de día (WhatsApp) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1251,6 +1276,7 @@ class DescargarCSVWhatsappMensajesPorHoraEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por hora (WhatsApp Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1270,6 +1296,7 @@ class DescargarCSVWhatsappMensajesPorCampanaCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por campaña (WhatsApp Ingresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1289,6 +1316,7 @@ class DescargarCSVWhatsappMensajesPorCampanaEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por campaña (WhatsApp Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1308,6 +1336,7 @@ class DescargarCSVWhatsappMensajesPorDiaCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por día (WhatsApp Ingresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1327,6 +1356,7 @@ class DescargarCSVWhatsappMensajesPorDiaEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por día (WhatsApp Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1346,6 +1376,7 @@ class DescargarCSVWhatsappMensajesPorMesCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por mes (WhatsApp Ingresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1365,6 +1396,7 @@ class DescargarCSVWhatsappMensajesPorMesEgresosCentroContactoView(View):
     GET: redirige al archivo CSV de Mensajes por mes (WhatsApp Egresos) generado para task_id.
     El usuario debe tener permiso de reporte centro de contacto.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:
@@ -1383,6 +1415,7 @@ class DescargarCSVAgentsActivityV2ListadoView(View):
     """
     GET: redirige al archivo CSV de agents-activity-v2/Listado generado para task_id.
     """
+
     def get(self, request, *args, **kwargs):
         task_id = kwargs.get('task_id', '').strip()
         if not task_id:

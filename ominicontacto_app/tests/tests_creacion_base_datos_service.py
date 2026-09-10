@@ -195,13 +195,13 @@ class TestSaneadorNombreDeCampo(OMLBaseTest):
         for nombre_original, nombre_saneado_esperado in NOMBRES:
             resultado = service.sanear_nombre_de_columna(nombre_original)
             self.assertEqual(resultado,
-                              nombre_saneado_esperado,
-                              "sanear_nombre_de_columna() ha devuelto un "
-                              "valor inesperado al sanear '{0}'. "
-                              "Devolvio: '{1}', se esperaba '{2}'"
-                              "".format(nombre_original,
-                                        resultado,
-                                        nombre_saneado_esperado))
+                             nombre_saneado_esperado,
+                             "sanear_nombre_de_columna() ha devuelto un "
+                             "valor inesperado al sanear '{0}'. "
+                             "Devolvio: '{1}', se esperaba '{2}'"
+                             "".format(nombre_original,
+                                       resultado,
+                                       nombre_saneado_esperado))
 
 
 class TestImportarDesdeCsvNoAscii(OMLBaseTest):

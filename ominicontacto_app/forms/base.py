@@ -163,7 +163,7 @@ class CustomUserCreationForm(UserCreationForm):
         grupo = cleaned_data.get('grupo')
         sip_remote = cleaned_data.get('sip_remote', False)
         voicebot = cleaned_data.get('voicebot', False)
-        
+
         if rol and rol.name == User.AGENTE and not cleaned_data.get('email'):
             self.add_error("email", _("Este campo es requerido para un usuario de tipo Agente."))
         if rol and rol.name == User.AGENTE and not grupo:
@@ -246,7 +246,7 @@ class UserChangeForm(forms.ModelForm):
 
 
 class UserAgentUpdateForm(UserChangeForm):
-    """Formulario para editar usuario agente: datos de usuario + campos de perfil (SIP remote, Voicebot, etc.)."""
+    """Formulario para editar usuario agente: datos + perfil (SIP remote, Voicebot)."""
     sip_remote = forms.BooleanField(
         required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
         label=_('SIP remote'), initial=False)
@@ -268,7 +268,9 @@ class UserAgentUpdateForm(UserChangeForm):
         model = User
         fields = ('username', 'first_name', 'last_name', 'email', 'password1', 'password2')
 
-    def __init__(self, mostrar_autenticacion_externa, habilitar_autenticacion_externa, *args, **kwargs):
+    def __init__(
+            self, mostrar_autenticacion_externa, habilitar_autenticacion_externa,
+            *args, **kwargs):
         super().__init__(
             mostrar_autenticacion_externa=mostrar_autenticacion_externa,
             habilitar_autenticacion_externa=habilitar_autenticacion_externa,
@@ -592,6 +594,7 @@ class AgenteModelChoiceField(forms.ModelChoiceField):
     """
     Campo personalizado para mostrar agentes con información de voicebot
     """
+
     def label_from_instance(self, obj):
         label = obj.user.get_full_name() or obj.user.get_username()
         if obj.voicebot:
@@ -608,10 +611,10 @@ class QueueMemberForm(forms.ModelForm):
         # Extraer members de kwargs o del primer argumento posicional para compatibilidad
         members = kwargs.pop('members', None)
         if members is None and len(args) > 0:
-            # Compatibilidad con llamadas antiguas que pasan members como primer argumento posicional
+            # Compatibilidad con llamadas antiguas (members como 1er arg posicional)
             members = args[0]
             args = args[1:]
-        
+
         super(QueueMemberForm, self).__init__(*args, **kwargs)
 
         # Si members no está definido, obtener los agentes activos por defecto
@@ -2640,7 +2643,7 @@ class QueueMemberBaseFomset(BaseInlineFormSet):
         if self.members is None:
             from ominicontacto_app.models import AgenteProfile
             self.members = AgenteProfile.objects.obtener_activos().prefetch_related('user')
-        # Pasar members como kwarg y llamar al método padre para que inicialice correctamente el formulario
+        # Pasar members como kwarg; el padre inicializa el formulario
         kwargs['members'] = self.members
         return super(QueueMemberBaseFomset, self)._construct_form(index, **kwargs)
 
@@ -2666,10 +2669,11 @@ class QueueMemberBaseFomset(BaseInlineFormSet):
             # Verificar si es voicebot
             if hasattr(member, 'voicebot') and member.voicebot:
                 voicebots.append(member)
-        
-        # Validar que haya al menos un voicebot cuando tipo_destino_dialer es REMOTE_AGENT
+
+        # Validar al menos un voicebot si tipo_destino_dialer es REMOTE_AGENT
         from configuracion_telefonia_app.models import DestinoEntrante
-        if self.tipo_destino_dialer and str(self.tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT):
+        remoto = str(DestinoEntrante.REMOTE_AGENT)
+        if self.tipo_destino_dialer and str(self.tipo_destino_dialer) == remoto:
             if len(voicebots) == 0:
                 raise forms.ValidationError(
                     _("Cuando el destino de llamada Dialer es 'Agente Remoto', "

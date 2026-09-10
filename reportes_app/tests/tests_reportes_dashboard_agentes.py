@@ -154,7 +154,8 @@ class DashboardAgenteTests(OMLBaseTest):
         tiempo_removemember_1 = tiempo_inicial + timedelta(microseconds=20000)
         tiempo_addmember = tiempo_removemember_1 + timedelta(microseconds=3000)
         tiempo_removemember_2 = tiempo_addmember + timedelta(hours=horas_sesion)
-        # Fuente v2: AgentActivityEventV2 (ReporteEstadisticasDiariaAgente usa get_agent_activity_kpis_v2)
+        # Fuente v2: AgentActivityEventV2 (ReporteEstadisticasDiariaAgente usa
+        # get_agent_activity_kpis_v2)
         AgentActivityEventV2.objects.create(
             agente_id=self.agente_profile.id, ts=tiempo_addmember,
             event_type=AgentActivityEventV2.EventType.SESSION_LOGIN)
@@ -176,7 +177,8 @@ class DashboardAgenteTests(OMLBaseTest):
         tiempo_inicio_pausa_2 = tiempo_final_pausa_1 + timedelta(minutes=2)
         tiempo_final_pausa_2 = tiempo_inicio_pausa_2 + timedelta(minutes=2)
         tiempo_removemember_2 = tiempo_final_pausa_2 + timedelta(hours=horas_sesion)
-        # Fuente v2: AgentActivityEventV2 (ReporteEstadisticasDiariaAgente usa get_agent_activity_kpis_v2)
+        # Fuente v2: AgentActivityEventV2 (ReporteEstadisticasDiariaAgente usa
+        # get_agent_activity_kpis_v2)
         AgentActivityEventV2.objects.create(
             agente_id=self.agente_profile.id, ts=tiempo_addmember,
             event_type=AgentActivityEventV2.EventType.SESSION_LOGIN)
@@ -205,7 +207,7 @@ class DashboardAgenteTests(OMLBaseTest):
     def test_talk_pct_incluido_y_porcentajes_suman_100(
             self, mock_session_data, mock_interactions_kpis):
         """Verifica que talk_pct está en el payload y que los 4 porcentajes suman 100."""
-        hoy = now().date().isoformat()
+        now().date().isoformat()
         mock_session_data.return_value = {
             self.agente_profile.pk: {
                 'session': timedelta(hours=1),
@@ -224,7 +226,7 @@ class DashboardAgenteTests(OMLBaseTest):
         ]
 
         with patch('reportes_app.reportes.reporte_estadisticas_agentes.get_agent_transfer_counts',
-                  return_value=[]):
+                   return_value=[]):
             with patch('reportes_app.reportes.reporte_estadisticas_agentes.'
                        'get_agent_transfer_in_counts', return_value=[]):
                 with patch('reportes_app.reportes.reporte_estadisticas_agentes.'
@@ -241,7 +243,7 @@ class DashboardAgenteTests(OMLBaseTest):
             datos_agente['pause_pct'] + datos_agente['talk_pct']
         )
         self.assertEqual(total_pct, 100,
-                        'Los 4 porcentajes deben sumar 100 (ready+acw+pause+talk)')
+                         'Los 4 porcentajes deben sumar 100 (ready+acw+pause+talk)')
 
     @patch('reportes_app.reportes.reporte_estadisticas_agentes.create_redis_connection')
     def test_conectadas_desde_redis_oml_agentdata(self, mock_create_redis):
@@ -265,9 +267,9 @@ class DashboardAgenteTests(OMLBaseTest):
         self.assertEqual(conectadas['total'], 6)
         mock_create_redis.assert_called_once_with(db=2)
 
-    @patch('reportes_app.reportes.reporte_estadisticas_agentes.ReporteEstadisticasDiariaAgente._obtener_conversaciones_whatsapp')
+    @patch('reportes_app.reportes.reporte_estadisticas_agentes.ReporteEstadisticasDiariaAgente._obtener_conversaciones_whatsapp')  # noqa: E501
     def test_logs_incluyen_whatsapp_y_estan_ordenados_limite(self, mock_obtener_wa):
-        """Verifica que los logs incluyen entradas WhatsApp y que la unión voz+WA está ordenada y limitada."""
+        """Verifica que los logs incluyen entradas WhatsApp y que la unión voz+WA está ordenada y limitada."""  # noqa: E501
         from django.utils.timezone import localtime
 
         # Una conversación WhatsApp mock
@@ -292,8 +294,9 @@ class DashboardAgenteTests(OMLBaseTest):
 
         # Todos los logs deben tener channel (VOICE o WHATSAPP)
         for log in logs:
-            self.assertIn(log.get('channel'), ('VOICE', 'WHATSAPP'), 'Cada log debe tener channel VOICE o WHATSAPP')
+            self.assertIn(log.get('channel'), ('VOICE', 'WHATSAPP'),
+                          'Cada log debe tener channel VOICE o WHATSAPP')
 
         # Máximo CANTIDAD_LOGS
         self.assertLessEqual(len(logs), ReporteEstadisticasDiariaAgente.CANTIDAD_LOGS,
-                            'Los logs deben estar limitados a CANTIDAD_LOGS')
+                             'Los logs deben estar limitados a CANTIDAD_LOGS')

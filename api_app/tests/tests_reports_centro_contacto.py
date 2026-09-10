@@ -762,7 +762,7 @@ class ObtenerKpisCentroContactoTest(SimpleTestCase):
         )
         self.assertFalse(
             has_address_filter,
-            'No debe aplicar filtro por source_address/destination_address cuando address_query es None.',
+            'No debe aplicar filtro por source_address/destination_address cuando address_query es None.',  # noqa: E501
         )
 
     @patch('api_app.views.reports_centro_contacto.InteractionsSummary')
@@ -780,7 +780,7 @@ class ObtenerKpisCentroContactoTest(SimpleTestCase):
         )
 
         self.assertTrue(
-            any(kwargs.get('interaction_id') == 'abc-123' for _, kwargs in queryset.filter.call_args_list),
+            any(kwargs.get('interaction_id') == 'abc-123' for _, kwargs in queryset.filter.call_args_list),  # noqa: E501
             'Debe aplicar queryset.filter(interaction_id=callid) cuando se informa callid.',
         )
 
@@ -828,7 +828,7 @@ class ObtenerKpisCentroContactoTest(SimpleTestCase):
                 for _, kwargs in filter_calls
                 if kwargs
             ),
-            'Debe aplicar queryset.filter(bot_duration__gte=30) cuando se informa duracion_bot_min=30.',
+            'Debe aplicar queryset.filter(bot_duration__gte=30) cuando se informa duracion_bot_min=30.',  # noqa: E501
         )
 
 
@@ -907,6 +907,7 @@ class ObtenerLlamadasPorCampanaTransferenciasTest(SimpleTestCase):
         ]
         values_qs.annotate.return_value = annotate_qs
         queryset.values.return_value = values_qs
+
         def values_list_side_effect(*fields):
             if len(fields) >= 4:
                 return [
@@ -1505,7 +1506,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         )
 
     def test_transfer_out_timeout_origen_sin_expirada_destino_con_expirada(self):
-        """Timeout final con xfer a otra campaña e is_transferred: respondida en origen; expirada en destino."""
+        """Timeout final con xfer a otra campaña e is_transferred: respondida en origen; expirada en destino."""  # noqa: E501
         iid = 'cc-xfer-out-%s' % self.campana_origen.pk
         InteractionsSummary.objects.create(
             interaction_id=iid,
@@ -1562,7 +1563,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         self.assertEqual(destino['transferred'], 1)
 
     def test_transfer_out_timeout_cero_agent_duration_cuenta_respondida_si_is_transferred(self):
-        """Caso real: EXIT_TIMEOUT, agent_duration 0, is_transferred y xfer a campaña -> respondida en origen."""
+        """Caso real: EXIT_TIMEOUT, agent_duration 0, is_transferred y xfer a campaña -> respondida en origen."""  # noqa: E501
         iid = 'cc-xfer-out-no-agent-%s' % self.campana_origen.pk
         InteractionsSummary.objects.create(
             interaction_id=iid,
@@ -1600,7 +1601,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         self.assertEqual(origen['answered'], 1)
 
     def test_transfer_out_timeout_is_transferred_false_no_cuenta_respondida(self):
-        """Xfer a otra campaña con is_transferred=False: no sumar answered en origen (sin EXIT_ANSWERED)."""
+        """Xfer a otra campaña con is_transferred=False: no sumar answered en origen (sin EXIT_ANSWERED)."""  # noqa: E501
         iid = 'cc-xfer-out-not-flagged-%s' % self.campana_origen.pk
         InteractionsSummary.objects.create(
             interaction_id=iid,
@@ -1756,8 +1757,8 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
                 'agent_segments': [
                     {
                         'agent_id': 1,
-                        'start_ts': (self.desde + timedelta(hours=11, minutes=1, seconds=38)).isoformat(),
-                        'end_ts': (self.desde + timedelta(hours=11, minutes=1, seconds=42)).isoformat(),
+                        'start_ts': (self.desde + timedelta(hours=11, minutes=1, seconds=38)).isoformat(),  # noqa: E501
+                        'end_ts': (self.desde + timedelta(hours=11, minutes=1, seconds=42)).isoformat(),  # noqa: E501
                         'talk_duration': 3.967,
                     },
                 ],
@@ -1821,14 +1822,14 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
                 'agent_segments': [
                     {
                         'agent_id': 1,
-                        'start_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=3)).isoformat(),
-                        'end_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=9)).isoformat(),
+                        'start_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=3)).isoformat(),  # noqa: E501
+                        'end_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=9)).isoformat(),  # noqa: E501
                         'talk_duration': 6.0,
                     },
                     {
                         'agent_id': 2,
-                        'start_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=12)).isoformat(),
-                        'end_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=30)).isoformat(),
+                        'start_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=12)).isoformat(),  # noqa: E501
+                        'end_ts': (self.desde + timedelta(hours=12, minutes=15, seconds=30)).isoformat(),  # noqa: E501
                         'talk_duration': 18.0,
                     },
                 ],
@@ -1889,14 +1890,14 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
                 'agent_segments': [
                     {
                         'agent_id': 1,
-                        'start_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=2)).isoformat(),
-                        'end_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=10)).isoformat(),
+                        'start_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=2)).isoformat(),  # noqa: E501
+                        'end_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=10)).isoformat(),  # noqa: E501
                         'talk_duration': 8.0,
                     },
                     {
                         'agent_id': 5,
                         'start_ts': seg2_start.isoformat(),
-                        'end_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=40)).isoformat(),
+                        'end_ts': (self.desde + timedelta(hours=13, minutes=5, seconds=40)).isoformat(),  # noqa: E501
                         'talk_duration': 17.072,
                     },
                 ],
@@ -1933,7 +1934,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         self.assertEqual(destino['expired'], 0)
 
     def test_transfer_agent_attended_no_suma_transferred_ni_transfer_columns(self):
-        """Transfer a agente (ATTENDED): is_transferred no debe inflar transferred ni Transfer In/Out."""
+        """Transfer a agente (ATTENDED): is_transferred no debe inflar transferred ni Transfer In/Out."""  # noqa: E501
         iid = 'cc-xfer-agent-%s' % self.campana_origen.pk
         InteractionsSummary.objects.create(
             interaction_id=iid,
@@ -1980,7 +1981,7 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
     'Requiere tabla interactions_summary',
 )
 class ObtenerLlamadasSalientesPorCampanaTest(OMLBaseTest):
-    """Métricas de egresos voz por campaña: contactadas PSTN, % Ag, % No Conectadas, % Transferencias."""
+    """Métricas de egresos voz por campaña: contactadas PSTN, % Ag, % No Conectadas, % Transferencias."""  # noqa: E501
 
     def setUp(self):
         super(ObtenerLlamadasSalientesPorCampanaTest, self).setUp()
@@ -2026,9 +2027,9 @@ class ObtenerLlamadasSalientesPorCampanaTest(OMLBaseTest):
         self._create_outbound('EXIT_TIMEOUT', agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('EXIT_HANDOFF_ABANDON', agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('EXIT_HANDOFF_TIMEOUT', agent_id=-1, agent_duration=Decimal('0'))
-        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
-        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
-        self._create_outbound('CANCEL', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('CANCEL', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
 
         rows = obtener_llamadas_salientes_por_campana(
             start_date=self.desde,
@@ -2072,8 +2073,8 @@ class ObtenerLlamadasSalientesPorCampanaTest(OMLBaseTest):
         self.assertEqual(suma_categorias, row['sent'])
 
     def test_division_por_cero_sin_contactadas_pstn(self):
-        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
-        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('BUSY', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
 
         rows = obtener_llamadas_salientes_por_campana(
             start_date=self.desde,
@@ -2160,9 +2161,9 @@ class ObtenerLlamadasSalientesPorHoraTest(OMLBaseTest):
         self._create_outbound('EXIT_SHORTCALL', hour=10, agent_duration=Decimal('2'))
         self._create_outbound('EXIT_ABANDON', hour=10, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('EXIT_TIMEOUT', hour=10, agent_id=-1, agent_duration=Decimal('0'))
-        self._create_outbound('NOANSWER', hour=10, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
-        self._create_outbound('BUSY', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
-        self._create_outbound('CANCEL', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('NOANSWER', hour=10, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('BUSY', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('CANCEL', hour=11, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
 
         rows = obtener_llamadas_salientes_por_hora(
             start_date=self.desde,
@@ -2264,11 +2265,11 @@ class ObtenerLlamadasSalientesPorDiaTest(OMLBaseTest):
         self._create_outbound('EXIT_ANSWERED', day_offset=1, is_transferred=True)
         self._create_outbound('EXIT_AMD', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
         self._create_outbound('EXIT_SHORTCALL', day_offset=1, agent_duration=Decimal('2'))
-        self._create_outbound('EXIT_ABANDON', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
-        self._create_outbound('EXIT_TIMEOUT', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))
-        self._create_outbound('NOANSWER', day_offset=1, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
-        self._create_outbound('BUSY', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
-        self._create_outbound('CANCEL', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))
+        self._create_outbound('EXIT_ABANDON', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('EXIT_TIMEOUT', day_offset=1, agent_id=-1, agent_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('NOANSWER', day_offset=1, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('BUSY', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
+        self._create_outbound('CANCEL', day_offset=2, agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'))  # noqa: E501
 
         rows = obtener_llamadas_salientes_por_dia(
             start_date=self.desde,
@@ -2687,7 +2688,7 @@ class ParseExportFiltersTest(OMLBaseTest):
 
     def setUp(self):
         super(ParseExportFiltersTest, self).setUp()
-        self.crear_administrador()
+        self.administrador = self.crear_administrador()
         self.campana = CampanaFactory.create(
             estado=Campana.ESTADO_ACTIVA,
             type=Campana.TYPE_DIALER,

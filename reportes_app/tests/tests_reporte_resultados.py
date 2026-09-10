@@ -75,6 +75,10 @@ class ReporteDeResultadosTests(APITest, BaseTestDeReportes):
         self.assertTemplateUsed(response, 'registration/login.html')
 
     def test_usuario_logueado_accede_reporte_de_resultados(self):
+        # APITest deja logueado un supervisor sin rol/permisos; usar admin con permisos OML.
+        self.actualizar_permisos()
+        self.client.login(
+            username=self.usuario_admin_supervisor.username, password=PASSWORD)
         url = reverse('reporte_de_resultados', args=[self.campana_activa.pk])
         response = self.client.get(url, follow=True)
         self.assertTemplateUsed(response, 'reporte_de_resultados.html')
@@ -166,6 +170,9 @@ class ReporteDeResultadosTests(APITest, BaseTestDeReportes):
         self.assertEqual(response_json, self.response_ok)
 
     def test_cantidad_contactos_en_reporte_de_resultados(self):
+        self.actualizar_permisos()
+        self.client.login(
+            username=self.usuario_admin_supervisor.username, password=PASSWORD)
         url = reverse('reporte_de_resultados', args=[self.campana_activa.pk])
         response = self.client.get(url, follow=True)
         self.assertIsNotNone(response.context['cantidad_contactos'])

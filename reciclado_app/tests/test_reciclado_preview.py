@@ -54,7 +54,6 @@ class RecicladoTest(OMLBaseTest):
         connections['replica'].cursor = connections['default'].cursor
 
     def test_devuelve_correctamente_no_contactacion(self):
-
         """
         este test testea todos los resultados las cantidad de los no
         contactdos chequeando que devuelva correctamente

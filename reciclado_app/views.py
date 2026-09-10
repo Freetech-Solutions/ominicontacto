@@ -161,6 +161,7 @@ class ReciclarCampanaDialerFormView(ReciclarCampanaMixin, FormView):
     Esta vista muestra los distintos tipo de reciclados de las campanas
     dialer
     """
+
     def dispatch(self, request, *args, **kwargs):
         campana = self._get_campana()
         cache = self._get_estadisticas_reciclado()
@@ -244,6 +245,7 @@ class ReciclarCampanaPreviewFormView(ReciclarCampanaMixin, FormView):
     Esta vista muestra los distintos tipo de reciclados de las campanas
     preview
     """
+
     def _reciclar_crear_nueva_campana(self, campana_reciclada, campana):
         crea_campana_template = reverse("campana_preview_template_create_campana",
                                         kwargs={"pk_campana_template": campana_reciclada.pk,

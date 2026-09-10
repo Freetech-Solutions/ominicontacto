@@ -304,7 +304,7 @@ class ReporteCentroContactoForm(forms.Form):
             if selected_finalized:
                 self.add_error(
                     'campana',
-                    _('Para seleccionar campañas finalizadas active "Incluir campañas finalizadas".')
+                    _('Para seleccionar campañas finalizadas active "Incluir campañas finalizadas".')  # noqa: E501
                 )
 
         if not grupos:
@@ -372,20 +372,20 @@ class ReporteNivelServicioForm(forms.Form):
         max_value=300,
         widget=forms.NumberInput(attrs={'class': 'form-control'}),
         label=_('Tiempo objetivo (segundos)'),
-        help_text=_('Tiempo máximo de espera en cola para considerar cumplimiento del objetivo (default: 20s)')
+        help_text=_('Tiempo máximo de espera en cola para considerar cumplimiento del objetivo (default: 20s)')  # noqa: E501
     )
 
     def __init__(self, campanas_asignadas=None, *args, **kwargs):
         super(ReporteNivelServicioForm, self).__init__(*args, **kwargs)
-        
+
         if campanas_asignadas is None:
             campanas_asignadas = []
-        
+
         # Filtrar campañas entrantes y Dialer
         from ominicontacto_app.models import Campana
-        campanas_filtradas = [c for c in campanas_asignadas 
+        campanas_filtradas = [c for c in campanas_asignadas
                               if c.type in [Campana.TYPE_ENTRANTE, Campana.TYPE_DIALER]]
-        
+
         campana_choices = [(c.id, c.nombre) for c in campanas_filtradas]
         campana_choices.insert(0, ('', _('Todas las campañas (entrantes y Dialer)')))
         self.fields['campana'].choices = campana_choices

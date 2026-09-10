@@ -176,7 +176,7 @@ class ReporteEstadisticasDiariaAgente(object):
                 timestamp__lte=self.hasta,
                 agent_id__in=agent_ids,
             )
-            .select_related('client', 'campana', 'conversation_disposition', 'conversation_disposition__opcion_calificacion')
+            .select_related('client', 'campana', 'conversation_disposition', 'conversation_disposition__opcion_calificacion')  # noqa: E501
             .order_by(Coalesce('date_last_interaction', 'timestamp').desc())
         )
 
@@ -328,7 +328,7 @@ class ReporteEstadisticasDiariaAgente(object):
                 }
         sort_dt = conversacion.date_last_interaction or conversacion.timestamp
         sort_time = sort_dt.isoformat() if sort_dt else ''
-        tipo_campana = conversacion.campana.type if conversacion.campana_id and conversacion.campana else None
+        tipo_campana = conversacion.campana.type if conversacion.campana_id and conversacion.campana else None  # noqa: E501
         linea_log = {
             'phone': phone,
             'data': data,
@@ -353,12 +353,12 @@ class ReporteEstadisticasDiariaAgente(object):
             return
         if evento == 'ANSWER' and tipo_campana != Campana.TYPE_DIALER:
             self.adicionar_log(numero_marcado, callid, agente_id, campana_id, tipo_campana,
-                              contacto_id, sort_time=end_time)
+                               contacto_id, sort_time=end_time)
             self.estadisticas[agente_id]['conectadas']['total'] += 1
             self.estadisticas[agente_id]['conectadas']['salientes'] += 1
         if evento == 'CONNECT':
             self.adicionar_log(numero_marcado, callid, agente_id, campana_id, tipo_campana,
-                              contacto_id, sort_time=end_time)
+                               contacto_id, sort_time=end_time)
             self.estadisticas[agente_id]['conectadas']['total'] += 1
             if tipo_llamada == LLAMADA_ENTRANTE:
                 self.estadisticas[agente_id]['conectadas']['entrantes'] += 1

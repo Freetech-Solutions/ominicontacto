@@ -92,7 +92,10 @@ class ReporteDeResultadosDeCampana(object):
 
     def _registrar_resultados_telefonicos(self, contactos_ids, calificados_ids):
         # Último evento telefónico (EXIT_ANSWERED, NOANSWER, etc.) por contacto.
-        eventos = list(LlamadaResumen.EVENTOS_NO_CONEXION) + list(LlamadaResumen.EVENTOS_FIN_CONEXION)
+        eventos = (
+            list(LlamadaResumen.EVENTOS_NO_CONEXION)
+            + list(LlamadaResumen.EVENTOS_FIN_CONEXION)
+        )
         params = {'campana_id': self.campana.id,
                   'contactos_ids': list(contactos_ids),
                   'eventos': eventos}
@@ -131,8 +134,13 @@ class ReporteDeResultadosDeCampana(object):
 
     def registrar_cantidad_de_contactos(self):
         ids = self.contactaciones.keys()
-        cantidades = LlamadaResumen.objects.filter(campana_id=self.campana.id, contacto_id__in=ids).\
-            values('contacto_id').annotate(intentos=Count('callid', distinct=True))
+        cantidades = (
+            LlamadaResumen.objects.filter(
+                campana_id=self.campana.id, contacto_id__in=ids
+            ).values('contacto_id').annotate(
+                intentos=Count('callid', distinct=True)
+            )
+        )
         for cantidad in cantidades:
             self.contactaciones[cantidad['contacto_id']]['intentos'] = cantidad['intentos']
         return

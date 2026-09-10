@@ -29,14 +29,14 @@ _pools_lock = threading.Lock()
 def create_redis_connection(db=0):
     """
     Crea o retorna una conexión Redis reutilizando connection pools.
-    
+
     Implementa connection pooling para mejorar el rendimiento y reducir
     el overhead de crear nuevas conexiones en cada request.
     Utiliza thread-safety para prevenir race conditions en la creación de pools.
-    
+
     Args:
         db (int): Número de base de datos Redis (default: 0)
-    
+
     Returns:
         redis.Redis: Conexión Redis configurada con decode_responses=True
     """
@@ -55,7 +55,7 @@ def create_redis_connection(db=0):
                     max_connections=50
                 )
                 _redis_pools[db] = pool
-    
+
     # Retornar una conexión del pool
     redis_connection = redis.Redis(connection_pool=_redis_pools[db])
     return redis_connection

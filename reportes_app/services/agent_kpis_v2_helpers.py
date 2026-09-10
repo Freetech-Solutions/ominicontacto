@@ -81,11 +81,12 @@ def validate_agent_kpis_v2_invariants(item, strict=False):
             raise ValueError(msg)
         logger.warning(msg)
 
-    # Validación liviana: pause_seconds > 0 con pause_breakdown vacío es inconsistente (solo log, no excepción)
+    # Validación liviana: pause_seconds > 0 con pause_breakdown vacío es inconsistente (solo log, no
+    # excepción)
     pause_breakdown = availability.get('pause_breakdown') or []
     if pause_seconds > 0 and not pause_breakdown:
         logger.warning(
-            "agents_kpis_v2: pause_seconds=%s > 0 but pause_breakdown is empty (agent_id=%s, date=%s)",
+            "agents_kpis_v2: pause_seconds=%s > 0 but pause_breakdown is empty (agent_id=%s, date=%s)",  # noqa: E501
             pause_seconds, agent_id, date,
         )
 

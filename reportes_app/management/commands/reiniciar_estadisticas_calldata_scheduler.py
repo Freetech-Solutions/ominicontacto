@@ -57,7 +57,7 @@ def reiniciar_estadisticas_calldata():
 
 
 class Command(BaseCommand):
-    help = 'Ejecuta un scheduler con APScheduler para reiniciar estadísticas calldata diariamente a medianoche'
+    help = 'Ejecuta un scheduler con APScheduler para reiniciar estadísticas calldata diariamente a medianoche'  # noqa: E501
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
@@ -70,21 +70,21 @@ class Command(BaseCommand):
         executors = {
             'default': ThreadPoolExecutor(1)
         }
-        
+
         # Configurar defaults de jobs
         job_defaults = {
             'coalesce': True,  # Ejecutar solo una vez si hay múltiples ejecuciones pendientes
             'max_instances': 1,  # Solo una instancia del job puede ejecutarse a la vez
             'misfire_grace_time': 3600  # 1 hora de gracia si el contenedor estuvo caído
         }
-        
+
         # Crear scheduler
         self.scheduler = BackgroundScheduler(
             executors=executors,
             job_defaults=job_defaults,
             timezone=None  # Usar timezone del sistema/contenedor (TZ env var)
         )
-        
+
         # Agregar job diario a las 00:00
         # El timezone se toma de la variable de entorno TZ del contenedor
         self.scheduler.add_job(
@@ -94,8 +94,8 @@ class Command(BaseCommand):
             name='Reinicio diario de estadísticas calldata',
             replace_existing=True
         )
-        
-        logger.info("Scheduler configurado: reinicio diario de estadísticas calldata a las 00:00 (TZ del contenedor)")
+
+        logger.info("Scheduler configurado: reinicio diario de estadísticas calldata a las 00:00 (TZ del contenedor)")  # noqa: E501
 
     def signal_handler(self, signum, frame):
         """Maneja señales de terminación para cerrar el scheduler gracefully."""
@@ -111,14 +111,14 @@ class Command(BaseCommand):
             # Registrar handlers de señales
             signal.signal(signal.SIGINT, self.signal_handler)
             signal.signal(signal.SIGTERM, self.signal_handler)
-            
+
             # Configurar scheduler
             self.setup_scheduler()
-            
+
             # Iniciar scheduler
             self.scheduler.start()
             logger.info("Scheduler iniciado. Esperando ejecución diaria a las 00:00...")
-            
+
             # Mantener el proceso corriendo
             try:
                 while not self.shutdown_requested:
@@ -126,9 +126,9 @@ class Command(BaseCommand):
             except KeyboardInterrupt:
                 logger.info("Interrupción de teclado recibida")
                 self.shutdown_requested = True
-            
+
         except Exception as e:
-            logger.error(f"Error en el comando reiniciar_estadisticas_calldata_scheduler: {e}", exc_info=True)
+            logger.error(f"Error en el comando reiniciar_estadisticas_calldata_scheduler: {e}", exc_info=True)  # noqa: E501
             if self.scheduler and self.scheduler.running:
                 self.scheduler.shutdown(wait=False)
             sys.exit(1)

@@ -143,7 +143,7 @@ class AgentNotifier:
     def notify_call_blocked(self, user_id, phone_number, campaign_id, reason):
         """
         Notifica al agente que una llamada fue bloqueada.
-        
+
         Args:
             user_id: ID del usuario agente
             phone_number: Número de teléfono que se intentó llamar

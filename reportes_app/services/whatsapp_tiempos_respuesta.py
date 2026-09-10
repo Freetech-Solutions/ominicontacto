@@ -87,7 +87,8 @@ def reporte_tiempos_respuesta_whatsapp(fecha_inicio, fecha_fin, sla_segundos=120
         ConversacionWhatsapp.objects
         .filter(timestamp__gte=fecha_inicio, timestamp__lte=fecha_fin)
         .annotate(
-            timestamp_primer_mensaje_cliente=Subquery(primer_mensaje_cliente, output_field=DateTimeField()),
+            timestamp_primer_mensaje_cliente=Subquery(
+                primer_mensaje_cliente, output_field=DateTimeField()),
             timestamp_primera_respuesta_agente=RawSQL(
                 sql_primera_respuesta_agente, [], output_field=DateTimeField()
             ),
@@ -127,7 +128,7 @@ def anotar_frt_y_duracion(qs):
     """
     Anota un QuerySet de ConversacionWhatsapp con:
     - frt_segundos: tiempo hasta primera respuesta del agente (segundos). NULL si no hay.
-    - duracion_segundos: segundos entre timestamp y date_last_interaction. NULL si date_last_interaction es null.
+    - duracion_segundos: segundos entre timestamp y date_last_interaction. NULL si date_last_interaction es null.  # noqa: E501
     """
     # 1) Subquery: primer mensaje cliente
     primer_mensaje_cliente = MensajeWhatsapp.objects.filter(
@@ -157,7 +158,8 @@ def anotar_frt_y_duracion(qs):
     """
 
     qs = qs.annotate(
-        timestamp_primer_mensaje_cliente=Subquery(primer_mensaje_cliente, output_field=DateTimeField()),
+        timestamp_primer_mensaje_cliente=Subquery(
+            primer_mensaje_cliente, output_field=DateTimeField()),
         timestamp_primera_respuesta_agente=RawSQL(
             sql_primera_respuesta_agente, [], output_field=DateTimeField()
         ),

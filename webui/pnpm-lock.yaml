@@ -5,7 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 patchedDependencies:
-  mande@2.0.9: 87e0b86cafb76c74b73d87ddf56b418ab094a27991e05c83883b8b4e16bc8700
+  mande@2.0.9:
+    hash: 3d2a0f5c96e99c72a97aaccc8a311a55c6f072af05e3d0814c7d40f9f2642419
+    path: patches/mande@2.0.9.patch
 
 importers:
 
@@ -79,7 +81,7 @@ importers:
         version: 2.7.0
       mande:
         specifier: 2.0.9
-        version: 2.0.9(patch_hash=87e0b86cafb76c74b73d87ddf56b418ab094a27991e05c83883b8b4e16bc8700)
+        version: 2.0.9(patch_hash=3d2a0f5c96e99c72a97aaccc8a311a55c6f072af05e3d0814c7d40f9f2642419)
       npm-run-all2:
         specifier: 8.0.4
         version: 8.0.4
@@ -3015,7 +3017,7 @@ snapshots:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  mande@2.0.9(patch_hash=87e0b86cafb76c74b73d87ddf56b418ab094a27991e05c83883b8b4e16bc8700): {}
+  mande@2.0.9(patch_hash=3d2a0f5c96e99c72a97aaccc8a311a55c6f072af05e3d0814c7d40f9f2642419): {}
 
   math-intrinsics@1.1.0: {}
 

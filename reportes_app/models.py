@@ -637,12 +637,12 @@ class LlamadaResumenManager(models.Manager):
             fecha_hasta = datetime_hora_maxima_dia(fecha_hasta)
 
         result = LlamadaResumen.objects.values_list('agente_id') \
-                                   .annotate(sum=Sum('duracion_segundos')) \
-                                   .filter(fecha_fin__gte=fecha_desde, fecha_fin__lte=fecha_hasta) \
-                                   .filter(event__in=eventos) \
-                                   .filter(agente_id__in=agentes) \
-                                   .exclude(campana_id=0) \
-                                   .order_by('agente_id')
+            .annotate(sum=Sum('duracion_segundos')) \
+            .filter(fecha_fin__gte=fecha_desde, fecha_fin__lte=fecha_hasta) \
+            .filter(event__in=eventos) \
+            .filter(agente_id__in=agentes) \
+            .exclude(campana_id=0) \
+            .order_by('agente_id')
 
         return result
 
@@ -725,7 +725,7 @@ class LlamadaResumenManager(models.Manager):
             fecha_hasta = datetime_hora_maxima_dia(fecha_hasta)
 
         return LlamadaResumen.objects.filter(event__in=eventos, agente_id=agente_id,
-                                         fecha_fin__range=(fecha_desde, fecha_hasta)).exclude(
+                                             fecha_fin__range=(fecha_desde, fecha_hasta)).exclude(
             campana_id=0).annotate(
                 fecha=TruncDate('fecha_fin')).values('fecha').annotate(cantidad=Count('fecha'))
 
@@ -734,7 +734,7 @@ class LlamadaResumenManager(models.Manager):
         fecha_hasta = datetime_hora_maxima_dia(fecha)
         return self.filter(agente_id=agente_id,
                            fecha_fin__gte=fecha_desde, fecha_fin__lte=fecha_hasta,
-                           event__in=LlamadaResumen.EVENTOS_FIN_CONEXION + LlamadaResumen.EVENTOS_REJECT
+                           event__in=LlamadaResumen.EVENTOS_FIN_CONEXION + LlamadaResumen.EVENTOS_REJECT  # noqa: E501
                            + list(LlamadaResumen.EVENTOS_NO_CONEXION))
 
     def obtener_evento_hold_fecha(self, eventos, fecha_desde, fecha_hasta, agente_id):
@@ -795,8 +795,8 @@ class LlamadaResumenManager(models.Manager):
                            'CAMPT-COMPLETE', 'COMPLETE-CAMPT',
                            'BTOUT-COMPLETE', 'COMPLETE-BTOUT', 'CTOUT-COMPLETE',
                            'COMPLETE-CTOUT', 'CAMPT-FAIL', 'BT-BUSY', 'BTOUT-TRY', 'CT-ABANDON',
-                           'CTOUT-TRY', 'BT-TRY', 'EXIT_ANSWERED']  # Agregar EXIT_ANSWERED para omnidialer
-        
+                           'CTOUT-TRY', 'BT-TRY', 'EXIT_ANSWERED']  # Agregar EXIT_ANSWERED para omnidialer  # noqa: E501
+
         # Campañas a Filtrar:
         campanas_id = set([campana.id for campana in campanas])
         if campana:
@@ -807,25 +807,25 @@ class LlamadaResumenManager(models.Manager):
                     if (camp.estado == Campana.ESTADO_BORRADA and campana == 'activas') or \
                             (camp.estado != Campana.ESTADO_BORRADA and campana == 'borradas'):
                         campanas_id.remove(camp.id)
-        
+
         grabaciones = self.filter(campana_id__in=campanas_id,
                                   archivo_grabacion__isnull=False,
                                   event__in=INCLUDED_EVENTS)
-        
+
         # En LlamadaResumen usamos duracion_segundos en lugar de duracion_llamada
         grabaciones = grabaciones.filter(Q(duracion_segundos__gt=0) | Q(event='CT-ANSWER'))
         grabaciones = grabaciones.exclude(archivo_grabacion='-1')
-        
+
         if fecha_desde and fecha_hasta:
             fecha_desde = datetime_hora_minima_dia(fecha_desde)
             fecha_hasta = datetime_hora_maxima_dia(fecha_hasta)
             # LlamadaResumen usa fecha_fin en lugar de time
             grabaciones = grabaciones.filter(fecha_fin__range=(fecha_desde, fecha_hasta))
-        
+
         # Calificaciones: en LlamadaResumen ya están desnormalizadas
         if calificaciones:
             grabaciones = grabaciones.filter(opcion_calificacion_id__in=calificaciones)
-        
+
         if tipo_llamada:
             grabaciones = grabaciones.filter(tipo_llamada=tipo_llamada)
         if tel_cliente:
@@ -834,26 +834,26 @@ class LlamadaResumenManager(models.Manager):
             grabaciones = grabaciones.filter(callid=callid)
         if agente:
             grabaciones = grabaciones.filter(agente_id=agente.id)
-        
+
         if duracion and duracion > 0:
             # Convertir duracion (probablemente en segundos) para comparar con duracion_segundos
             grabaciones = grabaciones.filter(duracion_segundos__gte=duracion)
-        
+
         if id_contacto_externo:
             telefonos_contacto = Contacto.objects.values('telefono')
             telefono_id_externo = telefonos_contacto.filter(id_externo=id_contacto_externo)
             grabaciones = grabaciones.filter(
                 numero_marcado__in=[t['telefono'] for t in telefono_id_externo])
-        
+
         if marcadas:
             total_grabaciones_marcadas = self.obtener_grabaciones_marcadas()
             grabaciones = grabaciones & total_grabaciones_marcadas
-        
+
         if gestion:
             # En LlamadaResumen, gestion se puede filtrar por opcion_calificacion_tipo
             # Asumiendo que gestion = True significa que tiene calificación de gestión
             grabaciones = grabaciones.exclude(opcion_calificacion_id__isnull=True)
-        
+
         # Ordenar por fecha_fin en lugar de time
         return grabaciones.order_by('-fecha_fin')
 
@@ -889,7 +889,7 @@ class LlamadaResumen(models.Model):
                                'BLACKLIST', 'CONGESTION', 'NONDIALPLAN')
 
     EVENTOS_NO_DIALOGO = ('ABANDON', 'EXITWITHTIMEOUT', 'AMD', 'EXIT_AMD', 'ABANDONWEL',
-                          'EXIT_ABANDON', 'EXIT_TIMEOUT', 'EXIT_HANDOFF_ABANDON', 'EXIT_HANDOFF_TIMEOUT')
+                          'EXIT_ABANDON', 'EXIT_TIMEOUT', 'EXIT_HANDOFF_ABANDON', 'EXIT_HANDOFF_TIMEOUT')  # noqa: E501
 
     EVENTOS_NO_CONEXION = EVENTOS_NO_CONTACTACION + EVENTOS_NO_DIALOGO
 
@@ -909,7 +909,7 @@ class LlamadaResumen(models.Model):
                             'CT-COMPLETE', 'COMPLETE-CT', 'ABANDON-CT',
                             'CAMPCT-COMPLETE', 'COMPLETE-CAMPCT', 'ABANDON-CAMPCT',
                             'BTOUT-TRY',
-                            'CTOUT-COMPLETE', 'EXIT_ANSWERED']  # Agregar EXIT_ANSWERED para omnidialer
+                            'CTOUT-COMPLETE', 'EXIT_ANSWERED']  # Agregar EXIT_ANSWERED para omnidialer  # noqa: E501
 
     # Marcan el fin de la conexion por una transferencia para el agente original
     EVENTOS_FIN_CONEXION_POR_TRANSFER = ['BT-TRY', 'BTOUT-TRY',
@@ -943,18 +943,18 @@ class LlamadaResumen(models.Model):
     agente_id = models.IntegerField(blank=True, null=True, db_index=True)
     contacto_id = models.IntegerField(blank=True, null=True)
     numero_marcado = models.CharField(max_length=128, blank=True, null=True)
-    
+
     # Tiempos
     fecha_inicio = models.DateTimeField(blank=True, null=True)
     fecha_fin = models.DateTimeField(blank=True, null=True, db_index=True)
     duracion_segundos = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
     bridge_wait_time = models.DecimalField(max_digits=10, decimal_places=3, blank=True, null=True)
-    
+
     # Evento
     event = models.CharField(max_length=32, blank=True, null=True)
     archivo_grabacion = models.CharField(max_length=256, blank=True, null=True)
     es_transferencia = models.BooleanField(default=False)
-    
+
     # Calificación
     calificacion_id = models.IntegerField(blank=True, null=True, db_index=True)
     opcion_calificacion_id = models.IntegerField(blank=True, null=True)
@@ -962,35 +962,35 @@ class LlamadaResumen(models.Model):
     opcion_calificacion_tipo = models.IntegerField(blank=True, null=True)
     subcalificacion = models.CharField(max_length=200, blank=True, null=True)
     es_venta = models.BooleanField(default=False, db_index=True)
-    
+
     # Auditoría
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    
+
     objects = LlamadaResumenManager()
 
     node_id = models.CharField(max_length=64, db_index=True, null=True, blank=True)
     tenant_id = models.CharField(max_length=64, db_index=True, null=True, blank=True)
-    
+
     # Hangup trigger: quién corta la llamada
     HANGUP_TRIGGER_AGENT = 'AGENT'
     HANGUP_TRIGGER_EXTERNAL = 'EXTERNAL'
     HANGUP_TRIGGER_OTHER = 'OTHER'
-    
+
     HANGUP_TRIGGER_CHOICES = (
         (HANGUP_TRIGGER_AGENT, 'AGENT'),
         (HANGUP_TRIGGER_EXTERNAL, 'EXTERNAL'),
         (HANGUP_TRIGGER_OTHER, 'OTHER'),
     )
-    
+
     hangup_trigger = models.CharField(
         max_length=16,
         choices=HANGUP_TRIGGER_CHOICES,
         blank=True,
         null=True,
-        help_text='Indica quién cortó la llamada: AGENT (agente), EXTERNAL (cliente/externo), OTHER (sistema/otro)'
+        help_text='Indica quién cortó la llamada: AGENT (agente), EXTERNAL (cliente/externo), OTHER (sistema/otro)'  # noqa: E501
     )
-    
+
     def __str__(self):
         return "Resumen de llamada con fecha {0} con id de campaña {1} con id de agente {2} " \
                "con el evento {3} duración {4}".format(self.fecha_fin, self.campana_id,
@@ -1016,7 +1016,7 @@ class LlamadaResumen(models.Model):
     @property
     def duracion_llamada(self):
         """
-        Propiedad de compatibilidad: LlamadaLog usa 'duracion_llamada' (int), 
+        Propiedad de compatibilidad: LlamadaLog usa 'duracion_llamada' (int),
         LlamadaResumen usa 'duracion_segundos' (Decimal)
         """
         if self.duracion_segundos:
@@ -1027,12 +1027,12 @@ class LlamadaResumen(models.Model):
     def url_archivo_grabacion(self):
         """
         Compatibilidad con LlamadaLog para URL de grabación.
-        En LlamadaResumen, archivo_grabacion ya viene con formato completo como está en S3: '20260102/1767378633.10.mp3'
+        En LlamadaResumen, archivo_grabacion ya viene con formato completo como está en S3: '20260102/1767378633.10.mp3'  # noqa: E501
         El API espera el filename tal cual está en S3, sin agregar fechas adicionales.
         """
         if not self.archivo_grabacion or self.archivo_grabacion == '-1':
             return None
-        
+
         # Si archivo_grabacion ya incluye fecha y extensión (formato: YYYYMMDD/filename.mp3)
         # que es exactamente como está en S3, usarlo directamente
         if '/' in self.archivo_grabacion and self.archivo_grabacion.endswith('.mp3'):
@@ -1053,12 +1053,12 @@ class LlamadaResumen(models.Model):
     def url_archivo_grabacion_url_encoded(self):
         """
         Compatibilidad con LlamadaLog para URL codificada de grabación.
-        En LlamadaResumen, archivo_grabacion ya viene con formato completo como está en S3: '20260102/1767378633.10.mp3'
+        En LlamadaResumen, archivo_grabacion ya viene con formato completo como está en S3: '20260102/1767378633.10.mp3'  # noqa: E501
         El API espera el filename tal cual está en S3, codificado para URL.
         """
         if not self.archivo_grabacion or self.archivo_grabacion == '-1':
             return None
-        
+
         # Si archivo_grabacion ya incluye fecha y extensión (formato: YYYYMMDD/filename.mp3)
         # que es exactamente como está en S3, codificarlo y usarlo directamente
         if '/' in self.archivo_grabacion and self.archivo_grabacion.endswith('.mp3'):
@@ -1112,7 +1112,7 @@ class LlamadaResumen(models.Model):
         En LlamadaResumen no tenemos este campo, retornamos '-1' por compatibilidad.
         """
         return '-1'
-    
+
     class Meta:
         db_table = 'reportes_app_llamada_resumen'
         managed = False  # La tabla ya existe, no la gestionamos con migrations
@@ -1125,33 +1125,33 @@ class TransferLog(models.Model):
     """
     id = models.BigAutoField(primary_key=True)
     created_at = models.DateTimeField(db_index=True)
-    
+
     # Origen
     callid = models.CharField(max_length=64, db_index=True)
     leg_unique_id = models.CharField(max_length=64, blank=True, null=True)
     contacto_id = models.IntegerField(blank=True, null=True)
     campana_id_origen = models.IntegerField(blank=True, null=True)
     agente_origen_id = models.IntegerField(blank=True, null=True, db_index=True)
-    
+
     # Lógica Transferencia
     initiated_by = models.CharField(max_length=16, default='AGENTE')
     transfer_type = models.CharField(max_length=16)
-    
+
     # Destino
     numero_extra = models.CharField(max_length=64, blank=True, null=True)
     target_agent_id = models.IntegerField(blank=True, null=True)
     target_campaign_id = models.IntegerField(blank=True, null=True)
-    
+
     # Resultado Técnico
     new_leg_unique_id = models.CharField(max_length=64, blank=True, null=True)
     resultado = models.CharField(max_length=32, default='INIT')
     sip_code = models.IntegerField(blank=True, null=True)
     sip_reason = models.CharField(max_length=64, blank=True, null=True)
-    
+
     # Tiempos
     duration_ms = models.IntegerField(blank=True, null=True)
     talk_time = models.IntegerField(blank=True, null=True)
-    
+
     class Meta:
         db_table = 'reportes_app_transferlog'
         managed = False  # La tabla ya existe, no la gestionamos con migrations
@@ -1216,7 +1216,8 @@ class InteractionsSummaryManager(models.Manager):
             call_ids = list(historicals.values_list('callid', flat=True))
             grabaciones = grabaciones.filter(interaction_id__in=call_ids)
 
-        # tipo_llamada: 1=manual(AGENT), 2/4=dialer/preview(DIALER), 3=entrante(INBOUND), 6=click2call(AGENT)
+        # tipo_llamada: 1=manual(AGENT), 2/4=dialer/preview(DIALER), 3=entrante(INBOUND),
+        # 6=click2call(AGENT)
         if tipo_llamada:
             if tipo_llamada == 3:
                 grabaciones = grabaciones.filter(direction='INBOUND')
@@ -1247,7 +1248,7 @@ class InteractionsSummaryManager(models.Manager):
         if marcadas:
             total_grabaciones_marcadas = self.obtener_grabaciones_marcadas()
             grabaciones = grabaciones.filter(
-                interaction_id__in=total_grabaciones_marcadas.values_list('interaction_id', flat=True)
+                interaction_id__in=total_grabaciones_marcadas.values_list('interaction_id', flat=True)  # noqa: E501
             )
         if gestion:
             calificaciones_gestion = CalificacionCliente.obtener_califs_gestion_campanas(
@@ -1308,10 +1309,10 @@ class InteractionsSummary(models.Model):
     destination_address = models.CharField(max_length=256, null=True, blank=True)
     start_time = models.DateTimeField()
     end_time = models.DateTimeField(null=True, blank=True)
-    total_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)
-    bot_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)
-    wait_conn_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)
-    agent_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)
+    total_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)  # noqa: E501
+    bot_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)  # noqa: E501
+    wait_conn_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)  # noqa: E501
+    agent_duration = models.DecimalField(max_digits=10, decimal_places=3, default=0, null=True, blank=True)  # noqa: E501
     agent_id = models.IntegerField(null=True, blank=True)
     qualification_id = models.IntegerField(null=True, blank=True, db_column='disposition_id')
     customer_id = models.IntegerField(null=True, blank=True)

@@ -208,12 +208,12 @@ class ApiObtenerDestinosEntrantes(View):
     def get(self, *args, **kwargs):
         tipo_destino = kwargs.get('tipo_destino')
         data = []
-        
+
         # Si el tipo es REMOTE_AGENT, devolver los troncales SIP
         if tipo_destino == DestinoEntrante.REMOTE_AGENT:
             from configuracion_telefonia_app.models import TroncalSIP
             from django.contrib.contenttypes.models import ContentType
-            
+
             # Obtener o crear DestinoEntrante para cada troncal SIP
             content_type = ContentType.objects.get_for_model(TroncalSIP)
             for troncal in TroncalSIP.objects.all():

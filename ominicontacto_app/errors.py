@@ -76,6 +76,7 @@ class OmlParserCsvImportacionError(OmlError):
                  ser una fila ya convertida en unicode, o puede ser una fila
                  donde cada elemento es un string/byte sin convertir.
     """
+
     def __init__(self, numero_fila, numero_columna, fila, valor_celda, *args,
                  **kwargs):
         super(OmlParserCsvImportacionError, self).__init__(*args, **kwargs)

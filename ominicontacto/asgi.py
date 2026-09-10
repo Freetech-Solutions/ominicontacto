@@ -24,6 +24,7 @@ from django.db.models.base import ModelBase
 # Guardar el método original
 original_new = ModelBase.__new__
 
+
 def patched_new(cls, name, bases, namespace, **kwargs):
     # Interceptar antes de que se cree la clase del modelo
     # Modificar la clase Meta si tiene index_together
@@ -39,7 +40,7 @@ def patched_new(cls, name, bases, namespace, **kwargs):
                     meta_class.indexes = []
                 elif getattr(meta_class, 'indexes', None) is None:
                     meta_class.indexes = []
-                
+
                 # Convertir cada grupo de index_together a un Index
                 for fields in index_together_value:
                     if isinstance(fields, (list, tuple)):
@@ -47,25 +48,26 @@ def patched_new(cls, name, bases, namespace, **kwargs):
                         meta_class.indexes.append(
                             models.Index(fields=list(fields), name=index_name)
                         )
-                
+
                 # Eliminar index_together para evitar el error de validación
                 delattr(meta_class, 'index_together')
-    
+
     # Llamar al __new__ original
     return original_new(cls, name, bases, namespace, **kwargs)
+
 
 # Aplicar el parche
 ModelBase.__new__ = staticmethod(patched_new)
 
-from channels.routing import ProtocolTypeRouter
-from channels.routing import ChannelNameRouter
-from channels.routing import URLRouter
-from channels.auth import AuthMiddlewareStack
-from django.urls import path
+from channels.routing import ProtocolTypeRouter  # noqa: E402
+from channels.routing import ChannelNameRouter  # noqa: E402
+from channels.routing import URLRouter  # noqa: E402
+from channels.auth import AuthMiddlewareStack  # noqa: E402
+from django.urls import path  # noqa: E402
 
 # Initialize Django ASGI application early to ensure the AppRegistry
 # is populated before importing code that may import ORM models.
-from django.core.asgi import get_asgi_application
+from django.core.asgi import get_asgi_application  # noqa: E402
 django_asgi_app = get_asgi_application()
 
 from ominicontacto_app.bgtasks import BackgroundTasksConsumerClient  # noqa: E402

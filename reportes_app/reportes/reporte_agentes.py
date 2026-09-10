@@ -29,7 +29,7 @@ from django.conf import settings
 from ominicontacto_app.models import Campana, Pausa
 from ominicontacto_app.utiles import datetime_hora_maxima_dia, datetime_hora_minima_dia
 from reportes_app.services.agent_activity_session_source import get_agent_session_data_for_reports
-from reportes_app.models import ActividadAgenteLog, LlamadaLog, LlamadaResumen, TransferenciaAEncuestaLog
+from reportes_app.models import ActividadAgenteLog, LlamadaLog, LlamadaResumen, TransferenciaAEncuestaLog  # noqa: E501
 from reportes_app.actividad_agente_log import AgenteTiemposReporte
 from reportes_app.reportes.reporte_llamadas import LLAMADA_TRANSF_INTERNA
 from collections import OrderedDict

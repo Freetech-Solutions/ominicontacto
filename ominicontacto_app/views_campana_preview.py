@@ -223,6 +223,7 @@ class CampanaPreviewTemplateCreateCampanaView(
     """
     Crea una campaña preview a partir de una campaña de template existente
     """
+
     def get_form_initial(self, step):
         initial = super(CampanaPreviewTemplateCreateCampanaView, self).get_form_initial(step)
         if step == self.INICIAL:
@@ -378,6 +379,7 @@ class LiberarReservarContactoAsignado(View):
     """
     Libera un contacto Asignado en AgenteEnContacto
     """
+
     def _liberar_contacto(self, contacto_id, campana_id, agente_id):
 
         entregado_asignado = AgenteEnContacto.objects.filter(estado__in=[

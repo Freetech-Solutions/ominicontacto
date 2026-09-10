@@ -129,8 +129,8 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
                     from configuracion_telefonia_app.models import DestinoEntrante
                     tipo_destino_dialer = cola_data.get('tipo_destino_dialer')
                     context['tipo_destino_dialer'] = tipo_destino_dialer
-                    context['is_remote_agent'] = (tipo_destino_dialer and 
-                                                  str(tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT))
+                    context['is_remote_agent'] = (tipo_destino_dialer and
+                                                  str(tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT))  # noqa: E501
             except (KeyError, AttributeError):
                 context['tipo_destino_dialer'] = None
                 context['is_remote_agent'] = False
@@ -226,7 +226,7 @@ class CampanaDialerCreateView(CampanaDialerMixin, SessionWizardView):
                 queue_form = form_list[int(self.COLA)]
                 from configuracion_telefonia_app.models import DestinoEntrante
                 tipo_destino_dialer = queue_form.cleaned_data.get('tipo_destino_dialer')
-                if tipo_destino_dialer and str(tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT):
+                if tipo_destino_dialer and str(tipo_destino_dialer) == str(DestinoEntrante.REMOTE_AGENT):  # noqa: E501
                     agentes_formset = form_list[-2]
                     voicebots_count = 0
                     for form in agentes_formset.forms:

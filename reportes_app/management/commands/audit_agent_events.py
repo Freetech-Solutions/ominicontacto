@@ -84,22 +84,22 @@ class Command(BaseCommand):
         # A) UNPAUSEALL con pausa_id no nulo
         rows_a = self._run_check_a(params, agent_filter)
         status_a = 'CRIT' if rows_a else 'OK'
-        results.append(('A', 'UNPAUSEALL con pausa_id no nulo', status_a, len(rows_a), rows_a[:MAX_EXAMPLES]))
+        results.append(('A', 'UNPAUSEALL con pausa_id no nulo', status_a, len(rows_a), rows_a[:MAX_EXAMPLES]))  # noqa: E501
 
         # B) Logout duplicado consecutivo
         rows_b = self._run_check_b(params, agent_filter)
         status_b = 'WARN' if rows_b else 'OK'
-        results.append(('B', 'Logout duplicado consecutivo', status_b, len(rows_b), rows_b[:MAX_EXAMPLES]))
+        results.append(('B', 'Logout duplicado consecutivo', status_b, len(rows_b), rows_b[:MAX_EXAMPLES]))  # noqa: E501
 
         # D) PAUSEALL/UNPAUSEALL fuera de sesión
         rows_d = self._run_check_d(params, agent_filter)
         status_d = 'WARN' if rows_d else 'OK'
-        results.append(('D', 'PAUSE/UNPAUSE fuera de sesión', status_d, len(rows_d), rows_d[:MAX_EXAMPLES]))
+        results.append(('D', 'PAUSE/UNPAUSE fuera de sesión', status_d, len(rows_d), rows_d[:MAX_EXAMPLES]))  # noqa: E501
 
         # F) V2 consistencia schema
         rows_f = self._run_check_f(params, agent_filter)
         status_f = 'CRIT' if rows_f else 'OK'
-        results.append(('F', 'V2 consistencia schema', status_f, len(rows_f), rows_f[:MAX_EXAMPLES]))
+        results.append(('F', 'V2 consistencia schema', status_f, len(rows_f), rows_f[:MAX_EXAMPLES]))  # noqa: E501
 
         # H) Paridad legacy vs V2
         status_h, detail_h, rows_h = self._run_check_h(params, agent_filter)
@@ -109,7 +109,7 @@ class Command(BaseCommand):
         # I) Flapping logout -> login < 2s
         rows_i = self._run_check_i(params, agent_filter)
         status_i = 'WARN' if rows_i else 'OK'
-        results.append(('I', 'Flapping logout->login <{}s'.format(FLAPPING_SECONDS), status_i, len(rows_i), rows_i[:MAX_EXAMPLES]))
+        results.append(('I', 'Flapping logout->login <{}s'.format(FLAPPING_SECONDS), status_i, len(rows_i), rows_i[:MAX_EXAMPLES]))  # noqa: E501
 
         # Output
         for code, name, status, count, examples in results:
@@ -184,7 +184,11 @@ class Command(BaseCommand):
             SUM(CASE WHEN event IN ('SESSION_LOGIN', 'ADDMEMBER') THEN 1
                      WHEN event IN ('SESSION_LOGOUT', 'REMOVEMEMBER') THEN -1
                      ELSE 0 END)
-              OVER (PARTITION BY agente_id ORDER BY time, id ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING) AS balance_before
+              OVER (
+                PARTITION BY agente_id
+                ORDER BY time, id
+                ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING
+              ) AS balance_before
           FROM reportes_app_actividadagentelog
           WHERE time >= %(since)s AND time < %(until)s
           {agent_filter}
@@ -209,10 +213,31 @@ class Command(BaseCommand):
         WHERE ts >= %(since)s AND ts < %(until)s
         {agent_filter}
           AND (
-            (event_type = 'STATE_READY' AND (pause_id IS NOT NULL OR (aux_code IS NOT NULL AND aux_code != '')))
-            OR (event_type = 'STATE_ACW'  AND (pause_id IS NOT NULL OR (aux_code IS NOT NULL AND aux_code != '')))
-            OR (event_type = 'STATE_PAUSED' AND (pause_id IS NULL AND (aux_code IS NULL OR aux_code = '')))
-            OR (event_type IN ('SESSION_LOGIN', 'SESSION_LOGOUT') AND (pause_id IS NOT NULL OR (aux_code IS NOT NULL AND aux_code != '')))
+            (
+              event_type = 'STATE_READY'
+              AND (
+                pause_id IS NOT NULL
+                OR (aux_code IS NOT NULL AND aux_code != '')
+              )
+            )
+            OR (
+              event_type = 'STATE_ACW'
+              AND (
+                pause_id IS NOT NULL
+                OR (aux_code IS NOT NULL AND aux_code != '')
+              )
+            )
+            OR (
+              event_type = 'STATE_PAUSED'
+              AND (pause_id IS NULL AND (aux_code IS NULL OR aux_code = ''))
+            )
+            OR (
+              event_type IN ('SESSION_LOGIN', 'SESSION_LOGOUT')
+              AND (
+                pause_id IS NOT NULL
+                OR (aux_code IS NOT NULL AND aux_code != '')
+              )
+            )
           )
         """
         return self._run_sql(sql, params, agent_filter)
@@ -242,7 +267,10 @@ class Command(BaseCommand):
           COUNT(*) AS cnt
         FROM reportes_app_agentactivityeventv2
         WHERE ts >= %(since)s AND ts < %(until)s
-          AND event_type IN ('SESSION_LOGIN', 'SESSION_LOGOUT', 'STATE_PAUSED', 'STATE_ACW', 'STATE_READY')
+          AND event_type IN (
+            'SESSION_LOGIN', 'SESSION_LOGOUT',
+            'STATE_PAUSED', 'STATE_ACW', 'STATE_READY'
+          )
         {agent_filter}
         GROUP BY 1
         """
@@ -288,8 +316,9 @@ class Command(BaseCommand):
         FROM ordered
         WHERE event IN ('SESSION_LOGIN', 'ADDMEMBER')
           AND prev_event IN ('SESSION_LOGOUT', 'REMOVEMEMBER')
-          AND (time - prev_time) BETWEEN INTERVAL '0' AND INTERVAL '%d seconds'
-        """ % FLAPPING_SECONDS
+          AND (time - prev_time) BETWEEN INTERVAL '0'
+            AND INTERVAL '__FLAPPING__ seconds'
+        """.replace('__FLAPPING__', str(FLAPPING_SECONDS))
         inner = ' AND agente_id = %(agent_id)s' if params.get('agent_id') is not None else ''
         sql = sql.replace('{agent_filter}', inner)
         return self._run_sql(sql, params)

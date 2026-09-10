@@ -681,7 +681,7 @@ class APITest(OMLBaseTest):
     @patch('ominicontacto_app.services.asterisk.asterisk_ami.AMIManagerConnector')
     @patch.object(AgentActivityAmiManager, "set_agent_as_ready")
     def test_api_vista_ready_de_agente_retorno_de_valores_correctos(self, set_agent_as_ready,
-                                                                     manager):
+                                                                    manager):
         self.client.login(username=self.agente_profile.user.username, password=PASSWORD)
         set_agent_as_ready.return_value = False
         url = reverse('api_agent_asterisk_ready')
@@ -692,7 +692,7 @@ class APITest(OMLBaseTest):
     @patch('ominicontacto_app.services.asterisk.asterisk_ami.AMIManagerConnector')
     @patch.object(AgentActivityAmiManager, "set_agent_as_ready")
     def test_api_vista_ready_de_agente_retorno_de_valores_erroneos(self, set_agent_as_ready,
-                                                                    manager):
+                                                                   manager):
         self.client.login(username=self.agente_profile.user.username, password=PASSWORD)
         set_agent_as_ready.return_value = True
         url = reverse('api_agent_asterisk_ready')

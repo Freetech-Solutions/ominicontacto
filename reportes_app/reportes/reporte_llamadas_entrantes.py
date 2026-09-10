@@ -86,10 +86,10 @@ class ReporteDeLLamadasEntrantesDeSupervision(object):
 
     def _obtener_logs_de_llamadas(self):
         return LlamadaResumen.objects.using('replica').filter(fecha_fin__gte=self.desde,
-                                                          fecha_fin__lte=self.hasta,
-                                                          campana_id__in=self.campanas.keys(),
-                                                          event__in=self.EVENTOS_LLAMADA,
-                                                          tipo_llamada=LlamadaResumen.LLAMADA_ENTRANTE)
+                                                              fecha_fin__lte=self.hasta,
+                                                              campana_id__in=self.campanas.keys(),
+                                                              event__in=self.EVENTOS_LLAMADA,
+                                                              tipo_llamada=LlamadaResumen.LLAMADA_ENTRANTE)  # noqa: E501
 
     def _inicializar_conteo_de_campana(self, campana):
         datos_campana = self.INICIALES.copy()

@@ -20,7 +20,7 @@
 from __future__ import unicode_literals
 
 import unittest
-from datetime import datetime, timedelta
+from datetime import timedelta
 from decimal import Decimal
 
 from django.db import connection, connections
@@ -32,7 +32,7 @@ from ominicontacto_app.services.estadisticas_campana_v2 import (
     EstadisticasServiceV2,
     _NO_ATENDIDO_LABELS,
 )
-from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
+from ominicontacto_app.tests.utiles import OMLBaseTest
 from ominicontacto_app.tests.factories import (
     AgenteProfileFactory,
     CalificacionClienteFactory,
@@ -41,7 +41,6 @@ from ominicontacto_app.tests.factories import (
     NombreCalificacionFactory,
     OpcionCalificacionFactory,
     QueueFactory,
-    QueueMemberFactory,
 )
 from reportes_app.models import InteractionsSummary, InteractionTransfers
 from whatsapp_app.tests.factories import ConversacionFactory
@@ -256,7 +255,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         "Tabla interaction_transfers no existe",
     )
     def test_estadisticas_v2_origen_transferida_timeout_no_atendida_ni_expirada(self):
-        """En campaña origen, transfer OK a otra campaña: recibida pero no atendida/expirada/abandonada."""
+        """En campaña origen, transfer OK a otra campaña: recibida pero no atendida/expirada/abandonada."""  # noqa: E501
         campana_origen = CampanaFactory.create(
             estado=Campana.ESTADO_ACTIVA,
             type=Campana.TYPE_ENTRANTE,
@@ -314,7 +313,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         "Tabla interaction_transfers no existe",
     )
     def test_estadisticas_v2_entrante_incluye_llamadas_recibidas_por_transferencia(self):
-        """Una campaña entrante destino debe contar interacciones transferidas aunque campaign_id sea otro."""
+        """Una campaña entrante destino debe contar interacciones transferidas aunque campaign_id sea otro."""  # noqa: E501
         campana_origen = CampanaFactory.create(
             estado=Campana.ESTADO_ACTIVA,
             type=Campana.TYPE_ENTRANTE,
@@ -765,7 +764,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         )
 
     def test_calificaciones_crm_entrante_empate_history_date(self):
-        """Dos históricos mismo callid, mismo history_date, distintos history_id: cuenta 1 (mayor history_id)."""
+        """Dos históricos mismo callid, mismo history_date, distintos history_id: cuenta 1 (mayor history_id)."""  # noqa: E501
         campana_entrante = CampanaFactory.create(
             estado=Campana.ESTADO_ACTIVA,
             type=Campana.TYPE_ENTRANTE,
@@ -813,7 +812,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         )
 
     def test_llamadas_atendidas_sin_calificacion_agent_duration_solo_y_agent_id_solo(self):
-        """Atendidas con solo agent_duration>0 (agent_id null) o solo agent_id (agent_duration=0) cuentan."""
+        """Atendidas con solo agent_duration>0 (agent_id null) o solo agent_id (agent_duration=0) cuentan."""  # noqa: E501
         self._create_interaction(
             'int-dur', agent_id=None, agent_duration=10,
         )
@@ -974,7 +973,7 @@ class EstadisticasCampanaV2Test(OMLBaseTest):
         self.assertIsNone(estadisticas['whatsapp_recibidos'])
 
     def test_whatsapp_recibidos_cuenta_inbound_cuando_campana_tiene_whatsapp_habilitado(self):
-        """Con canalidad WhatsApp habilitada, whatsapp_recibidos es el conteo de conversaciones inbound."""
+        """Con canalidad WhatsApp habilitada, whatsapp_recibidos es el conteo de conversaciones inbound."""  # noqa: E501
         self.campana.whatsapp_habilitado = True
         self.campana.save()
         ConversacionFactory.create(

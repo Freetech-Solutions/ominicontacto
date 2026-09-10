@@ -78,7 +78,7 @@ def generar_csv_llamadas_por_dia_egresos_centro_contacto(
 ):
     """
     Genera el archivo CSV de Llamadas por día (Egresos/Voz/Días) y publica
-    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:LLAMADAS_POR_DIA_EGRESOS_CC:cc:{task_id}.
+    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:LLAMADAS_POR_DIA_EGRESOS_CC:cc:{task_id}.  # noqa: E501
     """
     from api_app.views.reports_centro_contacto import obtener_llamadas_salientes_por_dia
 
@@ -129,17 +129,17 @@ def generar_csv_llamadas_por_dia_egresos_centro_contacto(
         totals = {
             'date_label': _('Total'),
             'sent': total_sent,
-            'pct_dist_conectadas_ag': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_conectadas_ag': round(100.0 * total_conectadas / total_sent, 2) if total_sent else 0.0,  # noqa: E501
             'pct_dist_abandonadas_espera': (
                 round(100.0 * total_abandonadas_espera / total_sent, 2) if total_sent else 0.0
             ),
             'pct_dist_timeout_espera': (
                 round(100.0 * total_timeout_espera / total_sent, 2) if total_sent else 0.0
             ),
-            'pct_dist_shortcall': round(100.0 * total_shortcall / total_sent, 2) if total_sent else 0.0,
-            'pct_dist_contestador': round(100.0 * total_contestador / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_shortcall': round(100.0 * total_shortcall / total_sent, 2) if total_sent else 0.0,  # noqa: E501
+            'pct_dist_contestador': round(100.0 * total_contestador / total_sent, 2) if total_sent else 0.0,  # noqa: E501
             'pct_dist_ocupado': round(100.0 * total_ocupado / total_sent, 2) if total_sent else 0.0,
-            'pct_dist_cancel': round(100.0 * total_canceladas / total_sent, 2) if total_sent else 0.0,
+            'pct_dist_cancel': round(100.0 * total_canceladas / total_sent, 2) if total_sent else 0.0,  # noqa: E501
             'pct_dist_error_contactacion': (
                 round(100.0 * total_error_contactacion / total_sent, 2) if total_sent else 0.0
             ),

@@ -20,8 +20,7 @@ from mock import patch
 from ominicontacto_app.models import Campana, OpcionCalificacion
 from ominicontacto_app.tests.utiles import OMLBaseTest
 from ominicontacto_app.tests.factories import (
-    CampanaFactory, OpcionCalificacionFactory, QueueFactory, CalificacionClienteFactory,
-    LlamadaLogFactory)
+    CampanaFactory, OpcionCalificacionFactory, QueueFactory, CalificacionClienteFactory)
 
 from reportes_app.reportes.reporte_llamadas_entrantes import ReporteDeLLamadasEntrantesDeSupervision
 from reportes_app.tests.utiles import GeneradorDeLlamadaLogs, crear_llamada_log_y_resumen
@@ -114,9 +113,9 @@ class ReporteDeLLamadasEntrantesDeSupervisionTest(OMLBaseTest):
                                    agente=self.agente1, contacto=None, bridge_wait_time=5,
                                    duracion_llamada=10, archivo_grabacion='', time=None)
         crear_llamada_log_y_resumen(tipo_campana=Campana.TYPE_ENTRANTE,
-                          tipo_llamada=LlamadaLog.LLAMADA_ENTRANTE,
-                          campana_id=self.entrante1.pk,
-                          event='ABANDONWEL', bridge_wait_time=2)
+                                    tipo_llamada=LlamadaLog.LLAMADA_ENTRANTE,
+                                    campana_id=self.entrante1.pk,
+                                    event='ABANDONWEL', bridge_wait_time=2)
         reporte = ReporteDeLLamadasEntrantesDeSupervision()
         estadisticas = reporte.estadisticas
         self.assertEqual(

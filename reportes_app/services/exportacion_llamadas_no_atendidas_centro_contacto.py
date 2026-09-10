@@ -82,7 +82,7 @@ def generar_csv_llamadas_no_atendidas_centro_contacto(
 ):
     """
     Genera el archivo CSV del Listado de llamadas no atendidas (Ingresos/Voz) y publica
-    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:LLAMADAS_NO_ATENDIDAS_CC:cc:{task_id}.
+    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:LLAMADAS_NO_ATENDIDAS_CC:cc:{task_id}.  # noqa: E501
     """
     from api_app.views.reports_centro_contacto import obtener_listado_llamadas_no_atendidas
 

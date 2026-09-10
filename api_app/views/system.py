@@ -107,13 +107,13 @@ class NotifyCallBlocked(APIView):
                 'reason',
                 'El número no cumple con los patrones de discado configurados'
             )
-            
+
             if not agent_id or not phone_number:
                 return Response(
                     data={'status': 'ERROR', 'message': 'agent_id y phone_number son requeridos'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             agente = AgenteProfile.objects.get(id=agent_id)
             AgentNotifier().notify_call_blocked(
                 agente.user_id,
@@ -138,7 +138,7 @@ class NotifyCallBlocked(APIView):
 class HealthCheckView(APIView):
     """
     Health check endpoint para verificar el estado del servicio y la conexión a Redis.
-    
+
     Respuestas:
     - 200: Servicio operativo y Redis conectado
     - 500: Servicio degradado (Redis desconectado)

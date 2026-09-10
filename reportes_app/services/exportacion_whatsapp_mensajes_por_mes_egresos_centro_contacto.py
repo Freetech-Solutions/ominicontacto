@@ -71,7 +71,7 @@ def generar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto(
 ):
     """
     Genera el archivo CSV de Mensajes por mes (WhatsApp Egresos) y publica
-    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:WA_MSG_MES_EGRESOS_CC:cc:{task_id}.
+    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:WA_MSG_MES_EGRESOS_CC:cc:{task_id}.  # noqa: E501
     """
     from api_app.views.reports_centro_contacto import obtener_whatsapp_egresos_mensajes_por_mes
 
@@ -132,8 +132,10 @@ def generar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto(
                 _to_str(row.get('no_respondidos')),
                 _format_seconds_csv(row.get('avg_frt_segundos')),
                 _format_seconds_csv(row.get('avg_duracion_segundos')),
-                _to_str(row.get('pct_respondidos')) if row.get('pct_respondidos') is not None else '',
-                _to_str(row.get('pct_no_respondidos')) if row.get('pct_no_respondidos') is not None else '',
+                _to_str(row.get('pct_respondidos')) if row.get(
+                    'pct_respondidos') is not None else '',
+                _to_str(row.get('pct_no_respondidos')) if row.get(
+                    'pct_no_respondidos') is not None else '',
             ])
         if totals:
             writer.writerow([
@@ -143,8 +145,10 @@ def generar_csv_whatsapp_mensajes_por_mes_egresos_centro_contacto(
                 _to_str(totals.get('no_respondidos')),
                 _format_seconds_csv(totals.get('avg_frt_segundos')),
                 _format_seconds_csv(totals.get('avg_duracion_segundos')),
-                _to_str(totals.get('pct_respondidos')) if totals.get('pct_respondidos') is not None else '',
-                _to_str(totals.get('pct_no_respondidos')) if totals.get('pct_no_respondidos') is not None else '',
+                _to_str(totals.get('pct_respondidos')) if totals.get(
+                    'pct_respondidos') is not None else '',
+                _to_str(totals.get('pct_no_respondidos')) if totals.get(
+                    'pct_no_respondidos') is not None else '',
             ])
 
     try:

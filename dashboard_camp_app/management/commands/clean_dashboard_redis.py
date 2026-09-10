@@ -20,10 +20,8 @@ import logging
 import signal
 import sys
 import time
-from datetime import datetime
 
 from django.core.management.base import BaseCommand
-from django.conf import settings
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
@@ -47,30 +45,30 @@ REDIS_DB = 2
 def clean_dashboard_redis_keys():
     """
     Limpia todas las keys de Redis DB 2 relacionadas con el dashboard Panel.
-    
+
     Usa SCAN iterativo para evitar bloquear Redis y elimina todas las keys
     que coincidan con los patrones definidos.
     """
     start_time = time.time()
     total_deleted = 0
     errors = 0
-    
+
     try:
         # Conectar a Redis DB 2
         redis_connection = create_redis_connection(db=REDIS_DB)
         redis_connection.ping()
-        
+
         logger.info("Iniciando limpieza de keys de Redis DB 2 para dashboard Panel")
-        
+
         # Usar pipeline para operaciones batch
         pipeline = redis_connection.pipeline()
         keys_to_delete = []
-        
+
         # Escanear cada patrón usando SCAN (no bloqueante)
         for pattern in DASHBOARD_REDIS_PATTERNS:
             cursor = 0
             pattern_deleted = 0
-            
+
             while True:
                 # SCAN retorna (next_cursor, [keys])
                 cursor, keys = redis_connection.scan(
@@ -78,26 +76,26 @@ def clean_dashboard_redis_keys():
                     match=pattern,
                     count=100  # Procesar en lotes de 100
                 )
-                
+
                 # Agregar keys al lote para eliminación
                 for key in keys:
                     # Normalizar key (convertir bytes a string si es necesario)
                     if isinstance(key, bytes):
                         key = key.decode('utf-8')
                     keys_to_delete.append(key)
-                
+
                 # Si el cursor es 0, hemos terminado de escanear este patrón
                 if cursor == 0:
                     break
-            
+
             pattern_deleted = len([k for k in keys_to_delete if pattern.replace('*', '') in k])
             logger.info(f"Patrón {pattern}: encontradas {pattern_deleted} keys para eliminar")
-        
+
         # Eliminar todas las keys encontradas en batch
         if keys_to_delete:
             # Eliminar duplicados
             unique_keys = list(set(keys_to_delete))
-            
+
             # Usar pipeline para eliminación eficiente
             for key in unique_keys:
                 try:
@@ -105,31 +103,31 @@ def clean_dashboard_redis_keys():
                 except Exception as e:
                     logger.warning(f"Error agregando key {key} al pipeline: {e}")
                     errors += 1
-            
+
             # Ejecutar pipeline
             try:
                 results = pipeline.execute()
                 total_deleted = sum(1 for r in results if r > 0)
-                logger.info(f"Pipeline ejecutado: {total_deleted} keys eliminadas de {len(unique_keys)} intentadas")
+                logger.info(f"Pipeline ejecutado: {total_deleted} keys eliminadas de {len(unique_keys)} intentadas")  # noqa: E501
             except Exception as e:
                 logger.error(f"Error ejecutando pipeline de eliminación: {e}")
                 errors += 1
         else:
             logger.info("No se encontraron keys para eliminar")
-        
+
         elapsed_time = time.time() - start_time
         logger.info(
             f"Limpieza completada: {total_deleted} keys eliminadas en {elapsed_time:.2f} segundos. "
             f"Errores: {errors}"
         )
-        
+
     except Exception as e:
         logger.error(f"Error durante la limpieza de Redis DB 2: {e}", exc_info=True)
         errors += 1
 
 
 class Command(BaseCommand):
-    help = 'Ejecuta un scheduler con AppScheduler para limpiar diariamente las keys de Redis DB 2 del dashboard Panel'
+    help = 'Ejecuta un scheduler con AppScheduler para limpiar diariamente las keys de Redis DB 2 del dashboard Panel'  # noqa: E501
 
     def __init__(self, *args, **kwargs):
         super(Command, self).__init__(*args, **kwargs)
@@ -142,21 +140,21 @@ class Command(BaseCommand):
         executors = {
             'default': ThreadPoolExecutor(1)
         }
-        
+
         # Configurar defaults de jobs
         job_defaults = {
             'coalesce': True,  # Ejecutar solo una vez si hay múltiples ejecuciones pendientes
             'max_instances': 1,  # Solo una instancia del job puede ejecutarse a la vez
             'misfire_grace_time': 3600  # 1 hora de gracia si el contenedor estuvo caído
         }
-        
+
         # Crear scheduler
         self.scheduler = BackgroundScheduler(
             executors=executors,
             job_defaults=job_defaults,
             timezone=None  # Usar timezone del sistema/contenedor (TZ env var)
         )
-        
+
         # Agregar job diario a las 00:00
         # El timezone se toma de la variable de entorno TZ del contenedor
         self.scheduler.add_job(
@@ -166,7 +164,7 @@ class Command(BaseCommand):
             name='Limpieza diaria de Redis DB 2 (Dashboard Panel)',
             replace_existing=True
         )
-        
+
         logger.info("Scheduler configurado: limpieza diaria a las 00:00 (TZ del contenedor)")
 
     def signal_handler(self, signum, frame):
@@ -183,19 +181,19 @@ class Command(BaseCommand):
             # Registrar handlers de señales
             signal.signal(signal.SIGINT, self.signal_handler)
             signal.signal(signal.SIGTERM, self.signal_handler)
-            
+
             # Configurar scheduler
             self.setup_scheduler()
-            
+
             # Iniciar scheduler
             self.scheduler.start()
             logger.info("Scheduler iniciado. Esperando ejecución diaria a las 00:00...")
-            
+
             # Ejecutar limpieza inmediatamente al inicio (opcional, para testing)
             # Comentado por defecto - descomentar si se desea ejecución inmediata
             # logger.info("Ejecutando limpieza inicial...")
             # clean_dashboard_redis_keys()
-            
+
             # Mantener el proceso corriendo
             try:
                 while not self.shutdown_requested:
@@ -203,7 +201,7 @@ class Command(BaseCommand):
             except KeyboardInterrupt:
                 logger.info("Interrupción de teclado recibida")
                 self.shutdown_requested = True
-            
+
         except Exception as e:
             logger.error(f"Error en el comando clean_dashboard_redis: {e}", exc_info=True)
             if self.scheduler and self.scheduler.running:

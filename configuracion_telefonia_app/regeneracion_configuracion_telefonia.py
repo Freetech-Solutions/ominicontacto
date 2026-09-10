@@ -259,7 +259,7 @@ class SincronizadorDeConfiguracionDestinoPersonalizadoAsterisk(AbstractConfigura
 
 
 class SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk(AbstractConfiguracionAsterisk):
-    """Sincroniza la configuración de rutas salientes en Redis/Asterisk DB. No genera archivos .conf de dialplan."""
+    """Sincroniza la configuración de rutas salientes en Redis/Asterisk DB. No genera archivos .conf de dialplan."""  # noqa: E501
 
     def _obtener_generador_family(self):
         generador = RutaSalienteFamily()

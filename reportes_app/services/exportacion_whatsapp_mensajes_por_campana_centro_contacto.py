@@ -71,7 +71,7 @@ def generar_csv_whatsapp_mensajes_por_campana(
 ):
     """
     Genera el archivo CSV de Mensajes por campaña (WhatsApp Ingresos) y publica
-    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:WA_MSG_CAMPANA:cc:{task_id}.
+    progreso en Redis (0 y 100). key_task debe ser OML:STATUS_CSV_REPORT:WA_MSG_CAMPANA:cc:{task_id}.  # noqa: E501
     """
     from api_app.views.reports_centro_contacto import obtener_whatsapp_mensajes_por_campana
 
@@ -151,14 +151,18 @@ def generar_csv_whatsapp_mensajes_por_campana(
                 _to_str(no_respondidos),
                 _format_seconds_csv(row.get('avg_frt_segundos')),
                 _format_seconds_csv(row.get('avg_duracion_segundos')),
-                _to_str(row.get('pct_respondidos')) if row.get('pct_respondidos') is not None else '',
-                _to_str(row.get('pct_no_respondidos')) if row.get('pct_no_respondidos') is not None else '',
+                _to_str(row.get('pct_respondidos')) if row.get(
+                    'pct_respondidos') is not None else '',
+                _to_str(row.get('pct_no_respondidos')) if row.get(
+                    'pct_no_respondidos') is not None else '',
             ])
         if rows:
             avg_frt = int(round(sum_frt / count_frt)) if count_frt else None
             avg_dura = int(round(sum_duracion / count_duracion)) if count_duracion else None
-            pct_resp = round(100.0 * total_respondidos / total_recibidos, 1) if total_recibidos else None
-            pct_no_resp = round(100.0 * total_no_respondidos / total_recibidos, 1) if total_recibidos else None
+            pct_resp = round(100.0 * total_respondidos / total_recibidos,
+                             1) if total_recibidos else None
+            pct_no_resp = round(100.0 * total_no_respondidos / total_recibidos,
+                                1) if total_recibidos else None
             writer.writerow([
                 _('Total'),
                 _to_str(total_recibidos),

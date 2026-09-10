@@ -29,11 +29,12 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "ominicontacto.settings")
 
 # Patch para django-easy-audit: convertir index_together a indexes para Django 6
 # Parcheamos ModelBase.__new__ para modificar la clase Meta antes de Options.__init__
-import django
-from django.db.models.base import ModelBase
+import django  # noqa: E402,F401
+from django.db.models.base import ModelBase  # noqa: E402
 
 # Guardar el método original
 original_new = ModelBase.__new__
+
 
 def patched_new(cls, name, bases, namespace, **kwargs):
     # Interceptar antes de que se cree la clase del modelo
@@ -50,7 +51,7 @@ def patched_new(cls, name, bases, namespace, **kwargs):
                     meta_class.indexes = []
                 elif getattr(meta_class, 'indexes', None) is None:
                     meta_class.indexes = []
-                
+
                 # Convertir cada grupo de index_together a un Index
                 for fields in index_together_value:
                     if isinstance(fields, (list, tuple)):
@@ -58,16 +59,17 @@ def patched_new(cls, name, bases, namespace, **kwargs):
                         meta_class.indexes.append(
                             models.Index(fields=list(fields), name=index_name)
                         )
-                
+
                 # Eliminar index_together para evitar el error de validación
                 delattr(meta_class, 'index_together')
-    
+
     # Llamar al __new__ original
     return original_new(cls, name, bases, namespace, **kwargs)
+
 
 # Aplicar el parche
 ModelBase.__new__ = staticmethod(patched_new)
 
-from django.core.wsgi import get_wsgi_application
+from django.core.wsgi import get_wsgi_application  # noqa: E402
 
 application = get_wsgi_application()

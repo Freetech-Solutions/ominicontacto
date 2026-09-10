@@ -70,20 +70,20 @@ class EstadisticasBaseCampana:
         Retorna la clase de constantes a usar según el tipo de modelo.
         Si estamos usando LlamadaResumen, retorna LlamadaResumen, sino LlamadaLog.
         """
-        if (hasattr(self, 'campana') and self.campana.es_dialer and 
-            hasattr(settings, 'OML_DIALER_ENGINE') and 
-            settings.OML_DIALER_ENGINE == 'omnidialer'):
+        if (hasattr(self, 'campana') and self.campana.es_dialer and
+            hasattr(settings, 'OML_DIALER_ENGINE') and
+                settings.OML_DIALER_ENGINE == 'omnidialer'):
             return LlamadaResumen
         return LlamadaLog
 
     def _obtener_logs_de_llamadas(self):
         # Si es dialer y OML_DIALER_ENGINE=omnidialer, usar LlamadaResumen
-        if (self.campana.es_dialer and 
-            hasattr(settings, 'OML_DIALER_ENGINE') and 
-            settings.OML_DIALER_ENGINE == 'omnidialer'):
+        if (self.campana.es_dialer and
+            hasattr(settings, 'OML_DIALER_ENGINE') and
+                settings.OML_DIALER_ENGINE == 'omnidialer'):
             # Usar la tabla de resumen para omnidialer
             resumenes = LlamadaResumen.objects.using('replica').filter(
-                campana_id=self.campana.pk, 
+                campana_id=self.campana.pk,
                 fecha_fin__range=(self.fecha_desde, self.fecha_hasta)
             ).order_by('-fecha_fin')
             # Convertir LlamadaResumen a objetos similares a LlamadaLog
@@ -91,7 +91,7 @@ class EstadisticasBaseCampana:
         else:
             # Usar LlamadaLog para otros casos
             logs_llamadas = LlamadaLog.objects.using('replica').filter(
-                campana_id=self.campana.pk, time__range=(self.fecha_desde, self.fecha_hasta)).order_by(
+                campana_id=self.campana.pk, time__range=(self.fecha_desde, self.fecha_hasta)).order_by(  # noqa: E501
                     '-time')
             return logs_llamadas
 
@@ -102,6 +102,7 @@ class EstadisticasBaseCampana:
         """
         class LlamadaLogAdapter:
             """Adaptador que convierte LlamadaResumen a formato LlamadaLog"""
+
             def __init__(self, resumen):
                 self.resumen = resumen
                 # Mapear campos de LlamadaResumen a atributos de LlamadaLog
@@ -114,12 +115,12 @@ class EstadisticasBaseCampana:
                 self.event = resumen.event
                 self.numero_marcado = resumen.numero_marcado
                 self.contacto_id = resumen.contacto_id
-                self.bridge_wait_time = float(resumen.bridge_wait_time) if resumen.bridge_wait_time else 0
-                self.duracion_llamada = int(resumen.duracion_segundos) if resumen.duracion_segundos else 0
+                self.bridge_wait_time = float(resumen.bridge_wait_time) if resumen.bridge_wait_time else 0  # noqa: E501
+                self.duracion_llamada = int(resumen.duracion_segundos) if resumen.duracion_segundos else 0  # noqa: E501
                 self.archivo_grabacion = resumen.archivo_grabacion
                 # Marcar que este es un adaptador de LlamadaResumen
                 self._es_resumen = True
-                
+
         return [LlamadaLogAdapter(resumen) for resumen in resumenes]
 
     def _inicializar_valores_estadisticas(self):
@@ -482,7 +483,7 @@ class EstadisticasService(EstadisticasBaseCampana):
         self.tipo_campana = campana.type
 
         self._inicializar_valores_estadisticas()
-        
+
         # Determinar qué modelo usar para las constantes
         self._modelo_constantes = self._obtener_modelo_constantes()
 
@@ -556,7 +557,7 @@ class EstadisticasService(EstadisticasBaseCampana):
                evento == 'CONNECT':
                 # atendidas en campaña entrante
                 self.reporte_calificaciones.dict_calificaciones_atendidas[nombre_opcion] += 1
-            elif evento in self._modelo_constantes.EVENTOS_NO_CONEXION:   # TODO: que busque en set fijo
+            elif evento in self._modelo_constantes.EVENTOS_NO_CONEXION:   # TODO: que busque en set fijo  # noqa: E501
                 # no atendidas en campaña entrante
                 self.reporte_calificaciones.dict_calificaciones_no_atendidas[nombre_opcion] += 1
         elif calificacion_final:
@@ -568,7 +569,7 @@ class EstadisticasService(EstadisticasBaseCampana):
                                              or self.campana.es_preview))):
                 # atendidas en campaña no entrante
                 self.reporte_calificaciones.dict_calificaciones_atendidas[nombre_opcion] += 1
-            elif evento in self._modelo_constantes.EVENTOS_NO_CONEXION:  # TODO: que busque en set fijo
+            elif evento in self._modelo_constantes.EVENTOS_NO_CONEXION:  # TODO: que busque en set fijo  # noqa: E501
                 # no atendidas en campaña no entrante
                 self.reporte_calificaciones.dict_calificaciones_no_atendidas[nombre_opcion] += 1
 
@@ -607,8 +608,8 @@ class EstadisticasService(EstadisticasBaseCampana):
 
     def _es_llamada_resumen(self):
         """Verifica si estamos usando LlamadaResumen en lugar de LlamadaLog"""
-        return (self.campana.es_dialer and 
-                hasattr(settings, 'OML_DIALER_ENGINE') and 
+        return (self.campana.es_dialer and
+                hasattr(settings, 'OML_DIALER_ENGINE') and
                 settings.OML_DIALER_ENGINE == 'omnidialer')
 
     def _mapear_evento_resumen_a_eventos_log(self, evento, agente_id):
@@ -620,10 +621,10 @@ class EstadisticasService(EstadisticasBaseCampana):
         directamente desde LlamadaResumen.
         """
         eventos_simulados = []
-        
+
         # Siempre simulamos un DIAL para contar como llamada realizada
         eventos_simulados.append('DIAL')
-        
+
         # Mapear eventos finales de LlamadaResumen a eventos de LlamadaLog
         if evento == 'EXIT_ANSWERED':
             # Fue atendida, simulamos solo ANSWER (no CONNECT para evitar duplicado)
@@ -645,9 +646,9 @@ class EstadisticasService(EstadisticasBaseCampana):
         else:
             # Si no hay evento claro, asumimos no conexión
             eventos_simulados.append('OTHER')
-        
+
         return eventos_simulados
-    
+
     def _calcular_detalle_llamadas_desde_resumen(self):
         """
         Calcula el detalle de llamadas directamente desde LlamadaResumen
@@ -655,32 +656,32 @@ class EstadisticasService(EstadisticasBaseCampana):
         """
         if not self._es_llamada_resumen():
             return
-        
+
         # Consultar LlamadaResumen para calcular estadísticas directamente
         resumenes = LlamadaResumen.objects.using('replica').filter(
             campana_id=self.campana.pk,
             fecha_fin__range=(self.fecha_desde, self.fecha_hasta)
         )
-        
+
         callids_procesados = set()
-        
+
         for resumen in resumenes:
             callid = resumen.callid
             evento = resumen.event
             tipo_llamada = resumen.tipo_llamada or self._modelo_constantes.LLAMADA_DIALER
             agente_id = resumen.agente_id
-            
+
             # Evitar procesar el mismo callid múltiples veces
             if callid in callids_procesados:
                 continue
             callids_procesados.add(callid)
-            
+
             # Contar como discada (siempre hay un DIAL implícito)
             if tipo_llamada != self._modelo_constantes.LLAMADA_MANUAL:
                 self.reporte_detalle_llamadas.reporte[_('Discadas')] += 1
             else:
                 self.reporte_detalle_llamadas.reporte[_('Manuales')] += 1
-            
+
             # Procesar según el evento final
             if evento == 'EXIT_ANSWERED':
                 if tipo_llamada != self._modelo_constantes.LLAMADA_MANUAL:
@@ -714,13 +715,13 @@ class EstadisticasService(EstadisticasBaseCampana):
         calificaciones_analizadas = set()
         callids_analizados = set()
         usar_resumen = self._es_llamada_resumen()
-        
+
         # Si usamos LlamadaResumen, calcular detalle directamente para evitar duplicados
         if usar_resumen and self.campana.es_dialer:
             self._calcular_detalle_llamadas_desde_resumen()
-        
+
         logs_llamadas = self._obtener_logs_de_llamadas()
-        
+
         for log_llamada in logs_llamadas:
             evento = log_llamada.event
             callid = log_llamada.callid
@@ -730,7 +731,7 @@ class EstadisticasService(EstadisticasBaseCampana):
             es_campana_entrante = self.campana.es_entrante
             calificacion_historica = self.calificaciones_historicas_dict.get(callid, False)
             calificacion_final = self.calificaciones_finales_dict.get(callid, False)
-            
+
             # Si usamos LlamadaResumen, el detalle ya se calculó, solo procesamos otros aspectos
             if usar_resumen:
                 # Para LlamadaResumen, solo simulamos eventos necesarios para otras estadísticas
@@ -743,16 +744,16 @@ class EstadisticasService(EstadisticasBaseCampana):
                     # NO llamar a _calcular_detalle aquí, ya se calculó desde resumen
                     self._obtener_reporte_no_atendidos(log_llamada, evento_simulado)
                     self._obtener_total_llamadas(
-                        evento_simulado, es_campana_entrante, calificacion_final, callid, 
+                        evento_simulado, es_campana_entrante, calificacion_final, callid,
                         callids_analizados, bridge_wait_time)
                     self._obtener_cantidad_calificacion(
-                        es_campana_entrante, calificacion_historica, calificacion_final, 
+                        es_campana_entrante, calificacion_historica, calificacion_final,
                         tipo_llamada, evento_simulado)
             else:
                 # Procesamiento normal con LlamadaLog
                 self._obtener_llamadas_atendidas_sin_calificacion(
                     evento, agente_id, calificacion_final, calificacion_historica)
-                self.reporte_detalle_llamadas._calcular_detalle(evento, tipo_llamada, self._modelo_constantes)
+                self.reporte_detalle_llamadas._calcular_detalle(evento, tipo_llamada, self._modelo_constantes)  # noqa: E501
                 self._obtener_reporte_no_atendidos(log_llamada, evento)
                 self._obtener_total_llamadas(
                     evento, es_campana_entrante, calificacion_final, callid, callids_analizados,
@@ -760,7 +761,7 @@ class EstadisticasService(EstadisticasBaseCampana):
                 self._obtener_cantidad_calificacion(
                     es_campana_entrante, calificacion_historica, calificacion_final, tipo_llamada,
                     evento)
-            
+
             # obtener_total_calificacion_agente(log_llamada) y reporte csv_calificados
             self._obtener_total_calificacion_agente_datos_calificaciones(
                 es_campana_entrante, calificacion_historica, calificacion_final, log_llamada,
@@ -818,9 +819,9 @@ class EstadisticasService(EstadisticasBaseCampana):
         """
         if not self._es_llamada_resumen():
             return None
-        
-        from django.db.models import Count, Q, Case, When, IntegerField
-        
+
+        from django.db.models import Count
+
         # Consultar LlamadaResumen agrupando por agente_id usando agregación
         resumenes_por_agente = LlamadaResumen.objects.using('replica').filter(
             campana_id=self.campana.pk,
@@ -829,15 +830,15 @@ class EstadisticasService(EstadisticasBaseCampana):
         ).exclude(agente_id=-1).values('agente_id', 'event').annotate(
             cantidad=Count('callid')
         )
-        
+
         # Agrupar por agente y contar
         estadisticas_por_agente = {}
-        
+
         for item in resumenes_por_agente:
             agente_id = item['agente_id']
             evento = item['event']
             cantidad = item['cantidad']
-            
+
             if agente_id not in estadisticas_por_agente:
                 # Obtener el agente del diccionario o de la BD
                 if agente_id in self.agentes_dict:
@@ -848,7 +849,7 @@ class EstadisticasService(EstadisticasBaseCampana):
                         self.agentes_dict[agente_id] = agente
                     except AgenteProfile.DoesNotExist:
                         continue
-                
+
                 estadisticas_por_agente[agente_id] = {
                     'agente_id': agente_id,
                     'nombre': agente.user.get_full_name() or agente.user.username,
@@ -856,17 +857,17 @@ class EstadisticasService(EstadisticasBaseCampana):
                     'atendidas': 0,
                     'no_atendidas': 0,
                 }
-            
+
             # Contar como ofrecida (tiene agente_id)
             estadisticas_por_agente[agente_id]['ofrecidas'] += cantidad
-            
+
             # Determinar si fue atendida o no atendida
             if evento == 'EXIT_ANSWERED':
                 estadisticas_por_agente[agente_id]['atendidas'] += cantidad
             else:
                 # No atendida: cualquier otro evento cuando hay agente_id
                 estadisticas_por_agente[agente_id]['no_atendidas'] += cantidad
-        
+
         return estadisticas_por_agente
 
     def _calcular_estadisticas(self, campana, fecha_desde, fecha_hasta):
@@ -903,8 +904,8 @@ class EstadisticasService(EstadisticasBaseCampana):
         cantidad_llamadas = (list(reporte.keys()), list(reporte.values()))
 
         # Calcular estadísticas de llamadas por agente (solo para omnidialer)
-        estadisticas_llamadas_por_agente = self._calcular_estadisticas_llamadas_por_agente_omnidialer()
-        
+        estadisticas_llamadas_por_agente = self._calcular_estadisticas_llamadas_por_agente_omnidialer()  # noqa: E501
+
         # Calcular totales de llamadas por agente
         total_ofrecidas = 0
         total_atendidas = 0
@@ -1008,7 +1009,7 @@ class EstadisticasService(EstadisticasBaseCampana):
             'barra_campana_llamadas': barra_campana_llamadas,
             'dict_llamadas_counter': list(zip(estadisticas['cantidad_llamadas'][0],
                                               estadisticas['cantidad_llamadas'][1])),
-            'estadisticas_llamadas_por_agente': estadisticas.get('estadisticas_llamadas_por_agente'),
+            'estadisticas_llamadas_por_agente': estadisticas.get('estadisticas_llamadas_por_agente'),  # noqa: E501
             'total_llamadas_ofrecidas': estadisticas.get('total_llamadas_ofrecidas', 0),
             'total_llamadas_atendidas': estadisticas.get('total_llamadas_atendidas', 0),
             'total_llamadas_no_atendidas': estadisticas.get('total_llamadas_no_atendidas', 0),
