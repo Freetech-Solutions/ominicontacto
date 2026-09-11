@@ -8,6 +8,7 @@ include:
       - 'templates/security-scans.yml'
       - 'templates/gitleaks.yml'
       - 'templates/owasp-dependency-check.yml'
+      - 'templates/sonarqube.yml'
 
 variables:
   IMAGE_NAME: "omlapp"
@@ -35,6 +36,8 @@ variables:
   OWASP_IMAGE_TAG: "12.2.2"
   # DefectDojo con certificado interno/auto-firmado (override en CI/CD si usan CA pública).
   DEFECTDOJO_INSECURE: "true"
+  SONAR_INSECURE: "true"
+  SONAR_ADDITIONAL_ARGS: "-Dsonar.python.coverage.reportPaths=coverage.xml"
   # Sin variables → sonarqube, build, security_scan y security_report.
   # BUILD=true → solo build (container-image).
   # FULL=true → pipeline completo: tests, SAST, gitleaks, sonarqube, build y escaneos de seguridad.
@@ -155,27 +158,15 @@ test:eslint:
     - bash check-js.sh
   <<: *full-pipeline-rules
 
-sonarqube-check:
-  stage: sonarqube
-  image:
-    name: sonarsource/sonar-scanner-cli:latest
-    entrypoint: [""]
-  variables:
-    # Forzar caché dentro del workspace
-    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"
-    GIT_DEPTH: "0"
-  cache:
-    key: "${CI_COMMIT_REF_SLUG}"
-    paths:
-      - .sonar/cache
-  script:
-    - sonar-scanner -Dsonar.python.coverage.reportPaths=coverage.xml
+sonarqube_scan:
   needs:
     # Con FULL=true usa cobertura de django; en pipeline default el artefacto es opcional
     - job: test:django
       artifacts: true
       optional: true
-  allow_failure: true
+  <<: *sonar-rules
+
+sonarqube_defectdojo_upload:
   <<: *sonar-rules
 
 .build_template:
@@ -252,7 +243,7 @@ container-image:
       - omlapp.tar
     expire_in: 90 days
 
-# Los jobs trivy_scan, defectdojo_upload, gitleaks_defectdojo_upload y owasp_defectdojo_upload se heredan de devsecops.
+# Los jobs trivy_scan, defectdojo_upload, gitleaks_defectdojo_upload, owasp_defectdojo_upload y sonarqube_defectdojo_upload se heredan de devsecops.
 
 # GitLab no expande ${GITLEAKS_STAGE} del template incluido en el campo stage.
 gitleaks_scan:
