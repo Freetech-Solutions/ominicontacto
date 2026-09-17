@@ -37,7 +37,9 @@ variables:
   # DefectDojo con certificado interno/auto-firmado (override en CI/CD si usan CA pública).
   DEFECTDOJO_INSECURE: "true"
   SONAR_INSECURE: "true"
+  # Cobertura vía ADDITIONAL_ARGS; exclusiones OWASP/htmlcov vienen del template (SONAR_EXCLUSIONS).
   SONAR_ADDITIONAL_ARGS: "-Dsonar.python.coverage.reportPaths=coverage.xml"
+  SONAR_EXCLUSIONS: "**/dependency-check-reports/**,**/*dependency-check-report*,**/htmlcov/**,**/.sonar/**,**/node_modules/**,**/static/**/JS/ext/**"
   # Sin variables → sonarqube, build, security_scan y security_report.
   # BUILD=true → solo build (container-image).
   # FULL=true → pipeline completo: tests, SAST, gitleaks, sonarqube, build y escaneos de seguridad.
