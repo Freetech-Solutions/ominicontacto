@@ -58,7 +58,10 @@ class Command(BaseCommand):
             '--chunk-size',
             type=int,
             default=DEFAULT_CHUNK_SIZE,
-            help=f'Tamaño de lote de lectura/escritura por iteración (default: {DEFAULT_CHUNK_SIZE}).',
+            help=(
+                'Tamaño de lote de lectura/escritura por iteración '
+                f'(default: {DEFAULT_CHUNK_SIZE}).'
+            ),
         )
         parser.add_argument(
             '--dry-run',
@@ -96,7 +99,8 @@ class Command(BaseCommand):
 
         if since >= boundary:
             self.stdout.write(self.style.WARNING(
-                f'No hay nada para migrar: --since ({since}) no es anterior al boundary ({boundary}).'
+                f'No hay nada para migrar: --since ({since}) '
+                f'no es anterior al boundary ({boundary}).'
             ))
             return
 
@@ -141,7 +145,10 @@ class Command(BaseCommand):
             total_scanned += len(rows)
             to_create = []
             for row in rows:
-                av2 = self._map_row(row, valid_pausa_ids, counts_by_event_type, skipped_unexpected_event)
+                av2 = self._map_row(
+                    row, valid_pausa_ids, counts_by_event_type,
+                    skipped_unexpected_event,
+                )
                 if av2 is None:
                     if row.agente_id is None:
                         skipped_null_agente += 1
@@ -158,7 +165,8 @@ class Command(BaseCommand):
             last_time, last_id = rows[-1].time, rows[-1].id
             self.stdout.write(
                 f'Chunk {chunk_num}: leídas={len(rows)} migradas={len(to_create)} '
-                f'(acumulado: scanned={total_scanned} migrated={total_migrated}) last_time={last_time}'
+                f'(acumulado: scanned={total_scanned} '
+                f'migrated={total_migrated}) last_time={last_time}'
             )
 
         self._print_summary(
@@ -213,8 +221,10 @@ class Command(BaseCommand):
             metadata=metadata,
         )
 
-    def _print_summary(self, dry_run, total_scanned, total_migrated, counts_by_event_type,
-                        skipped_null_agente, skipped_unexpected_event, invalid_pause_id_count):
+    def _print_summary(
+            self, dry_run, total_scanned, total_migrated, counts_by_event_type,
+            skipped_null_agente, skipped_unexpected_event,
+            invalid_pause_id_count):
         prefix = '[DRY-RUN] ' if dry_run else ''
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS(
