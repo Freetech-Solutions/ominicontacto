@@ -3,12 +3,13 @@ include:
     rules:
       - if: '$FULL == "true"'
   - project: 'omnileads/devsecops'
-    ref: 'main'
+    ref: 'develop'
     file:
       - 'templates/security-scans.yml'
       - 'templates/gitleaks.yml'
       - 'templates/owasp-dependency-check.yml'
       - 'templates/sonarqube.yml'
+      - 'templates/docker-build-push.yml'
 
 variables:
   IMAGE_NAME: "omlapp"
@@ -17,6 +18,8 @@ variables:
   DOCKER_ORG: ""
   FULL: ""
   BUILD: ""
+  # ARM64=true → build/push multi-arch (amd64+arm64) vía devsecops docker-build-push.
+  ARM64: ""
   # SKIP_OWASP=true → omite owasp_dependency_scan y owasp_defectdojo_upload (útil con FULL=true).
   SKIP_OWASP: ""
   # SKIP_TESTS=true → omite test:django, test:flake8 y test:eslint (útil con FULL=true).
@@ -171,80 +174,21 @@ sonarqube_scan:
 sonarqube_defectdojo_upload:
   <<: *sonar-rules
 
-.build_template:
-  image: docker:27.5.1-alpine3.21
-  services:
-    - docker:27.5.1-dind-alpine3.21
-  before_script:
-    - apk add --no-cache docker-cli-buildx git
-  script:
-    - echo "Building ${IMAGE_NAME}..."
-    - ls -l ${DOCKERFILE_PATH}
-    - docker buildx build --file=${DOCKERFILE_PATH} --tag=${IMAGE_NAME} --target=run --load ${BUILD_CONTEXT}
-    - docker save ${IMAGE_NAME} -o ${CI_PROJECT_DIR}/${IMAGE_NAME}.tar
-    - |-
-      if [ "$CI_PIPELINE_SOURCE" = "merge_request_event" ]; then
-        echo "Pipeline de Merge Request: omitiendo login y push a Docker Hub."
-      elif [ -z "${DOCKER_PASSWORD:-}" ] && [ -z "${DOCKER_SECRET:-}" ]; then
-        echo "Credenciales de Docker no configuradas: omitiendo login y push."
-      else
-        if [ -z "$(cat .omnileads_version 2>/dev/null)" ]; then
-          echo "Error: El archivo .omnileads_version no existe o está vacío."
-          exit 1
-        fi
-
-        if [ -z "${IMAGE_VERSION}" ]; then
-          IMAGE_VERSION="$(date +%Y%m%d)-${CI_COMMIT_SHORT_SHA}"
-        fi
-
-        echo "Pushing image ${IMAGE_NAME}..."
-
-        if [ -n "${DOCKER_ORG}" ]; then
-          if [[ "${DOCKER_ORG}" != "omnileads" && "${DOCKER_ORG}" != "freetechsolutions" ]]; then
-            echo "Error: DOCKER_ORG debe ser 'omnileads' o 'freetechsolutions'."
-            exit 1
-          fi
-          PUSH_ORG="${DOCKER_ORG}"
-        elif [[ "${CI_COMMIT_BRANCH}" == "master" ]]; then
-          PUSH_ORG="omnileads"
-        else
-          PUSH_ORG="freetechsolutions"
-        fi
-
-        if [[ "${PUSH_ORG}" == "omnileads" ]]; then
-          if [ -z "${DOCKER_SECRET:-}" ] || [ -z "${DOCKER_USERNAME:-}" ]; then
-            echo "Faltan credenciales para org omnileads: omitiendo push."
-          else
-            echo "${DOCKER_SECRET}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
-            docker tag ${IMAGE_NAME} docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
-            docker push docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
-            echo "${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION"
-          fi
-        else
-          if [ -z "${DOCKER_PASSWORD:-}" ] || [ -z "${DOCKER_USER:-}" ]; then
-            echo "Faltan credenciales para org freetechsolutions: omitiendo push."
-          else
-            echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USER}" --password-stdin
-            docker tag ${IMAGE_NAME} docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
-            docker push docker.io/${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION
-            echo "${PUSH_ORG}/${IMAGE_NAME}:$IMAGE_VERSION"
-          fi
-        fi
-      fi
-  <<: *build-rules
-
 container-image:
-  extends: .build_template
+  extends: .docker_container_image
   stage: build
   variables:
     IMAGE_NAME: omlapp
     DOCKERFILE_PATH: Dockerfile
     BUILD_CONTEXT: .
+    REQUIRE_OMNILEADS_VERSION_FILE: "true"
+    DOCKER_RELEASE_BRANCH_REGEX: "^(master)$"
   artifacts:
     paths:
       - omlapp.tar
     expire_in: 90 days
 
+  <<: *build-rules
 # Los jobs trivy_scan, defectdojo_upload, gitleaks_defectdojo_upload, owasp_defectdojo_upload y sonarqube_defectdojo_upload se heredan de devsecops.
 
 # GitLab no expande ${GITLEAKS_STAGE} del template incluido en el campo stage.

@@ -244,6 +244,16 @@ class AgentActivityAmiManager(object):
             redis_connection.hset(family, mapping=data)
         except redis.exceptions.RedisError:
             error = True
+            return error
+        try:
+            from supervision_app.services.supervision_stream_service import (
+                SupervisionStreamService,
+            )
+            SupervisionStreamService(conn=redis_connection).publish_agent_to_streams(
+                agente_profile.id)
+        except Exception:
+            logger.exception(
+                'Error en fan-out de supervisión para agente %s', agente_profile.id)
         return error
 
     def _set_agent_redis_status(self, agente_profile, action):

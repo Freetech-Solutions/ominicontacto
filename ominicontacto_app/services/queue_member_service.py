@@ -57,6 +57,24 @@ class QueueMemberService(object):
         """No-op: ya no se mantiene conexión AMI desde este servicio."""
         pass
 
+    def _refrescar_supervision_tras_asignacion(self):
+        """
+        Actualiza OML:SUPERVISOR y propaga CAMPANAS/VOICEBOT_STREAMS (H3).
+
+        Sin RedisGears, CAMPANAS en OML:AGENT solo se renovaba en page-load o
+        en el tick ~2 min del scheduler; el panel filtraba con la lista stale.
+        """
+        try:
+            from supervision_app.services.supervision_stream_service import (
+                SupervisionStreamService,
+            )
+            SupervisionStreamService(
+                conn=self._get_redis_connection()
+            ).refrescar_asignaciones_desde_db()
+        except Exception:
+            logger.exception(
+                'Error sincronizando supervisión tras cambio de asignación')
+
     def eliminar_agente_de_colas_asignadas(self, agente):
         # obtener campañas afectadas antes de borrar los QueueMember
         campanas_afectadas = list(
@@ -76,6 +94,7 @@ class QueueMemberService(object):
         activacion = ActivacionQueueService()
         for campana in campanas_afectadas:
             activacion.activar(campana)
+        self._refrescar_supervision_tras_asignacion()
 
     def eliminar_agentes_de_cola(self, campana, agentes):
         QueueMember.objects.filter(
@@ -88,6 +107,7 @@ class QueueMemberService(object):
             self.campanas_de_agente_family.borrar_agente_de_campana(campana.id, agente.id)
             self.campaign_agents_family.borrar_agente_de_campana(campana.id, agente.id)
         ActivacionQueueService().activar(campana)
+        self._refrescar_supervision_tras_asignacion()
 
     def eliminar_agente_de_colas(self, agente, campanas, campanas_ids):
         QueueMember.objects.filter(
@@ -104,6 +124,7 @@ class QueueMemberService(object):
         activacion = ActivacionQueueService()
         for campana in campanas:
             activacion.activar(campana)
+        self._refrescar_supervision_tras_asignacion()
 
     def _remover_agente_cola_asterisk(self, campana, agente):
         """Sincronización de miembros de cola con Asterisk se hace fuera de Django (p. ej.
@@ -136,6 +157,7 @@ class QueueMemberService(object):
         self.campanas_de_agente_family.registrar_agentes_en_campana(campana.id, penalties.keys())
         self.campaign_agents_family.registrar_agentes_en_campana(campana.id, penalties.keys())
         ActivacionQueueService().activar(campana)
+        self._refrescar_supervision_tras_asignacion()
 
     def _adicionar_agente_cola_asterisk(self, agente, queue_member, campana, en_pausa=False):
         """Sincronización de miembros de cola con Asterisk se hace fuera de Django (p. ej.
@@ -166,6 +188,7 @@ class QueueMemberService(object):
             activacion = ActivacionQueueService()
             for campana in campanas:
                 activacion.activar(campana)
+            self._refrescar_supervision_tras_asignacion()
         except Exception as e:
             logger.exception(f'Error al adicionar agente a la cola de la campaña {e.__str__()}')
 
