@@ -206,7 +206,7 @@ class DashboardContactCenterStreamRegistrationTests(OMLBaseTest):
         # admin es reported_by; el supervisor NO está asignado a otra_campana
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_general_registra_stream_supervisor(self, mock_gears_cls, mock_kamailio_cls):
         mock_gears = MagicMock()
         mock_gears_cls.return_value = mock_gears
@@ -231,7 +231,7 @@ class DashboardContactCenterStreamRegistrationTests(OMLBaseTest):
         )
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_general_supervisor_solo_ve_campanas_asignadas(
             self, mock_gears_cls, mock_kamailio_cls):
         mock_gears_cls.return_value = MagicMock()
@@ -250,7 +250,7 @@ class DashboardContactCenterStreamRegistrationTests(OMLBaseTest):
         self.assertContains(response, 'Desglose de disposiciones')
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_general_admin_ve_todas_las_campanas(self, mock_gears_cls, mock_kamailio_cls):
         mock_gears = MagicMock()
         mock_gears_cls.return_value = mock_gears
@@ -270,7 +270,7 @@ class DashboardContactCenterStreamRegistrationTests(OMLBaseTest):
         mock_gears.registra_stream_supervisor.assert_called_once_with(admin_sup.id)
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_general_campaign_404_si_no_asignada(self, mock_gears_cls, mock_kamailio_cls):
         mock_gears_cls.return_value = MagicMock()
         mock_kamailio_cls.return_value = MagicMock()
@@ -281,7 +281,7 @@ class DashboardContactCenterStreamRegistrationTests(OMLBaseTest):
         self.assertEqual(response.status_code, 404)
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_general_campaign_ok_si_asignada(self, mock_gears_cls, mock_kamailio_cls):
         mock_gears = MagicMock()
         mock_gears_cls.return_value = mock_gears
@@ -310,7 +310,7 @@ class DashboardContactCenterStreamRegistrationTests(OMLBaseTest):
         self.assertEqual(list(qs), [])
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_enrich_context_sin_supervisor_no_registra_stream(
             self, mock_gears_cls, mock_kamailio_cls):
         from supervision_app.views import _enrich_contact_center_supervisor_context
@@ -350,7 +350,7 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
         mock_kamailio_cls.return_value = mock_kamailio
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_dialer_200_sin_inbound_outbound(self, mock_gears_cls, mock_kamailio_cls):
         self._mock_services(mock_gears_cls, mock_kamailio_cls)
         self.client.login(username=self.supervisor.user.username, password=self.DEFAULT_PASSWORD)
@@ -376,7 +376,7 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
         self.assertNotContains(response, 'inboundChart')
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_dialer_solo_campanas_dialer(self, mock_gears_cls, mock_kamailio_cls):
         self._mock_services(mock_gears_cls, mock_kamailio_cls)
         self.client.login(username=self.supervisor.user.username, password=self.DEFAULT_PASSWORD)
@@ -390,7 +390,7 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
             self.assertEqual(campana.type, campana.TYPE_DIALER)
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_dialer_campaign_ok_si_dialer_asignada(self, mock_gears_cls, mock_kamailio_cls):
         self._mock_services(mock_gears_cls, mock_kamailio_cls)
         self.client.login(username=self.supervisor.user.username, password=self.DEFAULT_PASSWORD)
@@ -400,7 +400,7 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
         self.assertEqual(response.context['initial_campaign_id'], self.campana_dialer.id)
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_dialer_campaign_404_si_entrante(self, mock_gears_cls, mock_kamailio_cls):
         self._mock_services(mock_gears_cls, mock_kamailio_cls)
         self.client.login(username=self.supervisor.user.username, password=self.DEFAULT_PASSWORD)
@@ -409,7 +409,7 @@ class DashboardPanelDialerViewTests(OMLBaseTest):
         self.assertEqual(response.status_code, 404)
 
     @patch('supervision_app.views.KamailioService')
-    @patch('supervision_app.views.RedisGearsService')
+    @patch('supervision_app.views.SupervisionStreamService')
     def test_panel_dialer_campaign_404_si_no_asignada(self, mock_gears_cls, mock_kamailio_cls):
         self._mock_services(mock_gears_cls, mock_kamailio_cls)
         self.client.login(username=self.supervisor.user.username, password=self.DEFAULT_PASSWORD)

@@ -37,6 +37,12 @@ class QueueMemberServiceTests(OMLBaseTest):
         self.agente2 = self.crear_agente_profile()
         self._hacer_miembro(self.agente2, self.campana1)
         self.agente3 = self.crear_agente_profile()
+        # Evitar regenerar OML:SUPERVISOR en cada mutación (H3) durante tests unitarios.
+        self._supervision_patcher = patch(
+            'ominicontacto_app.services.queue_member_service.QueueMemberService'
+            '._refrescar_supervision_tras_asignacion')
+        self._supervision_patcher.start()
+        self.addCleanup(self._supervision_patcher.stop)
 
     @patch('ominicontacto_app.services.creacion_queue.ActivacionQueueService.activar')
     @patch('ominicontacto_app.services'
@@ -175,3 +181,32 @@ class QueueMemberServiceTests(OMLBaseTest):
             call('OML:CAMPAIGN-AGENTS:' + str(self.campana2.id), self.agente3.id),
             call('OML:CAMPAIGN-AGENTS:' + str(self.campana1.id), self.agente3.id)
         ], any_order=True)
+
+    @patch('ominicontacto_app.services.creacion_queue.ActivacionQueueService.activar')
+    @patch('ominicontacto_app.services'
+           '.queue_member_service.obtener_status_agentes_sesiones_activas')
+    @patch('redis.Redis.sadd')
+    def test_agregar_agentes_refresca_supervision(self, sadd, obtener_status, activar):
+        """H3: al asignar agentes se refresca OML:SUPERVISOR/CAMPANAS de inmediato."""
+        obtener_status.return_value = {}
+        service = QueueMemberService()
+        service._refrescar_supervision_tras_asignacion.reset_mock()
+        service.agregar_agentes_en_cola(self.campana2, [self.agente3])
+        service._refrescar_supervision_tras_asignacion.assert_called_once()
+
+    def test_refrescar_supervision_delega_a_stream_service(self):
+        self._supervision_patcher.stop()
+        try:
+            service = QueueMemberService()
+            fake_conn = object()
+            with patch.object(service, '_get_redis_connection', return_value=fake_conn):
+                with patch(
+                    'supervision_app.services.supervision_stream_service.'
+                    'SupervisionStreamService'
+                ) as StreamCls:
+                    instance = StreamCls.return_value
+                    service._refrescar_supervision_tras_asignacion()
+            StreamCls.assert_called_once_with(conn=fake_conn)
+            instance.refrescar_asignaciones_desde_db.assert_called_once()
+        finally:
+            self._supervision_patcher.start()

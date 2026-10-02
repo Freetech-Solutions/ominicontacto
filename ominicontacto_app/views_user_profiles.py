@@ -406,9 +406,8 @@ class CustomerUserUpdateView(UpdateView):
                     agente_profile.voicebot_trunk_id = cd.get('voicebot_trunk').pk if cd.get('voicebot_trunk') else None  # noqa: E501
                     agente_profile.voicebot_extension = cd.get('voicebot_extension') or None
                     agente_profile.save()
-                    agente_family = AgenteFamily()
-                    agente_family.regenerar_family(agente_profile)
-                # generar archivos sip en asterisk
+                # Un solo regenerate con preservar_status (M7): evita limpiar STATUS/CALLID
+                # y luego volver a regenerar. activar_agente ya hace merge in-place.
                 asterisk_sip_service = ActivacionAgenteService()
                 try:
                     asterisk_sip_service.activar_agente(agente_profile, preservar_status=True)
@@ -702,8 +701,9 @@ class AgenteProfileUpdateView(UpdateView):
 
     def form_valid(self, form):
         ret = super(AgenteProfileUpdateView, self).form_valid(form)
+        # M7: preservar STATUS/CALLID/STREAMS si el agente está en sesión.
         agente_family = AgenteFamily()
-        agente_family.regenerar_family(self.object)
+        agente_family.regenerar_family(self.object, preservar_status=True)
         return ret
 
 
@@ -748,6 +748,7 @@ class ActivarAgenteView(RedirectView):
     def get(self, request, *args, **kwargs):
         agente = AgenteProfile.objects.get(pk=self.kwargs['pk_agente'])
         agente.activar()
+        # Reactivación: STATUS vacío es intencional; STREAMS se preservan (R1 merge).
         agente_family = AgenteFamily()
         agente_family.regenerar_family(agente)
         return HttpResponseRedirect(reverse('agente_list'))
