@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import os
 import boto3
 import logging
+from django.conf import settings
 
 from botocore.client import Config
 
@@ -72,14 +73,37 @@ class StorageService(object):
                                        endpoint_url=self.url,
                                        region_name=self.region_name)
 
-    def get_file_url(self, filename):
-        client = self.client
-        if self.storage_type == 's3-minio':
-            client = self.url_client
-        return client.generate_presigned_url('get_object',
-                                             Params={'Bucket': self.bucket_name,
-                                                     'Key': filename[1:]},
-                                             ExpiresIn=3600)
+    def get_file_url(self, filename, expires_in=None):
+        """
+        Genera la URL firmada
+        """
+        try:
+            # Validación de seguridad
+            if not filename:
+                return None
+
+            if expires_in is None:
+                expires_in = getattr(
+                    settings, 'STORAGE_PRESIGNED_URL_TTL', settings.SESSION_COOKIE_AGE
+                )
+
+            # Key: Aseguramos que no tenga slash inicial
+            key = filename[1:] if filename.startswith('/') else filename
+
+            client = self.client
+            if self.storage_type == 's3-minio':
+                client = self.url_client
+            url = client.generate_presigned_url(
+                'get_object',
+                Params={'Bucket': self.bucket_name, 'Key': key},
+                ExpiresIn=expires_in
+            )
+
+            return url
+
+        except Exception as e:
+            logger.error(f'Error generando URL firmada: {e}')
+            return None
 
     def download_file(self, file_name, local_destination, root_s3_folder=None):
         file_dest = os.path.join(local_destination, file_name)
