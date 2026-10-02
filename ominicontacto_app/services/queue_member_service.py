@@ -155,7 +155,8 @@ class QueueMemberService(object):
                     self._adicionar_agente_cola_asterisk(
                         agente, queue_member, campana, en_pausa)
         self.campanas_de_agente_family.registrar_agentes_en_campana(campana.id, penalties.keys())
-        self.campaign_agents_family.registrar_agentes_en_campana(campana.id, penalties.keys())
+        self.campaign_agents_family.registrar_agentes_en_campana(
+            campana.id, penalties.keys(), penalties=penalties)
         ActivacionQueueService().activar(campana)
         self._refrescar_supervision_tras_asignacion()
 

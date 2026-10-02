@@ -1033,9 +1033,14 @@ class CampanasDeAgenteFamily(object):
 
 
 class CampaignAgentsFamily(object):
-    """ Mantiene información de que agentes están asociados a cada campaña """
+    """ Mantiene información de que agentes están asociados a cada campaña.
+
+    - OML:CAMPAIGN-AGENTS:{id}: SET de agent_ids (membership).
+    - OML:CAMP:{id}:MEMBER-PENALTY: HASH agent_id → QueueMember.penalty (por membresía).
+    """
 
     KEY_PREFIX = "OML:CAMPAIGN-AGENTS:{0}"
+    PENALTY_KEY_PREFIX = "OML:CAMP:{0}:MEMBER-PENALTY"
 
     def __init__(self, redis_connection=None) -> None:
         self.redis_connection = redis_connection
@@ -1043,6 +1048,9 @@ class CampaignAgentsFamily(object):
     def _get_redis_connection(self):
         if not self.redis_connection:
             self.redis_connection = create_redis_connection()
+
+    def _penalty_key(self, campana_id):
+        return self.PENALTY_KEY_PREFIX.format(campana_id)
 
     def _create_families(self):
         self._get_redis_connection()
@@ -1054,12 +1062,18 @@ class CampaignAgentsFamily(object):
                 function="split_part",
                 output_field=models.IntegerField(),
             )
-        ).values_list("campana_id", "member_id")
+        ).values_list("campana_id", "member_id", "penalty")
         data = defaultdict(set)
-        for campana_id, agente_id in queryset:
+        penalties_by_campana = defaultdict(dict)
+        for campana_id, agente_id, penalty in queryset:
             data[self.KEY_PREFIX.format(campana_id)].add(agente_id)
+            penalties_by_campana[campana_id][str(agente_id)] = int(penalty)
         for campana_id_key, agente_ids in data.items():
             self.redis_connection.sadd(campana_id_key, *agente_ids)
+        for campana_id, mapping in penalties_by_campana.items():
+            if mapping:
+                self.redis_connection.hset(
+                    self._penalty_key(campana_id), mapping=mapping)
 
     def _delete_families(self):
         self._get_redis_connection()
@@ -1067,6 +1081,10 @@ class CampaignAgentsFamily(object):
         keys = self.redis_connection.keys(pattern)
         if keys:
             self.redis_connection.delete(*keys)
+        penalty_pattern = self.PENALTY_KEY_PREFIX.format("*")
+        penalty_keys = self.redis_connection.keys(penalty_pattern)
+        if penalty_keys:
+            self.redis_connection.delete(*penalty_keys)
 
     def regenerar_families(self):
         self._delete_families()
@@ -1078,24 +1096,48 @@ class CampaignAgentsFamily(object):
         keys = self.redis_connection.keys(pattern)
         for key in keys:
             self.redis_connection.srem(key, agent_id)
+        penalty_pattern = self.PENALTY_KEY_PREFIX.format("*")
+        penalty_keys = self.redis_connection.keys(penalty_pattern)
+        for key in penalty_keys:
+            self.redis_connection.hdel(key, agent_id)
 
     def borrar_agente_de_campana(self, campana_id, agente_id):
         self._get_redis_connection()
         key = self.KEY_PREFIX.format(campana_id)
         self.redis_connection.srem(key, agente_id)
+        self.redis_connection.hdel(self._penalty_key(campana_id), agente_id)
 
-    def registrar_agentes_en_campana(self, campana_id, agente_ids):
-        if not agente_ids:
-            return
+    def registrar_agentes_en_campana(self, campana_id, agente_ids, penalties=None):
+        """Registra agentes en la campaña.
+
+        ``penalties`` es un dict opcional ``{agent_id: penalty}``. Si no se
+        pasa, se proyecta penalty 0 para cada id en ``agente_ids``.
+        """
+        if penalties is not None:
+            if not penalties:
+                return
+            agente_ids = list(penalties.keys())
+            penalty_map = {
+                str(agent_id): int(penalties.get(agent_id, 0))
+                for agent_id in agente_ids
+            }
+        else:
+            if not agente_ids:
+                return
+            agente_ids = list(agente_ids)
+            penalty_map = {str(agent_id): 0 for agent_id in agente_ids}
         self._get_redis_connection()
         key = self.KEY_PREFIX.format(campana_id)
         self.redis_connection.sadd(key, *agente_ids)
+        self.redis_connection.hset(self._penalty_key(campana_id), mapping=penalty_map)
 
-    def registrar_campanas_a_agente(self, campana_ids, agente_id):
+    def registrar_campanas_a_agente(self, campana_ids, agente_id, penalty=0):
         self._get_redis_connection()
         for campana_id in campana_ids:
             key = self.KEY_PREFIX.format(campana_id)
             self.redis_connection.sadd(key, agente_id)
+            self.redis_connection.hset(
+                self._penalty_key(campana_id), str(agente_id), int(penalty))
 
 
 class RegenerarAsteriskFamilysOML(object):
