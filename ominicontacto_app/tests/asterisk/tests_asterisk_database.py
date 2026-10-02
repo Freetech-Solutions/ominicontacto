@@ -58,7 +58,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         dict_campana = servicio._create_dict(self.campana_entrante)
 
         keys_asterisk = ['QNAME', 'TYPE', 'REC', 'AMD', 'CALLAGENTACTION',
-                         'RINGTIME', 'QUEUETIME', 'MAXQCALLS', 'SL', 'TC',
+                         'RINGTIME', 'QUEUETIME', 'MAXQCALLS', 'SL', 'WEIGHT', 'TC',
                          'IDJSON', 'PERMITOCCULT', 'MAXCALLS', 'FAILOVER']
         for key in keys_asterisk:
             self.assertIn(key, dict_campana.keys())
@@ -95,6 +95,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_campana['QUEUETIME'], self.campana_entrante.queue_campana.wait)
         self.assertEqual(dict_campana['MAXQCALLS'], self.campana_entrante.queue_campana.maxlen)
         self.assertEqual(dict_campana['SL'], self.campana_entrante.queue_campana.servicelevel)
+        self.assertEqual(dict_campana['WEIGHT'], self.campana_entrante.queue_campana.weight)
         audio = "{0}{1}".format(
             settings.OML_AUDIO_FOLDER,
             self.campana_entrante.queue_campana.audio_de_ingreso.get_filename_audio_asterisk())
@@ -132,6 +133,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_campana['QUEUETIME'], self.campana_dialer.queue_campana.wait)
         self.assertEqual(dict_campana['MAXQCALLS'], self.campana_dialer.queue_campana.maxlen)
         self.assertEqual(dict_campana['SL'], self.campana_dialer.queue_campana.servicelevel)
+        self.assertEqual(dict_campana['WEIGHT'], self.campana_dialer.queue_campana.weight)
         audio = "{0}{1}".format(
             settings.OML_AUDIO_FOLDER,
             self.campana_dialer.queue_campana.audio_para_contestadores.
