@@ -101,8 +101,8 @@ class ResultadoTareaBusquedaGrabacionView(View):
                 status=400,
             )
 
-        task = SearchRecordingTaskRegister.get(task_id)
-        if not task or task.get('user_id') != str(request.user.id):
+        task = SearchRecordingTaskRegister.get(task_id, request.user.id)
+        if not task:
             return JsonResponse(
                 {'error_message': _('No se encontró la tarea de búsqueda de grabaciones.')},
                 status=404,

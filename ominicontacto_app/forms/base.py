@@ -19,6 +19,7 @@
 from __future__ import unicode_literals
 
 import json
+from datetime import datetime
 from django import forms
 from django.conf import settings
 
@@ -758,13 +759,27 @@ class GrabacionBusquedaFormEx(forms.Form):
         if value:
             return value.id
 
+    def clean_fecha(self):
+        rango = self.cleaned_data["fecha"].split(" - ")
+        error = forms.ValidationError(
+            _('El rango de fechas debe tener el formato dd/mm/aaaa - dd/mm/aaaa'))
+        if len(rango) != 2:
+            raise error
+        for fecha in rango:
+            try:
+                datetime.strptime(fecha, '%d/%m/%Y')
+            except ValueError:
+                raise error
+        return rango
+
     def clean(self):
         cleaned_data = super().clean()
-        fecha = cleaned_data.pop("fecha").split(" - ")
-        cleaned_data.update({
-            "fecha_desde": fecha[0],
-            "fecha_hasta": fecha[1],
-        })
+        if "fecha" in cleaned_data:
+            fecha_desde, fecha_hasta = cleaned_data.pop("fecha")
+            cleaned_data.update({
+                "fecha_desde": fecha_desde,
+                "fecha_hasta": fecha_hasta,
+            })
         return cleaned_data
 
 
