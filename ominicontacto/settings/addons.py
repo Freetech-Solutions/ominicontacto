@@ -37,6 +37,9 @@ CONSTANCE_ADDITIONAL_FIELDS = {
     }],
     'text_field': ['django.forms.fields.CharField', {
         'widget': 'django.forms.Textarea',
+    }],
+    'disabled_int': ['django.forms.fields.IntegerField', {
+        'disabled': True,
         'required': False,
     }],
 }
@@ -49,6 +52,13 @@ CONSTANCE_CONFIG = {
     'CLIENT_PASSWORD': ('', 'CLIENT_PASSWORD', str),
     'CLIENT_EMAIL': ('', 'CLIENT_EMAIL', str),
     'CLIENT_PHONE': ('', 'CLIENT_PHONE', str),
+    # Agentes concurrentes: límite efectivo sincronizado desde el Register Server
+    # (9999 = ilimitado), estado y fecha de la última sincronización. Solo los escribe
+    # enterprise_app: son de solo lectura y no están en ningún fieldset, así no se muestran ni
+    # se pueden editar desde el admin de constance
+    'AGENT_CONCURRENCY_LIMIT': (9999, 'AGENT_CONCURRENCY_LIMIT', 'disabled_int'),
+    'AGENT_CONCURRENCY_STATUS': ('', 'AGENT_CONCURRENCY_STATUS', 'disabled_str'),
+    'AGENT_CONCURRENCY_CHECKED_AT': ('', 'AGENT_CONCURRENCY_CHECKED_AT', 'disabled_str'),
 
     # OMniLeads:
     'WOMBAT_DIALER_ALLOW_REFRESH': (False, 'WOMBAT_DIALER_ALLOW_REFRESH', bool),
@@ -121,10 +131,13 @@ MIDDLEWARE_APPEND = []
 TEMPLATES_CONTEXT_PROCESORS_APPEND = []
 
 ADDON_URLPATTERNS = []
+# Módulos de URLs con vistas del core que un addon redefine: se cargan antes que las del core
+ADDON_URL_OVERRIDES = []
 
 if os.getenv('ENTERPRISE_VERSION'):
     ADDONS_APPS.append("enterprise_app.apps.AppConfig")
     ADDON_URLPATTERNS.append((r"enterprise", "enterprise_app.urls"))
+    ADDON_URL_OVERRIDES.append("enterprise_app.urls_override")
     ADDONS_LOCALE_PATHS += (os.path.join(BASE_DIR, 'enterprise_app/locale'), )
 if not os.getenv('LIMIT_USERS_VERSION', '') == '':
     ADDONS_APPS.append('limit_users_app.apps.LimitUsersAppConfig')

@@ -26,6 +26,7 @@ import getpass
 
 from crontab import CronTab
 from django.conf import settings
+from django.core.management import get_commands
 
 logger = logging.getLogger(__name__)
 # Template para usar flock y prevenir ejecuciones simultáneas
@@ -43,6 +44,7 @@ class RegeneracionCronosService:
         'cron_tick_1',
         'cron_tick_5',
         'reiniciar_estadisticas_calldata',
+        'sincronizar_concurrencia_agentes',
     ]
 
     def __init__(self):
@@ -67,6 +69,7 @@ class RegeneracionCronosService:
         - `cron_tick_1` cada minuto (agrupa 5 tareas)
         - `cron_tick_5` cada 5 minuto (agrupa 2 tareas)
         - reinicio diario a medianoche
+        - sincronización de agentes concurrentes, con enterprise_app (cada hora)
         """
         # Agrupar tareas 1m  (supervision) en un solo comando
         self._add_job(
@@ -86,5 +89,16 @@ class RegeneracionCronosService:
             'reiniciar_estadisticas_calldata',
             lambda job: (job.hour.on(0), job.minute.on(0))
         )
+        # Sincronizar el máximo de agentes concurrentes con el Register Server: el comando lo
+        # trae enterprise_app. Corre cada hora, consulta una vez por día o en cada corrida
+        # mientras el server no responda
+        if 'sincronizar_concurrencia_agentes' in get_commands():
+            self._add_job(
+                'sincronizar_concurrencia_agentes',
+                'sincronizar_concurrencia_agentes',
+                lambda job: job.minute.on(7)
+            )
+        else:
+            self.cron.remove_all(comment='sincronizar_concurrencia_agentes')
         # Escribe cambios en el crontab una sola vez
         self.cron.write_to_user(user=self.user)

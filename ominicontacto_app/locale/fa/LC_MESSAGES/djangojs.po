@@ -346,3 +346,22 @@ msgstr "ماه گذشته"
 #: ominicontacto_app/static/ominicontacto/JS/ranges-datepicker.js:11
 msgid "Desde el inicio"
 msgstr "از تاریخ ایجاد"
+
+msgid "No se pudo conectar al servidor"
+msgstr ""
+
+msgid "Atención"
+msgstr ""
+
+msgid "¿Desea continuar?"
+msgstr ""
+
+msgid "Sí"
+msgstr ""
+
+msgid "No"
+msgstr ""
+
+#, javascript-format
+msgid "Puede volver a sincronizar en %s segs"
+msgstr ""
