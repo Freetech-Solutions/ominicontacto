@@ -15,11 +15,17 @@ from reportes_app.models import LlamadaLog
 
 logger = logging.getLogger(__name__)
 
-# YYYY-MM-DD o YYYYMMDD / <interaction_id>.<ext> — interaction_id puede contener puntos
+# YYYY-MM-DD o YYYYMMDD / [<prefijo>-]<callid>[-Rx|-Tx].<ext>
+# El dialplan nombra las grabaciones "<tipo>-<fecha>[-<segmentos del esquema>]-<callid>";
+# el callid es lo que sigue al último guion y puede contener puntos (p.ej. 1791313267.1).
+# La transcripción agrega "<base>-Rx.txt" y "<base>-Tx.txt" (texto por canal); el lookahead
+# evita que el sufijo de canal se tome como callid.
 _RECORDING_FILENAME_RE = re.compile(
-    r'^/?(\d{4}-?\d{2}-?\d{2})/([^/]+)\.([a-zA-Z0-9]+)$'
+    r'^/?(\d{4}-?\d{2}-?\d{2})/(?:[^/]*-)?(?!(?:Rx|Tx)[.-])([^/-]+)(?:-(Rx|Tx))?'
+    r'\.([a-zA-Z0-9]+)$'
 )
 _EXTRA_RECORDING_EXTENSIONS = frozenset({'json', 'txt'})
+_CHANNEL_TRANSCRIPTION_EXTENSION = 'txt'
 
 
 def obtener_llamadalog_grabacion(callid):
@@ -83,10 +89,13 @@ def parsear_filename_grabacion(filename):
     if not match:
         return None
 
-    date_folder, callid, ext = match.groups()
+    date_folder, callid, channel, ext = match.groups()
     monitor_ext = (getattr(settings, 'MONITORFORMAT', 'mp3') or 'mp3').lower()
     allowed_exts = {monitor_ext} | _EXTRA_RECORDING_EXTENSIONS
     if ext.lower() not in allowed_exts:
+        return None
+    # Los sufijos -Rx/-Tx sólo existen en la transcripción de texto por canal.
+    if channel and ext.lower() != _CHANNEL_TRANSCRIPTION_EXTENSION:
         return None
 
     return date_folder, callid

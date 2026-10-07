@@ -30,13 +30,14 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from django.contrib.auth.models import Group
-from django.test import TransactionTestCase, override_settings
+from django.test import SimpleTestCase, TransactionTestCase, override_settings
 
 from simple_history.utils import update_change_reason
 
 from ominicontacto_app.models import GrabacionMarca, OpcionCalificacion, Campana, User
 
 from ominicontacto_app.bgtasks.mixins import SearchRecordingsMixin
+from ominicontacto_app.services.grabaciones.autorizacion import parsear_filename_grabacion
 from ominicontacto_app.tests.factories import CalificacionClienteFactory, CampanaFactory, \
     ContactoFactory, GrabacionMarcaFactory, LlamadaLogFactory, \
     OpcionCalificacionFactory, QueueFactory, QueueMemberFactory
@@ -567,6 +568,63 @@ class AutorizacionGrabacionesTests(BaseGrabacionesTests):
         with patch.object(User, 'tiene_permiso_oml', return_value=False):
             response = self.client.post(url, payload)
         self.assertEqual(response.status_code, 403)
+
+
+@override_settings(MONITORFORMAT='mp3')
+class ParsearFilenameGrabacionTests(SimpleTestCase):
+
+    def test_extrae_callid_luego_del_ultimo_guion(self):
+        self.assertEqual(
+            parsear_filename_grabacion(
+                '/2026-10-06/click2Call-202610061601-1-1-3211111111-121-1791313267.1.mp3'),
+            ('2026-10-06', '1791313267.1'),
+        )
+
+    def test_acepta_nombre_sin_prefijo(self):
+        self.assertEqual(
+            parsear_filename_grabacion('/2026-10-06/1791313267.1.mp3'),
+            ('2026-10-06', '1791313267.1'),
+        )
+
+    def test_acepta_fecha_sin_guiones_sin_slash_inicial_y_artefactos(self):
+        self.assertEqual(
+            parsear_filename_grabacion('20261006/out-202610061601-1791313267.1.json'),
+            ('20261006', '1791313267.1'),
+        )
+
+    def test_acepta_grabacion_on_demand(self):
+        self.assertEqual(
+            parsear_filename_grabacion('/2026-10-06/ondemand-click2Call-1791402608.9.mp3'),
+            ('2026-10-06', '1791402608.9'),
+        )
+
+    def test_acepta_transcripcion_por_canal(self):
+        for canal in ('Rx', 'Tx'):
+            self.assertEqual(
+                parsear_filename_grabacion(
+                    '/2026-10-06/click2Call-202610061601-1791313267.1-{0}.txt'.format(canal)),
+                ('2026-10-06', '1791313267.1'),
+                msg=canal,
+            )
+
+    def test_rechaza_filenames_invalidos(self):
+        for filename in (
+                None,
+                '',
+                # El sufijo de canal sólo existe en la transcripción .txt
+                '/2026-10-06/click2Call-202610061601-1791313267.1-Rx.mp3',
+                '/2026-10-06/click2Call-202610061601-1791313267.1-Tx.json',
+                # El sufijo de canal nunca es el callid
+                '/2026-10-06/Rx.txt',
+                '/2026-10-06/click2Call-1791313267.1-Rx-Tx.txt',
+                '/2026-10-06/out-202610061601-1791313267.1.exe',
+                '/2026-10-06/out-202610061601-1791313267.1',
+                '/2026-10-06/out-202610061601-.mp3',
+                '/2026-10-06/../1791313267.1.mp3',
+                '/secret/1791313267.1.mp3',
+                '\\2026-10-06\\1791313267.1.mp3',
+        ):
+            self.assertIsNone(parsear_filename_grabacion(filename), msg=repr(filename))
 
 
 class StoragePresignedUrlTtlTests(TransactionTestCase):
