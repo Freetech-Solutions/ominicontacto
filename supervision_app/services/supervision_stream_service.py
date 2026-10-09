@@ -440,6 +440,14 @@ class SupervisionStreamService(object):
             if not self.conn.exists(stream):
                 continue
             try:
+                logger.info(
+                    'publica estado agente=%s stream=%s status=%s timestamp=%s callid=%s',
+                    agent_id,
+                    stream,
+                    agent_hash.get('STATUS'),
+                    agent_hash.get('TIMESTAMP'),
+                    agent_hash.get('CALLID'),
+                )
                 self.conn.xadd(
                     stream,
                     {'value': payload},

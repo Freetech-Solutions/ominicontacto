@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# Movernos al directorio que contiene manage.py para que Python cargue bien las apps
-cd "${INSTALL_PREFIX}/ominicontacto"
+# Hot path for every omlapp_web replica. Shared-state work (collectstatic,
+# actualizar_permisos, regenerar_asterisk) lives in django_runtime_bootstrap.sh
+# and must run once per deploy on the bootstrap host — not here.
 
-# Ahora podemos invocar manage.py directamente
-COMMAND="python3 manage.py"
+cd "${INSTALL_PREFIX}/ominicontacto"
 
 set -e
 
@@ -27,22 +27,6 @@ EOF
 fi
 
 chown omnileads:omnileads "${INSTALL_PREFIX}/run/oml_uwsgi.ini"
-
-echo "Run django command compilemessages"
-$COMMAND compilemessages
-
-echo "Run django command collectstatic"
-$COMMAND collectstatic --noinput
-$COMMAND collectstatic_js_reverse
-
-echo "Run django command compress"
-$COMMAND compress --force
-
-echo "Run actualizar_permisos"
-$COMMAND actualizar_permisos
-
-echo "Run django command regenerar_asterisk"
-$COMMAND regenerar_asterisk
 
 echo "WA mkdir zip calrec dir with omnileads ownership"
 mkdir -p /opt/omnileads/asterisk/var/spool/asterisk/

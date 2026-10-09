@@ -18,8 +18,11 @@ variables:
   DOCKER_ORG: ""
   FULL: ""
   BUILD: ""
-  # ARM64=true → build/push multi-arch (amd64+arm64) vía devsecops docker-build-push.
+  # ARM64=true → multi-arch amd64+arm64 (requiere template docker-build-push con opt-in).
+  # Default: solo amd64. DOCKER_PLATFORMS fija amd64 aunque el template remoto aún
+  # defaultée multi-arch; con ARM64=true el template nuevo amplía a amd64+arm64.
   ARM64: ""
+  DOCKER_PLATFORMS: "linux/amd64"
   # SKIP_OWASP=true → omite owasp_dependency_scan y owasp_defectdojo_upload (útil con FULL=true).
   SKIP_OWASP: ""
   # SKIP_TESTS=true → omite test:django, test:flake8 y test:eslint (útil con FULL=true).

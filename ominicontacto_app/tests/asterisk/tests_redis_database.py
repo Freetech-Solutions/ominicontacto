@@ -211,6 +211,7 @@ class CampanaFamilyTest(RedisDatabaseTest):
             'QUEUETIME': campana.queue_campana.wait,
             'MAXQCALLS': campana.queue_campana.maxlen,
             'SL': campana.queue_campana.servicelevel,
+            'WEIGHT': campana.queue_campana.weight,
             'OUTR': "",
             'OUTCID': "",
             'TC': "",

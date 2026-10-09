@@ -31,10 +31,22 @@ class StreamDeCuentasInstagram(object):
         RedisStreams().write_stream(NOMBRE_STREAM, account.id)
 
     def regenerar_stream(self):
+        """
+        Seed the master stream only when empty.
+
+        Flushing on every orchestrator start makes peers re-read all account ids,
+        cancel in-flight slave tasks and leave unacked messages in the PEL.
+        """
         stream_manager = RedisStreams()
+        try:
+            if stream_manager.connection.xlen(NOMBRE_STREAM) > 0:
+                return False
+        except Exception:
+            pass
         stream_manager.flush(NOMBRE_STREAM)
         for account in CuentaInstagram.objects_default.all():
             if account.is_active:
                 self.notificar_nueva_cuenta(account)
             else:
                 self.notificar_cuenta_eliminada(account)
+        return True

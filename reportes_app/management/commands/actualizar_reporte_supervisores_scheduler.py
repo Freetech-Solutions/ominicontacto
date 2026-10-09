@@ -29,11 +29,16 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.interval import IntervalTrigger
 
 from supervision_app.services.supervision_stream_service import SupervisionStreamService
+from ominicontacto_app.services.redis.ha_lock import run_once
 
 logger = logging.getLogger(__name__)
 
+SUPERVISORES_REPORT_INTERVAL_SEC = 120
+# DONE/lock must last at least one slot (IntervalTrigger offsets differ per node).
+SUPERVISORES_REPORT_TTL_SEC = SUPERVISORES_REPORT_INTERVAL_SEC
 
-def actualizar_reporte_supervisores():
+
+def _actualizar_reporte_supervisores_body():
     """
     Actualiza el reporte de supervisores en Redis.
     Calcula qué agentes están asignados a cada supervisor (grupo y campañas)
@@ -50,6 +55,16 @@ def actualizar_reporte_supervisores():
         )
     except Exception as e:
         logger.error(f'Fallo al actualizar reporte de supervisores: {e}', exc_info=True)
+
+
+def actualizar_reporte_supervisores():
+    slot = int(time.time()) // SUPERVISORES_REPORT_INTERVAL_SEC
+    run_once(
+        'reporte-supervisores',
+        slot,
+        SUPERVISORES_REPORT_TTL_SEC,
+        _actualizar_reporte_supervisores_body,
+    )
 
 
 class Command(BaseCommand):
