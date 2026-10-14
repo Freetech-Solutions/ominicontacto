@@ -213,7 +213,8 @@ class AsteriskDatabaseTest(OMLBaseTest):
         """
         ruta = RutaSalienteFactory()
         patron_1_1 = PatronDeDiscadoFactory(ruta_saliente=ruta)
-        patron_1_2 = PatronDeDiscadoFactory(ruta_saliente=ruta, prefix='123', prepend='123')
+        patron_1_2 = PatronDeDiscadoFactory(
+            ruta_saliente=ruta, prefix='123', prepend='123', caller_id='1144445555')
 
         servicio = RutaSalienteFamily()
 
@@ -233,6 +234,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         prepend = patron_1_1.prepend if patron_1_1.prepend is not None else ''
         self.assertEqual(dict_ruta['PREFIX-1'], prefix)
         self.assertEqual(dict_ruta['PREPEND-1'], prepend)
+        self.assertEqual(dict_ruta['ROUTECID-1'], '')
         if patron_1_2.prefix:
             prefix = len(str(patron_1_2.prefix))
         else:
@@ -240,6 +242,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         prepend = patron_1_2.prepend if patron_1_2.prepend is not None else ''
         self.assertEqual(dict_ruta['PREFIX-2'], prefix)
         self.assertEqual(dict_ruta['PREPEND-2'], prepend)
+        self.assertEqual(dict_ruta['ROUTECID-2'], patron_1_2.caller_id)
 
     def test_devuelve_correctamente_values_troncales(self):
         """

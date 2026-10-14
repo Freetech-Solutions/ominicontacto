@@ -73,6 +73,11 @@
         :header="$t('models.dial_pattern.pattern')"
       ></Column>
       <Column
+        field="caller_id"
+        :sortable="true"
+        :header="$t('models.dial_pattern.caller_id')"
+      ></Column>
+      <Column
         v-if="showOptions"
         :header="$tc('globals.option', 2)"
         style="max-width: 25rem"

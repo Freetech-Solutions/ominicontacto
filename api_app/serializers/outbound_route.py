@@ -33,7 +33,7 @@ class PatronDeDiscadoSerializer(serializers.ModelSerializer):
     class Meta:
         model = PatronDeDiscado
         fields = ('id', 'prepend', 'prefix',
-                  'match_pattern')
+                  'match_pattern', 'caller_id', )
 
 
 class OrdenTroncalSerializer(serializers.ModelSerializer):
@@ -110,6 +110,7 @@ class RutaSalienteSerializer(serializers.ModelSerializer):
             prepend = patron_de_discado.get('prepend')
             prefix = patron_de_discado.get('prefix')
             match_pattern = patron_de_discado.get('match_pattern')
+            caller_id = patron_de_discado.get('caller_id')
             orden = patron_de_discado.get('orden')
             if pd_id:
                 nuevos_patrones_de_discado_ids.append(pd_id)
@@ -117,6 +118,7 @@ class RutaSalienteSerializer(serializers.ModelSerializer):
                 item.prepend = prepend
                 item.prefix = prefix
                 item.match_pattern = match_pattern
+                item.caller_id = caller_id
                 item.orden = orden
                 item.save()
             else:

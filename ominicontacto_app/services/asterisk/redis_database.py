@@ -347,8 +347,13 @@ class RutaSalienteFamily(AbstractRedisFamily):
                 len_prefix = ''
             clave_prefix = "PREFIX-{0}".format(orden)
             clave_prepend = "PREPEND-{0}".format(orden)
+            clave_caller_id = "ROUTECID-{0}".format(orden)
             prepend = patron.prepend if patron.prepend is not None else ''
-            dict_ruta.update({clave_prefix: len_prefix, clave_prepend: prepend})
+            caller_id = patron.caller_id if patron.caller_id is not None else ''
+            dict_ruta.update({clave_prefix: len_prefix,
+                              clave_prepend: prepend,
+                              clave_caller_id: caller_id
+                              })
 
         troncales = self._obtener_troncales_ordenados(ruta)
         for orden, troncal in troncales:

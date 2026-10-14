@@ -62,6 +62,7 @@ class PatronDeDiscadoFactory(DjangoModelFactory):
     prepend = None
     prefix = None
     match_pattern = ""
+    caller_id = None
     orden = Sequence(lambda n: n)
 
 

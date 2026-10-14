@@ -331,7 +331,8 @@ class RutasSalientesTest(APITest):
                     "id": None,
                     "prepend": None,
                     "prefix": None,
-                    "match_pattern": "+123*[1-9]#ZNX"
+                    "match_pattern": "+123*[1-9]#ZNX",
+                    "caller_id": "1144445555"
                 }
             ],
             "troncales": [
@@ -351,6 +352,8 @@ class RutasSalientesTest(APITest):
         self.assertEqual(ruta_saliente.nombre, request_data['nombre'])
         self.assertEqual(ruta_saliente.ring_time, request_data['ring_time'])
         self.assertEqual(ruta_saliente.dial_options, request_data['dial_options'])
+        self.assertEqual(
+            ruta_saliente.patrones_de_discado.get().caller_id, '1144445555')
         self.assertEqual(response_json['status'], 'SUCCESS')
         self.assertEqual(
             response_json['message'],

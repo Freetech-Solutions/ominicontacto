@@ -103,6 +103,7 @@ export default {
         order: 'Order'
     },
     dial_pattern: {
+        caller_id: 'Caller ID',
         id: 'ID',
         prepend: 'Prepend',
         prefix: 'Prefix',

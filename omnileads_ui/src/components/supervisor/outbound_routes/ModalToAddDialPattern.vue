@@ -90,6 +90,30 @@
             > {{ $t('forms.outbound_route.validations.repeated_dial_pattern_rule') }}</small
           >
         </div>
+        <div class="field col-12">
+          <label
+            id="dial_pattern_caller_id"
+            :class="{
+              'p-error': v$.dialPatternForm.caller_id.$invalid && submitted,
+            }"
+            >{{ $t("models.dial_pattern.caller_id") }}</label
+          >
+          <div class="p-inputgroup mt-2">
+            <InputText
+              id="dial_pattern_caller_id"
+              :class="{
+                'p-invalid': v$.dialPatternForm.caller_id.$invalid && submitted,
+              }"
+              :placeholder="$t('forms.dial_pattern.enter_caller_id')"
+              v-model="v$.dialPatternForm.caller_id.$model"
+            />
+          </div>
+          <small
+            v-if="v$.dialPatternForm.caller_id.$invalid && submitted"
+            class="p-error"
+            >{{ $t('forms.dial_pattern.validations.invalid_caller_id') }}</small
+          >
+        </div>
       </div>
     </div>
     <template #footer>
@@ -107,7 +131,7 @@
 
 <script>
 import { useVuelidate } from '@vuelidate/core';
-import { required } from '@vuelidate/validators';
+import { required, helpers } from '@vuelidate/validators';
 import { mapActions } from 'vuex';
 
 export default {
@@ -115,7 +139,8 @@ export default {
     validations () {
         return {
             dialPatternForm: {
-                match_pattern: { required }
+                match_pattern: { required },
+                caller_id: { alphanumeric: helpers.regex(/^\w*$/) }
             }
         };
     },
@@ -146,7 +171,8 @@ export default {
                 id: null,
                 prepend: null,
                 prefix: null,
-                match_pattern: null
+                match_pattern: null,
+                caller_id: null
             }
         };
     },
@@ -162,7 +188,8 @@ export default {
                 id: null,
                 prepend: null,
                 prefix: null,
-                match_pattern: null
+                match_pattern: null,
+                caller_id: null
             };
         },
         initDialPatternForm () {
@@ -171,6 +198,7 @@ export default {
                 this.dialPatternForm.prepend = this.dialPattern.prepend;
                 this.dialPatternForm.prefix = this.dialPattern.prefix;
                 this.dialPatternForm.match_pattern = this.dialPattern.match_pattern;
+                this.dialPatternForm.caller_id = this.dialPattern.caller_id;
             }
         },
         closeModal () {
