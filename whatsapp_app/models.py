@@ -100,10 +100,11 @@ class Linea(AuditableModelMixin):
 
     @property
     def get_stream_name(self):
+        # Per Linea.pk so consumer-group peers never share a stream across lines.
         if self.proveedor.tipo_proveedor == ConfiguracionProveedor.TIPO_GUPSHUP:
-            return 'whatsapp_webhook_gupshup_{}'.format(self.configuracion["app_id"])
+            return 'whatsapp_webhook_gupshup_line_{}'.format(self.pk)
         elif self.proveedor.tipo_proveedor == ConfiguracionProveedor.TIPO_META:
-            return 'whatsapp_webhook_meta_{}'.format(self.configuracion["app_id"])
+            return 'whatsapp_webhook_meta_line_{}'.format(self.pk)
 
     def __str__(self) -> str:
         return f"Linea: {self.nombre}"

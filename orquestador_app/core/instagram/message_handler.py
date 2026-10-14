@@ -6,6 +6,7 @@ from django.utils import timezone
 
 from configuracion_telefonia_app.models import DestinoEntrante
 from instagram_app.models import ConversationInstagramApp, MessageInstagramApp
+from orquestador_app.core.conversation_lock import hold_conversation_lock
 from orquestador_app.core.instagram.send_message import autoresponse_welcome
 from orquestador_app.core.notify_agents import send_notify
 
@@ -122,55 +123,59 @@ def _save_inbound_message(account, timestamp, message_id, origen, content,
     if destination and destination.tipo == DestinoEntrante.CAMPANA:
         campana = destination.content_object
 
-    conversation = ConversationInstagramApp.objects.filter(
-        account=account,
-        ig_scoped_id=origen,
-        is_disposition=False,
-    ).last()
-    created_conversation = False
-    if not conversation:
-        expire = (
-            timestamp + timezone.timedelta(days=1)
-        ) - timezone.timedelta(seconds=timestamp.second, microseconds=timestamp.microsecond)
-        conversation = ConversationInstagramApp.objects.create(
+    # Serialize get/create across HA consumer-group peers for this chat.
+    with hold_conversation_lock(
+            'instagram', '{0}:{1}'.format(account.pk, origen)):
+        conversation = ConversationInstagramApp.objects.filter(
             account=account,
-            client=None,
-            campana=campana,
             ig_scoped_id=origen,
-            is_active=True,
-            agent=None,
-            expire=expire,
-            timestamp=timestamp,
-            date_last_interaction=timestamp,
-            client_alias=sender.get("name", ""),
-        )
-        created_conversation = True
-        autoresponse_welcome(conversation, timestamp)
-    else:
-        update_fields = ["date_last_interaction", "is_active", "updated_at"]
-        conversation.date_last_interaction = timestamp
-        conversation.updated_at = timezone.now()
-        if not conversation.is_active:
-            conversation.is_active = True
-        if campana and not conversation.campana:
-            conversation.campana = campana
-            update_fields.append("campana")
-        conversation.save(update_fields=update_fields)
+            is_disposition=False,
+        ).last()
+        created_conversation = False
+        if not conversation:
+            expire = (
+                timestamp + timezone.timedelta(days=1)
+            ) - timezone.timedelta(
+                seconds=timestamp.second, microseconds=timestamp.microsecond)
+            conversation = ConversationInstagramApp.objects.create(
+                account=account,
+                client=None,
+                campana=campana,
+                ig_scoped_id=origen,
+                is_active=True,
+                agent=None,
+                expire=expire,
+                timestamp=timestamp,
+                date_last_interaction=timestamp,
+                client_alias=sender.get("name", ""),
+            )
+            created_conversation = True
+            autoresponse_welcome(conversation, timestamp)
+        else:
+            update_fields = ["date_last_interaction", "is_active", "updated_at"]
+            conversation.date_last_interaction = timestamp
+            conversation.updated_at = timezone.now()
+            if not conversation.is_active:
+                conversation.is_active = True
+            if campana and not conversation.campana:
+                conversation.campana = campana
+                update_fields.append("campana")
+            conversation.save(update_fields=update_fields)
 
-    message.conversation = conversation
-    message.save(update_fields=["conversation"])
-    conversation.last_message = message
-    conversation.updated_at = timezone.now()
-    conversation.save(update_fields=["last_message", "updated_at"])
-    if (created_conversation or created_message) and conversation.campana \
-            and not conversation.agent:
-        notifications.append(('notify_instagram_new_chat', {
-            'conversation': conversation,
-        }))
-    elif created_message and conversation.agent:
-        notifications.append(('notify_instagram_new_message', {
-            'conversation': conversation,
-            'account': account,
-            'message': message,
-        }))
+        message.conversation = conversation
+        message.save(update_fields=["conversation"])
+        conversation.last_message = message
+        conversation.updated_at = timezone.now()
+        conversation.save(update_fields=["last_message", "updated_at"])
+        if (created_conversation or created_message) and conversation.campana \
+                and not conversation.agent:
+            notifications.append(('notify_instagram_new_chat', {
+                'conversation': conversation,
+            }))
+        elif created_message and conversation.agent:
+            notifications.append(('notify_instagram_new_message', {
+                'conversation': conversation,
+                'account': account,
+                'message': message,
+            }))
     return notifications

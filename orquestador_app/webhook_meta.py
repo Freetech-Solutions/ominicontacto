@@ -177,9 +177,8 @@ class WebhookMetaView(APIView):
         if not self._verify_signature(request, linea):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
 
-        stream_name = 'whatsapp_webhook_meta_{}'.format(app_id)
         self.redis_stream.write_stream(
-            stream_name,
+            linea.get_stream_name,
             request.body,
             max_stream_length=settings.WHATSAPP_WEBHOOK_STREAM_MAXLEN,
         )

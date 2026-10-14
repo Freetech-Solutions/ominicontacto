@@ -35,6 +35,7 @@ from ominicontacto_app.services.agent.presence import (
 )
 from ominicontacto_app.services.asterisk.agent_activity import AgentActivityAmiManager
 from ominicontacto_app.services.redis.connection import create_redis_connection
+from ominicontacto_app.services.redis.ha_lock import run_once
 
 logger = logging.getLogger(__name__)
 
@@ -166,7 +167,7 @@ def _sweep_presence_heartbeats(
     return checked_agents, timeout_events, reconciled_agents, recovered_agents
 
 
-def sweep_presence_heartbeats():
+def _sweep_presence_heartbeats_body():
     """
     Barrido unificado de heartbeat: cierre por timeout, reconciliación Redis y recuperación.
 
@@ -216,8 +217,22 @@ def sweep_presence_heartbeats():
     )
 
 
-# Alias de compatibilidad con referencias existentes.
-sweep_presence_heartbeat_timeouts = sweep_presence_heartbeats
+def sweep_presence_heartbeats():
+    interval_sec = int(getattr(settings, 'PRESENCE_HEARTBEAT_SWEEP_SEC', 15))
+    # DONE/lock TTL must cover the full epoch slot: IntervalTrigger offsets
+    # differ per node, so a shorter TTL allows a late peer to re-run the slot.
+    ttl_sec = max(1, interval_sec)
+    slot = int(time.time()) // interval_sec
+    run_once(
+        'presence-heartbeat',
+        slot,
+        ttl_sec,
+        _sweep_presence_heartbeats_body,
+    )
+
+
+# Alias de compatibilidad: tests y callers directos ejecutan el body sin HA slot.
+sweep_presence_heartbeat_timeouts = _sweep_presence_heartbeats_body
 
 
 class Command(BaseCommand):
