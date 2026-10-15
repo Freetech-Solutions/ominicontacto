@@ -156,6 +156,7 @@ def generar_csv_llamadas_atendidas_egresos_centro_contacto(
         _('Nombre calificación'),
         _('Nombre subcalificación'),
         _('Grabación'),
+        _('sip_agentic_leg_call_id'),
     ]
 
     with open(ruta, 'w', newline='', encoding='utf-8') as f:
@@ -183,6 +184,7 @@ def generar_csv_llamadas_atendidas_egresos_centro_contacto(
                 _to_str(row.get('nombre_calificacion')),
                 _to_str(row.get('nombre_subcalificacion')),
                 _to_str(row.get('url_grabacion')),
+                _to_str(row.get('sip_agentic_leg_call_id')),
             ])
 
     try:
