@@ -17,16 +17,30 @@
 #
 from rest_framework import serializers
 from ominicontacto_app.models import AutenticacionSitioExterno
+from ominicontacto_app.services.sistema_externo.safe_http import (
+    DestinoNoPermitidoError, validar_url)
 
 
-class AutenticacionSitioExternoSerializer(serializers.ModelSerializer):
+class ValidarUrlAutenticacionMixin(object):
+
+    def validate_url(self, url):
+        try:
+            validar_url(url)
+        except DestinoNoPermitidoError as e:
+            raise serializers.ValidationError(str(e))
+        return url
+
+
+class AutenticacionSitioExternoSerializer(ValidarUrlAutenticacionMixin,
+                                          serializers.ModelSerializer):
 
     class Meta:
         model = AutenticacionSitioExterno
         fields = '__all__'
 
 
-class AutenticacionSitioExternoTestSerializer(serializers.ModelSerializer):
+class AutenticacionSitioExternoTestSerializer(ValidarUrlAutenticacionMixin,
+                                              serializers.ModelSerializer):
 
     class Meta:
         model = AutenticacionSitioExterno

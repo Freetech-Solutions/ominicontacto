@@ -25,6 +25,7 @@ import requests
 from django.utils.translation import gettext as _
 from django.utils.timezone import now, timedelta
 from ominicontacto_app.models import SitioExterno
+from ominicontacto_app.services.sistema_externo.safe_http import SesionSegura
 
 logger = logging.getLogger(__name__)
 
@@ -43,22 +44,23 @@ class InteraccionConSistemaExterno(object):
             logger.exception(err_msg.format(headers))
             return headers
         try:
+            sesion = SesionSegura()
             if sitio_externo.metodo == SitioExterno.GET:
-                response = requests.get(url, params=parametros, headers=headers,
-                                        verify=verify_ssl, timeout=10)
+                response = sesion.get(url, params=parametros, headers=headers,
+                                      verify=verify_ssl, timeout=10)
             elif sitio_externo.formato == SitioExterno.TEXT_PLAIN:
                 headers['content_type'] = 'text/plain'
-                response = requests.post(url, data=parametros, headers=headers,
-                                         verify=verify_ssl, timeout=10)
+                response = sesion.post(url, data=parametros, headers=headers,
+                                       verify=verify_ssl, timeout=10)
             elif sitio_externo.formato == SitioExterno.WWW_FORM:
-                response = requests.post(url, data=parametros, headers=headers,
-                                         verify=verify_ssl, timeout=10)
+                response = sesion.post(url, data=parametros, headers=headers,
+                                       verify=verify_ssl, timeout=10)
             elif sitio_externo.formato == SitioExterno.MULTIPART:
-                response = requests.post(url, files=parametros, headers=headers,
-                                         verify=verify_ssl, timeout=10)
+                response = sesion.post(url, files=parametros, headers=headers,
+                                       verify=verify_ssl, timeout=10)
             elif sitio_externo.formato == SitioExterno.JSON:
-                response = requests.post(url, json=parametros, headers=headers,
-                                         verify=verify_ssl, timeout=10)
+                response = sesion.post(url, json=parametros, headers=headers,
+                                       verify=verify_ssl, timeout=10)
         except Exception as e:
             # Si es invalido el token:
             #     pido token de nuevo y reintento 1 vez
@@ -97,8 +99,8 @@ class InteraccionConSistemaExterno(object):
         verify_ssl = autenticacion.ssl_estricto
         try:
             ahora = now()
-            response = requests.post(autenticacion.url, json=parametros,
-                                     verify=verify_ssl, timeout=10)
+            response = SesionSegura().post(autenticacion.url, json=parametros,
+                                           verify=verify_ssl, timeout=10)
         except Exception as e:
             return err_msg.format(e), True
 
@@ -130,13 +132,18 @@ class InteraccionConSistemaExterno(object):
         return autenticacion.token, False
 
     def probar_autenticacion(self, *, url, username, password, ssl_estricto, campo_token, **kwargs):
-        response = requests.post(
+        response = SesionSegura().post(
             url,
             json={"username": username, "password": password},
             verify=ssl_estricto,
             timeout=10
         )
         response.raise_for_status()
+        if response.is_redirect:
+            raise requests.HTTPError(
+                _('La respuesta es una redirección, que no está permitida'),
+                response=response
+            )
         try:
             response_json = response.json()
         except requests.JSONDecodeError:
@@ -164,15 +171,16 @@ class InteraccionConSistemaExterno(object):
             if sitio_externo.autenticacion and not sitio_externo.autenticacion.ssl_estricto:
                 verify_ssl = False
             if sitio_externo.metodo == SitioExterno.GET:
-                response = requests.get(url, headers=headers, verify=verify_ssl, timeout=10)
-                if response.status_code == 200:
-                    try:
+                try:
+                    response = SesionSegura().get(url, headers=headers, verify=verify_ssl,
+                                                  timeout=10)
+                    if response.status_code == 200:
                         return response.json()
-                    except Exception:
-                        logger.exception(
-                            _('Error al ejecutar InteraccionConSistemaExterno: {0}').format(
-                                headers))
-                        return ["ERROR: Service {} not available".format(sitio_externo.nombre)]
+                except Exception:
+                    logger.exception(
+                        _('Error al ejecutar InteraccionConSistemaExterno: {0}').format(
+                            headers))
+                return ["ERROR: Service {} not available".format(sitio_externo.nombre)]
         else:
             logger.exception(_('Error al ejecutar InteraccionConSistemaExterno: {0}').format(
                 headers))

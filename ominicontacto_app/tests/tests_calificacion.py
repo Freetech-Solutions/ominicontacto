@@ -483,7 +483,7 @@ class CalificacionTests(OMLBaseTest):
         equal_url = (response.url == '%s?%s' % (sitio_externo.url, param_1))
         self.assertTrue(equal_url)
 
-    @patch('requests.get')
+    @patch('ominicontacto_app.services.sistema_externo.safe_http.SesionSegura.get')
     def test_hace_peticion_sitio_externo_en_servidor(self, request_get):
         self.campana.type = Campana.TYPE_PREVIEW
         self.campana.tipo_interaccion = Campana.TIPO_SITIO_EXTERNO

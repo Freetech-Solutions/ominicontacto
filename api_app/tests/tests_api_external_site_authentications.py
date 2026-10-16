@@ -17,12 +17,16 @@
 #
 from __future__ import unicode_literals
 import json
+from mock import patch
+from constance.test import override_config
 from django.utils.translation import ugettext as _
 from django.urls import reverse
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
 from ominicontacto_app.tests.factories import (
     AutenticacionSitioExternoFactory,
     SitioExternoFactory)
+from ominicontacto_app.tests.services.tests_safe_http import (
+    GETADDRINFO, IP_PUBLICA, fake_getaddrinfo)
 from ominicontacto_app.models import AutenticacionSitioExterno, User
 
 
@@ -31,6 +35,11 @@ class APITest(OMLBaseTest):
 
     def setUp(self):
         super(APITest, self).setUp()
+        dns = fake_getaddrinfo({'www.youtube.com': [IP_PUBLICA], 'www.facebook.com': [IP_PUBLICA],
+                                'crm.intranet': ['10.20.5.7']})
+        patcher = patch(GETADDRINFO, dns)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         usr_supervisor = self.crear_user_supervisor(username='sup1')
         self.crear_supervisor_profile(user=usr_supervisor, rol=User.SUPERVISOR)
         self.client.login(username=usr_supervisor.username, password=PASSWORD)
@@ -44,7 +53,8 @@ class APITest(OMLBaseTest):
             'Create': 'api_external_site_authentications_create',
             'Detail': 'api_external_site_authentications_detail',
             'Update': 'api_external_site_authentications_update',
-            'Delete': 'api_external_site_authentications_delete'
+            'Delete': 'api_external_site_authentications_delete',
+            'Test': 'api_external_site_authentications_test',
         }
 
 
@@ -185,3 +195,55 @@ class ExternalSiteAuthenticationTest(APITest):
         self.assertEqual(autenticacion.campo_duracion, data['campo_duracion'])
         self.assertEqual(autenticacion.duracion, data['duracion'])
         self.assertEqual(autenticacion.ssl_estricto, data['ssl_estricto'])
+
+    def _datos_autenticacion(self, url):
+        return {
+            'nombre': 'Nueva autenticacion',
+            'url': url,
+            'username': 'newuser',
+            'password': 'test123..',
+            'campo_token': 'token',
+            'duracion': 0,
+            'campo_duracion': 'timeToEnd',
+        }
+
+    def test_create_con_ip_privada_es_rechazado(self):
+        URL = reverse(self.urls_api['Create'])
+        numBefore = AutenticacionSitioExterno.objects.all().count()
+        for url in ['http://127.0.0.1:8000/', 'http://169.254.169.254/', 'http://crm.intranet/']:
+            with self.subTest(url=url):
+                response = self.client.post(
+                    URL, json.dumps(self._datos_autenticacion(url)), format='json',
+                    content_type='application/json')
+                response_json = json.loads(response.content)
+                self.assertEqual(response.status_code, 400)
+                self.assertIn('url', response_json['errors'])
+        self.assertEqual(AutenticacionSitioExterno.objects.all().count(), numBefore)
+
+    @override_config(SITIO_EXTERNO_ALLOWLIST='crm.intranet')
+    def test_create_con_host_en_allowlist(self):
+        URL = reverse(self.urls_api['Create'])
+        response = self.client.post(
+            URL, json.dumps(self._datos_autenticacion('http://crm.intranet/')), format='json',
+            content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_update_con_ip_privada_es_rechazado(self):
+        pk = self.autenticacion_sitio_externo.pk
+        URL = reverse(self.urls_api['Update'], args=[pk, ])
+        response = self.client.put(
+            URL, json.dumps(self._datos_autenticacion('http://10.0.0.1/')), format='json',
+            content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertNotEqual(AutenticacionSitioExterno.objects.get(pk=pk).url, 'http://10.0.0.1/')
+
+    def test_probar_autenticacion_con_ip_privada_es_rechazado(self):
+        URL = reverse(self.urls_api['Test'])
+        data = self._datos_autenticacion('http://127.0.0.1:6379/')
+        data['ssl_estricto'] = True
+        with patch('requests.Session.request') as request:
+            response = self.client.post(
+                URL, json.dumps(data), format='json', content_type='application/json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('url', json.loads(response.content)['errors'])
+        request.assert_not_called()
