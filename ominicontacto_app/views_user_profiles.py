@@ -141,6 +141,7 @@ class CustomUserWizard(SessionWizardView):
             if agente_profile:
                 initial['sip_remote'] = agente_profile.sip_remote
                 initial['voicebot'] = agente_profile.voicebot
+                initial['voicebot_transport'] = agente_profile.voicebot_transport
                 initial['voicebot_trunk'] = agente_profile.voicebot_trunk_id
                 initial['voicebot_extension'] = agente_profile.voicebot_extension
         return initial
@@ -197,7 +198,8 @@ class CustomUserWizard(SessionWizardView):
             )
 
     def _save_agente(self, user, grupo, sip_remote=False, voicebot=False, sip_password=None,
-                     voicebot_trunk=None, voicebot_extension=None):
+                     voicebot_trunk=None, voicebot_extension=None,
+                     voicebot_transport=AgenteProfile.VOICEBOT_TRANSPORT_SIP):
         agente_profile = AgenteProfile.objects.create(
             user=user,
             grupo=grupo,
@@ -205,6 +207,7 @@ class CustomUserWizard(SessionWizardView):
             sip_extension=1000 + user.id,
             sip_remote=sip_remote,
             voicebot=voicebot,
+            voicebot_transport=voicebot_transport or AgenteProfile.VOICEBOT_TRANSPORT_SIP,
             voicebot_trunk=voicebot_trunk,
             voicebot_extension=voicebot_extension,
             # Guardamos la contraseña de login como sip_password solo si el agente
@@ -265,6 +268,8 @@ class CustomUserWizard(SessionWizardView):
                 campaigns_pks = form_campaigns.cleaned_data.get('campaigns_by_type')
                 sip_remote = user_form.cleaned_data.get('sip_remote', False)
                 voicebot = user_form.cleaned_data.get('voicebot', False)
+                voicebot_transport = user_form.cleaned_data.get(
+                    'voicebot_transport', AgenteProfile.VOICEBOT_TRANSPORT_SIP)
                 voicebot_trunk = user_form.cleaned_data.get('voicebot_trunk')
                 voicebot_extension = user_form.cleaned_data.get('voicebot_extension')
                 # Usamos la contraseña de login ingresada en la creación de usuario
@@ -278,12 +283,16 @@ class CustomUserWizard(SessionWizardView):
                 sip_remote = agente_profile_clonado.sip_remote
                 voicebot = agente_profile_clonado.voicebot
                 sip_password = agente_profile_clonado.sip_password
+                voicebot_transport = getattr(
+                    agente_profile_clonado, 'voicebot_transport',
+                    AgenteProfile.VOICEBOT_TRANSPORT_SIP)
                 voicebot_trunk = getattr(agente_profile_clonado, 'voicebot_trunk', None)
                 voicebot_extension = getattr(agente_profile_clonado, 'voicebot_extension', None)
             campaigns = Campana.objects.filter(pk__in=campaigns_pks)
             agent = self._save_agente(
                 user, grupo, sip_remote, voicebot, sip_password,
-                voicebot_trunk=voicebot_trunk, voicebot_extension=voicebot_extension)
+                voicebot_trunk=voicebot_trunk, voicebot_extension=voicebot_extension,
+                voicebot_transport=voicebot_transport)
             # Se Delega la responsabilidad de crear/eliminar y actualizar asterisk/redis
             queue_service = QueueMemberService(conectar_ami=False)
             queue_service.agregar_agente_a_campanas(agent, campaigns,
@@ -403,6 +412,8 @@ class CustomerUserUpdateView(UpdateView):
                     cd = form.cleaned_data
                     agente_profile.sip_remote = cd.get('sip_remote', False)
                     agente_profile.voicebot = cd.get('voicebot', False)
+                    agente_profile.voicebot_transport = cd.get(
+                        'voicebot_transport', AgenteProfile.VOICEBOT_TRANSPORT_SIP)
                     agente_profile.voicebot_trunk_id = cd.get('voicebot_trunk').pk if cd.get('voicebot_trunk') else None  # noqa: E501
                     agente_profile.voicebot_extension = cd.get('voicebot_extension') or None
                     agente_profile.save()

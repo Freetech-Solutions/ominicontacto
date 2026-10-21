@@ -209,6 +209,31 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_agente['SIP'], self.agente.sip_extension)
         self.assertEqual(dict_agente['STATUS'], "")
 
+    def test_create_dict_voicebot_sip_incluye_voicebot_addr(self):
+        from ominicontacto_app.models import AgenteProfile
+        troncal = TroncalSIPFactory(nombre='vb-trunk')
+        self.agente.voicebot = True
+        self.agente.voicebot_transport = AgenteProfile.VOICEBOT_TRANSPORT_SIP
+        self.agente.voicebot_trunk = troncal
+        self.agente.voicebot_extension = 1066
+        servicio = AgenteFamily()
+        dict_agente = servicio._create_dict(self.agente)
+        self.assertEqual(dict_agente['VOICEBOT'], '1')
+        self.assertEqual(dict_agente['VOICEBOT_TRANSPORT'], 'sip')
+        self.assertEqual(dict_agente['VOICEBOT_ADDR'], '1066@vb-trunk')
+
+    def test_create_dict_voicebot_audiosocket_sin_voicebot_addr(self):
+        from ominicontacto_app.models import AgenteProfile
+        self.agente.voicebot = True
+        self.agente.voicebot_transport = AgenteProfile.VOICEBOT_TRANSPORT_AUDIOSOCKET
+        self.agente.voicebot_trunk = None
+        self.agente.voicebot_extension = None
+        servicio = AgenteFamily()
+        dict_agente = servicio._create_dict(self.agente)
+        self.assertEqual(dict_agente['VOICEBOT'], '1')
+        self.assertEqual(dict_agente['VOICEBOT_TRANSPORT'], 'audiosocket')
+        self.assertNotIn('VOICEBOT_ADDR', dict_agente)
+
     def test_devuelve_correctamente_values_ruta(self):
         """
         este test los values del diccionario para la family de la ruta

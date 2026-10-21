@@ -60,6 +60,39 @@ class CallContactCache(object):
         except ConnectionError as e:
             logger.exception(e)
 
+    @classmethod
+    def link_call_to_contact(cls, callid, contact_id, redis_connection=None):
+        """
+        Asocia callid → contact_id si ambos son válidos.
+
+        Usado por APIs de calificación (voicebot / new_contact) para que, en handoff
+        con id_contacto=-1, calificar_llamada resuelva el contacto sin caer en
+        contactos_telefono_repetido.
+        """
+        if callid is None or contact_id is None:
+            return False
+        callid_str = str(callid).strip()
+        contact_str = str(contact_id).strip()
+        if not callid_str or not contact_str or contact_str in ('-1', '0', 'None', 'null'):
+            return False
+        try:
+            cls(redis_connection=redis_connection).set_call_contact_id(
+                callid_str, contact_str
+            )
+            logger.info(
+                'CallContactCache: callid=%s → contact_id=%s',
+                callid_str,
+                contact_str,
+            )
+            return True
+        except Exception:
+            logger.exception(
+                'CallContactCache: no se pudo asociar callid=%s contact_id=%s',
+                callid_str,
+                contact_str,
+            )
+            return False
+
     def get_call_contact_id(self, callid):
         time = datetime.utcnow()
         hour = time.hour

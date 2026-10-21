@@ -74,6 +74,38 @@ ALL_CAMPAIGNS_ACTIVE_CHOICE = ('activas', _('---- Todas las activas ----'))
 ALL_CAMPAIGNS_INACTIVE_CHOICE = ('borradas', _('---- Todas las borradas ----'))
 ALL_CAMPAIGNS_CHOICE = ('', _('---- Todas ----'))
 
+VOICEBOT_TRANSPORT_SIP = AgenteProfile.VOICEBOT_TRANSPORT_SIP
+VOICEBOT_TRANSPORT_AUDIOSOCKET = AgenteProfile.VOICEBOT_TRANSPORT_AUDIOSOCKET
+VOICEBOT_TRANSPORT_CHOICES = AgenteProfile.VOICEBOT_TRANSPORT_CHOICES
+
+
+def _clean_voicebot_transport_fields(form, cleaned_data):
+    """Valida troncal/extensión solo para voicebot SIP; limpia campos en AudioSocket."""
+    voicebot = cleaned_data.get('voicebot', False)
+    if not voicebot:
+        cleaned_data['voicebot_trunk'] = None
+        cleaned_data['voicebot_extension'] = None
+        cleaned_data['voicebot_transport'] = VOICEBOT_TRANSPORT_SIP
+        return cleaned_data
+
+    transport = cleaned_data.get('voicebot_transport') or VOICEBOT_TRANSPORT_SIP
+    cleaned_data['voicebot_transport'] = transport
+    if transport == VOICEBOT_TRANSPORT_AUDIOSOCKET:
+        cleaned_data['voicebot_trunk'] = None
+        cleaned_data['voicebot_extension'] = None
+        return cleaned_data
+
+    voicebot_trunk = cleaned_data.get('voicebot_trunk')
+    voicebot_extension = cleaned_data.get('voicebot_extension')
+    if not voicebot_trunk:
+        form.add_error("voicebot_trunk", _("Requerido cuando Voicebot SIP está activado."))
+    if voicebot_extension is None or voicebot_extension == '':
+        form.add_error(
+            "voicebot_extension", _("Requerido cuando Voicebot SIP está activado."))
+    elif voicebot_extension < 1 or voicebot_extension > 999999:
+        form.add_error("voicebot_extension", _("Debe ser un número entre 1 y 999999."))
+    return cleaned_data
+
 
 class CustomUserChangeForm(UserChangeForm):
 
@@ -99,6 +131,12 @@ class CustomUserCreationForm(UserCreationForm):
     voicebot = forms.BooleanField(
         required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
         label=_('Voicebot'), initial=False)
+    voicebot_transport = forms.ChoiceField(
+        choices=VOICEBOT_TRANSPORT_CHOICES,
+        required=False,
+        initial=VOICEBOT_TRANSPORT_SIP,
+        label=_('Transporte voicebot'),
+        widget=forms.Select(attrs={'class': 'form-control'}))
     voicebot_trunk = forms.ModelChoiceField(
         queryset=TroncalSIP.objects.none(),
         required=False,
@@ -147,6 +185,7 @@ class CustomUserCreationForm(UserCreationForm):
         # Mantenerlo visible evita que solo se vea la etiqueta sin el control.
         self.fields['sip_remote'].widget.attrs.pop('style', None)
         self.fields['voicebot'].widget.attrs.pop('style', None)
+        self.fields['voicebot_transport'].widget.attrs['class'] = 'form-control'
         self.fields['voicebot_trunk'].queryset = TroncalSIP.objects.all()
         self.fields['voicebot_trunk'].widget.attrs['class'] = 'form-control'
         self.fields['voicebot_extension'].widget.attrs['class'] = 'form-control'
@@ -171,15 +210,8 @@ class CustomUserCreationForm(UserCreationForm):
         if rol and rol.name == User.AGENTE and sip_remote and voicebot:
             self.add_error("sip_remote", _("SIP remote y Voicebot son mutuamente excluyentes."))
             self.add_error("voicebot", _("SIP remote y Voicebot son mutuamente excluyentes."))
-        if rol and rol.name == User.AGENTE and voicebot:
-            voicebot_trunk = cleaned_data.get('voicebot_trunk')
-            voicebot_extension = cleaned_data.get('voicebot_extension')
-            if not voicebot_trunk:
-                self.add_error("voicebot_trunk", _("Requerido cuando Voicebot está activado."))
-            if voicebot_extension is None or voicebot_extension == '':
-                self.add_error("voicebot_extension", _("Requerido cuando Voicebot está activado."))
-            elif voicebot_extension < 1 or voicebot_extension > 999999:
-                self.add_error("voicebot_extension", _("Debe ser un número entre 1 y 999999."))
+        if rol and rol.name == User.AGENTE:
+            _clean_voicebot_transport_fields(self, cleaned_data)
         return cleaned_data
 
     @staticmethod
@@ -253,6 +285,12 @@ class UserAgentUpdateForm(UserChangeForm):
     voicebot = forms.BooleanField(
         required=False, widget=forms.CheckboxInput(attrs={'class': 'form-control'}),
         label=_('Voicebot'), initial=False)
+    voicebot_transport = forms.ChoiceField(
+        choices=VOICEBOT_TRANSPORT_CHOICES,
+        required=False,
+        initial=VOICEBOT_TRANSPORT_SIP,
+        label=_('Transporte voicebot'),
+        widget=forms.Select(attrs={'class': 'form-control'}))
     voicebot_trunk = forms.ModelChoiceField(
         queryset=TroncalSIP.objects.all(),
         required=False,
@@ -275,12 +313,14 @@ class UserAgentUpdateForm(UserChangeForm):
             mostrar_autenticacion_externa=mostrar_autenticacion_externa,
             habilitar_autenticacion_externa=habilitar_autenticacion_externa,
             *args, **kwargs)
+        self.fields['voicebot_transport'].widget.attrs['class'] = 'form-control'
         self.fields['voicebot_trunk'].widget.attrs['class'] = 'form-control'
         self.fields['voicebot_extension'].widget.attrs['class'] = 'form-control'
         agente_profile = getattr(self.instance, 'get_agente_profile', lambda: None)()
         if agente_profile:
             self.fields['sip_remote'].initial = agente_profile.sip_remote
             self.fields['voicebot'].initial = agente_profile.voicebot
+            self.fields['voicebot_transport'].initial = agente_profile.voicebot_transport
             self.fields['voicebot_trunk'].initial = agente_profile.voicebot_trunk
             self.fields['voicebot_extension'].initial = agente_profile.voicebot_extension
 
@@ -291,18 +331,7 @@ class UserAgentUpdateForm(UserChangeForm):
         if sip_remote and voicebot:
             self.add_error("sip_remote", _("SIP remote y Voicebot son mutuamente excluyentes."))
             self.add_error("voicebot", _("SIP remote y Voicebot son mutuamente excluyentes."))
-        if voicebot:
-            voicebot_trunk = cleaned_data.get('voicebot_trunk')
-            voicebot_extension = cleaned_data.get('voicebot_extension')
-            if not voicebot_trunk:
-                self.add_error("voicebot_trunk", _("Requerido cuando Voicebot está activado."))
-            if voicebot_extension is None or voicebot_extension == '':
-                self.add_error("voicebot_extension", _("Requerido cuando Voicebot está activado."))
-            elif voicebot_extension < 1 or voicebot_extension > 999999:
-                self.add_error("voicebot_extension", _("Debe ser un número entre 1 y 999999."))
-        else:
-            cleaned_data['voicebot_trunk'] = None
-            cleaned_data['voicebot_extension'] = None
+        _clean_voicebot_transport_fields(self, cleaned_data)
         return cleaned_data
 
 
@@ -327,7 +356,10 @@ class AgenteProfileForm(forms.ModelForm):
 
     class Meta:
         model = AgenteProfile
-        fields = ('grupo', 'sip_remote', 'voicebot', 'voicebot_trunk', 'voicebot_extension')
+        fields = (
+            'grupo', 'sip_remote', 'voicebot', 'voicebot_transport',
+            'voicebot_trunk', 'voicebot_extension',
+        )
 
     def __init__(self, grupos_queryset, *args, **kwargs):
         super(AgenteProfileForm, self).__init__(*args, **kwargs)
@@ -337,6 +369,9 @@ class AgenteProfileForm(forms.ModelForm):
         self.fields['sip_remote'].label = _('SIP remote')
         self.fields['voicebot'].widget = forms.CheckboxInput(attrs={'class': 'form-control'})
         self.fields['voicebot'].label = _('Voicebot')
+        self.fields['voicebot_transport'].widget.attrs['class'] = 'form-control'
+        self.fields['voicebot_transport'].label = _('Transporte voicebot')
+        self.fields['voicebot_transport'].required = False
         self.fields['voicebot_trunk'].queryset = TroncalSIP.objects.all()
         self.fields['voicebot_trunk'].widget.attrs['class'] = 'form-control'
         self.fields['voicebot_trunk'].label = _('Troncal SIP (voicebot)')
@@ -354,19 +389,7 @@ class AgenteProfileForm(forms.ModelForm):
             self.add_error("sip_remote", _("SIP remote y Voicebot son mutuamente excluyentes."))
             self.add_error("voicebot", _("SIP remote y Voicebot son mutuamente excluyentes."))
 
-        if voicebot:
-            voicebot_trunk = cleaned_data.get('voicebot_trunk')
-            voicebot_extension = cleaned_data.get('voicebot_extension')
-            if not voicebot_trunk:
-                self.add_error("voicebot_trunk", _("Requerido cuando Voicebot está activado."))
-            if voicebot_extension is None or voicebot_extension == '':
-                self.add_error("voicebot_extension", _("Requerido cuando Voicebot está activado."))
-            elif voicebot_extension < 1 or voicebot_extension > 999999:
-                self.add_error("voicebot_extension", _("Debe ser un número entre 1 y 999999."))
-        else:
-            cleaned_data['voicebot_trunk'] = None
-            cleaned_data['voicebot_extension'] = None
-
+        _clean_voicebot_transport_fields(self, cleaned_data)
         return cleaned_data
 
 

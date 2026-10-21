@@ -339,7 +339,7 @@ class AgenteFamily(AbstractRedisFamily):
         'PSTN_CHANNEL_ID',
         'PAUSE_ID',
     )
-    VOICEBOT_FIELDS = ('VOICEBOT', 'VOICEBOT_ADDR')
+    VOICEBOT_FIELDS = ('VOICEBOT', 'VOICEBOT_ADDR', 'VOICEBOT_TRANSPORT')
 
     def _create_dict(self, agente, status='', timestamp=''):
         dict_agente = {
@@ -350,8 +350,17 @@ class AgenteFamily(AbstractRedisFamily):
         }
         # Agregar key VOICEBOT si el agente es voicebot
         if agente.voicebot:
+            transport = (
+                getattr(agente, 'voicebot_transport', None)
+                or AgenteProfile.VOICEBOT_TRANSPORT_SIP
+            )
             dict_agente['VOICEBOT'] = '1'
-            if agente.voicebot_trunk and agente.voicebot_extension is not None:
+            dict_agente['VOICEBOT_TRANSPORT'] = transport
+            if (
+                transport == AgenteProfile.VOICEBOT_TRANSPORT_SIP
+                and agente.voicebot_trunk
+                and agente.voicebot_extension is not None
+            ):
                 dict_agente['VOICEBOT_ADDR'] = (
                     "{0}@{1}".format(agente.voicebot_extension, agente.voicebot_trunk.nombre)
                 )
@@ -410,6 +419,9 @@ class AgenteFamily(AbstractRedisFamily):
             redis_connection.hset(family, mapping=mapping)
             if not agente.voicebot:
                 redis_connection.hdel(family, *self.VOICEBOT_FIELDS)
+            elif 'VOICEBOT_ADDR' not in mapping:
+                # AudioSocket (o SIP sin troncal): limpiar dirección SIP residual.
+                redis_connection.hdel(family, 'VOICEBOT_ADDR')
         except (RedisError, ConnectionError) as e:
             logger.exception(
                 'Error en merge in-place de agente en %s: %s', family, e)
@@ -443,6 +455,8 @@ class AgenteFamily(AbstractRedisFamily):
             }
             if 'VOICEBOT' in variables:
                 mapping['VOICEBOT'] = variables['VOICEBOT']
+            if 'VOICEBOT_TRANSPORT' in variables:
+                mapping['VOICEBOT_TRANSPORT'] = variables['VOICEBOT_TRANSPORT']
             if 'VOICEBOT_ADDR' in variables:
                 mapping['VOICEBOT_ADDR'] = variables['VOICEBOT_ADDR']
             self._merge_agent_identity(redis_connection, family, agente, mapping)
