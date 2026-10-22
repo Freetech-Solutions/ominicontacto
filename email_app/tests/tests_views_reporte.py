@@ -57,7 +57,8 @@ class CampaignEmailReportTest(OMLBaseTest):
         return models.Message.objects.create(**defaults)
 
     def _range_payload(self):
-        day = self.now.date().isoformat()
+        # the view expands the dates in the local timezone, so use the local day
+        day = timezone.localtime(self.now).date().isoformat()
         return {"start_date": day, "end_date": day}
 
     # --- Reporte general ---------------------------------------------------
