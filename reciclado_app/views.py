@@ -34,6 +34,7 @@ from reciclado_app.resultado_contactacion import (
 from ominicontacto_app.errors import OmlRecicladoCampanaError
 from ominicontacto_app.models import Campana
 from ominicontacto_app.services.dialer import get_dialer_service, wombat_habilitado
+from ominicontacto_app.services.creacion_queue import ActivacionQueueService
 
 import logging as logging_
 
@@ -81,6 +82,7 @@ class ReciclarCampanaMixin(object):
         if campana.es_preview and retomar_contactacion:
             reciclador.retomar_contactacion(
                 campana, reciclado_calificacion, reciclado_no_contactacion)
+            self._activar_queue_service(campana)
             return HttpResponseRedirect(reverse('campana_preview_list'))
         bd_contacto_reciclada = reciclador.reciclar(
             campana, reciclado_calificacion, reciclado_no_contactacion)
@@ -109,6 +111,7 @@ class ReciclarCampanaMixin(object):
             # con el servicio omnidialer
             campana.update_basedatoscontactos(bd_contacto_reciclada)
             update_campana = self._reciclar_misma_campana(campana)
+            self._activar_queue_service(campana)
             return HttpResponseRedirect(reverse(update_campana, kwargs={"pk_campana": campana.pk}))
 
     def get_context_data(self, **kwargs):
@@ -132,6 +135,10 @@ class ReciclarCampanaMixin(object):
 
     def _obtener_reciclador(self):
         raise NotImplementedError()
+
+    def _activar_queue_service(self, campana):
+        activacion_queue_service = ActivacionQueueService()
+        activacion_queue_service.activar(campana)
 
 
 class ReciclarCampanaDialerFormView(ReciclarCampanaMixin, FormView):
