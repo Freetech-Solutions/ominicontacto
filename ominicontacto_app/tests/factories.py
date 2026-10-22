@@ -213,7 +213,7 @@ class ContactoFactory(DjangoModelFactory):
     class Meta:
         model = Contacto
 
-    telefono = lazy_attribute(lambda a: '1234567' + str(faker.random_number(2, fix_len=True)))
+    telefono = Sequence(lambda n: '1234567{0:04d}'.format(n))
     email = ""
     id_externo = None
     datos = lazy_attribute(
