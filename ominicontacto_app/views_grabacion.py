@@ -37,6 +37,9 @@ from ominicontacto_app.bgtasks.mixins import (
 from ominicontacto_app.forms.base import GrabacionBusquedaFormEx
 from ominicontacto_app.models import (
     GrabacionMarca, Campana)
+from ominicontacto_app.services.grabaciones.autorizacion import (
+    resolver_grabacion_autorizada,
+)
 
 
 class BusquedaGrabacionAgenteFormViewEx(UserPassesTestMixin, FormView):
@@ -98,8 +101,8 @@ class ResultadoTareaBusquedaGrabacionView(View):
                 status=400,
             )
 
-        task = SearchRecordingTaskRegister.get(task_id)
-        if not task or task.get('user_id') != str(request.user.id):
+        task = SearchRecordingTaskRegister.get(task_id, request.user.id)
+        if not task:
             return JsonResponse(
                 {'error_message': _('No se encontró la tarea de búsqueda de grabaciones.')},
                 status=404,
@@ -132,6 +135,8 @@ class MarcarGrabacionView(View):
     def post(self, *args, **kwargs):
         callid = self.request.POST.get('callid', False)
         descripcion = self.request.POST.get('descripcion', '')
+        if not resolver_grabacion_autorizada(self.request.user, callid):
+            return JsonResponse({'result': 'failed by not found'}, status=404)
         try:
             grabacion_marca, _ = GrabacionMarca.objects.get_or_create(
                 callid=callid)
@@ -150,12 +155,16 @@ class GrabacionDescripcionView(View):
 
     def get(self, *args, **kwargs):
         callid = kwargs.get('callid', False)
+        response_no_encontrada = {
+            u'result': _(u'No encontrada'),
+            u'descripcion': _(u'La grabación no tiene descripción asociada'),
+        }
+        if not resolver_grabacion_autorizada(self.request.user, callid):
+            return JsonResponse(response_no_encontrada)
         try:
             grabacion_marca = GrabacionMarca.objects.get(callid=callid)
         except GrabacionMarca.DoesNotExist:
-            response = {u'result': _(u'No encontrada'),
-                        u'descripcion': _(u'La grabación no tiene descripción asociada')}
-        else:
-            response = {u'result': _(u'Descripción'),
-                        u'descripcion': grabacion_marca.descripcion}
+            return JsonResponse(response_no_encontrada)
+        response = {u'result': _(u'Descripción'),
+                    u'descripcion': grabacion_marca.descripcion}
         return JsonResponse(response)

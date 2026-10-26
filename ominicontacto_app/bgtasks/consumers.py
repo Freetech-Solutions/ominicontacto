@@ -21,6 +21,14 @@ if apps.is_installed("premium_reports_app"):
         getattr(apps.get_app_config("premium_reports_app"), "BACKGROUND_TASKS_CONSUMERS", [])
     )
 
+# Tipos de tasks que el cliente puede ejecutar. Cada mixin declara los suyos; se recorre
+# la lista porque con herencia múltiple self.CLIENT_ALLOWED_TASKS sólo vería el del primero.
+CLIENT_ALLOWED_TASKS = frozenset(
+    message_type
+    for mixin in BACKGROUND_TASKS_MIXINS
+    for message_type in getattr(mixin, "CLIENT_ALLOWED_TASKS", ())
+)
+
 
 class BackgroundTasksConsumerClient(AsyncJsonWebsocketConsumer, *BACKGROUND_TASKS_MIXINS):
     groups = [
@@ -46,6 +54,12 @@ class BackgroundTasksConsumerClient(AsyncJsonWebsocketConsumer, *BACKGROUND_TASK
             await self.close()
 
     async def receive_json(self, content, **kwargs):
+        message_type = content.get("type") if isinstance(content, dict) else None
+        if message_type not in CLIENT_ALLOWED_TASKS:
+            logger.warning(
+                "Intento de ejecución de task no permitido: %r (user_id=%s)",
+                message_type, self.scope["user"].id)
+            return
         await self.dispatch(content)
 
 
