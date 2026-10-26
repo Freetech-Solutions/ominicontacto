@@ -17,6 +17,8 @@
 #
 
 from __future__ import unicode_literals
+import logging
+import requests
 from django.utils.translation import ugettext as _
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
@@ -30,6 +32,9 @@ from ominicontacto_app.models import AutenticacionSitioExterno
 from ominicontacto_app.services.sistema_externo.interaccion_sistema_externo import (
     InteraccionConSistemaExterno,
 )
+from ominicontacto_app.services.sistema_externo.safe_http import DestinoNoPermitidoError
+
+logger = logging.getLogger(__name__)
 
 
 class ExternalSiteAuthenticationList(APIView):
@@ -118,7 +123,13 @@ class ExternalSiteAuthenticationTest(APIView):
                 return Response(data=responseData, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
             responseData['status'] = 'ERROR'
-            responseData['message'] = _('Autenticación Fallida a CRM: <{}>').format(e)
+            if isinstance(e, (DestinoNoPermitidoError, requests.HTTPError)):
+                detalle = e
+            else:
+                # No se expone el detalle de errores de conexión (permitiría mapear la red)
+                logger.warning('Error al probar autenticación de Sitio Externo: %s', e)
+                detalle = _('No se pudo establecer la conexión')
+            responseData['message'] = _('Autenticación Fallida a CRM: <{}>').format(detalle)
             return Response(data=responseData, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 

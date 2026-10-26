@@ -35,6 +35,10 @@ CONSTANCE_ADDITIONAL_FIELDS = {
         'disabled': False,
         'required': True,
     }],
+    'text_field': ['django.forms.fields.CharField', {
+        'widget': 'django.forms.Textarea',
+        'required': False,
+    }],
 }
 
 CONSTANCE_CONFIG = {
@@ -56,6 +60,9 @@ CONSTANCE_CONFIG = {
     'EXTERNAL_AUTH_DN': ('', 'EXTERNAL_AUTH_DN', str),
     'EXTERNAL_AUTH_ACTIVATION': ('', 'EXTERNAL_AUTH_ACTIVATION', str),
     'EXTERNAL_AUTH_MS_SIMPLE_AUTH': (False, 'EXTERNAL_AUTH_MS_SIMPLE_AUTH', bool),
+    # Hosts y/o CIDRs internos habilitados como destino de Sitios Externos, separados por coma.
+    # Ej: "crm.intranet.local, 10.20.5.0/24, 192.168.1.10"
+    'SITIO_EXTERNO_ALLOWLIST': ('', 'SITIO_EXTERNO_ALLOWLIST', 'text_field'),
 
     # Addons configs
     'WEBPHONE_CLIENT_ENABLED': (False, 'WEBPHONE_CLIENT_ENABLED', bool),
@@ -101,6 +108,7 @@ CONSTANCE_CONFIG_FIELDSETS = {
                    'WOMBAT_DIALER_UPDATE_DATETIME',
                    'EXTERNAL_AUTH_TYPE', 'EXTERNAL_AUTH_SERVER', 'EXTERNAL_AUTH_DN',
                    'EXTERNAL_AUTH_ACTIVATION', 'EXTERNAL_AUTH_MS_SIMPLE_AUTH',
+                   'SITIO_EXTERNO_ALLOWLIST',
                    ),
         'collapse': True
     },
