@@ -55,11 +55,11 @@ class WebhookInstagramView(APIView):
             payload = json.loads(request.body.decode("utf-8"))
         except ValueError:
             logger.warning("Webhook Instagram: payload invalido app_id=%s", app_id)
-            return HttpResponse(status=status.HTTP_200_OK)
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         account = self._get_account_from_payload(payload, app_id)
         if account is None:
             logger.warning("Webhook Instagram: no se encontro cuenta para app_id=%s", app_id)
-            return HttpResponse(status=status.HTTP_200_OK)
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         if not verify_meta_webhook_signature(
                 request, account.app_secret, app_id, 'Instagram'):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)

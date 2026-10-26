@@ -88,7 +88,14 @@
               >
             </div>
             <div class="field col-6">
-              <label>{{ $t("models.facebook.page.app_secret") }}</label>
+              <label
+                :class="{
+                  'p-error':
+                    v$.supFacebookPage.app_secret.$invalid &&
+                    submitted,
+                }"
+                >{{ $t("models.facebook.page.app_secret") }}*</label
+              >
               <div class="p-inputgroup">
                 <span class="p-inputgroup-addon">
                   <i class="pi pi-lock"></i>
@@ -96,11 +103,30 @@
                 <Password
                   toggleMask
                   :feedback="false"
+                  :class="{
+                    'p-invalid':
+                      v$.supFacebookPage.app_secret.$invalid &&
+                      submitted,
+                  }"
                   :placeholder="$t('forms.form.enter_value')"
-                  v-model="supFacebookPage.app_secret"
+                  v-model="v$.supFacebookPage.app_secret.$model"
                 />
               </div>
-              <small>{{ $t("models.facebook.page.app_secret_help") }}</small>
+              <small
+                v-if="
+                  (v$.supFacebookPage.app_secret.$invalid &&
+                    submitted) ||
+                  v$.supFacebookPage.app_secret.$pending.$response
+                "
+                class="p-error"
+                >{{
+                  v$.supFacebookPage.app_secret.required.$message.replace(
+                    "Value",
+                    $t("models.facebook.page.app_secret")
+                  )
+                }}</small
+              >
+              <small v-else>{{ $t("models.facebook.page.app_secret_help") }}</small>
             </div>
             <div class="field col-6">
               <label
@@ -220,6 +246,9 @@ export default {
                     required
                 },
                 access_token: {
+                    required
+                },
+                app_secret: {
                     required
                 },
                 app_id: {

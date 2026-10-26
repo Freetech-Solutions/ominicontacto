@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+import logging
+
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.views import APIView
@@ -23,6 +25,9 @@ from ominicontacto_app.services.redis.redis_streams import RedisStreams
 
 from facebook_meta_app.models import PaginaMetaFacebook
 from orquestador_app.meta_webhook_signature import verify_meta_webhook_signature
+
+
+logger = logging.getLogger(__name__)
 
 
 class WebhookFacebookMessengerView(APIView):
@@ -52,11 +57,14 @@ class WebhookFacebookMessengerView(APIView):
 
     def post(self, request, app_id):
         pagina = PaginaMetaFacebook.objects.filter(app_id=app_id).first()
-        app_secret = pagina.app_secret if pagina else None
+        if pagina is None:
+            logger.warning(
+                "Webhook Facebook Messenger: no se encontro pagina para app_id=%s", app_id)
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         if not verify_meta_webhook_signature(
-                request, app_secret, app_id, 'Facebook'):
+                request, pagina.app_secret, app_id, 'Facebook'):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
 
-        stream_name = 'facebook_meta_webhook_page_{}'.format(app_id)
-        self.redis_stream.write_stream(stream_name, request.body, max_stream_length=100000)
+        self.redis_stream.write_stream(
+            pagina.get_stream_name, request.body, max_stream_length=100000)
         return HttpResponse(status=status.HTTP_200_OK)

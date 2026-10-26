@@ -236,8 +236,7 @@ class MessengerMetaAppPageConfigurationCreateSerializer(serializers.ModelSeriali
     access_token = serializers.CharField(max_length=500)
     verify_token = serializers.CharField(max_length=255)
     app_id = serializers.CharField(max_length=255)
-    app_secret = serializers.CharField(
-        max_length=255, allow_blank=True, allow_null=True, required=False)
+    app_secret = serializers.CharField(max_length=255)
     page_id = serializers.CharField(max_length=255)
     schedule = serializers.PrimaryKeyRelatedField(
         queryset=GrupoHorario.objects.all(), allow_null=True, required=False, source='horario')

@@ -9,9 +9,14 @@ logger = logging.getLogger(__name__)
 
 
 def verify_meta_webhook_signature(request, app_secret, app_id, channel):
-    """Validate Meta's HMAC-SHA256 signature when an App Secret is configured."""
+    """Validate Meta's HMAC-SHA256 signature. Requests are rejected when no
+    App Secret is configured for the page, account or line."""
     if not app_secret:
-        return True
+        logger.warning(
+            "Webhook Meta %s (app_id=%s): no hay App Secret configurado. "
+            "Se rechaza el request.",
+            channel, app_id)
+        return False
 
     signature_header = request.headers.get('X-Hub-Signature-256', '')
     if not signature_header:

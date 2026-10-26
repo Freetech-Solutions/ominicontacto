@@ -21,13 +21,19 @@ class MetaWebhookSignatureTests(SimpleTestCase):
             headers['X-Hub-Signature-256'] = signature
         return SimpleNamespace(headers=headers, body=self.body)
 
-    def test_allows_request_when_app_secret_is_null(self):
-        self.assertTrue(verify_meta_webhook_signature(
+    def test_rejects_request_when_app_secret_is_null(self):
+        self.assertFalse(verify_meta_webhook_signature(
             self._request(), None, self.app_id, 'Facebook'))
 
-    def test_allows_request_when_app_secret_is_empty(self):
-        self.assertTrue(verify_meta_webhook_signature(
+    def test_rejects_request_when_app_secret_is_empty(self):
+        self.assertFalse(verify_meta_webhook_signature(
             self._request(), '', self.app_id, 'Instagram'))
+
+    def test_rejects_signed_request_when_app_secret_is_empty(self):
+        digest = hmac.new(b'', self.body, hashlib.sha256).hexdigest()
+
+        self.assertFalse(verify_meta_webhook_signature(
+            self._request('sha256=' + digest), '', self.app_id, 'WhatsApp'))
 
     def test_accepts_valid_signature(self):
         digest = hmac.new(

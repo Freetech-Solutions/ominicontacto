@@ -308,7 +308,7 @@ export default {
             access_token: 'Access Token',
             app_id: 'App ID',
             app_secret: 'App Secret',
-            app_secret_help: 'Recommended to secure webhook',
+            app_secret_help: 'Required to validate the webhook signature',
             schedule: 'Schedule',
             destino: 'Destination',
             tipo_de_destino: 'Destination type',

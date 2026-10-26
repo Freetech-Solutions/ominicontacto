@@ -339,7 +339,7 @@
 
 <script>
 import { mapState, mapActions } from 'vuex';
-import { required } from '@vuelidate/validators';
+import { required, requiredIf } from '@vuelidate/validators';
 import { useVuelidate } from '@vuelidate/core';
 import { PROVIDER_TYPES } from '@/globals/supervisor/whatsapp/provider';
 
@@ -355,7 +355,11 @@ export default {
                     app_name: { required },
                     app_id: { required },
                     verification_token: { },
-                    app_secret: { }
+                    app_secret: {
+                        required: requiredIf(
+                            () => this.supWhatsappLine.provider_type === PROVIDER_TYPES.META
+                        )
+                    }
                 }
             }
         };
