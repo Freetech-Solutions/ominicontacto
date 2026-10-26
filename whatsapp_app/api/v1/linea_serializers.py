@@ -94,7 +94,7 @@ class LineaCreateSerializer(serializers.ModelSerializer):
             if 'app_id' not in configuracion\
                     or 'waba_id' not in configuracion\
                     or 'verification_token' not in configuracion\
-                    or 'app_secret' not in configuracion:
+                    or not configuracion.get('app_secret'):
                 raise serializers.ValidationError({
                     'configuration': _('Configuración incorrecta para el tipo de proveedor. '
                                        'Se requiere app_id, waba_id, verification_token '
@@ -541,7 +541,7 @@ class UpdateSerializer(serializers.ModelSerializer):
             if 'app_id' not in configuracion\
                     or 'waba_id' not in configuracion\
                     or 'verification_token' not in configuracion\
-                    or 'app_secret' not in configuracion:
+                    or not configuracion.get('app_secret'):
                 raise serializers.ValidationError({
                     'configuration': _('Configuración incorrecta para el tipo de proveedor. '
                                        'Se requiere app_id, waba_id, verification_token '

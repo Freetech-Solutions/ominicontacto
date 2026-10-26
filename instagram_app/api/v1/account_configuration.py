@@ -292,6 +292,7 @@ class DestinoEntranteInstagramSerializer(serializers.RelatedField):
 
 
 class InstagramAccountCreateSerializer(serializers.ModelSerializer):
+    app_secret = serializers.CharField(max_length=255)
     schedule = serializers.PrimaryKeyRelatedField(
         queryset=GrupoHorario.objects.all(), allow_null=True, required=False, source='horario')
     campaign = serializers.PrimaryKeyRelatedField(

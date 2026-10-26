@@ -85,7 +85,7 @@ class WebhookMetaView(APIView):
                 "pero no se encontro cuenta activa.",
                 app_id,
             )
-            return HttpResponse(status=status.HTTP_200_OK)
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         if not verify_meta_webhook_signature(
                 request, account.app_secret, app_id, 'Instagram'):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
@@ -109,7 +109,7 @@ class WebhookMetaView(APIView):
                 "pero no se encontro pagina activa.",
                 app_id,
             )
-            return HttpResponse(status=status.HTTP_200_OK)
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
         if not verify_meta_webhook_signature(
                 request, page.app_secret, app_id, 'Facebook'):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
@@ -138,7 +138,7 @@ class WebhookMetaView(APIView):
         return None
 
     def _verify_signature(self, request, linea):
-        """Validate WhatsApp with the same optional Meta signature policy."""
+        """Validate WhatsApp with the same mandatory Meta signature policy."""
         app_secret = linea.configuracion.get('app_secret', '')
         return verify_meta_webhook_signature(
             request,
@@ -172,7 +172,7 @@ class WebhookMetaView(APIView):
         linea = self._get_linea(app_id)
         if linea is None:
             logger.warning("Webhook Meta: no se encontro Linea para app_id=%s", app_id)
-            return HttpResponse(status=status.HTTP_200_OK)
+            return HttpResponse(status=status.HTTP_403_FORBIDDEN)
 
         if not self._verify_signature(request, linea):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
