@@ -78,14 +78,12 @@ class Click2CallAPITest(OMLBaseTest):
 
         self.post_data_oml = {
             'idCampaign': str(self.campana.id),
-            'idAgent': str(self.agente.id),
             'idContact': str(self.contacto_1.id),
             'phone': '3511111111',
         }
         self.post_data_externo = {
             'idExternalSystem': str(self.sistema_externo.id),
             'idCampaign': str(self.campana.id_externo),
-            'idAgent': 'id_ag_1',
             'idContact': str(self.contacto_1.id_externo),
             'phone': '35111111111',
         }
@@ -101,14 +99,6 @@ class Click2CallAPITest(OMLBaseTest):
         self.assertEqual(response.data['status'], 'ERROR')
         self.assertIn('idCampaign', response.data['errors'])
         self.assertEqual(response.data['errors']['idCampaign'],
-                         [_('Escoja una opción válida. Esa opción no está entre las disponibles.')])
-
-    def test_oml_ids_agente_inexistente(self):
-        self.post_data_oml['idAgent'] = self.post_data_oml['idAgent'] + '000'
-        response = self.make_click2call_post(self.post_data_oml)
-        self.assertEqual(response.data['status'], 'ERROR')
-        self.assertIn('idAgent', response.data['errors'])
-        self.assertEqual(response.data['errors']['idAgent'],
                          [_('Escoja una opción válida. Esa opción no está entre las disponibles.')])
 
     def test_oml_ids_contacto_inexistente_error(self):
@@ -127,11 +117,11 @@ class Click2CallAPITest(OMLBaseTest):
         self.assertEqual(response.data['status'], 'OK')
 
     def test_oml_ids_agente_no_en_campana(self):
-        self.post_data_oml['idAgent'] = str(self.agente_2.id)
+        self.post_data_oml['idCampaign'] = str(self.campana_2.id)
         response = self.make_click2call_post(self.post_data_oml)
         self.assertEqual(response.data['status'], 'ERROR')
-        self.assertIn('idAgent', response.data['errors'])
-        self.assertEqual(response.data['errors']['idAgent'],
+        self.assertIn('idCampaign', response.data['errors'])
+        self.assertEqual(response.data['errors']['idCampaign'],
                          [_('El agente no participa en la campaña.')])
 
     def test_oml_ids_contacto_no_en_campana(self):
@@ -164,14 +154,6 @@ class Click2CallAPITest(OMLBaseTest):
         self.assertEqual(response.data['errors']['idCampaign'],
                          [_('Escoja una opción válida. Esa opción no está entre las disponibles.')])
 
-    def test_external_ids_agente_inexistente(self):
-        self.post_data_externo['idAgent'] = self.post_data_externo['idAgent'] + '000'
-        response = self.make_click2call_post(self.post_data_externo)
-        self.assertEqual(response.data['status'], 'ERROR')
-        self.assertIn('idAgent', response.data['errors'])
-        self.assertEqual(response.data['errors']['idAgent'],
-                         [_('El agente no corresponde al sistema externo.')])
-
     @patch('ominicontacto_app.services.click2call.Click2CallOriginator.call_originate')
     def test_external_ids_contacto_inexistente_ok(self, call_originate):
         call_originate.return_value = None
@@ -187,23 +169,21 @@ class Click2CallAPITest(OMLBaseTest):
         self.assertEqual(response.data['status'], 'OK')
 
     def test_external_ids_agente_no_en_sistema_externo(self):
-        self.post_data_externo['idAgent'] = 'id_ag_2'
+        AgenteEnSistemaExterno.objects.filter(agente=self.agente).delete()
         response = self.make_click2call_post(self.post_data_externo)
         self.assertEqual(response.data['status'], 'ERROR')
-        self.assertIn('idAgent', response.data['errors'])
-        self.assertEqual(response.data['errors']['idAgent'],
+        self.assertIn('__all__', response.data['errors'])
+        self.assertEqual(response.data['errors']['__all__'],
                          [_('El agente no corresponde al sistema externo.')])
 
     def test_external_ids_agente_no_en_campana(self):
-        agente_externo = AgenteEnSistemaExterno(agente=self.agente_2,
-                                                sistema_externo=self.sistema_externo,
-                                                id_externo_agente='id_ag_2')
-        agente_externo.save()
-        self.post_data_externo['idAgent'] = 'id_ag_2'
+        self.campana_2.id_externo = 'c2'
+        self.campana_2.save()
+        self.post_data_externo['idCampaign'] = 'c2'
         response = self.make_click2call_post(self.post_data_externo)
         self.assertEqual(response.data['status'], 'ERROR')
-        self.assertIn('idAgent', response.data['errors'])
-        self.assertEqual(response.data['errors']['idAgent'],
+        self.assertIn('idCampaign', response.data['errors'])
+        self.assertEqual(response.data['errors']['idCampaign'],
                          [_('El agente no participa en la campaña.')])
 
     @patch('ominicontacto_app.services.click2call.Click2CallOriginator.call_originate')
@@ -211,3 +191,9 @@ class Click2CallAPITest(OMLBaseTest):
         call_originate.return_value = None
         response = self.make_click2call_post(self.post_data_externo)
         self.assertEqual(response.data['status'], 'OK')
+
+    @patch('ominicontacto_app.services.click2call.Click2CallOriginator.call_originate')
+    def test_click2call_usa_agente_de_la_sesion(self, call_originate):
+        call_originate.return_value = None
+        self.make_click2call_post(self.post_data_oml)
+        self.assertEqual(call_originate.call_args[0][0], self.agente)

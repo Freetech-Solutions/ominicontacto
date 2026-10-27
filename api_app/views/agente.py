@@ -217,13 +217,21 @@ class Click2CallView(APIView):
         Vista para ejecutar un click2call desde un sistema externo
         Params:
         - idExternalSystem (opcional)
-        - idCampaign, idAgent, idContact, phone
+        - idCampaign, idContact, phone
+        El agente se obtiene del usuario autenticado
     """
     permission_classes = (TienePermisoOML, )
     authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     renderer_classes = (JSONRenderer, )
 
     def post(self, request):
+        agente = request.user.get_agente_profile()
+        if agente is None:
+            return Response(data={
+                'status': 'ERROR',
+                'message': _('Usted no tiene permiso para realizar esta acción'),
+            }, status=HTTP_403_FORBIDDEN)
+
         self.sistema_externo = None
         if 'idExternalSystem' in request.data:
             try:
@@ -235,14 +243,13 @@ class Click2CallView(APIView):
                     'message': _('Hubo errores en los datos recibidos'),
                     'errors': {'idExternalSystem': [_('Sistema externo inexistente.')]}
                 })
-            form = Click2CallExternalSiteParametersForm(sistema_externo=self.sistema_externo,
+            form = Click2CallExternalSiteParametersForm(agente=agente,
+                                                        sistema_externo=self.sistema_externo,
                                                         data=request.data)
         else:
-            form = Click2CallOMLParametersForm(request.data)
+            form = Click2CallOMLParametersForm(agente=agente, data=request.data)
 
         if form.is_valid():
-            # TODO: Verificar que el agente que dispara la llamada es el mismo de la autenticación
-            agente = form.get_agente()
             campana = form.get_campana()
             contacto_id = form.get_contacto_id()
             telefono = form.cleaned_data.get('phone')
