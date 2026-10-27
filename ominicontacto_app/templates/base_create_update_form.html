@@ -40,7 +40,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 {% endblock %}
 
 {% block extra_js %}
-{% if 'voicebot_trunk' in form.fields %}
+{% if 'voicebot_trunk' in form.fields or 'voicebot_transport' in form.fields %}
 <script src="{% static 'ominicontacto/JS/supervision/agentProfileFormVoicebot.js' %}"></script>
 {% endif %}
 {% endblock %}

@@ -494,6 +494,29 @@ class APITest(OMLBaseTest):
         self.assertEqual(CalificacionCliente.objects.count(), calificaciones_count + 1)
         self.assertEqual(Contacto.objects.count(), contactos_count + 1)
 
+    @patch(
+        'ominicontacto_app.services.redis.call_contact_cache'
+        '.CallContactCache.link_call_to_contact',
+        return_value=True,
+    )
+    def test_api_new_contact_disposition_asocia_callid_en_cache(
+            self, link_call_to_contact):
+        """Handoff AudioSocket: callid debe ligarse al contacto nuevo para la GUI."""
+        self.client.login(username=self.agente_profile.user.username, password=PASSWORD)
+        callid = '1792443886.212'
+        url = reverse('api_disposition_new_contact-list')
+        post_data = {
+            'phone': '1234567890',
+            'idExternalContact': 'audiosocket:{}'.format(callid),
+            'idDispositionOption': self.opcion_calificacion.pk,
+            'comments': 'resumen bot',
+            'callid': callid,
+        }
+        response = self.client.post(url, post_data)
+        self.assertEqual(response.status_code, 201)
+        calificacion = CalificacionCliente.objects.filter(callid=callid).latest('id')
+        link_call_to_contact.assert_called_once_with(callid, calificacion.contacto.id)
+
     def test_api_crea_nueva_calificacion_con_nuevo_contacto_con_valores_metadata(self):
         token_agente = Token.objects.get(user=self.agente_profile.user).key
         client = APIClient()

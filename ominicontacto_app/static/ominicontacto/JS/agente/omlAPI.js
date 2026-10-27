@@ -123,6 +123,31 @@ class OMLAPI {
         });
     }
 
+    asteriskReady(callback_ok, callback_error) {
+        var URL = Urls.api_agent_asterisk_ready();
+        $.ajax({
+            url: URL,
+            type: 'POST',
+            dataType: 'json',
+            success: function(data){
+                if (data['status'] == 'ERROR') {
+                    if (callback_error) {
+                        callback_error();
+                    }
+                }
+                else if (callback_ok) {
+                    callback_ok();
+                }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+                if (callback_error) {
+                    callback_error();
+                }
+                console.log(gettext('Error al ejecutar => ') + textStatus + ' - ' + errorThrown);
+            }
+        });
+    }
+
     marcarLlamada(descripcion, uuid_llamada) {
         var URL = Urls.grabacion_marcar();
         var post_data = {

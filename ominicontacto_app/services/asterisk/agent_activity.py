@@ -242,6 +242,17 @@ class AgentActivityAmiManager(object):
         redis_connection = self.get_redis_connection()
         try:
             redis_connection.hset(family, mapping=data)
+            # Al salir a READY/OFFLINE/PAUSE, limpiar metadatos de llamada residuales
+            # (CALLID/BRIDGE_ID/NODE_ID) que el ACD pudo dejar si hubo race.
+            status = data.get('STATUS') or ''
+            if status in ('READY', 'OFFLINE') or str(status).startswith('PAUSE'):
+                try:
+                    redis_connection.hdel(family, 'CALLID', 'BRIDGE_ID', 'NODE_ID')
+                except redis.exceptions.RedisError:
+                    logger.exception(
+                        'Error limpiando campos de llamada Redis agente=%s',
+                        agente_profile.id,
+                    )
         except redis.exceptions.RedisError:
             error = True
             return error
