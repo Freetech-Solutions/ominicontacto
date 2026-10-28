@@ -90,6 +90,7 @@ class CircuitoBusquedaGrabacionesTests(TransactionTestCase, OMLTestUtilsMixin):
         super(CircuitoBusquedaGrabacionesTests, self).setUp()
         Group.objects.get_or_create(name=User.SUPERVISOR)
         Group.objects.get_or_create(name=User.AGENTE)
+        self.mockear_permisos_oml()
         self.supervisor = self.crear_supervisor_profile(rol=User.SUPERVISOR)
         self.otro_supervisor = self.crear_supervisor_profile(rol=User.SUPERVISOR)
         self.campana = CampanaFactory(estado=Campana.ESTADO_ACTIVA)

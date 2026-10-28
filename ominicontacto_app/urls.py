@@ -993,7 +993,8 @@ urlpatterns += [
         name='signed_whatsapp_media',
     ),
 ]
-urlpatterns += [re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}), ]
+urlpatterns += [re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT},
+                        name='media_serve'), ]
 
 if settings.DEBUG:
     #     # static files (images, css, javascript, etc.)

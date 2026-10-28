@@ -28,6 +28,7 @@ from mock import patch
 
 from django.urls import reverse
 from django.conf import settings
+from django.contrib.auth.models import Group
 from django.db import connections
 from django.forms import ValidationError
 from django.utils import timezone
@@ -36,7 +37,7 @@ from django.utils.translation import gettext as _
 from configuracion_telefonia_app.models import DestinoEntrante, OpcionDestino, MusicaDeEspera
 
 from ominicontacto_app.models import (AgenteEnContacto, Campana, QueueMember, OpcionCalificacion,
-                                      ParametrosCrm)
+                                      ParametrosCrm, User)
 from ominicontacto_app.forms.base import (CampanaPreviewForm, TIEMPO_MINIMO_DESCONEXION,
                                           CampanaDialerForm, CampanaEntranteForm, CampanaMixinForm)
 from ominicontacto_app.tests.factories import (CampanaFactory, ContactoFactory, UserFactory,
@@ -105,6 +106,7 @@ class CampanasThreadsTests(OMLTransaccionBaseTest):
     PWD = u'admin123'
 
     def setUp(self):
+        self.mockear_permisos_oml()
         self.usuario_admin_supervisor = UserFactory(is_staff=True, is_supervisor=True)
         self.usuario_admin_supervisor.set_password(self.PWD)
         self.usuario_admin_supervisor.save()
@@ -677,6 +679,7 @@ class SupervisorCampanaTests(CampanasTests):
         user = UserFactory(is_agente=True)
         user.set_password(self.PWD)
         user.save()
+        user.groups.add(Group.objects.get(name=User.AGENTE))
         agente = AgenteProfileFactory.create(user=user)
         QueueMemberFactory.create(member=agente, queue_name=self.queue)
         agente_en_contacto = AgenteEnContactoFactory.create(

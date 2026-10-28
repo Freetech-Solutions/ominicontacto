@@ -16,8 +16,8 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-from utiles_globales import request_url_name
 from django.core.exceptions import PermissionDenied
+from django.urls import resolve
 
 
 class PermisoOMLMiddleware:
@@ -40,6 +40,6 @@ class PermisoOMLMiddleware:
     def verificar_permiso(self, request):
         # Si el agente no esta loggeado dejo que se encargue login_required
         if request.user.is_authenticated:
-            url_name = request_url_name(request)
-            if not request.user.tiene_permiso_oml(url_name):
+            resolver_match = resolve(request.path_info)
+            if not request.user.tiene_permiso_oml_en_url(resolver_match):
                 raise PermissionDenied

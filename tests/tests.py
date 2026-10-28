@@ -18,6 +18,7 @@
 
 from django.test.runner import DiscoverRunner
 from django.conf import settings
+from django.core.management import call_command
 
 
 class ManagedModelTestRunner(DiscoverRunner):
@@ -29,3 +30,10 @@ class ManagedModelTestRunner(DiscoverRunner):
     def __init__(self, *args, **kwargs):
         settings.OML_TESTING_MODE = True
         super(ManagedModelTestRunner, self).__init__(*args, **kwargs)
+
+    def setup_databases(self, **kwargs):
+        old_config = super(ManagedModelTestRunner, self).setup_databases(**kwargs)
+        # La política de permisos es Deny-by-Default: sin PermisoOML registrados toda vista
+        # quedaría denegada, por eso se cargan una sola vez para toda la corrida.
+        call_command('actualizar_permisos', verbosity=0)
+        return old_config

@@ -18,12 +18,13 @@
 
 import json
 
+from django.contrib.auth.models import Group
 from django.test import TestCase
 from django.utils.timezone import now, timedelta
 from django.urls import reverse
 
 from ominicontacto_app.utiles import datetime_hora_minima_dia, fecha_hora_local
-from ominicontacto_app.models import Campana
+from ominicontacto_app.models import Campana, User
 from ominicontacto_app.tests.factories import SupervisorProfileFactory, AgenteProfileFactory, \
     CampanaFactory, ContactoFactory, UserFactory
 
@@ -612,6 +613,7 @@ class AccesoReportesTests(TestCase):
         self.usuario_admin_supervisor = UserFactory(is_staff=True, is_supervisor=True)
         self.usuario_admin_supervisor.set_password(self.PWD)
         self.usuario_admin_supervisor.save()
+        self.usuario_admin_supervisor.groups.add(Group.objects.get(name=User.SUPERVISOR))
         self.client.login(username=self.usuario_admin_supervisor.username, password=self.PWD)
 
         hasta = now()

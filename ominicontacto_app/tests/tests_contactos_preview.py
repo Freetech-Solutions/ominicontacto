@@ -59,6 +59,11 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
         connections['replica'].cursor = connections['replica']._orig_cursor
         super(OMLBaseTest, self).tearDown()
 
+    def _loguear_supervisor(self):
+        # Liberar/reservar, exportar e importar contactos son acciones de supervisión
+        self.campana_preview.supervisors.add(self.supervisor.user)
+        self.client.login(username=self.supervisor.user.username, password=PASSWORD)
+
     def test_valida_contacto_no_asignado_devuelve_false(self):
         # Contacto 1 no esta reservado
         url = reverse('validar_contacto_asignado')
@@ -182,6 +187,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
 
     # Unitests para Vista de contactos asignados
     def test_reservar_contacto_estado_asignado_entregado(self):
+        self._loguear_supervisor()
         AgenteEnContacto.objects.filter(contacto_id=self.contacto_1.id).update(
             agente_id=self.agente_1.id, estado=AgenteEnContacto.ESTADO_ASIGNADO)
         contactos = []
@@ -197,6 +203,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
             estado=AgenteEnContacto.ESTADO_ASIGNADO).exists())
 
     def test_reservar_contacto_estado_inicial_liberado(self):
+        self._loguear_supervisor()
         AgenteEnContacto.objects.filter(contacto_id=self.contacto_1.id).update(
             agente_id=-1, estado=AgenteEnContacto.ESTADO_INICIAL)
         contactos = []
@@ -212,6 +219,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
             estado=AgenteEnContacto.ESTADO_INICIAL).exists())
 
     def test_reservar_contacto_estado_finalizado(self):
+        self._loguear_supervisor()
         AgenteEnContacto.objects.filter(contacto_id=self.contacto_1.id).update(
             agente_id=self.agente_1.id, estado=AgenteEnContacto.ESTADO_FINALIZADO)
         contactos = []
@@ -227,6 +235,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
             estado=AgenteEnContacto.ESTADO_FINALIZADO).exists())
 
     def test_reservar_contacto_de_otro_agente(self):
+        self._loguear_supervisor()
         AgenteEnContacto.objects.filter(contacto_id=self.contacto_1.id).update(
             agente_id=self.agente_2.id, estado=AgenteEnContacto.ESTADO_ASIGNADO)
         contactos = []
@@ -242,6 +251,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
             estado=AgenteEnContacto.ESTADO_INICIAL).exists())
 
     def test_liberar_contacto_estado_asignado_entregado(self):
+        self._loguear_supervisor()
         AgenteEnContacto.objects.filter(contacto_id=self.contacto_1.id).update(
             agente_id=self.agente_1.id, estado=AgenteEnContacto.ESTADO_ASIGNADO)
         contactos = []
@@ -257,6 +267,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
             estado=AgenteEnContacto.ESTADO_INICIAL).exists())
 
     def test_liberar_contacto_estado_inicial(self):
+        self._loguear_supervisor()
         AgenteEnContacto.objects.filter(contacto_id=self.contacto_1.id).update(
             agente_id=self.agente_1.id, estado=AgenteEnContacto.ESTADO_INICIAL)
         contactos = []
@@ -272,6 +283,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
             estado=AgenteEnContacto.ESTADO_INICIAL).exists())
 
     def test_liberar_contacto_estado_finalizado(self):
+        self._loguear_supervisor()
         AgenteEnContacto.objects.filter(contacto_id=self.contacto_1.id).update(
             agente_id=self.agente_1.id, estado=AgenteEnContacto.ESTADO_FINALIZADO)
         contactos = []
@@ -429,6 +441,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
         self.assertEqual(agente_en_contacto.telefono_contacto, str(telefono_viejo))
 
     def test_exportar_contactos_campana_preview_ok(self):
+        self._loguear_supervisor()
         url = reverse('descargar_datos_contactos_preview', args=[self.campana_preview.pk, ])
         response = self.client.post(url, {})
         content = response.content.decode()
@@ -436,6 +449,7 @@ class AsignacionDeContactosPreviewTests(OMLBaseTest):
         self.assertEqual(content.find(self.contacto_2.telefono) >= 0, True)
 
     def test_importar_contactos_campana_preview_ok(self):
+        self._loguear_supervisor()
         ag_en_cont_id_1, ag_en_cont_id_2 = AgenteEnContacto.objects.values_list('pk', flat=True)
         url = reverse('actualizar_contactos_preview', args=[self.campana_preview.pk, ])
         csv_content = (f'id,{str(_("_telefono"))},{str(_("_nombre"))},{str(_("_apellido"))}\r\n'

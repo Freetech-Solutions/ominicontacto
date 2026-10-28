@@ -28,6 +28,7 @@ test:
     - bash check-js.sh
     - pip install -r requirements/requirements.txt
     - flake8
+    - python manage.py verificar_permisos_en_urls
     - python manage.py test --failfast
     - python manage.py compilemessages
   rules:

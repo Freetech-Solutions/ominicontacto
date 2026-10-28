@@ -60,14 +60,8 @@ class WhatsappAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'grupo-plantilla-whatsapp-detail',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
-            {'nombre': 'grupo-template-whatsapp-list',
-             'roles': ['Administrador', 'Gerente', 'Supervisor']},
-            {'nombre': 'grupo-template-whatsapp-detail',
-             'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'configuracion-whatsapp-campana-list',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
-            {'nombre': 'configuracion-whatsapp-campana-templates',
-             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Agente']},
             {'nombre': 'configuracion-whatsapp-campana-detail',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'whatsapp_reports',
@@ -86,17 +80,21 @@ class WhatsappAppConfig(AppConfig):
              'roles': ['Agente']},
             {'nombre': 'conversacion-reactive-expired-conversation',
              'roles': ['Agente']},
-            {'nombre': 'conversacion-send-menssage-attachment',
+            {'nombre': 'conversacion-send-message-attachment',
              'roles': ['Agente']},
-            {'nombre': 'conversacion-send-menssage-text',
+            {'nombre': 'conversacion-send-message-text',
              'roles': ['Agente']},
             {'nombre': 'conversacion-send-message-template',
              'roles': ['Agente']},
             {'nombre': 'conversacion-send-message-whatsapp-template',
              'roles': ['Agente']},
-            {'nombre': 'transfer-agents',
+            {'nombre': 'whatsapp:transfer-agents',
              'roles': ['Agente']},
-            {'nombre': 'transfer-to-agent',
+            {'nombre': 'whatsapp:transfer-to-agent',
+             'roles': ['Agente']},
+            {'nombre': 'whatsapp:transfer-campaigns',
+             'roles': ['Agente']},
+            {'nombre': 'whatsapp:transfer-to-campaign',
              'roles': ['Agente']},
             {'nombre': 'conversacion-assign-contact',
              'roles': ['Agente']},
@@ -120,9 +118,21 @@ class WhatsappAppConfig(AppConfig):
              'roles': ['Agente']},
             {'nombre': 'template-list',
              'roles': ['Agente']},
+            {'nombre': 'conversacion-mark-as-read',
+             'roles': ['Agente']},
+            {'nombre': 'conversacion-send-initing-conversation',
+             'roles': ['Agente']},
+            {'nombre': 'template-whatsapp-detail',
+             'roles': ['Administrador', 'Gerente', 'Agente', 'Supervisor']},
         ]
 
     informacion_de_permisos = {
+        'conversacion-mark-as-read':
+            {'descripcion': _('conversacion-mark-as-read'), 'version': '2.6.6'},
+        'conversacion-send-initing-conversation':
+            {'descripcion': _('conversacion-send-initing-conversation'), 'version': '2.6.6'},
+        'template-whatsapp-detail':
+            {'descripcion': _('template-whatsapp-detail'), 'version': '2.6.6'},
         'whatsapp_providers_configuration':
             {'descripcion': _('whatsapp_providers_configuration'),
              'version': '1.26.0'},
@@ -174,17 +184,8 @@ class WhatsappAppConfig(AppConfig):
         'grupo-plantilla-whatsapp-detail':
             {'descripcion': _('grupo-plantilla-whatsapp-detail'),
              'version': '1.26.0'},
-        'grupo-template-whatsapp-list':
-            {'descripcion': _('grupo-template-whatsapp-list'),
-             'version': '1.26.0'},
-        'grupo-template-whatsapp-detail':
-            {'descripcion': _('grupo-template-whatsapp-detail'),
-             'version': '1.26.0'},
         'configuracion-whatsapp-campana-list':
             {'descripcion': _('configuracion-whatsapp-campana-list'),
-             'version': '1.26.0'},
-        'configuracion-whatsapp-campana-templates':
-            {'descripcion': _('configuracion-whatsapp-campana-templates'),
              'version': '1.26.0'},
         'configuracion-whatsapp-campana-detail':
             {'descripcion': _('configuracion-whatsapp-campana-detai'),
@@ -210,11 +211,11 @@ class WhatsappAppConfig(AppConfig):
         'conversacion-reactive-expired-conversation':
             {'descripcion': _('conversacion-reactive-expired-conversation'),
              'version': '1.26.0'},
-        'conversacion-send-menssage-attachment':
-            {'descripcion': _('conversacion-send-menssage-attachment'),
+        'conversacion-send-message-attachment':
+            {'descripcion': _('conversacion-send-message-attachment'),
              'version': '1.26.0'},
-        'conversacion-send-menssage-text':
-            {'descripcion': _('conversacion-send-menssage-text'),
+        'conversacion-send-message-text':
+            {'descripcion': _('conversacion-send-message-text'),
              'version': '1.26.0'},
         'conversacion-send-message-template':
             {'descripcion': _('conversacion-send-message-template'),
@@ -222,12 +223,18 @@ class WhatsappAppConfig(AppConfig):
         'conversacion-send-message-whatsapp-template':
             {'descripcion': _('conversacion-send-message-whatsapp-template'),
              'version': '1.26.0'},
-        'transfer-to-agent':
-            {'descripcion': _('transfer-to-agent'),
-             'version': '1.26.0'},
-        'transfer-agents':
-            {'descripcion': _('transfer-agents'),
-             'version': '1.26.0'},
+        'whatsapp:transfer-to-agent':
+            {'descripcion': _('Transfiere una conversación WhatsApp a un agente'),
+             'version': '2.6.6'},
+        'whatsapp:transfer-agents':
+            {'descripcion': _('Agentes a los que transferir una conversación WhatsApp'),
+             'version': '2.6.6'},
+        'whatsapp:transfer-to-campaign':
+            {'descripcion': _('Transfiere una conversación WhatsApp a una campaña'),
+             'version': '2.6.6'},
+        'whatsapp:transfer-campaigns':
+            {'descripcion': _('Campañas a las que transferir una conversación WhatsApp'),
+             'version': '2.6.6'},
         'conversacion-assign-contact':
             {'descripcion': _('conversacion-assign-contact'),
              'version': '1.26.0'},

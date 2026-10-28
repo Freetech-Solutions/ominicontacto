@@ -47,7 +47,7 @@ from configuracion_telefonia_app.models import AudiosAsteriskConf, DestinoEntran
 from ominicontacto_app.tests.factories import (NombreCalificacionFactory, GrupoFactory,
                                                QueueMemberFactory)
 from ominicontacto_app.services.audio_conversor import ConversorDeAudioService
-from mock import Mock
+from mock import Mock, patch
 
 
 PASSWORD = 'admin123'
@@ -72,6 +72,24 @@ def _tmpdir():
 class OMLTestUtilsMixin(object):
 
     DEFAULT_PASSWORD = PASSWORD
+
+    def cargar_permisos_oml(self):
+        """ Los TransactionTestCase vacían la base al terminar cada test, por lo que hay que
+            volver a crear los roles y sus PermisoOML (la política es Deny-by-Default) """
+        if Group.objects.filter(name=User.AGENTE, permissions__isnull=False).exists():
+            return
+        for rol in (User.ADMINISTRADOR, User.GERENTE, User.SUPERVISOR, User.REFERENTE,
+                    User.AGENTE, User.CLIENTE_WEBPHONE):
+            Group.objects.get_or_create(name=rol)
+        call_command('actualizar_permisos', verbosity=0)
+
+    def mockear_permisos_oml(self):
+        """ Para TransactionTestCase que pasan por vistas pero no testean permisos: evita
+            recargar los PermisoOML después de cada test, permitiendo el acceso a toda URL """
+        for metodo in ('tiene_permiso_oml', 'tiene_permiso_oml_en_url'):
+            patcher = patch.object(User, metodo, return_value=True)
+            patcher.start()
+            self.addCleanup(patcher.stop)
 
     def get_test_resource(self, resource):
         """Devuelve el path completo a archivo del directorio test
