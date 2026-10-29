@@ -21,8 +21,9 @@ Tests relacionados con la lista de contactos de los Agentes
 """
 from __future__ import unicode_literals
 
-from django.utils.timezone import now, timedelta
+from django.utils.timezone import now, localtime, timedelta
 
+from ominicontacto_app.utiles import datetime_hora_minima_dia
 from ominicontacto_app.tests.utiles import OMLBaseTest
 from ominicontacto_app.tests.factories import (CampanaFactory, UserFactory,
                                                ActividadAgenteLogFactory, PausaFactory)
@@ -45,6 +46,11 @@ class DashboardAgenteTests(OMLBaseTest):
         self.campana_activa = CampanaFactory.create(
             estado=Campana.ESTADO_ACTIVA, type=Campana.TYPE_PREVIEW)
         self.generador = GeneradorDeLlamadaLogs()
+
+    def _inicio_del_dia(self):
+        # El reporte solo abarca el día actual: anclar los logs al inicio del día evita que
+        # caigan en el día siguiente si el test corre cerca de la medianoche.
+        return datetime_hora_minima_dia(localtime(now()).date()) + timedelta(minutes=1)
 
     def test_se_muestran_estadisticas_del_dia_actual(self):
         ayer = now() - timedelta(days=1)
@@ -82,7 +88,7 @@ class DashboardAgenteTests(OMLBaseTest):
 
     def test_se_muestra_el_tiempo_de_sesion_correctamente(self):
         horas_sesion = 1
-        tiempo_inicial = now()
+        tiempo_inicial = self._inicio_del_dia()
         ActividadAgenteLogFactory.create(
             event='UNPAUSEALL', agente_id=self.agente_profile.id, time=tiempo_inicial)
         tiempo_removemember_1 = tiempo_inicial + timedelta(microseconds=20000)
@@ -102,7 +108,7 @@ class DashboardAgenteTests(OMLBaseTest):
 
     def test_se_muestran_los_tiempos_de_pausa_correctamente(self):
         horas_sesion = 1
-        tiempo_inicial = now()
+        tiempo_inicial = self._inicio_del_dia()
         pausa1 = PausaFactory(tipo=Pausa.TIPO_PRODUCTIVA)
         pausa2 = PausaFactory(tipo=Pausa.TIPO_RECREATIVA)
         ActividadAgenteLogFactory.create(

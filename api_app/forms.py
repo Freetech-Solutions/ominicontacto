@@ -22,17 +22,24 @@ from django.utils.translation import gettext_lazy as _
 from django import forms
 from django.forms.models import ModelChoiceField
 
-from ominicontacto_app.models import Campana, AgenteProfile, Contacto, AgenteEnSistemaExterno
+from ominicontacto_app.models import Campana, Contacto, AgenteEnSistemaExterno
 
 
 class Click2CallParametersBaseForm(forms.Form):
     phone = forms.CharField(max_length=128)
 
+    def __init__(self, agente, *args, **kwargs):
+        super(Click2CallParametersBaseForm, self).__init__(*args, **kwargs)
+        self.agente = agente
+
+    def clean_idCampaign(self):
+        campana = self.cleaned_data.get('idCampaign', None)
+        if campana and not campana.queue_campana.members.filter(id=self.agente.id).exists():
+            raise forms.ValidationError(_('El agente no participa en la campaña.'))
+        return campana
+
     def get_campana(self):
         return self.cleaned_data.get('idCampaign')
-
-    def get_agente(self):
-        raise NotImplementedError()
 
     def get_contacto_id(self):
         raise NotImplementedError()
@@ -40,16 +47,7 @@ class Click2CallParametersBaseForm(forms.Form):
 
 class Click2CallOMLParametersForm(Click2CallParametersBaseForm):
     idCampaign = ModelChoiceField(queryset=Campana.objects.obtener_activas())
-    idAgent = ModelChoiceField(queryset=AgenteProfile.objects.filter(is_inactive=False))
     idContact = ModelChoiceField(queryset=Contacto.objects.all(), required=False)
-
-    def clean_idAgent(self):
-        agente = self.cleaned_data.get('idAgent', None)
-        campana = self.cleaned_data.get('idCampaign', None)
-        if agente and campana:
-            if campana.queue_campana.members.filter(id=agente.id).exists():
-                return agente
-            raise forms.ValidationError(_('El agente no participa en la campaña.'))
 
     def clean_idContact(self):
         campana = self.cleaned_data.get('idCampaign', None)
@@ -59,9 +57,6 @@ class Click2CallOMLParametersForm(Click2CallParametersBaseForm):
                 self._contacto = contacto
                 return contacto
             raise forms.ValidationError(_('El contacto no corresponde a la campaña.'))
-
-    def get_agente(self):
-        return self.cleaned_data.get('idAgent')
 
     def get_contacto_id(self):
         contacto = self.cleaned_data.get('idContact', '')
@@ -73,30 +68,21 @@ class Click2CallOMLParametersForm(Click2CallParametersBaseForm):
 class Click2CallExternalSiteParametersForm(Click2CallParametersBaseForm):
     idCampaign = ModelChoiceField(queryset=Campana.objects.obtener_activas(),
                                   to_field_name='id_externo')
-    # No pueden ser ModelChoiceFields.
-    idAgent = forms.CharField(max_length=128)
+    # No puede ser ModelChoiceField.
     idContact = forms.CharField(max_length=128, required=False)
 
-    def __init__(self, sistema_externo, *args, **kwargs):
-        super(Click2CallExternalSiteParametersForm, self).__init__(*args, **kwargs)
+    def __init__(self, agente, sistema_externo, *args, **kwargs):
+        super(Click2CallExternalSiteParametersForm, self).__init__(agente, *args, **kwargs)
         self.sistema_externo = sistema_externo
         self.fields['idCampaign'].queryset = Campana.objects.filter(sistema_externo=sistema_externo)
         self._contacto = None
 
-    def clean_idAgent(self):
-        idAgent = self.cleaned_data.get('idAgent', None)
-        campana = self.cleaned_data.get('idCampaign', None)
-        if idAgent and campana:
-            try:
-                agente_en_sistema = AgenteEnSistemaExterno.objects.get(
-                    sistema_externo=self.sistema_externo,
-                    id_externo_agente=idAgent)
-                if campana.queue_campana.members.filter(id=agente_en_sistema.agente.id).exists():
-                    self._agente = agente_en_sistema.agente
-                    return idAgent
-                raise forms.ValidationError(_('El agente no participa en la campaña.'))
-            except AgenteEnSistemaExterno.DoesNotExist:
-                raise forms.ValidationError(_('El agente no corresponde al sistema externo.'))
+    def clean(self):
+        cleaned_data = super(Click2CallExternalSiteParametersForm, self).clean()
+        if not AgenteEnSistemaExterno.objects.filter(
+                sistema_externo=self.sistema_externo, agente=self.agente).exists():
+            raise forms.ValidationError(_('El agente no corresponde al sistema externo.'))
+        return cleaned_data
 
     def clean_idContact(self):
         campana = self.cleaned_data.get('idCampaign', None)
@@ -108,9 +94,6 @@ class Click2CallExternalSiteParametersForm(Click2CallParametersBaseForm):
                 return contacto
             except Contacto.DoesNotExist:
                 self._contacto = None
-
-    def get_agente(self):
-        return self._agente
 
     def get_contacto_id(self):
         if self._contacto is None:
