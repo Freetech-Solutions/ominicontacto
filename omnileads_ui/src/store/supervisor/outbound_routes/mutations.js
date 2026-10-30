@@ -35,14 +35,16 @@ export default {
                 id: null,
                 prepend: null,
                 prefix: null,
-                match_pattern: null
+                match_pattern: null,
+                caller_id: null
             };
         } else {
             state.dialPattern = {
                 id: dialPattern.id,
                 prepend: dialPattern.prepend,
                 prefix: dialPattern.prefix,
-                match_pattern: dialPattern.match_pattern
+                match_pattern: dialPattern.match_pattern,
+                caller_id: dialPattern.caller_id
             };
         }
     },
@@ -98,6 +100,7 @@ export default {
                     pd.prepend = dialPattern.prepend;
                     pd.prefix = dialPattern.prefix;
                     pd.match_pattern = dialPattern.match_pattern;
+                    pd.caller_id = dialPattern.caller_id;
                 }
             });
         } else {
@@ -106,6 +109,7 @@ export default {
                     pd.prepend = dialPattern.prepend;
                     pd.prefix = dialPattern.prefix;
                     pd.match_pattern = dialPattern.match_pattern;
+                    pd.caller_id = dialPattern.caller_id;
                 }
             });
         }

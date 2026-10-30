@@ -114,7 +114,11 @@ export default {
         }
     },
     dial_pattern: {
-        enter_pattern: 'الگو را وارد کنید'
+        enter_pattern: 'الگو را وارد کنید',
+        enter_caller_id: 'شناسه تماس گیرنده را وارد کنید',
+        validations: {
+            invalid_caller_id: 'شناسه تماس گیرنده فقط می تواند شامل حروف، اعداد و زیرخط باشد'
+        }
     },
     group_of_hour: {
         enter_name: 'نام را وارد کنید',

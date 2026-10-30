@@ -99,6 +99,7 @@ export default {
         order: 'سفارش'
     },
     dial_pattern: {
+        caller_id: 'شناسه تماس گیرنده',
         id: 'برو',
         prepend: 'آماده کردن',
         prefix: 'پیشوند',

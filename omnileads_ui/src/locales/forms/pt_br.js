@@ -115,7 +115,11 @@ export default {
         }
     },
     dial_pattern: {
-        enter_pattern: 'Digite o padrão'
+        enter_pattern: 'Digite o padrão',
+        enter_caller_id: 'Digite o caller ID',
+        validations: {
+            invalid_caller_id: 'O caller ID só pode conter letras, números e sublinhados'
+        }
     },
     group_of_hour: {
         enter_name: 'Digite o nome',

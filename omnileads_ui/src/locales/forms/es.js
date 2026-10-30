@@ -126,7 +126,11 @@ export default {
         }
     },
     dial_pattern: {
-        enter_pattern: 'Ingresa el patron'
+        enter_pattern: 'Ingresa el patron',
+        enter_caller_id: 'Ingresa el caller ID',
+        validations: {
+            invalid_caller_id: 'El caller ID solo puede contener letras, números y guiones bajos'
+        }
     },
     group_of_hour: {
         enter_name: 'Ingresa el nombre',

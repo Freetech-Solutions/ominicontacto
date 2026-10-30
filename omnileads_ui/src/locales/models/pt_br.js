@@ -99,6 +99,7 @@ export default {
         order: 'Ordem'
     },
     dial_pattern: {
+        caller_id: 'Caller ID',
         id: 'ID',
         prepend: 'Anexar',
         prefix: 'Prefixo',

@@ -125,7 +125,11 @@ export default {
         }
     },
     dial_pattern: {
-        enter_pattern: 'Enter the pattern'
+        enter_pattern: 'Enter the pattern',
+        enter_caller_id: 'Enter the caller ID',
+        validations: {
+            invalid_caller_id: 'Caller ID can only contain letters, numbers and underscores'
+        }
     },
     group_of_hour: {
         enter_name: 'Enter the name',

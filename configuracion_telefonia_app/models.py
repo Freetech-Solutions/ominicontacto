@@ -113,6 +113,9 @@ class PatronDeDiscado(models.Model):
     match_pattern = models.CharField(
         max_length=100, validators=[RegexValidator(R_MATCH_PATTERN_DISCADO)])
     orden = models.PositiveIntegerField()
+    caller_id = models.CharField(
+        max_length=100, validators=[RegexValidator(R_ALFANUMERICO)], blank=True, null=True,
+        verbose_name=_('Caller id'))
 
     class Meta:
         unique_together = ('orden', 'ruta_saliente')

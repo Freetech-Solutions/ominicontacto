@@ -12,7 +12,8 @@ export default {
         id: null,
         prepend: null,
         prefix: null,
-        match_pattern: null
+        match_pattern: null,
+        caller_id: null
     },
     trunk: {
         id: null,
