@@ -212,7 +212,8 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
             wait=120,
             summarize_percentage=summarize_percentage,
             transcription_percentage=transcription_percentage,
-            auto_grabacion=auto_grabacion)
+            auto_grabacion=auto_grabacion,
+            musiconhold=campana_form.cleaned_data['musiconhold'])
         opciones_calificacion_formset.instance = campana
         opciones_calificacion_formset.save()
         if interaccion_crm:
@@ -270,6 +271,7 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
         initial = super(CampanaManualUpdateView, self).get_form_initial(step)
         campana = self.get_form_instance(step)
         if step == self.INICIAL:
+            initial['musiconhold'] = campana.queue_campana.musiconhold_id
             initial['auto_grabacion'] = campana.queue_campana.auto_grabacion
             initial['summarize_percentage'] = campana.queue_campana.summarize_percentage
             initial['transcription_percentage'] = campana.queue_campana.transcription_percentage
@@ -283,6 +285,7 @@ class CampanaManualUpdateView(CampanaManualMixin, SessionWizardView):
         transcription_percentage = campana_form.cleaned_data['transcription_percentage']
         campana = campana_form.instance
         queue = campana.queue_campana
+        queue.musiconhold = campana_form.cleaned_data['musiconhold']
         queue.auto_grabacion = auto_grabacion
         queue.summarize_percentage = summarize_percentage
         queue.transcription_percentage = transcription_percentage
@@ -390,6 +393,7 @@ class CampanaManualTemplateCreateCampanaView(
             pk = self.kwargs.get('pk_campana_template', None)
             campana_template = get_object_or_404(Campana, pk=pk)
             qc = campana_template.queue_campana
+            initial['musiconhold'] = qc.musiconhold_id
             initial['auto_grabacion'] = qc.auto_grabacion
             initial['summarize_percentage'] = qc.summarize_percentage
             initial['transcription_percentage'] = qc.transcription_percentage

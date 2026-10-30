@@ -227,6 +227,7 @@ class CampanaPreviewTemplateCreateCampanaView(
             pk = self.kwargs.get('pk_campana_template', None)
             campana_template = get_object_or_404(Campana, pk=pk)
             qc = campana_template.queue_campana
+            initial['musiconhold'] = qc.musiconhold_id
             initial['auto_grabacion'] = qc.auto_grabacion
             initial['tiempo_desconexion'] = campana_template.tiempo_desconexion
             initial['summarize_percentage'] = qc.summarize_percentage
