@@ -69,6 +69,10 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
             <tr>
                 <td>{% trans 'Porcentaje a transcribir' %}:</td>
                 <td>{{ object.queue_campana.transcription_percentage }}</td>
+            </tr>
+            <tr>
+                <td>{% trans 'Musica de espera:' %}</td>
+                <td>{{ object.queue_campana.musiconhold|default:'---------' }}</td>
             </tr>            
             <tr>
                 <td>{% trans 'Grabar llamados' %}:</td>

@@ -2180,6 +2180,10 @@ class CampanaSupervisorUpdateForm(forms.ModelForm):
 
 
 class CampanaManualForm(CampanaMixinForm, forms.ModelForm):
+    musiconhold = forms.ModelChoiceField(
+        queryset=Playlist.objects.none(), required=False,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label=_('Musica de espera:'))
     auto_grabacion = forms.BooleanField(required=False, initial=True)
     detectar_contestadores = forms.BooleanField(required=False)
     summarize_percentage = forms.IntegerField(
@@ -2204,6 +2208,8 @@ class CampanaManualForm(CampanaMixinForm, forms.ModelForm):
         super(CampanaManualForm, self).__init__(*args, **kwargs)
         instance = getattr(self, 'instance', None)
         self.fields['outr'].queryset = RutaSaliente.objects.all()
+        self.fields['musiconhold'].queryset = Playlist.objects.annotate(
+            Count('musicas')).filter(musicas__count__gte=1)
         if instance.pk is None:
             self.fields['bd_contacto'].required = False
         else:
@@ -2216,6 +2222,7 @@ class CampanaManualForm(CampanaMixinForm, forms.ModelForm):
             except Queue.DoesNotExist:
                 queue = None
             if queue:
+                self.initial.setdefault('musiconhold', queue.musiconhold_id)
                 self.initial.setdefault('summarize_percentage', queue.summarize_percentage)
                 self.initial.setdefault('transcription_percentage', queue.transcription_percentage)
         else:
@@ -2249,6 +2256,10 @@ class CampanaManualForm(CampanaMixinForm, forms.ModelForm):
 
 
 class CampanaPreviewForm(CampanaMixinForm, forms.ModelForm):
+    musiconhold = forms.ModelChoiceField(
+        queryset=Playlist.objects.none(), required=False,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label=_('Musica de espera:'))
     auto_grabacion = forms.BooleanField(required=False, initial=True)
     summarize_percentage = forms.IntegerField(
         min_value=0,
@@ -2270,6 +2281,8 @@ class CampanaPreviewForm(CampanaMixinForm, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super(CampanaPreviewForm, self).__init__(*args, **kwargs)
         self.fields['outr'].queryset = RutaSaliente.objects.all()
+        self.fields['musiconhold'].queryset = Playlist.objects.annotate(
+            Count('musicas')).filter(musicas__count__gte=1)
         instance = getattr(self, 'instance', None)
         self.fields['permitir_calificar_telefonos'].initial = True
         if instance and instance.pk and not self.initial.get('es_template', False):
@@ -2282,6 +2295,7 @@ class CampanaPreviewForm(CampanaMixinForm, forms.ModelForm):
             except Queue.DoesNotExist:
                 queue = None
             if queue:
+                self.initial.setdefault('musiconhold', queue.musiconhold_id)
                 self.initial.setdefault('summarize_percentage', queue.summarize_percentage)
                 self.initial.setdefault('transcription_percentage', queue.transcription_percentage)
         else:

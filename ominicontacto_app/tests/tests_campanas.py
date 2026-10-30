@@ -33,7 +33,7 @@ from django.forms import ValidationError
 from django.utils import timezone
 from django.utils.translation import gettext as _
 
-from configuracion_telefonia_app.models import DestinoEntrante, OpcionDestino
+from configuracion_telefonia_app.models import DestinoEntrante, OpcionDestino, MusicaDeEspera
 
 from ominicontacto_app.models import (AgenteEnContacto, Campana, QueueMember, OpcionCalificacion,
                                       ParametrosCrm)
@@ -57,7 +57,9 @@ from ominicontacto_app.utiles import (
 from ominicontacto_app.services.creacion_queue import ActivacionQueueService
 from ominicontacto_app.services.dialer.campana_wombat import CampanaService
 from ominicontacto_app.services.exportar_base_datos import SincronizarBaseDatosContactosService
-from configuracion_telefonia_app.tests.factories import DestinoEntranteFactory, IVRFactory
+from configuracion_telefonia_app.tests.factories import (
+    DestinoEntranteFactory, IVRFactory, PlaylistFactory
+)
 from whatsapp_app.tests.factories import LineaFactory, MenuInteractivoFactory
 from whatsapp_app.models import OpcionMenuInteractivoWhatsapp
 
@@ -505,6 +507,9 @@ class SupervisorCampanaTests(CampanasTests):
          post_step6_data, post_step7_data) =\
             self._obtener_post_data_wizard_creacion_campana_preview(nombre_campana)
         # realizamos la creación de la campaña mediante el wizard
+        playlist = PlaylistFactory()
+        MusicaDeEspera.objects.create(nombre='MusicaPrueba', playlist=playlist)
+        post_step0_data['0-musiconhold'] = playlist.pk
         self.client.post(url, post_step0_data, follow=True)
         self.client.post(url, post_step3_data, follow=True)
         # self.client.post(url, post_step2_data, follow=True)
@@ -521,6 +526,10 @@ class SupervisorCampanaTests(CampanasTests):
         penalties = {self.agente_profile.id: 3}
         self.assertEqual(penalties, args[2])
 
+        self.assertEqual(
+            Campana.objects.get(nombre=post_step0_data['0-nombre']).queue_campana.musiconhold,
+            playlist)
+
     @patch.object(ActivacionQueueService, "activar")
     def test_usuario_logueado_puede_modificar_campana_preview(
             self, activar):
@@ -534,6 +543,9 @@ class SupervisorCampanaTests(CampanasTests):
         self.assertNotEqual(Campana.objects.get(pk=self.campana_activa.pk).objetivo,
                             nuevo_objetivo)
         # realizamos la modificación de la campaña mediante el wizard
+        playlist = PlaylistFactory()
+        MusicaDeEspera.objects.create(nombre='MusicaPrueba', playlist=playlist)
+        post_step0_data['0-musiconhold'] = playlist.pk
         self.client.post(url, post_step0_data, follow=True)
         self.client.post(url, post_step3_data, follow=True)
         # self.client.post(url, post_step2_data, follow=True)
@@ -541,6 +553,10 @@ class SupervisorCampanaTests(CampanasTests):
         self.client.post(url, post_step6_data, follow=True)
         self.assertEqual(Campana.objects.get(pk=self.campana_activa.pk).objetivo, nuevo_objetivo)
         activar.assert_called_with(self.campana_activa)
+
+        self.assertEqual(
+            Campana.objects.get(nombre=post_step0_data['0-nombre']).queue_campana.musiconhold,
+            playlist)
 
     @patch.object(ActivacionQueueService, "sincronizar_por_eliminacion")
     def test_usuario_logueado_puede_eliminar_campana_preview(
@@ -1343,6 +1359,9 @@ class SupervisorCampanaTests(CampanasTests):
          post_step5_data, post_step6_data) =\
             self._obtener_post_data_wizard_creacion_campana_manual(nombre_campana)
         # realizamos la creación de la campaña mediante el wizard
+        playlist = PlaylistFactory()
+        MusicaDeEspera.objects.create(nombre='MusicaPrueba', playlist=playlist)
+        post_step0_data['0-musiconhold'] = playlist.pk
         self.client.post(url, post_step0_data, follow=True)
         self.client.post(url, post_step3_data, follow=True)
         self.client.post(url, post_step_cbdc_data, follow=True)
@@ -1353,6 +1372,10 @@ class SupervisorCampanaTests(CampanasTests):
         campana = Campana.objects.get(nombre=nombre_campana)
         self.assertTrue(campana.bd_contacto is not None)
         self.assertEqual(campana.bd_contacto.get_metadata().columna_id_externo, 3)
+
+        self.assertEqual(
+            Campana.objects.get(nombre=post_step0_data['0-nombre']).queue_campana.musiconhold,
+            playlist)
 
     @patch.object(ActivacionQueueService, "activar")
     @patch('ominicontacto_app.services.queue_member_service.QueueMemberService'
