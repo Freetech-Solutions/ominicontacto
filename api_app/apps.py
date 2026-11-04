@@ -325,6 +325,8 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente']},
             {'nombre': 'audios_asterisk_list',
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
+            {'nombre': 'api_ws_auth',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', 'Agente', ]},
         ]
 
     informacion_de_permisos = {
@@ -332,6 +334,8 @@ class ApiAppConfig(AppConfig):
             {'descripcion': _('Enviar mensajes a agentes desde supervisión'), 'version': '2.6.6'},
         'audios_asterisk_list':
             {'descripcion': _('Lista de idiomas de audios de Asterisk'), 'version': '2.6.6'},
+        'api_ws_auth':
+            {'descripcion': _('Autorizar conexión al servidor de websockets'), 'version': '2.6.6'},
         'api_agentes_activos_de_grupo':
             {'descripcion': _('Lista de agentes activos de un Grupo'), 'version': '1.7.0'},
         'api_campanas_de_supervisor':
