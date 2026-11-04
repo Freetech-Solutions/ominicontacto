@@ -413,6 +413,12 @@ class OminicontactoAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', ]},
             {'nombre': 'grabacion_agente_buscar',
              'roles': ['Agente', ]},
+            {'nombre': 'api_recording_search_task_result',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente', 'Agente']},
+            {'nombre': 'espera_llamada_multinum',
+             'roles': ['Agente']},
+            {'nombre': 'webui',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente']},
             {'nombre': 'buscar_auditorias_gestion',
              'roles': ['Administrador', 'Gerente', ]},
             {'nombre': 'auditar_calificacion_cliente',
@@ -809,6 +815,12 @@ class OminicontactoAppConfig(AppConfig):
              'version': '1.7.0'},
         'grabacion_agente_buscar':
             {'descripcion': _('Busqueda de grabaciones propias para Agentes'), 'version': '1.7.0'},
+        'api_recording_search_task_result':
+            {'descripcion': _('Resultado de la búsqueda de grabaciones'), 'version': '2.6.6'},
+        'espera_llamada_multinum':
+            {'descripcion': _('Espera de llamada multinúmero (Agente)'), 'version': '2.6.6'},
+        'webui':
+            {'descripcion': _('Interfaz web embebida (webui)'), 'version': '2.6.6'},
         'buscar_auditorias_gestion':
             {'descripcion': _('Acceder al listado de calificaciones a auditar'),
              'version': '1.7.0'},

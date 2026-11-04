@@ -43,6 +43,7 @@ class APITest(OMLBaseTest):
         super(APITest, self).setUp()
         self.campana = Campana.objects.first()
         usr_sup = self.crear_user_supervisor(username='sup1')
+        self.crear_supervisor_profile(user=usr_sup)
         self.client.login(username=usr_sup.username, password=PASSWORD)
         self.taskId = get_random_string(8)
         self.response_ok = {

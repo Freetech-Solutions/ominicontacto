@@ -58,7 +58,8 @@ from simple_history.utils import update_change_reason
 from ominicontacto_app.utiles import (
     ValidadorDeNombreDeCampoExtra, fecha_local, datetime_hora_maxima_dia,
     datetime_hora_minima_dia, reemplazar_no_alfanumericos_por_guion, dividir_lista)
-from ominicontacto_app.permisos import PermisoOML
+from ominicontacto_app.permisos import (
+    PermisoOML, PUBLIC_URL_NAMES, es_url_publica, nombres_de_permiso_de_url)
 PermisoOML
 
 logger = logging.getLogger(__name__)
@@ -178,11 +179,26 @@ class User(AbstractUser):
         return False
 
     def tiene_permiso_oml(self, nombre_permiso):
+        if nombre_permiso in PUBLIC_URL_NAMES:
+            return True
         if PermisoOML.objects.filter(codename=nombre_permiso).exists():
             full_name = 'permiso_oml.{0}'.format(nombre_permiso)
             return _user_has_perm(self, full_name, None)
-        # Si no existe el permiso la vista no esta restringida
-        return True
+        # Deny-by-Default: si no existe el permiso no se permite el acceso
+        return False
+
+    def tiene_permiso_oml_en_url(self, resolver_match, basename=None):
+        """ Deny-by-Default: la URL debe ser pública o tener al menos un PermisoOML registrado,
+            y el usuario debe tener todos los PermisoOML registrados para la URL """
+        if es_url_publica(resolver_match):
+            return True
+        nombres = nombres_de_permiso_de_url(resolver_match, basename)
+        registrados = list(
+            PermisoOML.objects.filter(codename__in=nombres).values_list('codename', flat=True))
+        if not registrados:
+            return False
+        return all(_user_has_perm(self, 'permiso_oml.{0}'.format(nombre), None)
+                   for nombre in registrados)
 
     def set_session_key(self, key):
         if self.last_session_key and not self.last_session_key == key:

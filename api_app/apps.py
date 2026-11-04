@@ -321,9 +321,17 @@ class ApiAppConfig(AppConfig):
              'roles': ['Administrador', 'Gerente', 'Supervisor']},
             {'nombre': 'api_notify_end_transferred_call',
              'roles': ['Agente', ]},
+            {'nombre': 'api_enviar_mensaje_agentes',
+             'roles': ['Administrador', 'Gerente', 'Supervisor', 'Referente']},
+            {'nombre': 'audios_asterisk_list',
+             'roles': ['Administrador', 'Gerente', 'Supervisor']},
         ]
 
     informacion_de_permisos = {
+        'api_enviar_mensaje_agentes':
+            {'descripcion': _('Enviar mensajes a agentes desde supervisión'), 'version': '2.6.6'},
+        'audios_asterisk_list':
+            {'descripcion': _('Lista de idiomas de audios de Asterisk'), 'version': '2.6.6'},
         'api_agentes_activos_de_grupo':
             {'descripcion': _('Lista de agentes activos de un Grupo'), 'version': '1.7.0'},
         'api_campanas_de_supervisor':

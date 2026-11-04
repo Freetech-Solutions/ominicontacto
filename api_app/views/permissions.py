@@ -17,8 +17,8 @@
 #
 
 from __future__ import unicode_literals
+from django.urls import resolve
 from rest_framework.permissions import IsAuthenticated
-from utiles_globales import request_url_name
 
 
 class TienePermisoOML(IsAuthenticated):
@@ -29,7 +29,6 @@ class TienePermisoOML(IsAuthenticated):
         if not has_permission:
             return has_permission
 
-        current_url_name = request_url_name(request)
-        if hasattr(view, 'basename') and view.basename:
-            current_url_name = view.basename
-        return request.user.tiene_permiso_oml(current_url_name)
+        resolver_match = resolve(request.path_info)
+        basename = getattr(view, 'basename', None) or None
+        return request.user.tiene_permiso_oml_en_url(resolver_match, basename)

@@ -142,6 +142,7 @@ class GrabacionesTests(BaseGrabacionesTests):
 
     def setUp(self):
         super(GrabacionesTests, self).setUp()
+        self.mockear_permisos_oml()
         self.client.login(username=self.supervisor1.user, password=self.DEFAULT_PASSWORD)
 
     def test_vista_creacion_grabaciones_marcadas(self):
@@ -405,6 +406,10 @@ def _filename_desde_log(llamada_log):
 class AutorizacionGrabacionesTests(BaseGrabacionesTests):
     """IDOR/BFLA: oráculo de firma, call_record, descripción y exportación."""
 
+    def setUp(self):
+        super(AutorizacionGrabacionesTests, self).setUp()
+        self.cargar_permisos_oml()
+
     def _filename_propia_agente1(self):
         return _filename_desde_log(self.llamada_log1)
 
@@ -538,7 +543,10 @@ class AutorizacionGrabacionesTests(BaseGrabacionesTests):
                 'calificacion': '',
             }]),
         }
-        response = self.client.post(url, payload)
+        # El rol Agente no tiene 'api_grabacion_descarga_masiva' (lo verifica
+        # test_agente_sin_permiso_oml_descarga_masiva). Acá se testea el control por objeto.
+        with patch.object(User, 'tiene_permiso_oml_en_url', return_value=True):
+            response = self.client.post(url, payload)
         self.assertEqual(response.status_code, 404)
 
     def test_agente_sin_permiso_oml_descarga_masiva(self):
@@ -565,7 +573,7 @@ class AutorizacionGrabacionesTests(BaseGrabacionesTests):
                 'calificacion': '',
             }]),
         }
-        with patch.object(User, 'tiene_permiso_oml', return_value=False):
+        with patch.object(User, 'tiene_permiso_oml_en_url', return_value=False):
             response = self.client.post(url, payload)
         self.assertEqual(response.status_code, 403)
 
