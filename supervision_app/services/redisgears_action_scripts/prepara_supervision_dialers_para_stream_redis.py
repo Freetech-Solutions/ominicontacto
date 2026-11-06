@@ -1,12 +1,10 @@
 
 def prepara_sup_entrantes_para_stream_redis(x):
     CAMPANAS_ID_LIST = '%s'.split(',')
-    CAMPANAS_LIST = '%s'.split(',')
     POSICION_ID_EN_CLAVE_REDIS = 15
     supervisor_id = x['key'][POSICION_ID_EN_CLAVE_REDIS:]
     stream = f'supervisor_{supervisor_id}_%s'
     for i in range(0, len(CAMPANAS_ID_LIST)):
-        camp_nombre = CAMPANAS_LIST[i]  # noqa: F841
         camp_id = CAMPANAS_ID_LIST[i]
         sup_camp_streams_key = 'OML:SUPERVISION_DIALER_STREAMS:' + camp_id
         sup_camp_streams = execute('HGET', sup_camp_streams_key, 'STREAMS')  # noqa: F821

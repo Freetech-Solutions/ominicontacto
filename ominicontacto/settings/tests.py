@@ -238,6 +238,8 @@ CONSTANCE_REDIS_CONNECTION = {
     'port': 6379,
     'db': 0,
 }
+# Las migraciones que solo actúan sobre Redis no se ejecutan al crear la base de tests
+MIGRACIONES_OMITIR_REDIS = True
 
 KAMAILIO_HOSTNAME = 'trash'
 KAMAILIO_PORT = 'trash'

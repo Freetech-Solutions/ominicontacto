@@ -235,6 +235,8 @@ CONSTANCE_REDIS_CONNECTION = {
 }
 
 REDIS_HOSTNAME = 'redis'
+# Las migraciones que solo actúan sobre Redis no se ejecutan al crear la base de tests
+MIGRACIONES_OMITIR_REDIS = True
 
 CHANNEL_LAYERS = {
     'default': {
