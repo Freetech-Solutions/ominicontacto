@@ -40,7 +40,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
           {% include "campanas/campana_dialer/campana_list_table_item.html" %}
         {% empty %}
           <tr>
-            <td colspan="6" id="empty-{{ state }}">{% trans 'No existen campañas' %}</td>
+            <td colspan="9" id="empty-{{ state }}">{% trans 'No existen campañas' %}</td>
           </tr>
         {% endfor %}
       </tbody>

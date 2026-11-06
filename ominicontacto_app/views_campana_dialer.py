@@ -60,6 +60,7 @@ class CampanaDialerListView(ListView):
     template_name = 'campanas/campana_dialer/campana_list.html'
     context_object_name = 'campanas'
     model = Campana
+    FINALIZADAS_POR_PAGINA = 25
 
     def get_queryset(self):
         return Campana.objects.none()
@@ -123,9 +124,17 @@ class CampanaDialerListView(ListView):
             estado=Campana.ESTADO_FINALIZADA
         ).order_by("-id")
 
-        paginator = Paginator(finalizadas_qs, 25)
+        paginator = Paginator(finalizadas_qs, self.FINALIZADAS_POR_PAGINA)
         page_number = self.request.GET.get("finalizadas_page")
         context['finalizadas'] = paginator.get_page(page_number)
+
+        # Nombres de los estados, para las notificaciones de cambio de estado
+        context['nombres_estados'] = {
+            estado: str(nombre) for estado, nombre in Campana.ESTADOS
+            if estado in (Campana.ESTADO_INACTIVA, Campana.ESTADO_PAUSADA,
+                          Campana.ESTADO_ACTIVA, Campana.ESTADO_BORRADA,
+                          Campana.ESTADO_FINALIZADA)
+        }
 
         context['canales_en_uso'] = Campana.objects.obtener_canales_dialer_en_uso()
 
