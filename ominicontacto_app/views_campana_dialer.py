@@ -31,6 +31,7 @@ from django.urls import reverse
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect
 from django.views.generic import ListView, DeleteView, FormView, CreateView, UpdateView, View
+from django.core.paginator import Paginator
 
 from constance import config as config_constance
 
@@ -59,9 +60,21 @@ class CampanaDialerListView(ListView):
     template_name = 'campanas/campana_dialer/campana_list.html'
     context_object_name = 'campanas'
     model = Campana
+    FINALIZADAS_POR_PAGINA = 25
+
+    def get_queryset(self):
+        return Campana.objects.none()
 
     def get_campanas(self):
-        campanas = Campana.objects.obtener_campanas_dialer().select_related('queue_campana')
+        campanas = (
+            Campana.objects
+            .obtener_campanas_dialer()
+            .select_related(
+                'queue_campana',
+                'queue_campana__destino_dialer',
+                'bd_contacto',
+            )
+        )
         # Filtra las campanas de acuerdo al usuario logeado si tiene permiso sobre
         # las mismas
         if self.request.user.is_authenticated and self.request.user and \
@@ -79,33 +92,57 @@ class CampanaDialerListView(ListView):
                                            Campana.ESTADO_FINALIZADA])
 
     def get_context_data(self, **kwargs):
-        context = super(CampanaDialerListView, self).get_context_data(
-            **kwargs)
+        context = super(CampanaDialerListView, self).get_context_data(**kwargs)
         campanas = self.get_campanas()
         datos_campanas = campanas.values_list('id', 'nombre', 'estado')
-        context['datos_campanas'] = {campana[0]: {'name': campana[1],
-                                                  'status': campana[2]}
-                                     for campana in datos_campanas}
+        context['datos_campanas'] = {
+            campana_id: {
+                'name': nombre,
+                'status': estado,
+            }
+            for campana_id, nombre, estado in datos_campanas
+        }
 
-        context['inactivas'] = campanas.filter(estado=Campana.ESTADO_INACTIVA)
-        context['pausadas'] = campanas.filter(estado=Campana.ESTADO_PAUSADA)
-        context['activas'] = campanas.filter(estado=Campana.ESTADO_ACTIVA)
-        context['borradas'] = campanas.filter(estado=Campana.ESTADO_BORRADA,
-                                              oculto=False)
-        context['finalizadas'] = campanas.filter(estado=Campana.ESTADO_FINALIZADA)
+        context['inactivas'] = campanas.filter(
+            estado=Campana.ESTADO_INACTIVA
+        ).order_by("-id")
 
-        context['campanas'] = context['campanas'].order_by("-id")
-        context['inactivas'] = context['inactivas'].order_by("-id")
-        context['pausadas'] = context['pausadas'].order_by("-id")
-        context['activas'] = context['activas'].order_by("-id")
-        context['borradas'] = context['borradas'].order_by("-id")
-        context['finalizadas'] = context['finalizadas'].order_by("-id")
+        context['pausadas'] = campanas.filter(
+            estado=Campana.ESTADO_PAUSADA
+        ).order_by("-id")
+
+        context['activas'] = campanas.filter(
+            estado=Campana.ESTADO_ACTIVA
+        ).order_by("-id")
+
+        context['borradas'] = campanas.filter(
+            estado=Campana.ESTADO_BORRADA,
+            oculto=False
+        ).order_by("-id")
+
+        finalizadas_qs = campanas.filter(
+            estado=Campana.ESTADO_FINALIZADA
+        ).order_by("-id")
+
+        paginator = Paginator(finalizadas_qs, self.FINALIZADAS_POR_PAGINA)
+        page_number = self.request.GET.get("finalizadas_page")
+        context['finalizadas'] = paginator.get_page(page_number)
+
+        # Nombres de los estados, para las notificaciones de cambio de estado
+        context['nombres_estados'] = {
+            estado: str(nombre) for estado, nombre in Campana.ESTADOS
+            if estado in (Campana.ESTADO_INACTIVA, Campana.ESTADO_PAUSADA,
+                          Campana.ESTADO_ACTIVA, Campana.ESTADO_BORRADA,
+                          Campana.ESTADO_FINALIZADA)
+        }
 
         context['canales_en_uso'] = Campana.objects.obtener_canales_dialer_en_uso()
 
         context['wombat_reload_enabled'] = False
-        context['wombat_habilitado'] = wombat_habilitado()
-        if wombat_habilitado():
+        wombat_enabled = wombat_habilitado()
+        context['wombat_habilitado'] = wombat_enabled
+
+        if wombat_enabled:
             context['wombat_reload_enabled'] = config_constance.WOMBAT_DIALER_ALLOW_REFRESH
             if config_constance.WOMBAT_DIALER_ALLOW_REFRESH:
                 context['wombat_state'] = config_constance.WOMBAT_DIALER_STATE

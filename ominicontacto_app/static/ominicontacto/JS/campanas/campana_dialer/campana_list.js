@@ -29,9 +29,13 @@ var campaigns_data = undefined;
 var hidden_campaigns = {};
 var campaignInModal = undefined;
 var manager = undefined;
+var status_names = {};
+
+const STATUS_FINALIZED = '3';
 
 $(function(){
     campaigns_data = JSON.parse($('#campaigns_data').prop('innerText'));
+    status_names = JSON.parse($('#status_names').prop('innerText'));
     wombat_enabled = JSON.parse($('#wombat_enabled').prop('innerText'));
     oml_api = new OMLAPI();
     manager = new CampaignButtonManager();
@@ -219,7 +223,6 @@ class WombatReloader {
     }
 
     checkReloadState(data) {
-console.log(data)
         if (data['OML-state'] == STATE_READY) {
             this.wombat_state = data['OML-state'];
             $('#wombat_uptime').html('(' + data['uptime'] + ')');
@@ -389,9 +392,47 @@ class OmnidialerStatsUpdater {
     }
 
     notifyStatusChange(camp_id, status){
-        $('#camp-data-' + camp_id).appendTo('#campaign_table_' + status + ' tbody');
-        manager.setCampaignButtons(camp_id, status);
         // # 'type': 'STATUSCHANGE', 'camp_id': id_campaign, 'status': new_status
+        let campaign = campaigns_data[camp_id];
+        let previous_status = campaign === undefined ? undefined : campaign.status;
+        let message = interpolate(gettext('Nuevo estado: %s'),
+            [status_names[status] || status]);
+
+        let $row = $('#camp-data-' + camp_id);
+        let $target_tbody = $('#campaign_table_' + status + ' tbody');
+        if ($row.length > 0 && $target_tbody.length > 0) {
+            let $source_tbody = $row.parent();
+            $('#empty-' + status).closest('tr').remove();
+            $row.appendTo($target_tbody);
+            if ($source_tbody.children('tr').length == 0)
+                $source_tbody.append(this.emptyTableRow($source_tbody));
+            manager.setCampaignButtons(camp_id, status);
+        }
+        else if ($row.length == 0 && previous_status == STATUS_FINALIZED) {
+            // Las finalizadas están paginadas: la fila puede no estar en la página actual
+            message += '. ' + gettext('Refresque la página para verla');
+        }
+
+        if (campaign !== undefined)
+            campaign.status = status;
+
+        $.growl.notice({
+            'title': campaign === undefined ? interpolate(gettext('Campaña %s'), [camp_id])
+                : campaign.name,
+            message: message,
+            duration: 5000
+        });
+    }
+
+    emptyTableRow($tbody) {
+        // Igual a la fila {% empty %} de campana_list_table.html
+        let $table = $tbody.closest('table');
+        let state = $table.attr('id').replace('campaign_table_', '');
+        let $td = $('<td>')
+            .attr('id', 'empty-' + state)
+            .attr('colspan', $table.find('thead th').length)
+            .text(gettext('No existen campañas'));
+        return $('<tr>').append($td);
     }
 
     updateStats(camp_id, stats_data){

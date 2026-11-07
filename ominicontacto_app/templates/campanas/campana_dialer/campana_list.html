@@ -50,6 +50,7 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
     </form>
     {{ wombat_habilitado|json_script:"wombat_enabled" }}
     {{ datos_campanas|json_script:"campaigns_data" }}
+    {{ nombres_estados|json_script:"status_names" }}
 
     <h2>{% trans 'Campañas Activas' %} <span style="color:red;">- {% trans 'Canales en uso' %}: {{ canales_en_uso }}</span></h2>
     {% if wombat_habilitado and user|has_oml_permission:'api_restart_wombat' and wombat_reload_enabled %}
@@ -82,8 +83,37 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
       {% include "campanas/campana_dialer/campana_list_table.html" with campanas=inactivas state=6 %}
     <br>
 
-    <h2>{% trans 'Campañas Finalizadas' %}</h2>
-      {% include "campanas/campana_dialer/campana_list_table.html" with campanas=finalizadas state=3 %}
+    <h2 id="campanas-finalizadas">{% trans 'Campañas Finalizadas' %}</h2>
+      {% include "campanas/campana_dialer/campana_list_table.html" with campanas=finalizadas state=3 solo_nombre_bd=True %}
+      {% if finalizadas.has_other_pages %}
+      <nav>
+        <ul class="pagination">
+
+            {% if finalizadas.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?finalizadas_page={{ finalizadas.previous_page_number }}#campanas-finalizadas">
+                {% trans 'Anterior' %}
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item disabled">
+            <span class="page-link">
+                {% trans 'Página' %} {{ finalizadas.number }} / {{ finalizadas.paginator.num_pages }}
+            </span>
+            </li>
+
+            {% if finalizadas.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?finalizadas_page={{ finalizadas.next_page_number }}#campanas-finalizadas">
+                {% trans 'Siguiente' %}
+                </a>
+            </li>
+            {% endif %}
+
+        </ul>
+      </nav>
+      {% endif %}
     <br>
 
     <h2>{% trans 'Campañas Eliminadas' %}</h2>

@@ -17,7 +17,8 @@
         </td>
         <td>{{ campana.fecha_fin|date:"d/m/Y" }}</td>
         <td>
-            {{ campana.bd_contacto }}
+            {# En finalizadas no se muestra la cantidad de contactos: evita un COUNT por campaña #}
+            {% if solo_nombre_bd %}{{ campana.bd_contacto.nombre }}{% else %}{{ campana.bd_contacto }}{% endif %}
             <a id="camp-{{campana.pk}}-database" href="{% url 'campana_dialer_update_base' campana.pk %}">
                 {% trans 'Cambiar' %}
             </a>
