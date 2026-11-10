@@ -28,13 +28,17 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.interval import IntervalTrigger
 
-from reportes_app.reportes.reporte_supervisores import ReporteSupervisoresFamily
-from supervision_app.services.redisgears_service import RedisGearsService
+from supervision_app.services.supervision_stream_service import SupervisionStreamService
+from ominicontacto_app.services.redis.ha_lock import run_once
 
 logger = logging.getLogger(__name__)
 
+SUPERVISORES_REPORT_INTERVAL_SEC = 120
+# DONE/lock must last at least one slot (IntervalTrigger offsets differ per node).
+SUPERVISORES_REPORT_TTL_SEC = SUPERVISORES_REPORT_INTERVAL_SEC
 
-def actualizar_reporte_supervisores():
+
+def _actualizar_reporte_supervisores_body():
     """
     Actualiza el reporte de supervisores en Redis.
     Calcula qué agentes están asignados a cada supervisor (grupo y campañas)
@@ -44,16 +48,23 @@ def actualizar_reporte_supervisores():
     close_old_connections()
     try:
         logger.info("Iniciando actualización del reporte de supervisores")
-        family = ReporteSupervisoresFamily()
-        family.regenerar_families()
-        logger.info("Actualización del reporte de supervisores completada exitosamente")
-
-        redis_gears = RedisGearsService()
-        redis_gears.registra_gears_supervision_global()
-        redis_gears.sincroniza_voicebot_streams_todos_supervisores()
-        logger.info("RedisGears supervisión y VOICEBOT_STREAMS sincronizados")
+        stream_service = SupervisionStreamService()
+        stream_service.refrescar_asignaciones_desde_db()
+        logger.info(
+            "Reporte de supervisores y CAMPANAS/VOICEBOT_STREAMS actualizados"
+        )
     except Exception as e:
         logger.error(f'Fallo al actualizar reporte de supervisores: {e}', exc_info=True)
+
+
+def actualizar_reporte_supervisores():
+    slot = int(time.time()) // SUPERVISORES_REPORT_INTERVAL_SEC
+    run_once(
+        'reporte-supervisores',
+        slot,
+        SUPERVISORES_REPORT_TTL_SEC,
+        _actualizar_reporte_supervisores_body,
+    )
 
 
 class Command(BaseCommand):

@@ -186,6 +186,7 @@ class CampanaFamily(AbstractRedisFamily):
             'QUEUETIME': campana.queue_campana.wait,
             'MAXQCALLS': campana.queue_campana.maxlen,
             'SL': campana.queue_campana.servicelevel,
+            'WEIGHT': campana.queue_campana.weight,
             'OUTR': "",
             'OUTCID': "",
             'TC': "",  # a partir de esta variable no se usan las siguientes variables:
@@ -320,6 +321,25 @@ class CampanaFamily(AbstractRedisFamily):
 class AgenteFamily(AbstractRedisFamily):
 
     KEY_PREFIX = "OML:AGENT:{0}"
+    # Metadata de fan-out de supervisión: no debe perderse al regenerar el hash.
+    FANOUT_PRESERVE_FIELDS = (
+        'STREAMS',
+        'VOICEBOT_STREAMS',
+        'CAMPANAS',
+        'GROUP',
+    )
+    # Campos runtime que el wipe antiguo borraba; no son fan-out.
+    RUNTIME_CLEAR_FIELDS = (
+        'CALLID',
+        'BRIDGE_ID',
+        'NODE_ID',
+        'CAMPAIGN',
+        'CONTACT_NUMBER',
+        'AGENT_CHANNEL_ID',
+        'PSTN_CHANNEL_ID',
+        'PAUSE_ID',
+    )
+    VOICEBOT_FIELDS = ('VOICEBOT', 'VOICEBOT_ADDR', 'VOICEBOT_TRANSPORT')
 
     def _create_dict(self, agente, status='', timestamp=''):
         dict_agente = {
@@ -330,8 +350,17 @@ class AgenteFamily(AbstractRedisFamily):
         }
         # Agregar key VOICEBOT si el agente es voicebot
         if agente.voicebot:
+            transport = (
+                getattr(agente, 'voicebot_transport', None)
+                or AgenteProfile.VOICEBOT_TRANSPORT_SIP
+            )
             dict_agente['VOICEBOT'] = '1'
-            if agente.voicebot_trunk and agente.voicebot_extension is not None:
+            dict_agente['VOICEBOT_TRANSPORT'] = transport
+            if (
+                transport == AgenteProfile.VOICEBOT_TRANSPORT_SIP
+                and agente.voicebot_trunk
+                and agente.voicebot_extension is not None
+            ):
                 dict_agente['VOICEBOT_ADDR'] = (
                     "{0}@{1}".format(agente.voicebot_extension, agente.voicebot_trunk.nombre)
                 )
@@ -360,17 +389,120 @@ class AgenteFamily(AbstractRedisFamily):
             logger.exception(e)
             sys.exit(1)
 
+    def _fanout_fields_from_hash(self, agent_hash):
+        """Extrae campos de fan-out presentes en un hash OML:AGENT."""
+        agent_hash = agent_hash or {}
+        preserved = {}
+        for field in self.FANOUT_PRESERVE_FIELDS:
+            value = agent_hash.get(field)
+            if value is not None and value != '':
+                preserved[field] = value
+        return preserved
+
+    def _publish_agent_after_regenerar(self, redis_connection, agente_id, preserved):
+        """Republica al stream si quedó STREAMS (sin Gears el HSET no dispara XADD)."""
+        if not preserved.get('STREAMS'):
+            return
+        try:
+            from supervision_app.services.supervision_stream_service import (
+                SupervisionStreamService,
+            )
+            SupervisionStreamService(conn=redis_connection).publish_agent_to_streams(
+                agente_id)
+        except Exception:
+            logger.exception(
+                'Error en fan-out tras regenerar agente %s', agente_id)
+
+    def _merge_agent_identity(self, redis_connection, family, agente, mapping):
+        """HSET de identidad sin borrar el hash (R1: sin ventana delete vs ACD)."""
+        try:
+            redis_connection.hset(family, mapping=mapping)
+            if not agente.voicebot:
+                redis_connection.hdel(family, *self.VOICEBOT_FIELDS)
+            elif 'VOICEBOT_ADDR' not in mapping:
+                # AudioSocket (o SIP sin troncal): limpiar dirección SIP residual.
+                redis_connection.hdel(family, 'VOICEBOT_ADDR')
+        except (RedisError, ConnectionError) as e:
+            logger.exception(
+                'Error en merge in-place de agente en %s: %s', family, e)
+            raise
+
     def regenerar_family(self, agente, preservar_status=False):
-        """Regenera una family de Agente y preserva su status actual en Asterisk"""
-        agente_status = ''
-        agente_timestamp = ''
+        """
+        Regenera una family de Agente con merge in-place (R1).
+
+        No hace DELETE del hash: evita la race donde ACD escribe STATUS/CALLID
+        mientras la key no existe o se recrea sin STREAMS. Los campos de fan-out
+        nunca se tocan. Con preservar_status=True solo se actualiza identidad
+        (NAME/SIP/VOICEBOT*); con False se resetea STATUS/TIMESTAMP y se limpian
+        campos runtime de llamada (paridad con el wipe anterior).
+        """
+        redis_connection = self.get_redis_connection()
+        family = self._get_nombre_family(agente)
+        previo = {}
+        try:
+            previo = redis_connection.hgetall(family) or {}
+        except (RedisError, ConnectionError) as e:
+            logger.exception(
+                'Error leyendo hash previo de agente %s: %s', agente.id, e)
+
         if preservar_status:
-            redis_connection = self.get_redis_connection()
-            agente_info = redis_connection.hgetall(self._get_nombre_family(agente))
-            agente_status = agente_info.get('STATUS', '')
-            agente_timestamp = agente_info.get('TIMESTAMP', '')
-        self.delete_family(agente)
-        self._create_family(agente, status=agente_status, timestamp=agente_timestamp)
+            # No pisar STATUS/TIMESTAMP/call fields concurrentes del ACD.
+            variables = self._create_dict(agente, status='', timestamp='')
+            mapping = {
+                'NAME': variables['NAME'],
+                'SIP': variables['SIP'],
+            }
+            if 'VOICEBOT' in variables:
+                mapping['VOICEBOT'] = variables['VOICEBOT']
+            if 'VOICEBOT_TRANSPORT' in variables:
+                mapping['VOICEBOT_TRANSPORT'] = variables['VOICEBOT_TRANSPORT']
+            if 'VOICEBOT_ADDR' in variables:
+                mapping['VOICEBOT_ADDR'] = variables['VOICEBOT_ADDR']
+            self._merge_agent_identity(redis_connection, family, agente, mapping)
+        else:
+            variables = self._create_dict(agente, status='', timestamp='')
+            self._merge_agent_identity(redis_connection, family, agente, variables)
+            try:
+                redis_connection.hdel(family, *self.RUNTIME_CLEAR_FIELDS)
+            except (RedisError, ConnectionError) as e:
+                logger.exception(
+                    'Error limpiando campos runtime de agente %s: %s',
+                    agente.id, e)
+
+        try:
+            actual = redis_connection.hgetall(family) or {}
+        except (RedisError, ConnectionError):
+            actual = previo
+        preserved = self._fanout_fields_from_hash(actual)
+        self._publish_agent_after_regenerar(redis_connection, agente.id, preserved)
+
+    def regenerar_families(self):
+        """
+        Regenera OML:AGENT:* sin wipe ciego del árbol (R1/R2).
+
+        Merge in-place por agente activo; solo DELETE de huérfanos (ids que ya
+        no están activos). Así no se abre una ventana global sin hashes.
+        """
+        redis_connection = self.get_redis_connection()
+        activos = list(self._obtener_todos())
+        active_ids = {str(agente.id) for agente in activos}
+
+        try:
+            for key in redis_connection.scan_iter(match=self._get_families_pattern()):
+                agent_id = str(key).rsplit(':', 1)[-1]
+                if agent_id not in active_ids:
+                    try:
+                        redis_connection.delete(key)
+                    except (RedisError, ConnectionError) as e:
+                        logger.exception(
+                            'Error borrando OML:AGENT huérfano %s: %s', key, e)
+        except (RedisError, ConnectionError) as e:
+            logger.exception(
+                'Error escaneando OML:AGENT:* en regenerar_families: %s', e)
+
+        for agente in activos:
+            self.regenerar_family(agente, preservar_status=False)
 
 
 class RutaSalienteFamily(AbstractRedisFamily):
@@ -916,9 +1048,14 @@ class CampanasDeAgenteFamily(object):
 
 
 class CampaignAgentsFamily(object):
-    """ Mantiene información de que agentes están asociados a cada campaña """
+    """ Mantiene información de que agentes están asociados a cada campaña.
+
+    - OML:CAMPAIGN-AGENTS:{id}: SET de agent_ids (membership).
+    - OML:CAMP:{id}:MEMBER-PENALTY: HASH agent_id → QueueMember.penalty (por membresía).
+    """
 
     KEY_PREFIX = "OML:CAMPAIGN-AGENTS:{0}"
+    PENALTY_KEY_PREFIX = "OML:CAMP:{0}:MEMBER-PENALTY"
 
     def __init__(self, redis_connection=None) -> None:
         self.redis_connection = redis_connection
@@ -926,6 +1063,9 @@ class CampaignAgentsFamily(object):
     def _get_redis_connection(self):
         if not self.redis_connection:
             self.redis_connection = create_redis_connection()
+
+    def _penalty_key(self, campana_id):
+        return self.PENALTY_KEY_PREFIX.format(campana_id)
 
     def _create_families(self):
         self._get_redis_connection()
@@ -937,12 +1077,18 @@ class CampaignAgentsFamily(object):
                 function="split_part",
                 output_field=models.IntegerField(),
             )
-        ).values_list("campana_id", "member_id")
+        ).values_list("campana_id", "member_id", "penalty")
         data = defaultdict(set)
-        for campana_id, agente_id in queryset:
+        penalties_by_campana = defaultdict(dict)
+        for campana_id, agente_id, penalty in queryset:
             data[self.KEY_PREFIX.format(campana_id)].add(agente_id)
+            penalties_by_campana[campana_id][str(agente_id)] = int(penalty)
         for campana_id_key, agente_ids in data.items():
             self.redis_connection.sadd(campana_id_key, *agente_ids)
+        for campana_id, mapping in penalties_by_campana.items():
+            if mapping:
+                self.redis_connection.hset(
+                    self._penalty_key(campana_id), mapping=mapping)
 
     def _delete_families(self):
         self._get_redis_connection()
@@ -950,6 +1096,10 @@ class CampaignAgentsFamily(object):
         keys = self.redis_connection.keys(pattern)
         if keys:
             self.redis_connection.delete(*keys)
+        penalty_pattern = self.PENALTY_KEY_PREFIX.format("*")
+        penalty_keys = self.redis_connection.keys(penalty_pattern)
+        if penalty_keys:
+            self.redis_connection.delete(*penalty_keys)
 
     def regenerar_families(self):
         self._delete_families()
@@ -961,24 +1111,48 @@ class CampaignAgentsFamily(object):
         keys = self.redis_connection.keys(pattern)
         for key in keys:
             self.redis_connection.srem(key, agent_id)
+        penalty_pattern = self.PENALTY_KEY_PREFIX.format("*")
+        penalty_keys = self.redis_connection.keys(penalty_pattern)
+        for key in penalty_keys:
+            self.redis_connection.hdel(key, agent_id)
 
     def borrar_agente_de_campana(self, campana_id, agente_id):
         self._get_redis_connection()
         key = self.KEY_PREFIX.format(campana_id)
         self.redis_connection.srem(key, agente_id)
+        self.redis_connection.hdel(self._penalty_key(campana_id), agente_id)
 
-    def registrar_agentes_en_campana(self, campana_id, agente_ids):
-        if not agente_ids:
-            return
+    def registrar_agentes_en_campana(self, campana_id, agente_ids, penalties=None):
+        """Registra agentes en la campaña.
+
+        ``penalties`` es un dict opcional ``{agent_id: penalty}``. Si no se
+        pasa, se proyecta penalty 0 para cada id en ``agente_ids``.
+        """
+        if penalties is not None:
+            if not penalties:
+                return
+            agente_ids = list(penalties.keys())
+            penalty_map = {
+                str(agent_id): int(penalties.get(agent_id, 0))
+                for agent_id in agente_ids
+            }
+        else:
+            if not agente_ids:
+                return
+            agente_ids = list(agente_ids)
+            penalty_map = {str(agent_id): 0 for agent_id in agente_ids}
         self._get_redis_connection()
         key = self.KEY_PREFIX.format(campana_id)
         self.redis_connection.sadd(key, *agente_ids)
+        self.redis_connection.hset(self._penalty_key(campana_id), mapping=penalty_map)
 
-    def registrar_campanas_a_agente(self, campana_ids, agente_id):
+    def registrar_campanas_a_agente(self, campana_ids, agente_id, penalty=0):
         self._get_redis_connection()
         for campana_id in campana_ids:
             key = self.KEY_PREFIX.format(campana_id)
             self.redis_connection.sadd(key, agente_id)
+            self.redis_connection.hset(
+                self._penalty_key(campana_id), str(agente_id), int(penalty))
 
 
 class RegenerarAsteriskFamilysOML(object):

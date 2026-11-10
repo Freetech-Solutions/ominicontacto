@@ -430,6 +430,18 @@ class AgenteProfile(models.Model):
     sip_password = models.CharField(max_length=128, blank=True, null=True)
     sip_remote = models.BooleanField(default=False, verbose_name=_("SIP remote"))
     voicebot = models.BooleanField(default=False, verbose_name=_("Voicebot"))
+    VOICEBOT_TRANSPORT_SIP = 'sip'
+    VOICEBOT_TRANSPORT_AUDIOSOCKET = 'audiosocket'
+    VOICEBOT_TRANSPORT_CHOICES = (
+        (VOICEBOT_TRANSPORT_SIP, _('SIP')),
+        (VOICEBOT_TRANSPORT_AUDIOSOCKET, _('AudioSocket')),
+    )
+    voicebot_transport = models.CharField(
+        max_length=16,
+        choices=VOICEBOT_TRANSPORT_CHOICES,
+        default=VOICEBOT_TRANSPORT_SIP,
+        verbose_name=_("Transporte voicebot"),
+    )
     voicebot_trunk = models.ForeignKey(
         'configuracion_telefonia_app.TroncalSIP',
         null=True, blank=True, on_delete=models.SET_NULL,

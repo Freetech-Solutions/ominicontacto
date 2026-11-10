@@ -4687,8 +4687,10 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
             nombre_calificacion = '—'
 
         subcalificacion = '—'
+        sip_agentic_leg_call_id = ''
         if obj.channel_data and isinstance(obj.channel_data, dict):
             subcalificacion = obj.channel_data.get('subcalificacion') or obj.channel_data.get('subcalificacion_nombre') or '—'  # noqa: E501
+            sip_agentic_leg_call_id = obj.channel_data.get('sip_agentic_leg_call_id') or ''
 
         url_grabacion = obj.url_archivo_grabacion_url_encoded if obj.end_time else ''
 
@@ -4717,6 +4719,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
             'nombre_calificacion': nombre_calificacion,
             'nombre_subcalificacion': subcalificacion,
             'url_grabacion': url_grabacion or '',
+            'sip_agentic_leg_call_id': sip_agentic_leg_call_id,
         })
 
     page_obj.object_list = rows

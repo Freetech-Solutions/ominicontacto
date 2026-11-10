@@ -208,6 +208,14 @@ LOGGING = {
             'level': LOG_LEVEL,
             'propagate': False,
         },
+        # Sin este bloque, los INFO de supervision_events_listener (un evento
+        # por mensaje de stream, con el payload completo) caen al lastResort
+        # de Python y se descartan.
+        'supervision_app.management.commands.supervision_events_listener': {
+            'handlers': ['console'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
     },
 }
 

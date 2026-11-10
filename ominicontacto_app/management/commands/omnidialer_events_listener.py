@@ -16,55 +16,65 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import json
+import asyncio
 import logging
+import sys
 
 from django.core.management.base import BaseCommand
+
+from ominicontacto_app.services.dialer.notification.events_management import (
+    OmnidialerEventManager,
+)
 from ominicontacto_app.services.redis.connection import create_redis_connection
+from ominicontacto_app.services.redis.event_stream_consumer import (
+    EventStreamConsumer,
+    create_async_redis,
+)
+from ominicontacto_app.services.redis.redis_streams import (
+    GROUP_OMNIDIALER_EVENTS,
+    STREAM_DIALER,
+)
 
-from ominicontacto_app.services.dialer.notification.events_management import OmnidialerEventManager
-from ominicontacto_app.services.dialer.notification.asyncio import get_event_loop, create_task
-# from wallboard_app.management.utils.asyncio import get_event_loop, create_task
-
-OMNIDIALER_EVENTS_CHANNEL = 'OML:CHANNEL:DIALER'
-CALLDATA_DB = 2
 logger = logging.getLogger(__name__)
+
+CALLDATA_DB = 2
 
 
 class Command(BaseCommand):
 
-    help = 'Atiende eventos del canal de OMniDialer para actualizar datos de campañas'
+    help = (
+        'Atiende el stream OML:STREAM:DIALER para actualizar datos de campañas '
+        'OMniDialer'
+    )
 
-    async def manage_events(self, channels, redis_connection, loop):
-        event_manager = OmnidialerEventManager(redis_connection)
-        # Subscribe to a channel
-        pubsub = redis_connection.pubsub(ignore_subscribe_messages=True)
+    async def _run(self):
+        redis_sync = create_redis_connection(db=CALLDATA_DB)
+        event_manager = OmnidialerEventManager(redis_sync)
+        redis_async = create_async_redis(db=CALLDATA_DB)
+        await redis_async.ping()
 
-        pubsub.subscribe(channels)
+        async def on_event(event_data):
+            await event_manager.manage_event(event_data)
 
-        # Listen for messages indefinitely
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                message_data = message['data']
-                try:
-                    event_data = json.loads(message_data)
-                    await event_manager.manage_event(event_data)
-                except Exception as e:
-                    logging.error(e, exc_info=True)
-
-    async def subscribe_channels(self, channels, redis, loop):
-        create_task(loop, await self.manage_events(channels, redis, loop))
+        consumer = EventStreamConsumer(
+            redis_async,
+            STREAM_DIALER,
+            GROUP_OMNIDIALER_EVENTS,
+            on_event,
+        )
+        logger.info(
+            'omnidialer_events_listener stream=%s group=%s',
+            STREAM_DIALER, GROUP_OMNIDIALER_EVENTS,
+        )
+        try:
+            await consumer.run()
+        finally:
+            consumer.stop()
+            await redis_async.aclose()
 
     def handle(self, *args, **options):
         try:
-            # Connect to Redis server
-            redis_connection = create_redis_connection(db=CALLDATA_DB)
-            loop = get_event_loop()
-            try:
-                channels = [OMNIDIALER_EVENTS_CHANNEL, ]
-                loop.run_until_complete(self.subscribe_channels(channels, redis_connection, loop))
-            finally:
-                loop.run_until_complete(loop.shutdown_asyncgens())
-                loop.close()
+            asyncio.run(self._run())
         except Exception as e:
-            logger.error('Fallo del comando: {0}'.format(e))
+            logger.error('Fallo del comando: {0}'.format(e), exc_info=True)
+            sys.exit(1)

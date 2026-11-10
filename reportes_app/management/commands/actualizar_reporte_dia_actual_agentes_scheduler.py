@@ -29,11 +29,16 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.interval import IntervalTrigger
 
 from reportes_app.reportes.reporte_estadisticas_agentes import ReporteDiarioAgentesFamily
+from ominicontacto_app.services.redis.ha_lock import run_once
 
 logger = logging.getLogger(__name__)
 
+AGENTES_REPORT_INTERVAL_SEC = 60
+# DONE/lock must last at least one slot (IntervalTrigger offsets differ per node).
+AGENTES_REPORT_TTL_SEC = AGENTES_REPORT_INTERVAL_SEC
 
-def actualizar_reporte_agentes():
+
+def _actualizar_reporte_agentes_body():
     """
     Actualiza el reporte diario de agentes en Redis.
     Esta función se ejecuta cada 1 minuto mediante APScheduler.
@@ -46,6 +51,16 @@ def actualizar_reporte_agentes():
         logger.info("Actualización del reporte diario de agentes completada exitosamente")
     except Exception as e:
         logger.error(f'Fallo al actualizar reporte diario de agentes: {e}', exc_info=True)
+
+
+def actualizar_reporte_agentes():
+    slot = int(time.time()) // AGENTES_REPORT_INTERVAL_SEC
+    run_once(
+        'reporte-dia-actual-agentes',
+        slot,
+        AGENTES_REPORT_TTL_SEC,
+        _actualizar_reporte_agentes_body,
+    )
 
 
 class Command(BaseCommand):

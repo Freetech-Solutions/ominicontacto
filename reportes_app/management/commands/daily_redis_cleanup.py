@@ -30,11 +30,16 @@ from apscheduler.triggers.cron import CronTrigger
 # Importar funciones de los comandos originales
 from supervision_app.management.commands.clean_dashboard_redis import clean_dashboard_redis_keys
 from reportes_app.management.commands.reiniciar_estadisticas_calldata_scheduler import reiniciar_estadisticas_calldata  # noqa: E501
+from ominicontacto_app.services.redis.ha_lock import run_once
 
 logger = logging.getLogger(__name__)
 
+DAILY_CLEANUP_INTERVAL_SEC = 86400
+# DONE/lock must cover the full daily slot so a late peer cannot re-run it.
+DAILY_CLEANUP_TTL_SEC = DAILY_CLEANUP_INTERVAL_SEC
 
-def daily_redis_cleanup():
+
+def _daily_redis_cleanup_body():
     """
     Función combinada que ejecuta ambas tareas de limpieza de Redis en secuencia:
     1. Limpieza de keys del dashboard Redis (DB 2)
@@ -61,6 +66,16 @@ def daily_redis_cleanup():
         logger.error(f"Error durante el reinicio de estadísticas calldata: {e}", exc_info=True)
 
     logger.info("Limpieza diaria de Redis completada (todas las tareas ejecutadas)")
+
+
+def daily_redis_cleanup():
+    slot = int(time.time()) // DAILY_CLEANUP_INTERVAL_SEC
+    run_once(
+        'daily-redis-cleanup',
+        slot,
+        DAILY_CLEANUP_TTL_SEC,
+        _daily_redis_cleanup_body,
+    )
 
 
 class Command(BaseCommand):

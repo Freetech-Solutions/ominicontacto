@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-import json
 import requests
 from urllib.parse import urljoin
 import logging
@@ -24,6 +23,10 @@ from django.utils.translation import gettext_lazy as _
 from ominicontacto_app.errors import OmlError
 from ominicontacto_app.services.dialer.phone_dialer import AbstractPhoneDialerService
 from ominicontacto_app.services.redis.connection import create_redis_connection
+from ominicontacto_app.services.redis.redis_streams import (
+    STREAM_DIALER,
+    get_event_streams,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -84,13 +87,12 @@ BOT_DISPOSITION_COUNTER_KEYS = frozenset({
     'GESTION_BOT', 'MUDA_BOT', 'SCHEDULE_CALL_BOT',
 })
 SIN_DISPOSICION_COUNTER_KEY = 'SIN_DISPOSICION'
-DIALER_STATS_CHANNEL = 'OML:CHANNEL:DIALER'
 
 
 def record_bot_disposition_counter(campaign_id, new_nombre, previous_nombre=None):
     """
     Actualiza CAMP:{id}:COUNTER para disposiciones bot (sin polling).
-    Publica STATS en OML:CHANNEL:DIALER.
+    Publica STATS en OML:STREAM:DIALER (DB 2) para listeners HA.
     """
     if not campaign_id:
         return
@@ -105,7 +107,6 @@ def record_bot_disposition_counter(campaign_id, new_nombre, previous_nombre=None
 
     try:
         redis_dialer = create_redis_connection(db=3)
-        redis_oml = create_redis_connection(db=0)
         counter_key = CAMP_STATS_KEY.format(campaign_id)
         changed = {'type': 'STATS', 'camp_id': campaign_id}
 
@@ -127,7 +128,7 @@ def record_bot_disposition_counter(campaign_id, new_nombre, previous_nombre=None
                         counter_key, SIN_DISPOSICION_COUNTER_KEY, -1)
                     changed[SIN_DISPOSICION_COUNTER_KEY] = int(val)
 
-        redis_oml.publish(DIALER_STATS_CHANNEL, json.dumps(changed))
+        get_event_streams().write_event(STREAM_DIALER, changed)
     except Exception:
         logger.exception(
             'Error actualizando COUNTER disposiciones bot camp=%s', campaign_id)

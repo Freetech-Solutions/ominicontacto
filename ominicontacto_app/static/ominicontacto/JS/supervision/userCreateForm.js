@@ -10,13 +10,17 @@
         var sip_remote_checkbox = $('#id_0-sip_remote');
         var voicebot_field = $('#id_0-voicebot').closest('.form-group');
         var voicebot_checkbox = $('#id_0-voicebot');
+        var voicebot_transport_field = $('#id_0-voicebot_transport').closest('.form-group');
         var voicebot_trunk_field = $('#id_0-voicebot_trunk').closest('.form-group');
         var voicebot_extension_field = $('#id_0-voicebot_extension').closest('.form-group');
+        var voicebot_transport_input = $('#id_0-voicebot_transport');
         var voicebot_trunk_input = $('#id_0-voicebot_trunk');
         var voicebot_extension_input = $('#id_0-voicebot_extension');
 
+        voicebot_transport_field.hide();
         voicebot_trunk_field.hide();
         voicebot_extension_field.hide();
+        voicebot_transport_input.prop('disabled', true);
         voicebot_trunk_input.prop('disabled', true);
         voicebot_extension_input.prop('disabled', true);
 
@@ -37,15 +41,39 @@
             update_voicebot_extra_visibility();
         });
 
+        voicebot_transport_input.change(update_voicebot_extra_visibility);
+
+        function isAudioSocketTransport() {
+            return voicebot_transport_input.val() === 'audiosocket';
+        }
+
+        function clearSipVoicebotFields() {
+            voicebot_trunk_input.val('');
+            voicebot_extension_input.val('');
+        }
+
         function update_voicebot_extra_visibility() {
             if (rol_select.val() == AGENTE_ROL_ID && voicebot_checkbox.is(':checked')) {
-                voicebot_trunk_field.show();
-                voicebot_extension_field.show();
-                voicebot_trunk_input.prop('disabled', false);
-                voicebot_extension_input.prop('disabled', false);
+                voicebot_transport_field.show();
+                voicebot_transport_input.prop('disabled', false);
+                if (isAudioSocketTransport()) {
+                    clearSipVoicebotFields();
+                    voicebot_trunk_field.hide();
+                    voicebot_extension_field.hide();
+                    voicebot_trunk_input.prop('disabled', true);
+                    voicebot_extension_input.prop('disabled', true);
+                } else {
+                    voicebot_trunk_field.show();
+                    voicebot_extension_field.show();
+                    voicebot_trunk_input.prop('disabled', false);
+                    voicebot_extension_input.prop('disabled', false);
+                }
             } else {
+                clearSipVoicebotFields();
+                voicebot_transport_field.hide();
                 voicebot_trunk_field.hide();
                 voicebot_extension_field.hide();
+                voicebot_transport_input.prop('disabled', true);
                 voicebot_trunk_input.prop('disabled', true);
                 voicebot_extension_input.prop('disabled', true);
             }
@@ -65,8 +93,10 @@
                 grupo_field.hide();
                 sip_remote_field.hide();
                 voicebot_field.hide();
+                voicebot_transport_field.hide();
                 voicebot_trunk_field.hide();
                 voicebot_extension_field.hide();
+                voicebot_transport_input.prop('disabled', true);
                 voicebot_trunk_input.prop('disabled', true);
                 voicebot_extension_input.prop('disabled', true);
             }

@@ -53,12 +53,27 @@ class BackgroundTasksConsumerWorker(SyncConsumer, *BACKGROUND_TASKS_MIXINS):
 
     @database_sync_to_async
     def dispatch(self, message):
+        msg_type = message.get("type")
+        task_id = message.get("task_id")
+        user_id = (message.get("requester") or {}).get("user_id")
         handler = getattr(self, get_handler_name(message), None)
         if handler:
+            logger.info(
+                "tarea recibida type=%s task_id=%s user_id=%s",
+                msg_type, task_id, user_id,
+            )
             try:
                 handler(message)
             except Exception:
-                logger.exception(message)
+                logger.exception(
+                    "tarea fallida type=%s task_id=%s user_id=%s",
+                    msg_type, task_id, user_id,
+                )
+            else:
+                logger.info(
+                    "tarea completada type=%s task_id=%s user_id=%s",
+                    msg_type, task_id, user_id,
+                )
         else:
             raise ValueError("No handler for message type %s" % message["type"])
 

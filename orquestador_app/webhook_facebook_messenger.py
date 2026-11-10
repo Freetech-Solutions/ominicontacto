@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+import json
+import logging
+
 from django.http import HttpResponse
 from rest_framework import status
 from rest_framework.views import APIView
@@ -24,6 +27,8 @@ from ominicontacto_app.services.redis.redis_streams import RedisStreams
 from facebook_meta_app.models import PaginaMetaFacebook
 from orquestador_app.meta_webhook_signature import verify_meta_webhook_signature
 
+logger = logging.getLogger(__name__)
+
 
 class WebhookFacebookMessengerView(APIView):
     permission_classes = [AllowAny]
@@ -31,6 +36,16 @@ class WebhookFacebookMessengerView(APIView):
     def dispatch(self, request, *args, **kwargs):
         self.redis_stream = RedisStreams()
         return super(WebhookFacebookMessengerView, self).dispatch(request, *args, **kwargs)
+
+    def _get_page_from_payload(self, payload, app_id):
+        entries = payload.get('entry', []) if isinstance(payload, dict) else []
+        page_id = entries[0].get('id') if entries else None
+        if page_id:
+            page = PaginaMetaFacebook.objects.filter(
+                page_id=page_id, is_active=True).first()
+            if page:
+                return page
+        return PaginaMetaFacebook.objects.filter(app_id=app_id, is_active=True).first()
 
     def get(self, request, app_id):
         try:
@@ -47,16 +62,26 @@ class WebhookFacebookMessengerView(APIView):
             else:
                 return HttpResponse(challenge, status=status.HTTP_200_OK)
         except Exception as e:
-            print("Error en webhook facebook messenger: {}".format(e))
+            logger.exception("Error en webhook facebook messenger: %s", e)
             return HttpResponse(challenge, status=status.HTTP_403_FORBIDDEN)
 
     def post(self, request, app_id):
-        pagina = PaginaMetaFacebook.objects.filter(app_id=app_id).first()
+        try:
+            payload = json.loads(request.body.decode('utf-8'))
+        except ValueError:
+            logger.warning("Webhook Facebook: payload JSON invalido app_id=%s", app_id)
+            return HttpResponse(status=status.HTTP_200_OK)
+
+        pagina = self._get_page_from_payload(payload, app_id)
         app_secret = pagina.app_secret if pagina else None
         if not verify_meta_webhook_signature(
                 request, app_secret, app_id, 'Facebook'):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
+        if pagina is None:
+            logger.warning(
+                "Webhook Facebook: no se encontro pagina activa app_id=%s", app_id)
+            return HttpResponse(status=status.HTTP_200_OK)
 
-        stream_name = 'facebook_meta_webhook_page_{}'.format(app_id)
-        self.redis_stream.write_stream(stream_name, request.body, max_stream_length=100000)
+        self.redis_stream.write_stream(
+            pagina.get_stream_name, request.body, max_stream_length=100000)
         return HttpResponse(status=status.HTTP_200_OK)

@@ -22,10 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
-    help = 'Unregister Redis Gears Registrations'
+    help = (
+        'Unregister legacy RedisGears registrations if the module is present '
+        '(no-op on Redis Stack without RedisGears v1)'
+    )
 
     def handle(self, *args, **options):
-
         try:
             self._delete_registrations()
         except Exception as e:
@@ -40,14 +42,22 @@ class Command(BaseCommand):
             ('OML:SUPERVISION_DIALER:*', 'sup_dialers'),
         ]
         self.conn = create_redis_connection()
+        try:
+            self.conn.execute_command('RG.DUMPREGISTRATIONS')
+        except Exception:
+            self.stdout.write(
+                'RedisGears no disponible; nada que desregistrar (OK en Redis Stack).'
+            )
+            return
+
         for redis_key, desc in subscriptions:
-            id = self._id_registration(redis_key, desc)
-            if id is not None:
+            reg_id = self._id_registration(redis_key, desc)
+            if reg_id is not None:
                 try:
-                    res = self.conn.execute_command(f'RG.UNREGISTER {id}')
-                    logger.warning(f'Deleting {desc}: {res}')
+                    res = self.conn.execute_command('RG.UNREGISTER', reg_id)
+                    logger.warning('Deleting %s: %s', desc, res)
                 except Exception as e:
-                    logger.warning(f'Error Deleting {desc}: {e}')
+                    logger.warning('Error Deleting %s: %s', desc, e)
 
     def _id_registration(self, redis_key, desc):
         REGISTRATION_DATA = 7
@@ -55,8 +65,11 @@ class Command(BaseCommand):
         REGEX = 1
         DESCRIPTION = 5
         ID = 1
-        lista_eventos_registrados = self.conn.execute_command("RG.DUMPREGISTRATIONS")
+        lista_eventos_registrados = self.conn.execute_command('RG.DUMPREGISTRATIONS')
         for evento in lista_eventos_registrados:
-            if evento[REGISTRATION_DATA][ARGS][REGEX] == redis_key and evento[DESCRIPTION] == desc:
+            if (
+                evento[REGISTRATION_DATA][ARGS][REGEX] == redis_key
+                and evento[DESCRIPTION] == desc
+            ):
                 return evento[ID]
-        return
+        return None

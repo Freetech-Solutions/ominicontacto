@@ -32,7 +32,7 @@ from utiles_globales import AddSettingsContextMixin
 from ominicontacto_app.forms.base import GrupoAgenteForm
 
 from ominicontacto_app.models import Campana, Grupo, AgenteProfile
-from supervision_app.services.redisgears_service import RedisGearsService
+from supervision_app.services.supervision_stream_service import SupervisionStreamService
 from supervision_app.services.voicebot_calls import get_voicebot_active_call_rows
 from ominicontacto_app.services.dialer import get_dialer_service, wombat_habilitado
 from ominicontacto_app.services.dialer.omnidialer import (
@@ -98,8 +98,8 @@ class SupervisionAgentesView(AddSettingsContextMixin, TemplateView):
         context['sip_password'] = sip_password
         context['supervisor_id'] = supervisor.id
 
-        RedisGearsService().registra_stream_supervisor(supervisor.id)
-        RedisGearsService().registra_stream_supervisor_voicebots(supervisor.id)
+        SupervisionStreamService().registra_stream_supervisor(supervisor.id)
+        SupervisionStreamService().registra_stream_supervisor_voicebots(supervisor.id)
         return context
 
 
@@ -156,7 +156,7 @@ class SupervisionCampanasEntrantesView(TemplateView):
         context['nombres_campanas'] = ",".join([x.nombre for x in campanas])
         context['campanas_ids'] = ",".join([str(x.id) for x in campanas])
         context['campanas'] = {x.id: {'name': x.nombre, 'target': x.objetivo} for x in campanas}
-        RedisGearsService().registra_stream_supervisor_entrantes(
+        SupervisionStreamService().registra_stream_supervisor_entrantes(
             supervisor.id, context['campanas_ids'], context['campanas'])
         return context
 
@@ -203,7 +203,7 @@ class SupervisionCampanasDialerView(TemplateView):
         context['wombat_enabled'] = wombat_habilitado()
 
         # TODO: Datos de Agente por ahora sigue igual
-        RedisGearsService().registra_stream_supervisor_dialers(supervisor.id)
+        SupervisionStreamService().registra_stream_supervisor_dialers(supervisor.id)
         return context
 
 
@@ -324,7 +324,7 @@ def _enrich_contact_center_supervisor_context(context, request_user):
         sip_password = kamailio_service.generar_sip_password(sip_usuario)
         context['sip_usuario'] = sip_usuario
         context['sip_password'] = sip_password
-        RedisGearsService().registra_stream_supervisor(supervisor.id)
+        SupervisionStreamService().registra_stream_supervisor(supervisor.id)
     except Exception:
         context['supervisor_id'] = None
         context['sip_usuario'] = ''

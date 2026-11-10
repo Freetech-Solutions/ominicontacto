@@ -32,10 +32,22 @@ class StreamDePaginas(object):
         RedisStreams().write_stream(NOMBRE_STREAM, page.id)
 
     def regenerar_stream(self):
+        """
+        Seed the master stream only when empty.
+
+        Flushing on every orchestrator start makes peers re-read all page ids,
+        cancel in-flight slave tasks and leave unacked messages in the PEL.
+        """
         stream_manager = RedisStreams()
+        try:
+            if stream_manager.connection.xlen(NOMBRE_STREAM) > 0:
+                return False
+        except Exception:
+            pass
         stream_manager.flush(NOMBRE_STREAM)
         for page in PaginaMetaFacebook.objects_default.all():
             if page.is_active:
                 self.notificar_nueva_page(page)
             else:
                 self.notificar_page_eliminada(page)
+        return True

@@ -1002,16 +1002,18 @@ function registerContactCenterDashboard() {
                 this._pollingAbortController = new AbortController();
                 this._isPolling = true;
 
-                // Con stream activo: solo métricas de campaña/bots (agentes vivos van por WS)
-                const tasks = this.streamEnabled
-                    ? [this.fetchLlamadas(), this.fetchBotsCampana()]
-                    : [
-                        this.fetchAgentes(),
-                        this.fetchAgentesLista(),
-                        this.fetchLlamadas(),
-                        this.fetchBotsCampana(),
-                    ];
-                
+                // Con stream activo: agentes vivos van por WS.
+                // Con WS discador vivo + campaña dialer: estado/métricas discador van por omnidialer
+                // (REST solo snapshot/resync; ver shouldSkipLlamadasRestPoll).
+                const tasks = [];
+                if (!this.streamEnabled) {
+                    tasks.push(this.fetchAgentes(), this.fetchAgentesLista());
+                }
+                if (!this.shouldSkipLlamadasRestPoll()) {
+                    tasks.push(this.fetchLlamadas());
+                }
+                tasks.push(this.fetchBotsCampana());
+
                 // Ejecutar las funciones en paralelo
                 Promise.all(tasks).catch(error => {
                     // Solo loguear si no fue cancelado intencionalmente
@@ -1634,6 +1636,14 @@ function registerContactCenterDashboard() {
          */
         shouldProtectDialerFromRest() {
             return !!(this.dialerWsEnabled && this._dialerWsConnected && !this._dialerNeedsRestResync);
+        },
+
+        /**
+         * Omitir GET periódico de llamadas/estado discador: WS omnidialer activo
+         * y campaña seleccionada es dialer (no congelar REST en campañas no-dialer).
+         */
+        shouldSkipLlamadasRestPoll() {
+            return this.shouldProtectDialerFromRest() && this.isSelectedCampaignDialer();
         },
 
         isSelectedCampaignDialer() {

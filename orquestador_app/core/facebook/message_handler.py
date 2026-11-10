@@ -8,6 +8,9 @@ async def facebook_messenger_handler_messages(page, payloads):
     try:
         expire = None
         for entry in payloads['entry']:
+            # Ignore events for another Page that landed on a shared/wrong stream.
+            if str(entry.get('id', '')) != str(page.page_id):
+                continue
             for messaging_event in entry['messaging']:
                 timestamp = datetime.fromtimestamp(
                     int(messaging_event['timestamp']) / 1000,

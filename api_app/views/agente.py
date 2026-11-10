@@ -152,12 +152,7 @@ class ApiCalificacionClienteView(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         """Actualizar resumen después de crear calificación"""
         calificacion = serializer.save()
-        try:
-            from reportes_app.services.llamada_resumen import LlamadaResumenService
-            LlamadaResumenService().actualizar_desde_calificacion(calificacion)
-        except Exception:
-            # No fallar la calificación si falla la actualización del resumen
-            pass
+        _post_calificacion_api_hooks(calificacion)
 
     def perform_update(self, serializer):
         """Actualizar resumen después de actualizar calificación"""
@@ -170,6 +165,23 @@ class ApiCalificacionClienteView(viewsets.ModelViewSet):
             pass
 
 
+def _post_calificacion_api_hooks(calificacion):
+    """Resumen + CallContactCache (handoff voicebot con id_contacto=-1)."""
+    try:
+        from reportes_app.services.llamada_resumen import LlamadaResumenService
+        LlamadaResumenService().actualizar_desde_calificacion(calificacion)
+    except Exception:
+        pass
+    try:
+        from ominicontacto_app.services.redis.call_contact_cache import CallContactCache
+        callid = getattr(calificacion, 'callid', None)
+        contacto = getattr(calificacion, 'contacto', None)
+        if callid and contacto is not None:
+            CallContactCache.link_call_to_contact(callid, contacto.id)
+    except Exception:
+        pass
+
+
 class ApiCalificacionClienteCreateView(viewsets.ModelViewSet):
     """Vista que permite crear una calificación"""
     permission_classes = (TienePermisoOML, )
@@ -178,14 +190,9 @@ class ApiCalificacionClienteCreateView(viewsets.ModelViewSet):
     http_method_names = ['post']
 
     def perform_create(self, serializer):
-        """Actualizar resumen después de crear calificación"""
+        """Guardar calificación, resumen y vínculo callid→contacto."""
         calificacion = serializer.save()
-        try:
-            from reportes_app.services.llamada_resumen import LlamadaResumenService
-            LlamadaResumenService().actualizar_desde_calificacion(calificacion)
-        except Exception:
-            # No fallar la calificación si falla la actualización del resumen
-            pass
+        _post_calificacion_api_hooks(calificacion)
 
 
 class API_ObtenerContactosCampanaView(APIView):

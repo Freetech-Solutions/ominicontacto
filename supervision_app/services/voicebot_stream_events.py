@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Lógica pura para eventos de stream voicebot (upsert/delete por llamada).
-Usada en tests; el gear RedisGears replica esta lógica inline.
+Usada por SupervisionStreamService y tests.
 """
 
 from __future__ import unicode_literals
@@ -9,6 +9,11 @@ from __future__ import unicode_literals
 import json
 
 VOICEBOT_SNAPSHOT_KEY = 'OML:GEAR:VB-SNAPSHOT:{agent_id}'
+# Serializa register/unregister/scheduler sobre el mismo agente (H2).
+VOICEBOT_FANOUT_LOCK_KEY = 'OML:LOCK:VB-FANOUT:{agent_id}'
+VOICEBOT_FANOUT_LOCK_TTL = 5
+VOICEBOT_FANOUT_LOCK_RETRIES = 40
+VOICEBOT_FANOUT_LOCK_SLEEP = 0.05
 
 
 def agent_id_from_active_calls_key(key):

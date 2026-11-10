@@ -269,6 +269,14 @@ class CampanaWizardMixin(object):
         CONFIGURACION_EMAIL: mostrar_form_configuracion_email_form,
     }
 
+    def post(self, *args, **kwargs):
+        # formtools>=2.6 hace `del self._resolved_form_list` tras un step válido.
+        # Nuestros get_form custom (COLA / PARAMETROS_CRM) usan self.form_list
+        # directo y nunca crean ese atributo → AttributeError.
+        self.__dict__.setdefault('_resolved_form_list', None)
+        self.__dict__.setdefault('_cache_signature', None)
+        return super().post(*args, **kwargs)
+
     def get_template_names(self):
         return [self.TEMPLATES[self.steps.current]]
 

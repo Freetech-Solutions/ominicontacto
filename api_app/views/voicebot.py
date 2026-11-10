@@ -407,6 +407,16 @@ class VoicebotWebhookView(APIView):
             payload_agenda = intentar_anexar_summary_a_agenda_previa(
                 contacto, campana, call_summary, LOG_LABEL)
             if payload_agenda is not None:
+                try:
+                    from ominicontacto_app.services.redis.call_contact_cache import (
+                        CallContactCache,
+                    )
+                    CallContactCache.link_call_to_contact(call_id_acd, contacto.id)
+                except Exception:
+                    logger.exception(
+                        'Voicebot: CallContactCache (agenda) callid=%s',
+                        call_id_acd,
+                    )
                 return Response(
                     data={
                         'status': 'SUCCESS',
@@ -456,6 +466,21 @@ class VoicebotWebhookView(APIView):
                     'comments': calificacion.observaciones,
                     'fecha': calificacion.fecha.isoformat() if calificacion.fecha else None,
                 }
+
+                # Handoff: agente humano llega con id_contacto=-1 en call_data;
+                # calificar_llamada usa este cache para abrir el contacto correcto.
+                try:
+                    from ominicontacto_app.services.redis.call_contact_cache import (
+                        CallContactCache,
+                    )
+                    CallContactCache.link_call_to_contact(
+                        call_id_acd, calificacion.contacto.id
+                    )
+                except Exception:
+                    logger.exception(
+                        'Voicebot: no se pudo asociar CallContactCache callid=%s',
+                        call_id_acd,
+                    )
 
                 calificacion_nombre_voicebot = _calificacion_nombre_voicebot()
                 if opcion_calificacion.nombre == calificacion_nombre_voicebot:

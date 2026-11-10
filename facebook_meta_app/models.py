@@ -84,7 +84,8 @@ class PaginaMetaFacebook(models.Model):
 
     @property
     def get_stream_name(self):
-        return 'facebook_meta_webhook_page_{}'.format(self.app_id)
+        # Per Facebook Page id (not Meta app_id): one app may own many pages.
+        return 'facebook_meta_webhook_page_{}'.format(self.page_id)
 
     def __str__(self):
         return f"{self.name} (Page: {self.page_id})"

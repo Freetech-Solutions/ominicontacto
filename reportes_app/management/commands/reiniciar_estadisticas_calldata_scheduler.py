@@ -29,13 +29,18 @@ from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.triggers.cron import CronTrigger
 
 from ominicontacto_app.services.redis.connection import create_redis_connection
+from ominicontacto_app.services.redis.ha_lock import run_once
 from reportes_app.services.redis.call_data_generation import CallDataGenerator
 from reportes_app.services.redis.disposition_cache import CampaignDispositionsCache
 
 logger = logging.getLogger(__name__)
 
+CALLDATA_RESET_INTERVAL_SEC = 86400
+# DONE/lock must cover the full daily slot so a late peer cannot re-run it.
+CALLDATA_RESET_TTL_SEC = CALLDATA_RESET_INTERVAL_SEC
 
-def reiniciar_estadisticas_calldata():
+
+def _reiniciar_estadisticas_calldata_body():
     """
     Reinicia valores de calldata al comenzar nuevo día.
     Esta función se ejecuta diariamente a medianoche mediante APScheduler.
@@ -54,6 +59,16 @@ def reiniciar_estadisticas_calldata():
         logger.info("Reinicio de estadísticas calldata completado exitosamente")
     except Exception as e:
         logger.error(f'Fallo al reiniciar estadísticas calldata: {e}', exc_info=True)
+
+
+def reiniciar_estadisticas_calldata():
+    slot = int(time.time()) // CALLDATA_RESET_INTERVAL_SEC
+    run_once(
+        'reiniciar-estadisticas-calldata',
+        slot,
+        CALLDATA_RESET_TTL_SEC,
+        _reiniciar_estadisticas_calldata_body,
+    )
 
 
 class Command(BaseCommand):

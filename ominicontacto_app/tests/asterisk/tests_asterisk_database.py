@@ -58,7 +58,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         dict_campana = servicio._create_dict(self.campana_entrante)
 
         keys_asterisk = ['QNAME', 'TYPE', 'REC', 'AMD', 'CALLAGENTACTION',
-                         'RINGTIME', 'QUEUETIME', 'MAXQCALLS', 'SL', 'TC',
+                         'RINGTIME', 'QUEUETIME', 'MAXQCALLS', 'SL', 'WEIGHT', 'TC',
                          'IDJSON', 'PERMITOCCULT', 'MAXCALLS', 'FAILOVER']
         for key in keys_asterisk:
             self.assertIn(key, dict_campana.keys())
@@ -95,6 +95,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_campana['QUEUETIME'], self.campana_entrante.queue_campana.wait)
         self.assertEqual(dict_campana['MAXQCALLS'], self.campana_entrante.queue_campana.maxlen)
         self.assertEqual(dict_campana['SL'], self.campana_entrante.queue_campana.servicelevel)
+        self.assertEqual(dict_campana['WEIGHT'], self.campana_entrante.queue_campana.weight)
         audio = "{0}{1}".format(
             settings.OML_AUDIO_FOLDER,
             self.campana_entrante.queue_campana.audio_de_ingreso.get_filename_audio_asterisk())
@@ -132,6 +133,7 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_campana['QUEUETIME'], self.campana_dialer.queue_campana.wait)
         self.assertEqual(dict_campana['MAXQCALLS'], self.campana_dialer.queue_campana.maxlen)
         self.assertEqual(dict_campana['SL'], self.campana_dialer.queue_campana.servicelevel)
+        self.assertEqual(dict_campana['WEIGHT'], self.campana_dialer.queue_campana.weight)
         audio = "{0}{1}".format(
             settings.OML_AUDIO_FOLDER,
             self.campana_dialer.queue_campana.audio_para_contestadores.
@@ -206,6 +208,31 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_agente['NAME'], self.agente.user.get_full_name())
         self.assertEqual(dict_agente['SIP'], self.agente.sip_extension)
         self.assertEqual(dict_agente['STATUS'], "")
+
+    def test_create_dict_voicebot_sip_incluye_voicebot_addr(self):
+        from ominicontacto_app.models import AgenteProfile
+        troncal = TroncalSIPFactory(nombre='vb-trunk')
+        self.agente.voicebot = True
+        self.agente.voicebot_transport = AgenteProfile.VOICEBOT_TRANSPORT_SIP
+        self.agente.voicebot_trunk = troncal
+        self.agente.voicebot_extension = 1066
+        servicio = AgenteFamily()
+        dict_agente = servicio._create_dict(self.agente)
+        self.assertEqual(dict_agente['VOICEBOT'], '1')
+        self.assertEqual(dict_agente['VOICEBOT_TRANSPORT'], 'sip')
+        self.assertEqual(dict_agente['VOICEBOT_ADDR'], '1066@vb-trunk')
+
+    def test_create_dict_voicebot_audiosocket_sin_voicebot_addr(self):
+        from ominicontacto_app.models import AgenteProfile
+        self.agente.voicebot = True
+        self.agente.voicebot_transport = AgenteProfile.VOICEBOT_TRANSPORT_AUDIOSOCKET
+        self.agente.voicebot_trunk = None
+        self.agente.voicebot_extension = None
+        servicio = AgenteFamily()
+        dict_agente = servicio._create_dict(self.agente)
+        self.assertEqual(dict_agente['VOICEBOT'], '1')
+        self.assertEqual(dict_agente['VOICEBOT_TRANSPORT'], 'audiosocket')
+        self.assertNotIn('VOICEBOT_ADDR', dict_agente)
 
     def test_devuelve_correctamente_values_ruta(self):
         """

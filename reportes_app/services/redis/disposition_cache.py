@@ -16,18 +16,22 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
-import json
 import logging as _logging
+import uuid
 from datetime import date
 from redis.exceptions import RedisError
 from ominicontacto_app.services.redis.connection import create_redis_connection
+from ominicontacto_app.services.redis.redis_streams import (
+    STREAM_DISPOSITIONEVENTS,
+    RedisStreams,
+    event_stream_maxlen,
+)
 from ominicontacto_app.models import CalificacionCliente
 from ominicontacto_app.models import OpcionCalificacion
 from django.db import models
 
 logger = _logging.getLogger(__name__)
 
-DISPOSITIONS_EVENTS_CHANNEL = 'OML:CHANNEL:DISPOSITIONEVENTS'
 DISPOSITIONDATA_CAMP_KEY = 'OML:DISPOSITIONDATA:CAMP:{0}'
 
 
@@ -53,6 +57,7 @@ class CampaignDispositionsCache:
                 'id': campaign_id,
                 'type': 'DISPOSITION',
                 'has_previous_different': has_previous_different,
+                'uuid': uuid.uuid4().hex,
             })
         except RedisError as e:
             logger.error("Redis record_disposition error: %s", e)
@@ -88,6 +93,11 @@ class CampaignDispositionsCache:
 
     def _notify_dispositiondata_event(self, event_data):
         try:
-            self.redis_connection.publish(DISPOSITIONS_EVENTS_CHANNEL, json.dumps(event_data))
+            streams = RedisStreams(connection=self.redis_connection)
+            streams.write_event(
+                STREAM_DISPOSITIONEVENTS,
+                event_data,
+                max_stream_length=event_stream_maxlen(),
+            )
         except RedisError as e:
             logger.error("Redis _notify_dispositiondata_event error: %s", e)

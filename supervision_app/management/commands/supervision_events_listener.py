@@ -16,61 +16,80 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+import asyncio
 import json
 import logging
+import sys
 
 from django.core.management.base import BaseCommand
-from ominicontacto_app.services.redis.connection import create_redis_connection
-from supervision_app.services.events_management import SupervisionEventManager
-from ominicontacto_app.services.dialer import wombat_habilitado
 
-from asyncio import get_event_loop
-from orquestador_app.core.asyncio import create_task
-# AGENT_EVENTS_CHANNEL = 'OML:CHANNEL:AGENTEVENTS'
-CALL_EVENTS_CHANNEL = 'OML:CHANNEL:CALLEVENTS'
-DISPOSITIONS_EVENTS_CHANNEL = 'OML:CHANNEL:DISPOSITIONEVENTS'
-OMNIDIALER_EVENTS_CHANNEL = 'OML:CHANNEL:DIALER'
+from ominicontacto_app.services.dialer import wombat_habilitado
+from ominicontacto_app.services.redis.connection import create_redis_connection
+from ominicontacto_app.services.redis.event_stream_consumer import (
+    EventStreamConsumer,
+    create_async_redis,
+)
+from ominicontacto_app.services.redis.redis_streams import (
+    GROUP_SUPERVISION_EVENTS,
+    STREAM_CALLEVENTS,
+    STREAM_DIALER,
+    STREAM_DISPOSITIONEVENTS,
+)
+from supervision_app.services.events_management import SupervisionEventManager
+
 logger = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
 
-    help = 'Atiende eventos de varios canales para actualizar datos de Supervision'
+    help = (
+        'Atiende streams Redis (CALLEVENTS / DISPOSITIONEVENTS / DIALER) '
+        'para actualizar datos de Supervisión'
+    )
 
-    async def manage_events(self, channels, redis_connection, loop):
-        event_manager = SupervisionEventManager(redis_connection)
-        # Subscribe to a channel
-        pubsub = redis_connection.pubsub(ignore_subscribe_messages=True)
+    async def _run(self):
+        redis_sync = create_redis_connection(db=2)
+        event_manager = SupervisionEventManager(redis_sync)
+        redis_async = create_async_redis(db=2)
+        await redis_async.ping()
 
-        pubsub.subscribe(channels)
-        print("Subscribe channels: ", channels)
+        streams = [STREAM_CALLEVENTS, STREAM_DISPOSITIONEVENTS]
+        if not wombat_habilitado():
+            streams.append(STREAM_DIALER)
 
-        # Listen for messages indefinitely
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                message_data = message['data']
-                try:
-                    event_data = json.loads(message_data)
-                    await event_manager.manage_event(event_data)
-                except Exception as e:
-                    logging.error(e, exc_info=True)
+        def _on_event(stream_name):
+            async def on_event(event_data):
+                logger.info(
+                    'evento procesado stream=%s payload=%s',
+                    stream_name,
+                    json.dumps(event_data, default=str, ensure_ascii=False),
+                )
+                await event_manager.manage_event(event_data)
+            return on_event
 
-    async def subscribe_channels(self, channels, redis, loop):
-        create_task(loop, await self.manage_events(channels, redis, loop))
+        consumers = [
+            EventStreamConsumer(
+                redis_async,
+                stream_name,
+                GROUP_SUPERVISION_EVENTS,
+                _on_event(stream_name),
+            )
+            for stream_name in streams
+        ]
+        logger.info(
+            'supervision_events_listener streams=%s group=%s',
+            streams, GROUP_SUPERVISION_EVENTS,
+        )
+        try:
+            await asyncio.gather(*[c.run() for c in consumers])
+        finally:
+            for consumer in consumers:
+                consumer.stop()
+            await redis_async.aclose()
 
     def handle(self, *args, **options):
         try:
-            # Connect to Redis server
-            redis_connection = create_redis_connection(db=2)
-            loop = get_event_loop()
-            try:
-                channels = [CALL_EVENTS_CHANNEL, DISPOSITIONS_EVENTS_CHANNEL, ]
-                # Assumo que si no se usa Wombat, se usa OMniDialer
-                if not wombat_habilitado():
-                    channels.append(OMNIDIALER_EVENTS_CHANNEL)
-                loop.run_until_complete(self.subscribe_channels(channels, redis_connection, loop))
-            finally:
-                loop.run_until_complete(loop.shutdown_asyncgens())
-                loop.close()
+            asyncio.run(self._run())
         except Exception as e:
-            logger.error('Fallo del comando: {0}'.format(e))
+            logger.error('Fallo del comando: {0}'.format(e), exc_info=True)
+            sys.exit(1)

@@ -983,8 +983,14 @@ class PhoneJSController {
         // Si se fuerza la calificación, y la llamada está calificada, versi ir a pausa o no
         if (this.click_2_call_dispatcher.disposition_forced && this.llamada_calificada){
             if (this.agent_config.force_unpause){
-                // El agente debe quedarse en Ready directamente
+                // El agente debe quedarse en Ready: sincronizar Redis (POSTCALL/ONCALL→READY)
                 this.llamada_calificada = null;
+                this.oml_api.asteriskReady(
+                    function() {},
+                    function() {
+                        console.log(gettext('No se pudo establecer READY tras force_unpause'));
+                    }
+                );
                 return;
             }
         }

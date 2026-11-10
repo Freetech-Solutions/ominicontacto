@@ -98,12 +98,13 @@ class WebhookGupshupView(APIView):
         linea = self._get_linea(identificador)
         if not self._verify_signature(request, linea):
             return HttpResponse(status=status.HTTP_403_FORBIDDEN)
+        if linea is None:
+            logger.warning(
+                "Webhook Gupshup: no se encontro Linea para app_id=%s", identificador)
+            return HttpResponse(status=status.HTTP_200_OK)
 
-        stream_name = 'whatsapp_webhook_gupshup_{}'.format(
-            identificador
-        )
         self.redis_stream.write_stream(
-            stream_name,
+            linea.get_stream_name,
             request.body,
             max_stream_length=settings.WHATSAPP_WEBHOOK_STREAM_MAXLEN,
         )
