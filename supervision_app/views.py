@@ -75,7 +75,7 @@ class SupervisionCampanasEntrantesView(TemplateView):
         context['campanas'] = ",".join([x.nombre for x in campanas])
         context['campanas_ids'] = ",".join([str(x.id) for x in campanas])
         RedisGearsService().registra_stream_supervisor_entrantes(
-            supervisor.id, context['campanas_ids'], context['campanas'])
+            supervisor.id, context['campanas_ids'])
         return context
 
 
@@ -97,7 +97,7 @@ class SupervisionCampanasSalientesView(TemplateView):
         context['campanas'] = ",".join([x.nombre for x in campanas])
         context['campanas_ids'] = ",".join([str(x.id) for x in campanas])
         RedisGearsService().registra_stream_supervisor_salientes(
-            supervisor.id, context['campanas_ids'], context['campanas'])
+            supervisor.id, context['campanas_ids'])
         return context
 
 
@@ -120,5 +120,5 @@ class SupervisionCampanasDialerView(TemplateView):
         context['campanas'] = ",".join([x.nombre for x in campanas])
         context['campanas_ids'] = ",".join([str(x.id) for x in campanas])
         RedisGearsService().registra_stream_supervisor_dialers(
-            supervisor.id, context['campanas_ids'], context['campanas'])
+            supervisor.id, context['campanas_ids'])
         return context
