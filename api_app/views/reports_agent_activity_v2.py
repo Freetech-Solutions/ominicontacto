@@ -44,12 +44,13 @@ from api_app.views.reports_agent_kpis_v2 import (
     _empty_availability,
     _empty_interactions,
 )
-from ominicontacto_app.models import AgenteProfile, Campana, Grupo
+from ominicontacto_app.models import AgenteProfile, Campana, Grupo, Pausa
 from ominicontacto_app.utiles import (
     convert_fecha_datetime,
     datetime_hora_minima_dia,
     datetime_hora_maxima_dia,
 )
+from reportes_app.services.agent_activity_session_source import _resolve_pause_display
 from reportes_app.services.agent_kpis_v2 import get_agent_activity_kpis_v2
 from reportes_app.services.agent_interactions_kpis import (
     get_agent_gestiones_count,
@@ -72,7 +73,98 @@ TODOS_LOS_GRUPOS_VALUE = '__all_groups__'
 ALLOWED_PAGE_SIZES = (10, 20, 30, 40, 50)
 
 
-def _item_to_flat_row(item):
+def _pause_column_key(pause_id=None, aux_code=None):
+    """Clave estable para columnas dinámicas de pausa."""
+    if pause_id is not None:
+        return 'pause_{}'.format(pause_id)
+    aux = aux_code or 'UNKNOWN'
+    return 'aux_{}'.format(aux)
+
+
+def _iter_pause_breakdown_items(rows_or_items):
+    """Itera ítems de pause_breakdown desde filas planas o ítems merged."""
+    for entry in rows_or_items or []:
+        breakdown = entry.get('pause_breakdown')
+        if breakdown is None:
+            av = entry.get('availability') or {}
+            breakdown = av.get('pause_breakdown') or []
+        for item in breakdown or []:
+            yield item
+
+
+def get_agents_activity_v2_pause_columns(rows):
+    """
+    Construye la lista de columnas de pausa para UI/CSV.
+    Base: pausas activas. Extra: pausas eliminadas o aux_code con segundos > 0
+    presentes en el breakdown del rango.
+    """
+    columns = []
+    seen_keys = set()
+
+    for pausa in Pausa.objects.activas().order_by('id'):
+        key = _pause_column_key(pause_id=pausa.id)
+        columns.append({
+            'key': key,
+            'name': pausa.nombre,
+            'pause_id': pausa.id,
+            'aux_code': None,
+        })
+        seen_keys.add(key)
+
+    extras = {}
+    for item in _iter_pause_breakdown_items(rows):
+        seconds = int(item.get('seconds') or 0)
+        if seconds <= 0:
+            continue
+        pause_id = item.get('pause_id')
+        aux_code = item.get('aux_code')
+        key = _pause_column_key(pause_id=pause_id, aux_code=aux_code)
+        if key in seen_keys:
+            continue
+        if key not in extras:
+            nombre, _tipo = _resolve_pause_display(pause_id, aux_code)
+            extras[key] = {
+                'key': key,
+                'name': nombre,
+                'pause_id': pause_id,
+                'aux_code': aux_code if pause_id is None else None,
+            }
+
+    # Orden: activas primero; extras por pause_id numérico y luego aux_code
+    def _extra_sort_key(col):
+        pid = col.get('pause_id')
+        if pid is not None:
+            try:
+                return (0, int(pid), '')
+            except (TypeError, ValueError):
+                return (0, 0, str(pid))
+        return (1, 0, str(col.get('aux_code') or ''))
+
+    for key in sorted(extras.keys(), key=lambda k: _extra_sort_key(extras[k])):
+        columns.append(extras[key])
+        seen_keys.add(key)
+
+    return columns
+
+
+def _map_pause_seconds_by_key(pause_breakdown, pause_columns):
+    """Mapea segundos de pause_breakdown a cada key de pause_columns (default 0)."""
+    by_key = {col['key']: 0 for col in (pause_columns or [])}
+    for item in pause_breakdown or []:
+        pause_id = item.get('pause_id')
+        aux_code = item.get('aux_code')
+        key = _pause_column_key(pause_id=pause_id, aux_code=aux_code)
+        seconds = int(item.get('seconds') or 0)
+        if key in by_key:
+            by_key[key] = by_key.get(key, 0) + seconds
+        else:
+            # Columna no listada aún (no debería ocurrir si pause_columns se
+            # construyó con los mismos rows); acumular por si acaso.
+            by_key[key] = by_key.get(key, 0) + seconds
+    return by_key
+
+
+def _item_to_flat_row(item, pause_columns=None):
     """
     Convierte un ítem con availability + interactions anidados al formato plano
     que espera el frontend (agents_activity_v2.js).
@@ -89,6 +181,7 @@ def _item_to_flat_row(item):
         round((float(transfer_count) / float(total_interactions)) * 100, 1)
         if total_interactions > 0 else 0.0
     )
+    pause_breakdown = av.get('pause_breakdown') or []
     return {
         'agent_id': item.get('agent_id'),
         'agent_name': item.get('agent_name', ''),
@@ -99,6 +192,8 @@ def _item_to_flat_row(item):
         'pause_pct': round(pause_ratio * 100, 1) if pause_ratio is not None else 0,
         'acw_seconds': av.get('acw_seconds') or 0,
         'acw_pct': round(acw_ratio * 100, 1) if acw_ratio is not None else 0,
+        'pause_breakdown': pause_breakdown,
+        'pause_seconds_by_key': _map_pause_seconds_by_key(pause_breakdown, pause_columns),
         'total_interactions': total_interactions,
         'inbound_count': inter.get('interactions_inbound') or 0,
         'outbound_count': inter.get('interactions_outbound') or 0,
@@ -162,7 +257,7 @@ def get_agents_activity_v2_flat_rows(date_start, date_end, allowed_agent_ids=Non
     since = datetime_hora_minima_dia(date_start)
     until = datetime_hora_maxima_dia(date_end)
     tz_name = getattr(settings, 'TIME_ZONE', None) or 'UTC'
-    include_pause_breakdown = False
+    include_pause_breakdown = True
     agent_ids_set = set(allowed_agent_ids) if allowed_agent_ids is not None else None
 
     availability_response = get_agent_activity_kpis_v2(
@@ -356,11 +451,16 @@ def get_agents_activity_v2_flat_rows(date_start, date_end, allowed_agent_ids=Non
             full_name = (ap.user.get_full_name() or ap.user.get_username() or '').strip()
             agent_names[ap.id] = full_name or 'Agente %s' % ap.id
 
+    # pause_columns se construye con el breakdown de availability antes de aplanar
+    pause_columns = get_agents_activity_v2_pause_columns(
+        [{'availability': merged[aid].get('availability') or {}} for aid in ordered_agent_ids]
+    )
+
     data = []
     for aid in ordered_agent_ids:
         item = merged[aid]
         item['agent_name'] = agent_names.get(item['agent_id'], 'Agente %s' % item['agent_id'])
-        data.append(_item_to_flat_row(item))
+        data.append(_item_to_flat_row(item, pause_columns=pause_columns))
     return data
 
 
@@ -557,6 +657,7 @@ class AgentsActivityV2ReportView(APIView):
                 date_end=date_end,
                 allowed_agent_ids=allowed_agent_ids,
             )
+            pause_columns = get_agents_activity_v2_pause_columns(all_rows)
         except Exception as e:
             err_body = {'error': str(e)}
             if getattr(settings, 'DEBUG', False):
@@ -575,6 +676,7 @@ class AgentsActivityV2ReportView(APIView):
         return Response({
             'group_by': 'agent',
             'data': data_page,
+            'pause_columns': pause_columns,
             'date_start': date_start.isoformat(),
             'date_end': date_end.isoformat(),
             'total_count': total_count,

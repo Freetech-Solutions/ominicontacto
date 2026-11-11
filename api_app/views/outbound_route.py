@@ -315,7 +315,9 @@ class OutboundRouteReorder(APIView):
                 ruta.orden = i
                 ruta.save()
                 i += 1
-            generar_y_recargar_archivos_conf_asterisk(self)
+            if not generar_y_recargar_archivos_conf_asterisk(self):
+                data['message'] = _('Se actualizo el orden de las rutas salientes pero no se pudo '
+                                    'cargar la configuración telefónica')
             return Response(data=data, status=status.HTTP_200_OK)
         except Exception:
             data['status'] = 'ERROR'

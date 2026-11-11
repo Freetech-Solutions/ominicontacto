@@ -98,7 +98,8 @@ class APITest(OMLBaseTest):
             'OutboundRoutesCreate': 'api_outbound_routes_create',
             'OutboundRoutesDetail': 'api_outbound_routes_detail',
             'OutboundRoutesUpdate': 'api_outbound_routes_update',
-            'OutboundRoutesDelete': 'api_outbound_routes_delete'
+            'OutboundRoutesDelete': 'api_outbound_routes_delete',
+            'OutboundRoutesReorder': 'api_outbound_routes_reorder'
         }
 
 
@@ -356,3 +357,20 @@ class RutasSalientesTest(APITest):
             response_json['message'],
             _('Se actualizo la ruta saliente '
               'de forma exitosa'))
+
+    @patch('configuracion_telefonia_app.regeneracion_configuracion_telefonia'
+           '.SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk'
+           '.regenerar_asterisk')
+    def test_reordenar_rutas_salientes_regenera_redis(self, regenerar_asterisk):
+        URL = reverse(self.urls_api['OutboundRoutesReorder'])
+        nuevo_orden = [self.ruta_saliente_con_campana.pk, self.ruta_saliente.pk]
+        response = self.client.put(
+            URL, json.dumps({'orden': nuevo_orden}),
+            format='json', content_type='application/json')
+        response_json = json.loads(response.content)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response_json['status'], 'SUCCESS')
+        regenerar_asterisk.assert_called_once_with()
+        self.ruta_saliente.refresh_from_db()
+        self.ruta_saliente_con_campana.refresh_from_db()
+        self.assertLess(self.ruta_saliente_con_campana.orden, self.ruta_saliente.orden)

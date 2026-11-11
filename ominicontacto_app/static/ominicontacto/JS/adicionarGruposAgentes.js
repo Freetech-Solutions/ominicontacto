@@ -21,7 +21,7 @@
  (queue_member)
 */
 
-/* global Urls */
+/* global Urls refreshAvailableMemberOptions */
 
 function eliminarPrimeraFilaVacia(data) {
     // esta función elimina la primera fila de la tabla una vez que se han
@@ -79,5 +79,8 @@ function asociarDatosRow(row) {
         if (count > 1) {
             row.find('.deleteFormset').click();
         }
+    }
+    if (typeof refreshAvailableMemberOptions === 'function') {
+        refreshAvailableMemberOptions();
     }
 }

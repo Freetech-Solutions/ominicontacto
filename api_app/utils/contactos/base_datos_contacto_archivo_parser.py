@@ -54,16 +54,37 @@ class BaseDatosContactoArchivoCSVParser(BaseDatosContactoArchivoParser):
 
     def __init__(self, nombre_archivo, archivo) -> None:
         BaseDatosContactoArchivoParser.__init__(self, nombre_archivo)
-        self.archivo_str = codecs.iterdecode(archivo, 'utf-8', errors='ignore')
+        self.archivo = archivo
+
+    def _seek_inicio(self) -> None:
+        if hasattr(self.archivo, 'seek'):
+            self.archivo.seek(0)
 
     def es_valida_extension(self) -> bool:
         return self.extension_archivo == ".csv"
 
     def es_valido_archivo(self) -> bool:
-        return csv.Sniffer().has_header(self.archivo_str.__str__())
+        self._seek_inicio()
+        sample = self.archivo.read(8192)
+        self._seek_inicio()
+        if isinstance(sample, bytes):
+            sample = sample.decode('utf-8', errors='ignore')
+        if not sample:
+            return False
+        try:
+            return csv.Sniffer().has_header(sample)
+        except csv.Error:
+            return False
 
     def headers_no_repetidos(self) -> bool:
-        headers = next(csv.reader(self.archivo_str))
+        self._seek_inicio()
+        archivo_str = codecs.iterdecode(self.archivo, 'utf-8', errors='ignore')
+        try:
+            headers = next(csv.reader(archivo_str))
+        except StopIteration:
+            self._seek_inicio()
+            return False
+        self._seek_inicio()
         headers_set = set([self._sanear_nombre_de_columna(x) for x in headers])
         self.columnas = headers_set
         return len(headers) == len(headers_set)

@@ -366,6 +366,10 @@ def _campanas_panel_dialer_queryset(request_user):
     return _campanas_panel_general_queryset(request_user).filter(type=Campana.TYPE_DIALER)
 
 
+# Edad máxima del snapshot PACING para considerarlo vivo (tick ~1s, TTL ~30s).
+PACING_STALL_AGE_SEC = 15
+
+
 def _empty_panel_dialer_estado():
     return {
         'estado_discador': {
@@ -376,6 +380,7 @@ def _empty_panel_dialer_estado():
             'attempted_calls': 0,
             'answered_pstn': 0,
             'answered_agent': 0,
+            'amd': 0,
             'conectadas_no_atendidas': 0,
             'estimadas': 0,
             'contactos_llamados': 0,
@@ -384,11 +389,154 @@ def _empty_panel_dialer_estado():
             'status': [],
             'p_hit': None,
             'p_hit_label': 'P_HIT (contactación)',
+            'p_hit_ratio': None,
         },
         'llamadas_discando': 0,
         'pacing': None,
         'show_pacing_section': False,
+        'pacing_age_seconds': None,
+        'pacing_up': 0,
+        'channels': {
+            'ringing': None,
+            'waiting_agent': None,
+            'oncall': None,
+            'calls': None,
+        },
+        'metrics': {
+            'hit_count': None,
+            'abandon_count': None,
+            'fail_count': None,
+            'tech_fail_count': None,
+            'drop_rate_ewma': None,
+            'p_hit_ratio': None,
+            'amd_time': None,
+        },
+        'dial_ratio_efectivo': None,
     }
+
+
+def _optional_redis_number(raw, key, as_float=False):
+    """Lee un campo de un hash Redis; None si falta o no parsea."""
+    if not raw or key not in raw:
+        return None
+    val = raw.get(key)
+    if val is None or val == '':
+        return None
+    if isinstance(val, bytes):
+        try:
+            val = val.decode('utf-8')
+        except Exception:
+            return None
+    try:
+        number = float(val)
+        return number if as_float else int(number)
+    except (TypeError, ValueError):
+        return None
+
+
+def _panel_dialer_channels(redis_dialer, campaign_id, pacing=None, calls=None):
+    """Embudo CAMP:{id}:CHANNELS (+ CALLS / fallback C_WAITING)."""
+    channels = {
+        'ringing': None,
+        'waiting_agent': None,
+        'oncall': None,
+        'calls': calls,
+    }
+    if not redis_dialer or not campaign_id:
+        if pacing and pacing.get('C_WAITING') is not None:
+            channels['waiting_agent'] = pacing.get('C_WAITING')
+        return channels
+    try:
+        raw = _normalize_redis_dict(
+            redis_dialer.hgetall(f'CAMP:{campaign_id}:CHANNELS') or {})
+    except Exception as e:
+        logger.warning(
+            'Error leyendo CHANNELS dialer para campaña %s: %s', campaign_id, e)
+        raw = {}
+    channels['ringing'] = _optional_redis_number(raw, 'RINGING')
+    channels['waiting_agent'] = _optional_redis_number(raw, 'WAITING_AGENT')
+    channels['oncall'] = _optional_redis_number(raw, 'ONCALL')
+    if channels['waiting_agent'] is None and pacing is not None:
+        channels['waiting_agent'] = pacing.get('C_WAITING')
+    return channels
+
+
+def _panel_dialer_metrics(redis_dialer, campaign_id, pacing=None):
+    """Muestra predictiva desde CAMP:{id}:METRICS (fallback HIT_COUNT de PACING)."""
+    metrics = {
+        'hit_count': None,
+        'abandon_count': None,
+        'fail_count': None,
+        'tech_fail_count': None,
+        'drop_rate_ewma': None,
+        'p_hit_ratio': None,
+        'amd_time': None,
+    }
+    raw = {}
+    if redis_dialer and campaign_id:
+        try:
+            raw = _normalize_redis_dict(
+                redis_dialer.hgetall(f'CAMP:{campaign_id}:METRICS') or {})
+        except Exception as e:
+            logger.warning(
+                'Error leyendo METRICS dialer para campaña %s: %s', campaign_id, e)
+            raw = {}
+    metrics['hit_count'] = _optional_redis_number(raw, 'HIT_COUNT')
+    metrics['abandon_count'] = _optional_redis_number(raw, 'ABANDON_COUNT')
+    metrics['fail_count'] = _optional_redis_number(raw, 'FAIL_COUNT')
+    metrics['tech_fail_count'] = _optional_redis_number(raw, 'TECH_FAIL_COUNT')
+    metrics['drop_rate_ewma'] = _optional_redis_number(
+        raw, 'DROP_RATE_EWMA', as_float=True)
+    metrics['p_hit_ratio'] = _optional_redis_number(
+        raw, 'P_HIT_RATIO', as_float=True)
+    metrics['amd_time'] = _optional_redis_number(raw, 'AMD_TIME', as_float=True)
+    if metrics['hit_count'] is None and pacing is not None:
+        metrics['hit_count'] = pacing.get('HIT_COUNT')
+    return metrics
+
+
+def _panel_dialer_pacing_health(pacing, now_ts=None):
+    """Edad del snapshot PACING y flag pacing_up (1 vivo / 0 stall)."""
+    if not pacing or pacing.get('TS') is None:
+        return None, 0
+    if now_ts is None:
+        now_ts = datetime.datetime.now().timestamp()
+    try:
+        age = max(0, int(now_ts) - int(pacing.get('TS')))
+    except (TypeError, ValueError):
+        return None, 0
+    pacing_up = 1 if age <= PACING_STALL_AGE_SEC else 0
+    return age, pacing_up
+
+
+def _panel_dialer_dial_ratio_efectivo(pacing):
+    """C_DIAL / A_FREE cuando hay agentes libres; None si no aplica."""
+    if not pacing:
+        return None
+    c_dial = pacing.get('C_DIAL')
+    a_free = pacing.get('A_FREE')
+    if c_dial is None or a_free is None:
+        return None
+    try:
+        a_free_f = float(a_free)
+        if a_free_f <= 0:
+            return None
+        return float(c_dial) / a_free_f
+    except (TypeError, ValueError):
+        return None
+
+
+def _panel_dialer_counter_amd(redis_dialer, campaign_id):
+    """Contador AMD desde CAMP:{id}:COUNTER (0 si falta, como el resto de KPIs)."""
+    if not redis_dialer or not campaign_id:
+        return 0
+    try:
+        raw = redis_dialer.hget(f'CAMP:{campaign_id}:COUNTER', 'AMD')
+        return _safe_int(raw, 0)
+    except Exception as e:
+        logger.warning(
+            'Error leyendo AMD dialer para campaña %s: %s', campaign_id, e)
+        return 0
 
 
 def _panel_dialer_estado_payload(campana):
@@ -438,6 +586,21 @@ def _panel_dialer_estado_payload(campana):
         })
 
     es_predictiva = _campana_es_predictiva(campana)
+    try:
+        pacing_ctx = _obtener_pacing_contexto(campana, dialer_service)
+    except Exception as e:
+        logger.error(
+            'Error pacing para panel dialer campana %s: %s', campana.id, e, exc_info=True,
+        )
+        pacing_ctx = {'pacing': None, 'show_pacing_section': False}
+
+    pacing = pacing_ctx.get('pacing')
+    pacing_age_seconds, pacing_up = _panel_dialer_pacing_health(pacing)
+    llamadas_discando = _safe_int(datos.get('canales_abiertos_pstn', 0), 0)
+    metrics = _panel_dialer_metrics(redis_dialer, campana.id, pacing=pacing)
+    channels = _panel_dialer_channels(
+        redis_dialer, campana.id, pacing=pacing, calls=llamadas_discando)
+
     estado = {
         'pending_initial': _safe_int(
             datos.get('estimadas_iniciales', legacy.get('pending_initial', 0)), 0),
@@ -452,6 +615,7 @@ def _panel_dialer_estado_payload(campana):
         'answered_pstn': _safe_int(
             datos.get('llamadas_conectadas', legacy.get('answered_pstn', 0)), 0),
         'answered_agent': _safe_int(legacy.get('answered_agent', 0), 0),
+        'amd': _panel_dialer_counter_amd(redis_dialer, campana.id),
         'conectadas_no_atendidas': _safe_int(datos.get('conectadas_no_atendidas', 0), 0),
         'estimadas': _safe_int(datos.get('estimadas', 0), 0),
         'contactos_llamados': _safe_int(contactos_llamados, 0),
@@ -464,21 +628,19 @@ def _panel_dialer_estado_payload(campana):
             'P_HIT (contactación)' if es_predictiva
             else 'P_HIT_RATIO (contactación)'
         ),
+        'p_hit_ratio': metrics.get('p_hit_ratio'),
     }
-
-    try:
-        pacing_ctx = _obtener_pacing_contexto(campana, dialer_service)
-    except Exception as e:
-        logger.error(
-            'Error pacing para panel dialer campana %s: %s', campana.id, e, exc_info=True,
-        )
-        pacing_ctx = {'pacing': None, 'show_pacing_section': False}
 
     return {
         'estado_discador': estado,
-        'llamadas_discando': _safe_int(datos.get('canales_abiertos_pstn', 0), 0),
-        'pacing': pacing_ctx.get('pacing'),
+        'llamadas_discando': llamadas_discando,
+        'pacing': pacing,
         'show_pacing_section': bool(pacing_ctx.get('show_pacing_section')),
+        'pacing_age_seconds': pacing_age_seconds,
+        'pacing_up': pacing_up,
+        'channels': channels,
+        'metrics': metrics,
+        'dial_ratio_efectivo': _panel_dialer_dial_ratio_efectivo(pacing),
     }
 
 
@@ -1113,6 +1275,9 @@ def _get_campaign_call_metrics(
         timeout = _safe_int(calldata.get('CALL_TYPE:3:EXIT_TIMEOUT', 0)) + _safe_int(
             calldata.get('CALL_TYPE:3:EXIT_HANDOFF_TIMEOUT', 0)
         )
+        overflow = _safe_int(calldata.get('CALL_TYPE:3:EXIT_OVERFLOW', 0))
+        # I6 aditivo: subset dialplan (IVR/TC/Survey/Hangup); desbordadas sigue siendo el total
+        overflow_dialplan = _safe_int(calldata.get('CALL_TYPE:3:FAILOVER_DIALPLAN', 0))
         exit_answered_human = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ANSWERED_HUMAN', 0))
         exit_answered_bot = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ANSWERED_BOT', 0))
         exit_answered_mix = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ANSWERED_MIX', 0))
@@ -1123,8 +1288,8 @@ def _get_campaign_call_metrics(
         else:
             atendidas = exit_answered  # Fallback para datos del sync
 
-        # Calcular total de entrantes como suma de abandonadas + timeout + atendidas
-        entrantes = abandonadas + timeout + atendidas
+        # Entrantes = abandonadas + timeout + atendidas + desbordes (flow-out ≠ expired)
+        entrantes = abandonadas + timeout + atendidas + overflow
 
         inbound = {
             'entrantes': entrantes,
@@ -1133,6 +1298,8 @@ def _get_campaign_call_metrics(
             'en_cola': 0,  # Se obtiene de QUEUE-SIZE
             'abandonadas': abandonadas,
             'timeout': timeout,
+            'desbordadas': overflow,
+            'desbordadas_dialplan': overflow_dialplan,
             'errores': 0,  # No disponible directamente, placeholder
         }
 
@@ -1929,6 +2096,7 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
     - llamadas_ofrecidas: Total de llamadas ofrecidas (entrantes)
     - llamadas_atendidas: Llamadas atendidas
     - llamadas_timeout: Llamadas que expiraron por timeout
+    - llamadas_desbordadas: Llamadas desbordadas por FAILOVER (flow-out)
     - llamadas_abandonadas: Llamadas abandonadas
     - tiempo_prom_abandono: Tiempo promedio de abandono en segundos
     - tiempo_prom_espera: Tiempo promedio de espera en segundos
@@ -2003,6 +2171,8 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
         llamadas_ofrecidas = 0
         llamadas_atendidas = 0
         llamadas_timeout = 0
+        llamadas_desbordadas = 0
+        llamadas_desbordadas_dialplan = 0
         llamadas_abandonadas = 0
         tiempo_prom_abandono = 0
         tiempo_prom_espera = 0
@@ -2024,6 +2194,10 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
             llamadas_timeout = _safe_int(calldata.get('CALL_TYPE:3:EXIT_TIMEOUT', 0)) + _safe_int(
                 calldata.get('CALL_TYPE:3:EXIT_HANDOFF_TIMEOUT', 0)
             )
+            llamadas_desbordadas = _safe_int(calldata.get('CALL_TYPE:3:EXIT_OVERFLOW', 0))
+            llamadas_desbordadas_dialplan = _safe_int(
+                calldata.get('CALL_TYPE:3:FAILOVER_DIALPLAN', 0)
+            )
             exit_answered_human = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ANSWERED_HUMAN', 0))
             exit_answered_bot = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ANSWERED_BOT', 0))
             exit_answered_mix = _safe_int(calldata.get('CALL_TYPE:3:EXIT_ANSWERED_MIX', 0))
@@ -2035,7 +2209,12 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
 
             # Llamadas ofrecidas = suma de todas las que entraron a la cola
             # Intentar obtener desde ENTERQUEUE, si no está disponible, usar suma
-            llamadas_ofrecidas = llamadas_atendidas + llamadas_abandonadas + llamadas_timeout
+            llamadas_ofrecidas = (
+                llamadas_atendidas
+                + llamadas_abandonadas
+                + llamadas_timeout
+                + llamadas_desbordadas
+            )
 
             # Intentar obtener desde ENTERQUEUE si está disponible
             try:
@@ -2080,6 +2259,8 @@ def _get_inbound_detalle_metrics(redis_agent_connection, redis_calldata_connecti
             'llamadas_ofrecidas': llamadas_ofrecidas,
             'llamadas_atendidas': llamadas_atendidas,
             'llamadas_timeout': llamadas_timeout,
+            'llamadas_desbordadas': llamadas_desbordadas,
+            'llamadas_desbordadas_dialplan': llamadas_desbordadas_dialplan,
             'llamadas_abandonadas': llamadas_abandonadas,
             'tiempo_prom_abandono': tiempo_prom_abandono,
             'tiempo_prom_espera': tiempo_prom_espera,
@@ -2140,6 +2321,8 @@ def dashboard_contact_center_inbound_detalle(request):
                 'llamadas_ofrecidas': 0,
                 'llamadas_atendidas': 0,
                 'llamadas_timeout': 0,
+                'llamadas_desbordadas': 0,
+                'llamadas_desbordadas_dialplan': 0,
                 'llamadas_abandonadas': 0,
                 'tiempo_prom_abandono': 0,
                 'tiempo_prom_espera': 0,

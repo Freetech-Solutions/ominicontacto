@@ -69,7 +69,7 @@ def _format_pct_1d(value):
     return '{:.1f}'.format(_safe_float(value))
 
 
-def _build_totals_row(rows):
+def _build_totals_row(rows, pause_columns=None):
     session_seconds = sum(_safe_float(r.get('session_seconds')) for r in rows)
     ready_seconds = sum(_safe_float(r.get('ready_seconds')) for r in rows)
     pause_seconds = sum(_safe_float(r.get('pause_seconds')) for r in rows)
@@ -78,6 +78,15 @@ def _build_totals_row(rows):
     ready_pct = (ready_seconds * 100.0 / session_seconds) if session_seconds > 0 else 0.0
     pause_pct = (pause_seconds * 100.0 / session_seconds) if session_seconds > 0 else 0.0
     acw_pct = (acw_seconds * 100.0 / session_seconds) if session_seconds > 0 else 0.0
+
+    pause_columns = pause_columns or []
+    pause_totals_by_key = {
+        col['key']: sum(
+            _safe_float((r.get('pause_seconds_by_key') or {}).get(col['key'], 0))
+            for r in rows
+        )
+        for col in pause_columns
+    }
 
     return {
         'agent_name': _('Total'),
@@ -89,6 +98,7 @@ def _build_totals_row(rows):
         'pause_pct': pause_pct,
         'acw_seconds': acw_seconds,
         'acw_pct': acw_pct,
+        'pause_seconds_by_key': pause_totals_by_key,
         'total_interactions': sum(_safe_int(r.get('total_interactions')) for r in rows),
         'gestiones_count': sum(_safe_int(r.get('gestiones_count')) for r in rows),
         'inbound_voice_count': sum(_safe_int(r.get('inbound_voice_count', 0)) for r in rows),
@@ -104,9 +114,15 @@ def _build_totals_row(rows):
     }
 
 
-def _csv_row_from_report_row(row, is_total=False):
+def _csv_row_from_report_row(row, is_total=False, pause_columns=None):
     tmo = '' if is_total else _format_seconds_hhmmss(row.get('tmo_avg'))
     act = '' if is_total else _format_seconds_hhmmss(row.get('act_avg'))
+    pause_columns = pause_columns or []
+    pauses_by_key = row.get('pause_seconds_by_key') or {}
+    pause_type_cells = [
+        _format_seconds_hhmmss(pauses_by_key.get(col['key'], 0))
+        for col in pause_columns
+    ]
     return [
         _to_str(row.get('agent_name')),
         _to_str(row.get('agent_id')),
@@ -115,6 +131,7 @@ def _csv_row_from_report_row(row, is_total=False):
         _format_pct_1d(row.get('ready_pct')),
         _format_seconds_hhmmss(row.get('pause_seconds')),
         _format_pct_1d(row.get('pause_pct')),
+    ] + pause_type_cells + [
         _format_seconds_hhmmss(row.get('acw_seconds')),
         _format_pct_1d(row.get('acw_pct')),
         _to_str(_safe_int(row.get('total_interactions'))),
@@ -155,15 +172,19 @@ def generar_csv_agents_activity_v2_listado(
         logger.warning('Redis publish(0) agents activity listado: %s', e)
 
     try:
-        from api_app.views.reports_agent_activity_v2 import get_agents_activity_v2_flat_rows
+        from api_app.views.reports_agent_activity_v2 import (
+            get_agents_activity_v2_flat_rows,
+            get_agents_activity_v2_pause_columns,
+        )
 
         rows = get_agents_activity_v2_flat_rows(
             date_start=date_start,
             date_end=date_end,
             allowed_agent_ids=allowed_agent_ids,
         )
+        pause_columns = get_agents_activity_v2_pause_columns(rows)
 
-        totals_row = _build_totals_row(rows)
+        totals_row = _build_totals_row(rows, pause_columns=pause_columns)
 
         dir_abs = os.path.join(settings.MEDIA_ROOT, DIRECTORIO_REPORTE)
         if not os.path.exists(dir_abs):
@@ -179,6 +200,7 @@ def generar_csv_agents_activity_v2_listado(
             _('% Ready'),
             _('Pause'),
             _('% Pause'),
+        ] + [_to_str(col.get('name') or col.get('key')) for col in pause_columns] + [
             _('ACW'),
             _('% ACW'),
             _('Total'),
@@ -199,8 +221,10 @@ def generar_csv_agents_activity_v2_listado(
             writer = csv.writer(csv_file)
             writer.writerow(header)
             for row in rows:
-                writer.writerow(_csv_row_from_report_row(row, is_total=False))
-            writer.writerow(_csv_row_from_report_row(totals_row, is_total=True))
+                writer.writerow(_csv_row_from_report_row(
+                    row, is_total=False, pause_columns=pause_columns))
+            writer.writerow(_csv_row_from_report_row(
+                totals_row, is_total=True, pause_columns=pause_columns))
     except Exception as e:
         logger.exception('Error generando CSV agents activity listado: %s', e)
     finally:

@@ -49,7 +49,7 @@ export default {
             );
             this.agents = activeAgentsFilter.map((agent) => {
                 return {
-                    agent: agent.agent_full_name,
+                    agent: `${agent.agent_username} - ${agent.agent_full_name}`,
                     value: agent.agent_id
                 };
             });

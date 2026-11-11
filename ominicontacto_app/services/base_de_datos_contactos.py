@@ -22,24 +22,71 @@ Servicio encargado de validar y crear las bases de datos.
 
 from __future__ import unicode_literals
 
+import csv
+import io
 import json
 import logging
 import os
 import re
 
+from django.conf import settings
+from django.db import connection, transaction
 from django.utils.encoding import smart_str
 from django.utils.translation import gettext as _
 
 from ominicontacto_app.errors import OmlArchivoImportacionInvalidoError, \
-    OmlError, OmlParserMaxRowError, OmlParserCsvImportacionError
+    OmlError, OmlParserMaxRowError, OmlParserCsvImportacionError, OmlParserMinRowError
 from ominicontacto_app.models import BaseDatosContacto, \
     MetadataBaseDatosContactoDTO, Contacto
-from ominicontacto_app.parser import ParserCsv, validate_telefono, validate_telefono_or_ext, \
-    validate_fechas, validate_horas
+from ominicontacto_app.parser import (
+    IteratorCSVBuffer, ParserCsv, validate_telefono, validate_telefono_or_ext,
+    validate_fechas, validate_horas)
 from ominicontacto_app.utiles import elimina_tildes
 
 
 logger = logging.getLogger(__name__)
+
+
+COPY_CONTACTO_SQL = (
+    "COPY ominicontacto_app_contacto "
+    "(telefono, facebook, ig_scoped_id, email, datos, bd_contacto_id, id_externo, es_originario) "
+    "FROM STDIN WITH (FORMAT CSV, NULL '\\N')"
+)
+
+
+def format_contacto_copy_line(telefono, datos, bd_contacto_id, id_externo=None, email=''):
+    """Formatea una fila CSV para COPY de ominicontacto_app_contacto."""
+    buffer_line = io.StringIO()
+    writer = csv.writer(buffer_line, lineterminator='\n')
+    id_externo_val = r'\N' if id_externo is None else id_externo
+    writer.writerow([
+        telefono,
+        '',
+        '',
+        email or '',
+        datos,
+        bd_contacto_id,
+        id_externo_val,
+        't',
+    ])
+    return buffer_line.getvalue()
+
+
+def importar_contactos_con_copy(row_lines_generator, error_holder=None):
+    """
+    Ejecuta COPY FROM STDIN en streaming dentro de transaction.atomic().
+
+    Las validaciones del generador no deben lanzar excepciones (psycopg2 las
+    envuelve en QueryCanceled): deben setear error_holder['error'] y retornar.
+    Si hay error_holder['error'] tras el COPY, se relanza para forzar rollback.
+    """
+    if error_holder is None:
+        error_holder = {}
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.copy_expert(COPY_CONTACTO_SQL, IteratorCSVBuffer(row_lines_generator))
+        if error_holder.get('error') is not None:
+            raise error_holder['error']
 
 
 class CreacionBaseDatosService(object):
@@ -95,73 +142,77 @@ class CreacionBaseDatosService(object):
     def importa_contactos(self, base_datos_contacto, campos_telefonicos, columna_id_externo):
         """
         Tercer paso de la creación de una BaseDatosContacto.
-        Este método se encarga de generar los objectos Contacto por cada linea
-        del archivo de importación especificado para la base de datos de
-        contactos.
+        Inserta contactos via PostgreSQL COPY FROM STDIN en streaming (O(1) RAM).
         """
         assert (base_datos_contacto.estado in
                 (BaseDatosContacto.ESTADO_EN_DEFINICION,
                  BaseDatosContacto.ESTADO_DEFINIDA_ACTUALIZADA))
 
-        # FIXME: este metodo valida la consistencia de los metadatos, y
-        # lanza una excepcion ante cualquier problema. OJO! Esto no implica
-        # que los metadatos sean correctos y consistentes con los datos,
-        # pero al menos validan la consistencia "interna" de los metadatos
-        # metadata = base_datos_contacto.get_metadata()
-        # metadata.validar_metadatos()
-
-        # Antes que nada, borramos los contactos preexistentes
-        # base_datos_contacto.elimina_contactos()
-
         parser = ParserCsv()
 
-        ids_externos = base_datos_contacto.contactos.values_list('id_externo', flat=True)
-        ids_externos = set(ids_externos)
-        ids_nuevos_contactos = []
+        ids_externos = set(
+            base_datos_contacto.contactos.exclude(id_externo__isnull=True)
+            .exclude(id_externo='')
+            .values_list('id_externo', flat=True)
+        )
+
+        filas = parser.iter_estructura_archivo(base_datos_contacto)
+        encabezado = next(filas)
+        posicion_primer_telefono = encabezado.index(str(campos_telefonicos[0]))
+        try:
+            primera_fila = next(filas)
+        except OmlParserMinRowError:
+            raise
+        except StopIteration:
+            raise OmlParserMinRowError(_("El archivo CSV posee menos de 2 filas"))
+
+        cantidad_previa = base_datos_contacto.cantidad_contactos or 0
+        contador = {'cantidad': cantidad_previa}
+        error_holder = {}
+        max_filas = settings.OL_MAX_CANTIDAD_CONTACTOS
+
+        def _procesar_fila(lista_dato, numero_fila):
+            # Limite por cantidad de filas del archivo actual (no del acumulado en BD).
+            if numero_fila > max_filas:
+                error_holder['error'] = OmlParserMaxRowError(
+                    _("El archivo CSV posee mas registros de los permitidos "
+                      "({max_filas}).").format(max_filas=max_filas))
+                return None
+            telefono, datos, id_externo = self.obtener_telefono_y_datos(
+                lista_dato, posicion_primer_telefono, columna_id_externo)
+            if id_externo is not None and id_externo != '':
+                if id_externo in ids_externos:
+                    error_holder['error'] = CreacionBaseDatosServiceIdExternoError(
+                        numero_fila, columna_id_externo, lista_dato, id_externo)
+                    return None
+                ids_externos.add(id_externo)
+            contador['cantidad'] += 1
+            return format_contacto_copy_line(
+                telefono, datos, base_datos_contacto.id, id_externo=id_externo)
+
+        def row_lines():
+            numero_fila = 1
+            linea = _procesar_fila(primera_fila, numero_fila)
+            if linea is None:
+                return
+            yield linea
+            for lista_dato in filas:
+                numero_fila += 1
+                linea = _procesar_fila(lista_dato, numero_fila)
+                if linea is None:
+                    return
+                yield linea
 
         try:
-            estructura_archivo = parser.get_estructura_archivo(base_datos_contacto)
-            posicion_primer_telefono = estructura_archivo[0].index(
-                str(campos_telefonicos[0]))
-            cantidad_contactos = 0
-
-            if base_datos_contacto.cantidad_contactos:
-                cantidad_contactos = base_datos_contacto.cantidad_contactos
-            numero_fila = 0
-            for lista_dato in estructura_archivo[1:]:
-                numero_fila += 1
-                telefono, datos, id_externo = self.obtener_telefono_y_datos(
-                    lista_dato, posicion_primer_telefono, columna_id_externo)
-                cantidad_contactos += 1
-
-                if id_externo is not None and id_externo != '':
-                    # El id_externo no puede estar repetido
-                    if id_externo in ids_externos:
-                        base_datos_contacto.contactos.filter(id__in=ids_nuevos_contactos).delete()
-                        raise CreacionBaseDatosServiceIdExternoError(numero_fila,
-                                                                     columna_id_externo,
-                                                                     lista_dato,
-                                                                     id_externo)
-                    else:
-                        ids_externos.add(id_externo)
-
-                contacto = Contacto.objects.create(
-                    telefono=telefono,
-                    datos=datos,
-                    bd_contacto=base_datos_contacto,
-                    id_externo=id_externo
-                )
-                ids_nuevos_contactos.append(contacto.id)
-
+            importar_contactos_con_copy(row_lines(), error_holder)
+        except CreacionBaseDatosServiceIdExternoError:
+            raise
         except OmlParserMaxRowError:
-            base_datos_contacto.contactos.filter(id__in=ids_nuevos_contactos).delete()
             raise
-
         except OmlParserCsvImportacionError:
-            base_datos_contacto.contactos.filter(id__in=ids_nuevos_contactos).delete()
             raise
 
-        base_datos_contacto.cantidad_contactos = cantidad_contactos
+        base_datos_contacto.cantidad_contactos = contador['cantidad']
         base_datos_contacto.save()
 
     def define_base_dato_contacto(self, base_datos_contacto):

@@ -29,6 +29,7 @@ function registerContactCenterDashboard() {
                 attempted_calls: 0,
                 answered_pstn: 0,
                 answered_agent: 0,
+                amd: 0,
                 conectadas_no_atendidas: 0,
                 estimadas: 0,
                 contactos_llamados: 0,
@@ -37,10 +38,30 @@ function registerContactCenterDashboard() {
                 status: [],
                 p_hit: null,
                 p_hit_label: 'P_HIT (contactación)',
+                p_hit_ratio: null,
             },
             pacing: null,
         },
         show_pacing_section: false,
+        pacingExpanded: false,
+        pacing_age_seconds: null,
+        pacing_up: 0,
+        channels: {
+            ringing: null,
+            waiting_agent: null,
+            oncall: null,
+            calls: null,
+        },
+        metrics: {
+            hit_count: null,
+            abandon_count: null,
+            fail_count: null,
+            tech_fail_count: null,
+            drop_rate_ewma: null,
+            p_hit_ratio: null,
+            amd_time: null,
+        },
+        dial_ratio_efectivo: null,
         loading: false,
         lastUpdate: null,
         initialized: false,
@@ -98,6 +119,7 @@ function registerContactCenterDashboard() {
                 attempted_calls: 0,
                 answered_pstn: 0,
                 answered_agent: 0,
+                amd: 0,
                 conectadas_no_atendidas: 0,
                 estimadas: 0,
                 contactos_llamados: 0,
@@ -106,6 +128,32 @@ function registerContactCenterDashboard() {
                 status: [],
                 p_hit: null,
                 p_hit_label: 'P_HIT (contactación)',
+                p_hit_ratio: null,
+            };
+        },
+
+        togglePacingExpanded() {
+            this.pacingExpanded = !this.pacingExpanded;
+        },
+
+        emptyChannels() {
+            return {
+                ringing: null,
+                waiting_agent: null,
+                oncall: null,
+                calls: null,
+            };
+        },
+
+        emptyMetrics() {
+            return {
+                hit_count: null,
+                abandon_count: null,
+                fail_count: null,
+                tech_fail_count: null,
+                drop_rate_ewma: null,
+                p_hit_ratio: null,
+                amd_time: null,
             };
         },
 
@@ -114,6 +162,11 @@ function registerContactCenterDashboard() {
             this.data.llamadas_discando = 0;
             this.data.pacing = null;
             this.show_pacing_section = false;
+            this.pacing_age_seconds = null;
+            this.pacing_up = 0;
+            this.channels = this.emptyChannels();
+            this.metrics = this.emptyMetrics();
+            this.dial_ratio_efectivo = null;
             this.previousData.estado_discador = JSON.parse(JSON.stringify(this.data.estado_discador));
             this.previousData.llamadas_discando = 0;
             this.previousData.pacing = null;
@@ -571,7 +624,7 @@ function registerContactCenterDashboard() {
                 if (protectLive) {
                     const live = this.data.estado_discador || {};
                     [
-                        'attempted_calls', 'answered_pstn', 'answered_agent',
+                        'attempted_calls', 'answered_pstn', 'answered_agent', 'amd',
                         'pending_initial', 'pending_retries',
                         'finalized_no_contact', 'contacted_successfully',
                     ].forEach((key) => {
@@ -590,6 +643,25 @@ function registerContactCenterDashboard() {
                 this.data.llamadas_discando = newDiscando;
                 this.data.pacing = jsonData.pacing || null;
                 this.show_pacing_section = !!jsonData.show_pacing_section;
+                this.pacing_age_seconds = (
+                    jsonData.pacing_age_seconds === undefined
+                        ? null
+                        : jsonData.pacing_age_seconds
+                );
+                this.pacing_up = Number(jsonData.pacing_up || 0);
+                this.channels = {
+                    ...this.emptyChannels(),
+                    ...(jsonData.channels || {}),
+                };
+                this.metrics = {
+                    ...this.emptyMetrics(),
+                    ...(jsonData.metrics || {}),
+                };
+                this.dial_ratio_efectivo = (
+                    jsonData.dial_ratio_efectivo === undefined
+                        ? null
+                        : jsonData.dial_ratio_efectivo
+                );
                 this.previousData.estado_discador = JSON.parse(JSON.stringify(incoming));
                 this.previousData.llamadas_discando = newDiscando;
                 this.previousData.pacing = this.data.pacing
@@ -883,6 +955,26 @@ function registerContactCenterDashboard() {
             return n.toFixed(digits || 2);
         },
 
+        agentConnectRate() {
+            const attempted = Number(this.data?.estado_discador?.attempted_calls || 0);
+            if (attempted <= 0) {
+                return null;
+            }
+            const answered = Number(this.data?.estado_discador?.answered_agent || 0);
+            return answered / attempted;
+        },
+
+        agentOccupancyRate() {
+            const logueados = Number(this.data?.agentes?.logueados || 0);
+            const paused = Number(this.data?.agentes?.paused || 0);
+            const oncall = Number(this.data?.agentes?.oncall || 0);
+            const disponibles = logueados - paused;
+            if (disponibles <= 0) {
+                return null;
+            }
+            return oncall / disponibles;
+        },
+
         formatPacingPercent(value) {
             if (value === null || value === undefined || value === '') {
                 return '—';
@@ -899,6 +991,42 @@ function registerContactCenterDashboard() {
                 return '—';
             }
             return Number(value) ? 'sí' : 'no';
+        },
+
+        formatPacingAge(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            const n = Number(value);
+            if (Number.isNaN(n)) {
+                return '—';
+            }
+            return `${Math.max(0, Math.floor(n))}s`;
+        },
+
+        formatPacingSeconds(value) {
+            if (value === null || value === undefined || value === '') {
+                return '—';
+            }
+            const n = Number(value);
+            if (Number.isNaN(n)) {
+                return '—';
+            }
+            return `${n.toFixed(1)}s`;
+        },
+
+        formatCallsVsPhases() {
+            const calls = this.channels?.calls;
+            const ringing = this.channels?.ringing;
+            const waiting = this.channels?.waiting_agent;
+            const oncall = this.channels?.oncall;
+            if (calls === null || calls === undefined) {
+                return '—';
+            }
+            const parts = [ringing, waiting, oncall].map((v) => (
+                (v === null || v === undefined) ? '—' : this.formatNumber(v)
+            ));
+            return `${this.formatNumber(calls)} vs ${parts.join('+')}`;
         },
 
         /**
@@ -1503,6 +1631,7 @@ function registerContactCenterDashboard() {
                 ATTEMPTED_CALLS: 'attempted_calls',
                 ANSWERED_PSTN: 'answered_pstn',
                 ANSWERED_AGENT: 'answered_agent',
+                AMD: 'amd',
                 PENDING_INITIAL_CONTACT_ATTEMPTS: 'pending_initial',
                 'NO CONTACTS WITH PENDING ATTEMPTS': 'pending_retries',
                 'FINALIZED WITH NO CONTACT': 'finalized_no_contact',
@@ -1511,7 +1640,12 @@ function registerContactCenterDashboard() {
             const reserved = {
                 type: true, camp_id: true, admin: true,
             };
-            Object.keys(mapping).forEach((k) => { reserved[k] = true; });
+            // AMD también vive en el desglose de disposiciones: no reservarlo.
+            Object.keys(mapping).forEach((k) => {
+                if (k !== 'AMD') {
+                    reserved[k] = true;
+                }
+            });
             const next = { ...(this.data.estado_discador || {}) };
             let changed = false;
             Object.keys(mapping).forEach((redisKey) => {

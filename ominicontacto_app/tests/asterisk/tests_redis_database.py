@@ -207,6 +207,7 @@ class CampanaFamilyTest(RedisDatabaseTest):
             'REC': str(campana.queue_campana.auto_grabacion),
             'AMD': str(campana.queue_campana.detectar_contestadores),
             'CALLAGENTACTION': campana.tipo_interaccion,
+            'STRATEGY': campana.queue_campana.strategy,
             'RINGTIME': "",
             'QUEUETIME': campana.queue_campana.wait,
             'MAXQCALLS': campana.queue_campana.maxlen,

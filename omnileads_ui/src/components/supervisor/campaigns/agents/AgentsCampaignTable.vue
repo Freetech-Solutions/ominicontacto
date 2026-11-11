@@ -23,6 +23,7 @@
       v-model:filters="filters"
       filterDisplay="menu"
       :globalFilterFields="[
+        'agent_username',
         'agent_full_name',
         'agent_penalty',
         'representative.name',

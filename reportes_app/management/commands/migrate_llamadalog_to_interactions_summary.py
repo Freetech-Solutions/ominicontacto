@@ -103,6 +103,8 @@ def _direction_for_tipo(tipo_llamada):
 
 
 def _initiation_method_for_tipo(tipo_llamada):
+    if tipo_llamada == LlamadaLog.LLAMADA_ENTRANTE:
+        return 'EXTERNAL'
     if tipo_llamada in (LlamadaLog.LLAMADA_MANUAL, LlamadaLog.LLAMADA_CLICK2CALL):
         return 'AGENT'
     if tipo_llamada in (LlamadaLog.LLAMADA_DIALER, LlamadaLog.LLAMADA_PREVIEW):

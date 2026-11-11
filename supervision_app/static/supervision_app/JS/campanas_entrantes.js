@@ -180,9 +180,7 @@ function createDataTable() {
             { 'data': 'expired' },
             { 'data': 'abandon_avg'},
             { 'data': 'wait_avg'},
-            { 'data': 'abandon_rate' },
             { 'data': 'dispositions' },
-            { 'data': 'target' },
         ],
         lengthMenu: [[10, 25, 50, 100, 200, 500, -1], [10, 25, 50, 100, 200, 500 , gettext('Todos')]],
         language: {
@@ -217,9 +215,6 @@ class InboundStats {
         this.agentes_llamada = 0;
         this.agentes_pausa = 0;
         this.agentes_ready = 0;
-        this.abandon_rate = 0;
-        this.target = 100;
-        this.disposition_target = campaigns[id].target;
     }
 
     hasNoCalls() {
@@ -245,9 +240,7 @@ class InboundStats {
         this.total_wait_time = parseFloat(newStats['total_wait_time']);
 
         this.updateAbandonAvg();
-        this.updateAbandonRate();
         this.updateWaitAvg();
-        this.updateTarget();
     }
 
     updateAbandonAvg(){
@@ -258,27 +251,12 @@ class InboundStats {
         this.abandon_avg = avg.toFixed(1) + gettext(' segundos');
     }
 
-    updateAbandonRate(){
-        let total = this.attended + this.abandons + this.expired;
-        this.abandon_rate = 0;
-        if (total > 0) {
-            this.abandon_rate = (this.abandons / total * 100).toFixed(1);
-        }
-    }
-
     updateWaitAvg(){
         let avg = 0;
         if (this.attended > 0) {
             avg = this.total_wait_time / this.attended;
         }
         this.wait_avg = avg.toFixed(1) + gettext(' segundos');
-    }
-
-    updateTarget(){
-        if (this.disposition_target > 0){
-            this.target = (100 * this.dispositions / this.disposition_target).toFixed(1);
-        }
-
     }
 
     updateAgentStats(agentStats) {
@@ -302,12 +280,10 @@ class InboundStats {
             this.abandons += 1;
             this.total_abandon_time += Number(event_data.time);
             this.updateAbandonAvg();
-            this.updateAbandonRate();
             break;
         case 'dispositions':{
             const delta = event_data.delta || 1;
             this.dispositions = Number(this.dispositions) + delta;
-            this.updateTarget();
             break;
         }
         case 'queue_size':
