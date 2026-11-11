@@ -35,9 +35,28 @@ from django.conf import settings
 from django.contrib import admin
 from django.contrib.auth import views as auth_views
 from django.views.i18n import JavaScriptCatalog
+import importlib.util
+import logging
 import os
 
+logger = logging.getLogger(__name__)
+
 js_info_packages = ('ominicontacto_app',)
+
+
+def rutas_redefinidas_por_addons(modulos):
+    """ Rutas de los módulos con vistas del core que un addon redefine (ADDON_URL_OVERRIDES).
+        Si un addon no trae el módulo, o falla al importarlo, se sigue con las vistas del core.
+    """
+    rutas = []
+    for modulo in modulos:
+        try:
+            if importlib.util.find_spec(modulo):
+                rutas.append(re_path(r'^', include(modulo)))
+        except ImportError as e:
+            logger.error('No se pudieron cargar las rutas de {0}: {1}'.format(modulo, e))
+    return rutas
+
 
 urlpatterns = [
     re_path(r'^admin/', admin.site.urls),
@@ -56,6 +75,9 @@ urlpatterns = [
             name="logout"),
     path("email/", include(("email_app.urls", "email"), namespace="email"))
 ]
+
+# Van antes que las del core: resolve() usa la primera ruta que coincide
+urlpatterns = rutas_redefinidas_por_addons(settings.ADDON_URL_OVERRIDES) + urlpatterns
 
 for (route, module) in settings.ADDON_URLPATTERNS:
     if route == '^':

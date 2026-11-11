@@ -8434,3 +8434,33 @@ msgstr "O Cliente WebPhone foi ativado"
 #: ominicontacto_app/views_user_profiles.py:827
 msgid "El archivo (CSV) es requerido"
 msgstr "O arquivo (CSV) é obrigatório"
+
+msgid "Error en el servidor externo"
+msgstr "Erro no servidor externo"
+
+msgid "Aceptar"
+msgstr "Aceitar"
+
+msgid "Máx. Agentes Concurrentes"
+msgstr "Máx. Agentes Simultâneos"
+
+msgid "ilimitado"
+msgstr "ilimitado"
+
+msgid "Sin límite definido en el servidor de registro"
+msgstr "Sem limite definido no servidor de registro"
+
+msgid "Servidor de registro sin respuesta"
+msgstr "Servidor de registro sem resposta"
+
+msgid "Consulta rechazada por el servidor de registro"
+msgstr "Consulta rejeitada pelo servidor de registro"
+
+msgid "El servidor de registro no permite leer el valor"
+msgstr "O servidor de registro não permite ler o valor"
+
+msgid "Pendiente de sincronización con el servidor de registro"
+msgstr "Sincronização pendente com o servidor de registro"
+
+msgid "Sincronizado con el servidor de registro"
+msgstr "Sincronizado com o servidor de registro"

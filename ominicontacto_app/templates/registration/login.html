@@ -75,3 +75,21 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
         </div>
   {% endif %}
 {% endblock %}
+
+{% block extra_js %}
+  {# Mensajes con el tag popup_msg: se muestran como pop-up #}
+  {% for message in messages %}
+    {% if "popup_msg" in message.tags %}
+      <script type="text/javascript">
+        $(function() {
+          Swal.fire({
+            icon: "{% if message.level_tag == 'error' %}error{% else %}warning{% endif %}",
+            title: "{% if message.level_tag == 'error' %}{% trans '¡Error!' %}{% else %}{% trans '¡Atención!' %}{% endif %}",
+            text: "{{ message|escapejs }}",
+            confirmButtonText: "{% trans 'Aceptar' %}",
+          });
+        });
+      </script>
+    {% endif %}
+  {% endfor %}
+{% endblock %}

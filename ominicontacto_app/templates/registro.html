@@ -33,11 +33,54 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 
 {% block extra_form %}
     {% if registered %}
+    <div class="d-flex justify-content-between align-items-end flex-wrap">
         <button id="sendKey" class="btn btn-primary">{% trans 'Reenviar llave' %}</button>
+        {% if concurrency %}
+        {# Máximo de agentes concurrentes: lo entrega la vista de Registro de enterprise_app #}
+        <div id="concurrency">
+            <h5>{% trans 'Máx. Agentes Concurrentes' %}</h5>
+            <div class="form-inline">
+                <strong id="concurrencyLimit" class="text-success mr-3">
+                    {{ concurrency.limite }}{% if concurrency.ilimitado %} ({% trans 'ilimitado' %}){% endif %}
+                </strong>
+                {% if user.is_superuser %}
+                {# Solo el usuario admin por defecto (único superusuario) puede sincronizar #}
+                <button id="syncConcurrency" type="button" class="btn btn-light"
+                        data-wait="{{ concurrency.espera_sincronizar }}"
+                        data-url="{{ concurrency.sync_url }}">
+                    <span class="fas fa-sync-alt"></span> {% trans 'Sincronizar' %}
+                </button>
+                {% endif %}
+            </div>
+            {% if user.is_superuser %}
+            <div><small id="syncConcurrencyWait" class="text-warning"></small></div>
+            {% endif %}
+            <small class="text-muted">
+            {% if concurrency.estado == 'SYNCED' %}
+                {% trans 'Sincronizado con el servidor de registro' %}
+            {% elif concurrency.estado == 'UNDEFINED' %}
+                {% trans 'Sin límite definido en el servidor de registro' %}
+            {% elif concurrency.estado == 'OFFLINE' %}
+                {% trans 'Servidor de registro sin respuesta' %}
+            {% elif concurrency.estado == 'REJECTED' %}
+                {% trans 'Consulta rechazada por el servidor de registro' %}
+            {% elif concurrency.estado == 'UNSUPPORTED' %}
+                {% trans 'El servidor de registro no permite leer el valor' %}
+            {% else %}
+                {% trans 'Pendiente de sincronización con el servidor de registro' %}
+            {% endif %}
+            {% if concurrency.checked_at %}({{ concurrency.checked_at }}){% endif %}
+            </small>
+        </div>
+        {% endif %}
+    </div>
     {% endif %}
 {% endblock %}
 
 {% block extra_js %}
     <script type="text/javascript" src="{% static 'ominicontacto/JS/csrf.js' %}"></script>
     <script type="text/javascript" src="{% static 'ominicontacto/JS/resend-key.js' %}"></script>
+    {% if concurrency and user.is_superuser %}
+    <script type="text/javascript" src="{% static 'ominicontacto/JS/sync-concurrency.js' %}"></script>
+    {% endif %}
 {% endblock %}

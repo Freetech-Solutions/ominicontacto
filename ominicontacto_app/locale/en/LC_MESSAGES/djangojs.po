@@ -859,3 +859,19 @@ msgstr "Transferred chat!"
 #: ominicontacto_app/static/ominicontacto/JS/whatsapp_notifications.js:29
 msgid "¡Chat expirado!"
 msgstr "Expired Chat!"
+
+msgid "Atención"
+msgstr "Warning"
+
+msgid "¿Desea continuar?"
+msgstr "Do you want to continue?"
+
+msgid "Sí"
+msgstr "Yes"
+
+msgid "No"
+msgstr "No"
+
+#, javascript-format
+msgid "Puede volver a sincronizar en %s segs"
+msgstr "You can synchronize again in %s secs"

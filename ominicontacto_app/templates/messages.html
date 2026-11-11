@@ -20,7 +20,9 @@ along with this program.  If not, see http://www.gnu.org/licenses/.
 {% load i18n %}
 
 {% for message in messages %}
-    {% if "error" in message.tags %}
+    {% if "ignore_regular_msg" in message.tags %}
+        {# Lo muestra otra parte de la página (p. ej. el pop-up de popup_msg en el login) #}
+    {% elif "error" in message.tags %}
 
         <div class="alert alert-danger alert-dismissible fade show" role="alert">
             <button type="button" class="close btn" data-dismiss="alert" aria-label="Cerrar">&times;</button>

@@ -72,6 +72,7 @@ CONSTANCE_CONFIG = {
     'LIMIT_USERS_TO': (2, 'LIMIT_USERS_TO', int),
     'LIMIT_AGENTS_CONCURRENT_ACTIVE': (False, 'LIMIT_AGENTS_CONCURRENT_ACTIVE', bool),
     'LIMIT_AGENTS_CONCURRENT_NUMBER': (1, 'LIMIT_AGENTS_CONCURRENT_NUMBER', int),
+    'AGENT_CONCURRENCY_STATE': ('', 'AGENT_CONCURRENCY_STATE', 'disabled_str'),
 
     # white-label
     "ASTERISK_TM": ("Asterisk", "", "char_field"),
@@ -121,10 +122,13 @@ MIDDLEWARE_APPEND = []
 TEMPLATES_CONTEXT_PROCESORS_APPEND = []
 
 ADDON_URLPATTERNS = []
+# Módulos de URLs con vistas del core que un addon redefine: se cargan antes que las del core
+ADDON_URL_OVERRIDES = []
 
 if os.getenv('ENTERPRISE_VERSION'):
     ADDONS_APPS.append("enterprise_app.apps.AppConfig")
     ADDON_URLPATTERNS.append((r"enterprise", "enterprise_app.urls"))
+    ADDON_URL_OVERRIDES.append("enterprise_app.urls_override")
     ADDONS_LOCALE_PATHS += (os.path.join(BASE_DIR, 'enterprise_app/locale'), )
 if not os.getenv('LIMIT_USERS_VERSION', '') == '':
     ADDONS_APPS.append('limit_users_app.apps.LimitUsersAppConfig')
