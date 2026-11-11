@@ -37,9 +37,6 @@ CONSTANCE_ADDITIONAL_FIELDS = {
     }],
     'text_field': ['django.forms.fields.CharField', {
         'widget': 'django.forms.Textarea',
-    }],
-    'disabled_int': ['django.forms.fields.IntegerField', {
-        'disabled': True,
         'required': False,
     }],
 }
@@ -52,13 +49,6 @@ CONSTANCE_CONFIG = {
     'CLIENT_PASSWORD': ('', 'CLIENT_PASSWORD', str),
     'CLIENT_EMAIL': ('', 'CLIENT_EMAIL', str),
     'CLIENT_PHONE': ('', 'CLIENT_PHONE', str),
-    # Agentes concurrentes: límite efectivo sincronizado desde el Register Server
-    # (9999 = ilimitado), estado y fecha de la última sincronización. Solo los escribe
-    # enterprise_app: son de solo lectura y no están en ningún fieldset, así no se muestran ni
-    # se pueden editar desde el admin de constance
-    'AGENT_CONCURRENCY_LIMIT': (9999, 'AGENT_CONCURRENCY_LIMIT', 'disabled_int'),
-    'AGENT_CONCURRENCY_STATUS': ('', 'AGENT_CONCURRENCY_STATUS', 'disabled_str'),
-    'AGENT_CONCURRENCY_CHECKED_AT': ('', 'AGENT_CONCURRENCY_CHECKED_AT', 'disabled_str'),
 
     # OMniLeads:
     'WOMBAT_DIALER_ALLOW_REFRESH': (False, 'WOMBAT_DIALER_ALLOW_REFRESH', bool),
@@ -82,6 +72,7 @@ CONSTANCE_CONFIG = {
     'LIMIT_USERS_TO': (2, 'LIMIT_USERS_TO', int),
     'LIMIT_AGENTS_CONCURRENT_ACTIVE': (False, 'LIMIT_AGENTS_CONCURRENT_ACTIVE', bool),
     'LIMIT_AGENTS_CONCURRENT_NUMBER': (1, 'LIMIT_AGENTS_CONCURRENT_NUMBER', int),
+    'AGENT_CONCURRENCY_STATE': ('', 'AGENT_CONCURRENCY_STATE', 'disabled_str'),
 
     # white-label
     "ASTERISK_TM": ("Asterisk", "", "char_field"),

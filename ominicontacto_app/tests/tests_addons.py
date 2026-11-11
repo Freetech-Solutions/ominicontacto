@@ -24,6 +24,7 @@ from __future__ import unicode_literals
 from constance.admin import ConstanceForm, get_values
 from constance.test import override_config
 from mock import patch
+from django.conf import settings
 from django.contrib.messages import constants
 from django.contrib.messages.storage.base import Message
 from django.template.loader import render_to_string
@@ -38,8 +39,7 @@ from ominicontacto_app.views.instancia import RegistroFormView
 
 CRONOS = 'ominicontacto_app.services.asterisk.regeneracion_cronos.'
 TEXTO = 'Mensaje de prueba'
-CLAVES_CONCURRENCIA = ('AGENT_CONCURRENCY_LIMIT', 'AGENT_CONCURRENCY_STATUS',
-                       'AGENT_CONCURRENCY_CHECKED_AT')
+CLAVES_CONCURRENCIA = ('AGENT_CONCURRENCY_STATE', )
 
 
 class RutasRedefinidasPorAddonsTest(TestCase):
@@ -146,8 +146,13 @@ class ClavesDeConcurrenciaEnElAdminTest(OMLBaseTest):
         for clave in CLAVES_CONCURRENCIA:
             self.assertTrue(form.fields[clave].disabled, clave)
 
-    @override_config(AGENT_CONCURRENCY_LIMIT=50)
+    @override_config(AGENT_CONCURRENCY_STATE='valor firmado')
     def test_un_post_armado_no_cambia_el_valor(self):
-        form = ConstanceForm(data={'AGENT_CONCURRENCY_LIMIT': '9999'}, initial=get_values())
+        form = ConstanceForm(data={'AGENT_CONCURRENCY_STATE': 'otro'}, initial=get_values())
         form.is_valid()
-        self.assertEqual(form['AGENT_CONCURRENCY_LIMIT'].value(), 50)
+        self.assertEqual(form['AGENT_CONCURRENCY_STATE'].value(), 'valor firmado')
+
+    def test_no_quedan_claves_de_concurrencia_sin_firmar(self):
+        for clave in ('AGENT_CONCURRENCY_LIMIT', 'AGENT_CONCURRENCY_STATUS',
+                      'AGENT_CONCURRENCY_CHECKED_AT'):
+            self.assertNotIn(clave, settings.CONSTANCE_CONFIG)
