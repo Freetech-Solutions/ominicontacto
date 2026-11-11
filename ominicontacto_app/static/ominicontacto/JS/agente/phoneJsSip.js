@@ -606,6 +606,7 @@ class PhoneJS {
         this.currentSession.answer(options);
         this.subscribeToSessionConnectionEvents();
         this.Sounds('', 'stop');
+        this.Sounds('Beep', 'play');
     }
 
     refuseCall() {
@@ -614,6 +615,51 @@ class PhoneJS {
     }
 
     ///----------
+
+    playBeep() {
+        try {
+            var AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) {
+                return;
+            }
+            if (!this.audioCtx) {
+                this.audioCtx = new AudioCtx();
+            }
+            var self = this;
+            var startBeep = function() {
+                // Doble beep corto, más agudo y fuerte para que se note al conectar.
+                var toneMs = 0.14;
+                var gapMs = 0.08;
+                var peak = 0.38;
+                var freq = 880;
+                var scheduleTone = function(startAt) {
+                    var oscillator = self.audioCtx.createOscillator();
+                    var gainNode = self.audioCtx.createGain();
+                    oscillator.type = 'sine';
+                    oscillator.frequency.setValueAtTime(freq, startAt);
+                    gainNode.gain.setValueAtTime(0.001, startAt);
+                    gainNode.gain.linearRampToValueAtTime(peak, startAt + 0.012);
+                    gainNode.gain.exponentialRampToValueAtTime(0.001, startAt + toneMs);
+                    oscillator.connect(gainNode);
+                    gainNode.connect(self.audioCtx.destination);
+                    oscillator.start(startAt);
+                    oscillator.stop(startAt + toneMs + 0.01);
+                };
+                var now = self.audioCtx.currentTime;
+                scheduleTone(now);
+                scheduleTone(now + toneMs + gapMs);
+            };
+            if (this.audioCtx.state === 'suspended') {
+                this.audioCtx.resume().then(startBeep).catch(function(e) {
+                    phone_logger.log('Error reanudando AudioContext para beep: ' + e);
+                });
+            } else {
+                startBeep();
+            }
+        } catch (e) {
+            phone_logger.log('Error reproduciendo beep: ' + e);
+        }
+    }
 
     Sounds(callType, action) {
         // Los 'catch' son por si se da el caso de que el agente no haya interactuado con la pagina.
@@ -637,6 +683,8 @@ class PhoneJS {
                 ring.onended = function() {
                     ring.pause();
                 };
+            } else if (callType === 'Beep') {
+                this.playBeep();
             }
             else {
                 ring = document.getElementById('RingBusy');

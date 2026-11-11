@@ -36,7 +36,7 @@
 <input type="hidden" id="csv_agents_activity_listado_download_url_prefix" value="{{ reportes_agents_activity_v2_descargar_listado_csv_url_template }}">
 <input type="hidden" id="agente_reporte_grafico_url_template" data-url-template="{{ agente_reporte_grafico_url_template }}">
 {{ agente_grupo_map|json_script:"agente-grupo-map" }}
-<script type="text/javascript" src="{% static 'reportes_app/JS/agents_activity_v2.js' %}?v=agent-csv-listado-1"></script>
+<script type="text/javascript" src="{% static 'reportes_app/JS/agents_activity_v2.js' %}?v=agent-pause-breakdown-1"></script>
 {% endblock %}
 
 {% block content %}
@@ -141,7 +141,7 @@
                             <thead class="thead-light">
                                 <tr>
                                     <th scope="col"></th>
-                                    <th scope="col" colspan="4" class="text-center">Disponibilidad (Segundos / %)</th>
+                                    <th scope="col" id="th-group-disponibilidad" colspan="4" class="text-center">Disponibilidad (Segundos / %)</th>
                                     <th scope="col" colspan="5" class="text-center">Interacciones</th>
                                     <th scope="col" colspan="4" class="text-center">Eficiencia</th>
                                 </tr>
@@ -149,7 +149,7 @@
                                     <th scope="col">Agente</th>
                                     <th scope="col" class="text-right">Sesión</th>
                                     <th scope="col" class="text-right text-green-700">Ready</th>
-                                    <th scope="col" class="text-right text-orange-600">Pause</th>
+                                    <th scope="col" id="th-col-pause" class="text-right text-orange-600">Pause</th>
                                     <th scope="col" class="text-right text-blue-600">ACW</th>
                                     <th scope="col" class="text-right">Total</th>
                                     <th scope="col" class="text-right">{% trans 'Gestiones' %}</th>

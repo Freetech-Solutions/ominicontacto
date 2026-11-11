@@ -3,7 +3,7 @@ include:
     rules:
       - if: '$FULL == "true"'
   - project: 'omnileads/devsecops'
-    ref: 'develop'
+    ref: 'main'
     file:
       - 'templates/security-scans.yml'
       - 'templates/gitleaks.yml'
@@ -22,8 +22,12 @@ variables:
   # Default: solo amd64. DOCKER_PLATFORMS fija amd64 aunque el template remoto aún
   # defaultée multi-arch; con ARM64=true el template nuevo amplía a amd64+arm64.
   ARM64: ""
+  # PUSH_VULTR=true → también publica en lax.vultrcr.com/omnileads (devsecops).
+  # DOCKER_REGISTRY=vultr → solo Vultr (sin Docker Hub).
+  PUSH_VULTR: ""
+  DOCKER_REGISTRY: ""
   DOCKER_PLATFORMS: "linux/amd64"
-  # SKIP_OWASP=true → omite owasp_dependency_scan y owasp_defectdojo_upload (útil con FULL=true).
+  # SKIP_OWASP=true → omite OWASP. En develop-3.0/master-3.0 ya está off; SKIP_OWASP=false lo fuerza.
   SKIP_OWASP: ""
   # SKIP_TESTS=true → omite test:django, test:flake8 y test:eslint (útil con FULL=true).
   SKIP_TESTS: ""
@@ -49,7 +53,7 @@ variables:
   # Sin variables → sonarqube, build, security_scan y security_report.
   # BUILD=true → solo build (container-image).
   # FULL=true → pipeline completo: tests, SAST, gitleaks, sonarqube, build y escaneos de seguridad.
-  # FULL=true + SKIP_OWASP=true → igual que FULL, sin OWASP.
+  # FULL=true + SKIP_OWASP=true → igual que FULL, sin OWASP. En *-3.0 OWASP off salvo SKIP_OWASP=false.
   # FULL=true + SKIP_TESTS=true → igual que FULL, sin tests (django/flake8/eslint).
 
 stages:
@@ -101,6 +105,9 @@ stages:
 .owasp-rules: &owasp-rules
   rules:
     - if: '$SKIP_OWASP == "true"'
+      when: never
+    # develop-3.0 / master-3.0: OWASP off por defecto (SKIP_OWASP=false para forzar).
+    - if: '$SKIP_OWASP != "false" && ($CI_COMMIT_BRANCH =~ /^(develop|master)-3\.0$/ || $CI_MERGE_REQUEST_TARGET_BRANCH_NAME =~ /^(develop|master)-3\.0$/)'
       when: never
     - if: '$BUILD == "true" && $FULL != "true"'
       when: never
@@ -197,6 +204,9 @@ container-image:
 # GitLab no expande ${GITLEAKS_STAGE} del template incluido en el campo stage.
 gitleaks_scan:
   stage: security
+  <<: *gitleaks-rules
+
+gitleaks_defectdojo_upload:
   <<: *gitleaks-rules
 
 # GitLab no expande ${OWASP_SCAN_STAGE} del template incluido en el campo stage.

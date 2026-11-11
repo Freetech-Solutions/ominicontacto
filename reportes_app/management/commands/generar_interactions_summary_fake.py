@@ -37,13 +37,15 @@ STATUS_NO_CONTESTADAS = [
     'EXIT_SHORTCALL',
     'EXIT_AMD',
 ]
-INITIATION_METHODS = [InitiationMethod.AGENT, InitiationMethod.DIALER, InitiationMethod.BOT]
+INITIATION_METHODS_OUTBOUND = [
+    InitiationMethod.AGENT, InitiationMethod.DIALER, InitiationMethod.BOT,
+]
 DIRECTIONS = ['INBOUND', 'OUTBOUND']
 
 # Pesos para variedad realista (más contestadas y OUTBOUND para que los gráficos tengan volumen)
 WEIGHTS_STATUS = [60] + [8] * len(STATUS_NO_CONTESTADAS)  # 60% EXIT_ANSWERED, resto repartido
 WEIGHTS_DIRECTION = [70, 30]  # 70% OUTBOUND, 30% INBOUND
-WEIGHTS_INITIATION = [50, 40, 10]  # AGENT, DIALER, BOT
+WEIGHTS_INITIATION_OUTBOUND = [50, 40, 10]  # AGENT, DIALER, BOT
 
 BATCH_SIZE = 500
 DEFAULT_CAMPAIGN_IDS = [1, 2, 3]
@@ -142,7 +144,12 @@ class Command(BaseCommand):
             k=1
         )[0]
         direction = random.choices(DIRECTIONS, weights=WEIGHTS_DIRECTION, k=1)[0]
-        initiation = random.choices(INITIATION_METHODS, weights=WEIGHTS_INITIATION, k=1)[0]
+        if direction == 'INBOUND':
+            initiation = InitiationMethod.EXTERNAL
+        else:
+            initiation = random.choices(
+                INITIATION_METHODS_OUTBOUND, weights=WEIGHTS_INITIATION_OUTBOUND, k=1
+            )[0]
 
         start_time = self._random_dt_in_last_days(self.days)
         # end_time entre start_time y como máximo start + duración razonable

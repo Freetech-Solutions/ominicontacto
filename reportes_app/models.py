@@ -1167,6 +1167,7 @@ class InitiationMethod(models.TextChoices):
     AGENT = 'AGENT', _('Agent')
     DIALER = 'DIALER', _('Dialer')
     BOT = 'BOT', _('Bot')
+    EXTERNAL = 'EXTERNAL', _('External')
 
 
 class InteractionsSummaryManager(models.Manager):
@@ -1391,7 +1392,7 @@ class InteractionsSummary(models.Model):
     @property
     def tipo_llamada_show(self):
         """Compatibilidad: texto legible según initiation_method y direction."""
-        if self.direction == 'INBOUND':
+        if self.direction == 'INBOUND' or self.initiation_method == InitiationMethod.EXTERNAL:
             return _('Llamada entrante')
         if self.initiation_method == InitiationMethod.AGENT:
             return _('Llamada manual')
@@ -1510,6 +1511,43 @@ def q_interaction_transfers_campaign_blind_consult():
         & Q(status__iexact='OK')
         & Q(destination_type__iexact='CAMPAIGN')
         & (Q(transfer_type__iexact='BLIND') | Q(transfer_type__iexact='CONSULT'))
+    )
+
+
+def q_interaction_transfers_campaign_overflow():
+    """
+    Q para InteractionTransfers: desborde FAILOVER OK hacia otra campaña (flow-out).
+    Distinto de BLIND/CONSULT; no implica is_transferred de agente.
+    """
+    return (
+        Q(destination_campaign_id__isnull=False)
+        & Q(status__iexact='OK')
+        & Q(destination_type__iexact='CAMPAIGN')
+        & Q(transfer_type__iexact='OVERFLOW')
+    )
+
+
+# Destinos FAILOVER dialplan (I2–I4); no cuentan en overflow camp→camp.
+OVERFLOW_DIALPLAN_DESTINATION_TYPES = (
+    'IVR',
+    'HANGUP',
+    'SURVEY',
+    'TIME_CONDITION',
+)
+
+
+def q_interaction_transfers_dialplan_overflow():
+    """
+    Q aditiva I6: OVERFLOW OK hacia objeto dialplan (IVR/TC/Survey/Hangup).
+    No requiere destination_campaign_id; no altera conteos camp→camp.
+    """
+    type_q = Q()
+    for dest_type in OVERFLOW_DIALPLAN_DESTINATION_TYPES:
+        type_q |= Q(destination_type__iexact=dest_type)
+    return (
+        Q(status__iexact='OK')
+        & Q(transfer_type__iexact='OVERFLOW')
+        & type_q
     )
 
 

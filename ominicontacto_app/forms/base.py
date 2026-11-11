@@ -619,7 +619,12 @@ class AgenteModelChoiceField(forms.ModelChoiceField):
     """
 
     def label_from_instance(self, obj):
-        label = obj.user.get_full_name() or obj.user.get_username()
+        username = obj.user.get_username()
+        full_name = obj.user.get_full_name()
+        if full_name:
+            label = f"{username} - {full_name}"
+        else:
+            label = username
         if obj.voicebot:
             return f"{label} [Voicebot]"
         return label

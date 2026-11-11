@@ -630,6 +630,75 @@
     margin: 0;
 }
 
+.contact-center-container .panel-dialer-estado .pd-pacing-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    background: #fff;
+    color: var(--text-secondary);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-toggle:hover {
+    color: var(--text-primary);
+    border-color: rgba(0, 0, 0, 0.2);
+    background: #f8f9fa;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-toggle:focus-visible {
+    outline: 2px solid rgba(156, 39, 176, 0.45);
+    outline-offset: 2px;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-collapsed {
+    padding-bottom: 0;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-content {
+    margin-top: var(--spacing-sm);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-content .pd-pacing-health {
+    margin-bottom: var(--spacing-sm);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-health {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    flex-wrap: wrap;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-age {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-age strong {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.contact-center-container .panel-dialer-estado .pd-pacing-stall {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.45rem;
+    border-radius: 999px;
+    background: rgba(244, 67, 54, 0.12);
+    border: 1px solid rgba(244, 67, 54, 0.4);
+    color: #c62828;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
 .contact-center-container .panel-dialer-estado .pd-pacing-empty {
     display: block;
     color: var(--text-muted);

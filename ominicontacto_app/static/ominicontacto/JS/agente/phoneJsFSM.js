@@ -64,10 +64,13 @@ var PhoneFSM = new StateMachine.factory({
         { name: 'unregistered',           from: 'OnCall',             to: 'End' },
         { name: 'endCall',                from: 'OnCall',             to: 'Ready' },
         { name: 'dialTransfer',           from: 'OnCall',             to: 'DialingTransfer' },
+        // Consultiva API: ir directo a Transfering (evita limbo DialingTransfer sin botones).
+        { name: 'consultativeTransfer',   from: 'OnCall',             to: 'Transfering' },
         { name: 'startOnHold',            from: 'OnCall',             to: 'OnHold' },
         // DialingTransfer
         { name: 'endCall',                from: 'DialingTransfer',    to: 'Ready' },
         { name: 'blindTransfer',          from: 'DialingTransfer',    to: 'Transfered' },
+        // Path legacy (onTransferDialed tras dialTransfer) sigue válido.
         { name: 'consultativeTransfer',   from: 'DialingTransfer',    to: 'Transfering' },
         // Transfered
         { name: 'endCall',                from: 'Transfered',         to: 'Ready' },

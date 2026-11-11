@@ -903,17 +903,24 @@ class ActualizaBaseDatosContactoView(UpdateView):
             self.campana.activar()
 
     def _generar_relaciones_agente_en_contacto(self):
-        contactos = self.campana.bd_contacto.contactos.filter(id__gt=self.id_ultimo_contacto)
+        contactos = self.campana.bd_contacto.contactos.filter(
+            id__gt=self.id_ultimo_contacto).iterator(chunk_size=5000)
         agente_en_contacto_list = []
         campos_contacto = self.campana.bd_contacto.get_metadata().nombres_de_columnas_de_datos
         orden = AgenteEnContacto.ultimo_id() + 1
+        batch_size = 5000
         for contacto in contactos:
             agente_en_contacto = self.campana._crear_agente_en_contacto(
                 contacto, -1, campos_contacto, AgenteEnContacto.ESTADO_INICIAL, orden=orden)
             agente_en_contacto_list.append(agente_en_contacto)
             orden += 1
-        # insertamos las instancias en la BD
-        AgenteEnContacto.objects.bulk_create(agente_en_contacto_list)
+            if len(agente_en_contacto_list) >= batch_size:
+                AgenteEnContacto.objects.bulk_create(
+                    agente_en_contacto_list, batch_size=batch_size)
+                agente_en_contacto_list = []
+        if agente_en_contacto_list:
+            AgenteEnContacto.objects.bulk_create(
+                agente_en_contacto_list, batch_size=batch_size)
 
     def post(self, request, *args, **kwargs):
 

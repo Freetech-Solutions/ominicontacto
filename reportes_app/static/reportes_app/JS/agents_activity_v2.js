@@ -405,15 +405,49 @@
         });
     }
 
+    function escapeHtml(text) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(text == null ? '' : String(text)));
+        return div.innerHTML;
+    }
+
+    function renderPauseHeaders(pauseColumns) {
+        var groupTh = document.getElementById('th-group-disponibilidad');
+        var pauseTh = document.getElementById('th-col-pause');
+        var cols = Array.isArray(pauseColumns) ? pauseColumns : [];
+
+        document.querySelectorAll('th.th-pause-dynamic').forEach(function(el) {
+            el.parentNode.removeChild(el);
+        });
+
+        if (groupTh) {
+            groupTh.setAttribute('colspan', String(4 + cols.length));
+        }
+        if (!pauseTh) return;
+
+        var insertAfter = pauseTh;
+        cols.forEach(function(col) {
+            var th = document.createElement('th');
+            th.setAttribute('scope', 'col');
+            th.className = 'text-right text-orange-600 th-pause-dynamic';
+            th.textContent = col.name || col.key || '';
+            insertAfter.parentNode.insertBefore(th, insertAfter.nextSibling);
+            insertAfter = th;
+        });
+    }
+
     function renderRows(data) {
         var tbody = document.getElementById('reporte-performance-tbody');
         var contador = document.getElementById('reporte-performance-contador');
         if (!tbody) return;
 
         var list = (data && data.data) ? data.data : [];
+        var pauseColumns = (data && Array.isArray(data.pause_columns)) ? data.pause_columns : [];
         var totalCount = (data && typeof data.total_count === 'number') ? data.total_count : list.length;
         var page = (data && typeof data.page === 'number') ? data.page : 1;
         var pageSize = (data && typeof data.page_size === 'number') ? data.page_size : list.length;
+
+        renderPauseHeaders(pauseColumns);
 
         function fmtNum(n) {
             if (n === null || n === undefined) return '—';
@@ -451,13 +485,20 @@
             var agenteReporteUrl = getAgenteReporteGraficoUrl(id);
             var agenteHtml = agente;
             if (agenteReporteUrl) {
-                agenteHtml = '<a href="' + agenteReporteUrl + '" class="text-blue-700 hover:text-blue-900 hover:underline">' + agente + '</a>';
+                agenteHtml = '<a href="' + agenteReporteUrl + '" class="text-blue-700 hover:text-blue-900 hover:underline">' + escapeHtml(agente) + '</a>';
+            } else {
+                agenteHtml = escapeHtml(agente);
             }
             html += '<tr>';
-            html += '<td><div><div class="font-medium text-gray-900">' + agenteHtml + '</div><div class="text-xs text-gray-400">ID: ' + id + '</div></div></td>';
+            html += '<td><div><div class="font-medium text-gray-900">' + agenteHtml + '</div><div class="text-xs text-gray-400">ID: ' + escapeHtml(id) + '</div></div></td>';
             html += '<td class="text-right f-mono text-gray-600">' + secondsToHHMMSS(row.session_seconds) + '</td>';
             html += '<td class="text-right f-mono"><div class="text-gray-900">' + secondsToHHMMSS(row.ready_seconds) + '</div><div class="text-xs text-green-600">' + fmtPct(row.ready_pct) + '</div></td>';
             html += '<td class="text-right f-mono"><div class="text-gray-900">' + secondsToHHMMSS(row.pause_seconds) + '</div><div class="text-xs text-orange-500">' + fmtPct(row.pause_pct) + '</div></td>';
+            var pausesByKey = row.pause_seconds_by_key || {};
+            pauseColumns.forEach(function(col) {
+                var sec = pausesByKey[col.key] != null ? pausesByKey[col.key] : 0;
+                html += '<td class="text-right f-mono text-gray-700">' + secondsToHHMMSS(sec) + '</td>';
+            });
             html += '<td class="text-right f-mono"><div class="text-gray-900">' + secondsToHHMMSS(row.acw_seconds) + '</div><div class="text-xs text-blue-600 font-bold">' + fmtPct(row.acw_pct) + '</div></td>';
             html += '<td class="text-right font-medium">' + fmtNum(row.total_interactions) + '</td>';
             html += '<td class="text-right f-mono font-medium text-gray-900">' + fmtNum(row.gestiones_count) + '</td>';
@@ -480,7 +521,8 @@
             html += '</tr>';
         });
 
-        tbody.innerHTML = html || '<tr><td colspan="14" class="py-8 text-center text-gray-500">No hay datos para el rango seleccionado.</td></tr>';
+        var emptyColspan = 14 + pauseColumns.length;
+        tbody.innerHTML = html || '<tr><td colspan="' + emptyColspan + '" class="py-8 text-center text-gray-500">No hay datos para el rango seleccionado.</td></tr>';
         if (contador) {
             if (totalCount === 0) {
                 contador.textContent = 'Mostrando 0 de 0 agentes';

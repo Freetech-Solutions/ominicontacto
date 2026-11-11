@@ -124,6 +124,11 @@ def generar_csv_llamadas_voz_centro_contacto(
         total_abandoned = sum(r['abandoned'] for r in rows)
         total_transfer_in_count = sum(r.get('transfer_in_count', 0) for r in rows)
         total_transfer_out_count = sum(r.get('transfer_out_count', 0) for r in rows)
+        total_overflow_in_count = sum(r.get('overflow_in_count', 0) for r in rows)
+        total_overflow_out_count = sum(r.get('overflow_out_count', 0) for r in rows)
+        total_overflow_dialplan_out_count = sum(
+            r.get('overflow_dialplan_out_count', 0) for r in rows
+        )
         pct_answered = (
             (100.0 * total_answered / total_effective_received)
             if total_effective_received else 0.0
@@ -143,6 +148,9 @@ def generar_csv_llamadas_voz_centro_contacto(
             'abandoned': total_abandoned,
             'transfer_in_count': total_transfer_in_count,
             'transfer_out_count': total_transfer_out_count,
+            'overflow_in_count': total_overflow_in_count,
+            'overflow_out_count': total_overflow_out_count,
+            'overflow_dialplan_out_count': total_overflow_dialplan_out_count,
             'pct_answered': round(pct_answered, 2),
             'pct_expired': round(pct_expired, 2),
             'pct_abandoned': round(pct_abandoned, 2),
@@ -162,6 +170,9 @@ def generar_csv_llamadas_voz_centro_contacto(
         _('Abandonadas'),
         _('Transfer In'),
         _('Transfer Out'),
+        _('Desborde In'),
+        _('Desborde Out'),
+        _('Desborde Dialplan'),
         _('Espera prom.'),
         _('Habla prom.'),
         _('% Respondidas'),
@@ -181,6 +192,9 @@ def generar_csv_llamadas_voz_centro_contacto(
                 _to_str(row.get('abandoned')),
                 _to_str(row.get('transfer_in_count', 0)),
                 _to_str(row.get('transfer_out_count', 0)),
+                _to_str(row.get('overflow_in_count', 0)),
+                _to_str(row.get('overflow_out_count', 0)),
+                _to_str(row.get('overflow_dialplan_out_count', 0)),
                 _format_seconds(row.get('avg_wait_seconds')),
                 _format_seconds(row.get('avg_talk_seconds')),
                 _to_str(row.get('pct_answered')),
@@ -196,6 +210,9 @@ def generar_csv_llamadas_voz_centro_contacto(
                 _to_str(totals.get('abandoned')),
                 _to_str(totals.get('transfer_in_count')),
                 _to_str(totals.get('transfer_out_count')),
+                _to_str(totals.get('overflow_in_count')),
+                _to_str(totals.get('overflow_out_count')),
+                _to_str(totals.get('overflow_dialplan_out_count')),
                 '',  # Espera prom. total
                 '',  # Habla prom. total
                 _to_str(totals.get('pct_answered')),

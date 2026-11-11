@@ -17,8 +17,10 @@ from ominicontacto_app.models import Campana, User
 from reportes_app.models import InteractionsSummary, InteractionTransfers
 from ominicontacto_app.tests.factories import (
     AgenteProfileFactory,
+    CalificacionClienteFactory,
     CampanaFactory,
     GrupoFactory,
+    OpcionCalificacionFactory,
     QueueFactory,
     QueueMemberFactory,
 )
@@ -182,6 +184,10 @@ class ReporteCentroContactoFormViewTest(OMLBaseTest):
                     'pct_transferred': 30.0,
                     'transfer_in_count': 2,
                     'transfer_out_count': 3,
+                    'overflow_in_count': 1,
+                    'overflow_out_count': 4,
+                    'overflow_dialplan_out_count': 0,
+                    'overflow_out_total': 4,
                 },
             ],
         ]
@@ -202,9 +208,13 @@ class ReporteCentroContactoFormViewTest(OMLBaseTest):
         table_html = content[table_start:table_end]
 
         self.assertIn('Transfer (In/Out)', table_html)
+        self.assertIn('Desborde (In/Out)', table_html)
         self.assertNotIn('Transferidas', table_html)
         self.assertIn('fa-arrow-down', table_html)
         self.assertIn('fa-arrow-up', table_html)
+        # Chips Desborde In/Out (valores del mock)
+        self.assertRegex(table_html, r'>\s*1\s*<i class="fas fa-arrow-down')
+        self.assertRegex(table_html, r'>\s*4\s*<i class="fas fa-arrow-up')
 
     @patch('api_app.views.reports_centro_contacto.obtener_kpis_centro_contacto')
     def test_form_submit_passes_duracion_bot_min_to_kpis(self, mock_kpis):
@@ -1600,6 +1610,205 @@ class ObtenerLlamadasPorCampanaTransferOutIntegrationTest(OMLBaseTest):
         origen = next(r for r in rows if r['campaign_id'] == self.campana_origen.pk)
         self.assertEqual(origen['answered'], 1)
 
+    def test_overflow_failover_origen_out_destino_answered(self):
+        """FAILOVER: summary en B EXIT_ANSWERED + transfer OVERFLOW → A overflow_out, B overflow_in/answered."""  # noqa: E501
+        iid = 'cc-overflow-%s-%s' % (self.campana_origen.pk, self.campana_destino.pk)
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_destino.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            hangup_cause='AGENT',
+            start_time=self.desde + timedelta(hours=11),
+            end_time=self.desde + timedelta(hours=11, seconds=40),
+            wait_conn_duration=Decimal('33'),
+            agent_duration=Decimal('3'),
+            is_transferred=False,
+            channel_data={
+                'is_overflow': True,
+                'overflow_count': 1,
+                'overflow_origin_campaign_id': self.campana_origen.pk,
+                'overflow_from_campaign_id': self.campana_origen.pk,
+                'overflow_path': [{
+                    'from_campaign_id': self.campana_origen.pk,
+                    'to_campaign_id': self.campana_destino.pk,
+                    'reason': 'QUEUE_TIMEOUT',
+                    'at': '2026-11-06T13:00:47-03:00',
+                }],
+            },
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_id=str(self.campana_destino.pk),
+            destination_type='CAMPAIGN',
+            destination_campaign_id=self.campana_destino.pk,
+            transfer_type='OVERFLOW',
+            status='OK',
+        )
+
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        origen = by_id[self.campana_origen.pk]
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(origen['overflow_out_count'], 1)
+        self.assertEqual(origen['overflow_in_count'], 0)
+        self.assertEqual(origen.get('overflow_out_total', 0), 1)
+        self.assertEqual(origen['expired'], 0)
+        self.assertEqual(origen.get('transfer_out_count', 0), 0)
+
+        self.assertEqual(destino['overflow_in_count'], 1)
+        self.assertEqual(destino['overflow_out_count'], 0)
+        self.assertEqual(destino.get('overflow_out_total', 0), 0)
+        self.assertEqual(destino['answered'], 1)
+        self.assertEqual(destino['expired'], 0)
+
+    def test_overflow_dialplan_ivr_additive_not_in_camp_camp(self):
+        """I6: OVERFLOW→IVR suma overflow_dialplan_out; no altera overflow_in/out camp→camp."""
+        iid = 'cc-overflow-ivr-%s' % self.campana_origen.pk
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_origen.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_TIMEOUT',
+            hangup_cause='OTHER',
+            start_time=self.desde + timedelta(hours=12),
+            end_time=self.desde + timedelta(hours=12, seconds=50),
+            wait_conn_duration=Decimal('50'),
+            agent_duration=Decimal('0'),
+            is_transferred=False,
+            channel_data={
+                'is_overflow': True,
+                'overflow_count': 1,
+                'overflow_origin_campaign_id': self.campana_origen.pk,
+                'overflow_from_campaign_id': self.campana_origen.pk,
+                'overflow_path': [{
+                    'from_campaign_id': self.campana_origen.pk,
+                    'to_destination_type': 'IVR',
+                    'to_destination_id': 7,
+                    'reason': 'QUEUE_TIMEOUT',
+                    'at': '2026-11-06T14:00:00-03:00',
+                }],
+            },
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_id='7',
+            destination_type='IVR',
+            destination_campaign_id=None,
+            transfer_type='OVERFLOW',
+            status='OK',
+        )
+
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        origen = by_id[self.campana_origen.pk]
+
+        self.assertEqual(origen['overflow_out_count'], 0)
+        self.assertEqual(origen['overflow_in_count'], 0)
+        self.assertEqual(origen.get('overflow_dialplan_out_count', 0), 1)
+        self.assertEqual(origen.get('overflow_out_total', 0), 1)
+        self.assertEqual(origen.get('transfer_out_count', 0), 0)
+
+    def test_overflow_ivr_reentry_origen_acusa_dialplan_sin_summary_propio(self):
+        """A→IVR→B: summary en B; A debe acusar Desborde ↑ (dialplan) para Ops."""
+        iid = 'cc-overflow-ivr-reentry-%s-%s' % (
+            self.campana_origen.pk, self.campana_destino.pk,
+        )
+        InteractionsSummary.objects.create(
+            interaction_id=iid,
+            tenant_id='t',
+            node_id='n1',
+            campaign_id=self.campana_destino.pk,
+            channel_type='VOICE',
+            direction='INBOUND',
+            status='EXIT_ANSWERED',
+            hangup_cause='AGENT',
+            start_time=self.desde + timedelta(hours=13),
+            end_time=self.desde + timedelta(hours=13, seconds=26),
+            wait_conn_duration=Decimal('24'),
+            agent_duration=Decimal('2'),
+            is_transferred=False,
+            channel_data={
+                'is_overflow': True,
+                'overflow_count': 1,
+                'overflow_origin_campaign_id': self.campana_origen.pk,
+                'overflow_from_campaign_id': self.campana_origen.pk,
+                'overflow_path': [
+                    {
+                        'from_campaign_id': self.campana_origen.pk,
+                        'to_destination_type': 'IVR',
+                        'to_destination_id': 1,
+                        'reason': 'QUEUE_TIMEOUT',
+                        'at': '2026-11-11T10:57:14-03:00',
+                    },
+                    {
+                        'from_destination_type': 'IVR',
+                        'from_destination_id': 1,
+                        'to_campaign_id': self.campana_destino.pk,
+                        'reason': 'DIALPLAN_REENTRY',
+                        'at': '2026-11-11T10:57:19-03:00',
+                    },
+                ],
+            },
+        )
+        InteractionTransfers.objects.create(
+            interaction_id=iid,
+            destination_id='1',
+            destination_type='IVR',
+            destination_campaign_id=None,
+            transfer_type='OVERFLOW',
+            status='OK',
+        )
+
+        allowed = [self.campana_origen.pk, self.campana_destino.pk]
+        rows = obtener_llamadas_por_campana(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=allowed,
+            visible_campaigns=allowed,
+            direction_filter='INBOUND',
+            channel_filter='VOICE',
+        )
+        by_id = {r['campaign_id']: r for r in rows}
+        origen = by_id[self.campana_origen.pk]
+        destino = by_id[self.campana_destino.pk]
+
+        self.assertEqual(origen['received'], 0)
+        self.assertEqual(origen['overflow_out_count'], 0)
+        self.assertEqual(origen['overflow_dialplan_out_count'], 1)
+        self.assertEqual(origen['overflow_out_total'], 1)
+        self.assertEqual(origen['effective_received'], 1)
+        self.assertEqual(origen['pct_overflow'], 100.0)
+
+        self.assertEqual(destino['received'], 1)
+        self.assertEqual(destino['answered'], 1)
+        self.assertEqual(destino['overflow_in_count'], 0)
+        self.assertEqual(destino.get('overflow_dialplan_out_count', 0), 0)
+        self.assertEqual(destino.get('overflow_out_total', 0), 0)
+
     def test_transfer_out_timeout_is_transferred_false_no_cuenta_respondida(self):
         """Xfer a otra campaña con is_transferred=False: no sumar answered en origen (sin EXIT_ANSWERED)."""  # noqa: E501
         iid = 'cc-xfer-out-not-flagged-%s' % self.campana_origen.pk
@@ -2467,7 +2676,8 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
         self._seq = 0
 
     def _create_voice(self, status, direction='OUTBOUND', agent_id=1,
-                      agent_duration=Decimal('10'), total_duration=Decimal('15')):
+                      agent_duration=Decimal('10'), total_duration=Decimal('15'),
+                      initiation_method=None):
         self._seq += 1
         start = self.desde + timedelta(minutes=self._seq)
         return InteractionsSummary.objects.create(
@@ -2477,6 +2687,7 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
             campaign_id=self.campana.pk,
             channel_type='VOICE',
             direction=direction,
+            initiation_method=initiation_method,
             status=status,
             hangup_cause='OTHER',
             start_time=start,
@@ -2580,6 +2791,101 @@ class ListadoLlamadasEgresosClasificacionTest(OMLBaseTest):
         )
         self.assertEqual(len(no_atendidas.object_list), 1)
         self.assertEqual(no_atendidas.object_list[0]['interaction_id'], noanswer.interaction_id)
+
+    def test_listados_incluyen_initiation_method(self):
+        answered = self._create_voice('EXIT_ANSWERED', initiation_method='DIALER')
+        noanswer = self._create_voice(
+            'NOANSWER', agent_id=-1, agent_duration=Decimal('0'), total_duration=Decimal('0'),
+            initiation_method='AGENT',
+        )
+        answered_null = self._create_voice('EXIT_ANSWERED', initiation_method=None)
+        answered_inbound = self._create_voice(
+            'EXIT_ANSWERED', direction='INBOUND', initiation_method='EXTERNAL',
+        )
+
+        atendidas = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=answered.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(atendidas.object_list), 1)
+        self.assertEqual(atendidas.object_list[0]['initiation_method'], 'DIALER')
+
+        no_atendidas = obtener_listado_llamadas_no_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=noanswer.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(no_atendidas.object_list), 1)
+        self.assertEqual(no_atendidas.object_list[0]['initiation_method'], 'AGENT')
+
+        atendidas_null = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=answered_null.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(atendidas_null.object_list), 1)
+        self.assertEqual(atendidas_null.object_list[0]['initiation_method'], '—')
+
+        atendidas_in = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='INBOUND',
+            callid=answered_inbound.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(atendidas_in.object_list), 1)
+        self.assertEqual(atendidas_in.object_list[0]['initiation_method'], 'EXTERNAL')
+
+    def test_listado_atendidas_incluye_nombre_subcalificacion(self):
+        answered = self._create_voice('EXIT_ANSWERED', initiation_method='DIALER')
+        opcion = OpcionCalificacionFactory(campana=self.campana, nombre='Venta')
+        CalificacionClienteFactory(
+            callid=answered.interaction_id,
+            opcion_calificacion=opcion,
+            subcalificacion='Plan Premium',
+        )
+
+        atendidas = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=answered.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(atendidas.object_list), 1)
+        row = atendidas.object_list[0]
+        self.assertEqual(row['nombre_calificacion'], 'Venta')
+        self.assertEqual(row['nombre_subcalificacion'], 'Plan Premium')
+
+        # Sin CalificacionCliente: fallback a channel_data
+        answered_cd = self._create_voice('EXIT_ANSWERED')
+        answered_cd.channel_data = {'subcalificacion': 'Desde channel_data'}
+        answered_cd.save(update_fields=['channel_data'])
+        atendidas_cd = obtener_listado_llamadas_atendidas(
+            start_date=self.desde,
+            end_date=self.hasta,
+            allowed_campaigns=[self.campana.pk],
+            direction_filter='OUTBOUND',
+            callid=answered_cd.interaction_id,
+            page_size=100,
+        )
+        self.assertEqual(len(atendidas_cd.object_list), 1)
+        self.assertEqual(
+            atendidas_cd.object_list[0]['nombre_subcalificacion'],
+            'Desde channel_data',
+        )
 
     def test_amd_inbound_sigue_en_no_atendidas(self):
         amd_in = self._create_voice(

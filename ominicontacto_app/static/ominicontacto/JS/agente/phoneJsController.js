@@ -684,6 +684,11 @@ class PhoneJSController {
                 phone_logger.log('Desde Transfering!');
                 self.phone_fsm.transferAccepted();
                 self.phone.cleanLastCallData();
+            } else if (self.phone_fsm.state == 'DialingTransfer') {
+                phone_logger.log('Desde DialingTransfer!');
+                self.view.hideCompleteTransferButton();
+                self.phone_fsm.endCall();
+                self.phone.cleanLastCallData();
             } else if (self.phone_fsm.state == 'Calling') {
                 phone_logger.log('Desde Calling!');
                 self.phone_fsm.endCall();
@@ -791,13 +796,21 @@ class PhoneJSController {
                 self.timers.toEndPause.hide_element();
                 self.timers.toEndPause.reset();
                 self.timers.operacion.start();
-                self.phone_fsm.unpause();
+                // Idempotente si la UI ya despausó (doLeavePause / eco Channels de API).
+                if (self.phone_fsm.state == 'Paused')
+                    self.phone_fsm.unpause();
                 self.view.setCallStatus(gettext('Pausa liberada'), 'yellowgreen');
             }
         });
         this.notification_agent.eventsCallbacks.onNotificationForzarPausa.add(function(args){
             const pause_id = args['id'];
             const pause_name = args['name'];
+            // Eco / ya en pausa local: no pisar UI con mensaje de supervisor.
+            if (self.phone_fsm.state == 'Paused' || self.phone_fsm.state == 'Pausing' ||
+                    self.pause_manager.pause_enabled) {
+                self.pause_manager.setPause(pause_id, pause_name, 0);
+                return;
+            }
             self.phone_fsm.startPause();
             self.pause_manager.setPause(pause_id, pause_name, 0);
             self.timers.toEndPause.hide_element();
@@ -1133,7 +1146,9 @@ class PhoneJSController {
         this.timers.toEndPause.hide_element();
         this.timers.toEndPause.reset();
         this.timers.operacion.start();
-        this.phone_fsm.unpause();
+        // Idempotente si Channels ya despausó (notify_unpause antes del click local).
+        if (this.phone_fsm.state == 'Paused')
+            this.phone_fsm.unpause();
         this.view.setCallStatus(gettext('Liberando pausa...'), 'yellowgreen');
     }
 
@@ -1255,8 +1270,9 @@ class PhoneJSController {
 
     manageCallReceipt(session_data) {
         if (this.pause_manager.pause_enabled && (session_data.is_dialer || session_data.is_inbound)){
-            // Rechazar llamada por race condition
+            // Rechazar llamada por race condition (ACW/pausa); no auto-atender
             this.phone.refuseCall();
+            return;
         }
         this.view.notifyEvent(gettext('Atención:'), gettext('Nueva llamada'));
         if (this.forcesAutoAttend(session_data)) {
@@ -1624,8 +1640,8 @@ class PhoneJSController {
         // Callbacks
         var callback_ok = function() {
             phone_logger.log('Transferencia consultativa iniciada exitosamente');
-            self.phone_fsm.dialTransfer();
-            self.phone.eventsCallbacks.onTransferDialed.fire(self.transfer);
+            // OnCall → Transfering directo: DialingTransfer deja Cancel/Completar deshabilitados.
+            self.phone_fsm.consultativeTransfer();
         };
 
         var callback_error = function(error_info) {

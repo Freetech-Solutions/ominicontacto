@@ -54,6 +54,8 @@ from reportes_app.models import (
     InteractionsSummary,
     InteractionTransfers,
     q_interaction_transfers_campaign_blind_consult,
+    q_interaction_transfers_campaign_overflow,
+    q_interaction_transfers_dialplan_overflow,
 )
 from reportes_app.serializers import CentroContactoKPISerializer
 from reportes_app.forms import ReporteCentroContactoForm
@@ -198,6 +200,271 @@ def _obtener_transferencias_entre_campanas_por_campana(
             transfer_in_counts[destination_campaign_id] += 1
 
     return dict(transfer_in_counts), dict(transfer_out_counts)
+
+
+def _resolve_overflow_source_campaign(channel_data, destination_campaign_id):
+    """
+    Resuelve campaña origen del hop OVERFLOW.
+    interaction_transfers no guarda campana_id_origen; se usa channel_data.overflow_path.
+    """
+    if not isinstance(channel_data, dict):
+        return None
+    dest_id = None
+    try:
+        dest_id = int(destination_campaign_id) if destination_campaign_id is not None else None
+    except (TypeError, ValueError):
+        dest_id = None
+
+    path = channel_data.get('overflow_path') or []
+    if isinstance(path, list) and dest_id is not None:
+        for hop in path:
+            if not isinstance(hop, dict):
+                continue
+            try:
+                to_id = int(hop.get('to_campaign_id')) if hop.get('to_campaign_id') is not None else None
+            except (TypeError, ValueError):
+                to_id = None
+            if to_id != dest_id:
+                continue
+            try:
+                from_id = hop.get('from_campaign_id')
+                return int(from_id) if from_id is not None else None
+            except (TypeError, ValueError):
+                return None
+
+    for key in ('overflow_from_campaign_id', 'overflow_origin_campaign_id'):
+        raw = channel_data.get(key)
+        if raw is None:
+            continue
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _resolve_overflow_dialplan_source(channel_data, destination_type, destination_id=None):
+    """
+    Resuelve campaña origen de un hop OVERFLOW → dialplan (IVR/TC/Survey/Hangup).
+    Usa overflow_path.to_destination_type / to_destination_id.
+    """
+    if not isinstance(channel_data, dict):
+        return None
+    dest_type = (destination_type or '').strip().upper()
+    if not dest_type:
+        return None
+
+    want_id = None
+    if destination_id is not None and str(destination_id).strip() != '':
+        raw_id = str(destination_id).strip()
+        if ',' in raw_id:
+            raw_id = raw_id.split(',', 1)[1].strip()
+        try:
+            want_id = int(raw_id)
+        except (TypeError, ValueError):
+            want_id = None
+
+    path = channel_data.get('overflow_path') or []
+    if isinstance(path, list):
+        for hop in path:
+            if not isinstance(hop, dict):
+                continue
+            hop_type = (hop.get('to_destination_type') or '').strip().upper()
+            if hop_type != dest_type:
+                continue
+            if want_id is not None:
+                try:
+                    hop_id = (
+                        int(hop.get('to_destination_id'))
+                        if hop.get('to_destination_id') is not None
+                        else None
+                    )
+                except (TypeError, ValueError):
+                    hop_id = None
+                if hop_id != want_id:
+                    continue
+            try:
+                from_id = hop.get('from_campaign_id')
+                return int(from_id) if from_id is not None else None
+            except (TypeError, ValueError):
+                return None
+
+    for key in ('overflow_from_campaign_id', 'overflow_origin_campaign_id'):
+        raw = channel_data.get(key)
+        if raw is None:
+            continue
+        try:
+            return int(raw)
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
+def _obtener_overflows_entre_campanas_por_campana(
+        start_date=None,
+        end_date=None,
+        selected_campaigns=None,
+        visible_campaigns=None,
+        allowed_agent_ids=None,
+        customer_id=None,
+        address_query=None,
+        callid=None, direction_filter=None,
+        channel_filter=None,
+        hora_desde=None,
+        hora_hasta=None,
+        duracion_agente_min=None,
+        duracion_bot_min=None):
+    """
+    Cuenta desbordes FAILOVER (transfer_type=OVERFLOW) entre campañas.
+
+    El resumen final suele estar en la campaña destino (B); el origen (A) se
+    resuelve desde channel_data.overflow_path / overflow_from_campaign_id.
+    No filtra summaries por campaign_id de A (no estarían en el CDR final).
+    """
+    # Sin campaign_scope: el CDR queda en B; A solo aparece vía channel_data / path.
+    base_queryset = _apply_interactions_summary_filters(
+        InteractionsSummary.objects.all(),
+        start_date=start_date,
+        end_date=end_date,
+        campaign_scope=None,
+        allow_null_campaigns=False,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        callid=callid,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
+    interaction_rows = list(
+        base_queryset.values_list('interaction_id', 'channel_data'),
+    )
+    if not interaction_rows:
+        return {}, {}
+
+    channel_data_by_interaction = {
+        interaction_id: channel_data
+        for interaction_id, channel_data in interaction_rows
+    }
+    selected_campaigns_set = set(selected_campaigns) if selected_campaigns is not None else None
+    # Si hay visible_campaigns, limitar conteos a ese universo; si no, a selected.
+    scope_set = None
+    if visible_campaigns is not None:
+        scope_set = set(visible_campaigns)
+    elif selected_campaigns_set is not None:
+        scope_set = selected_campaigns_set
+
+    transfers_queryset = InteractionTransfers.objects.filter(
+        interaction_id__in=list(channel_data_by_interaction.keys()),
+    ).filter(q_interaction_transfers_campaign_overflow())
+
+    overflow_in_counts = defaultdict(int)
+    overflow_out_counts = defaultdict(int)
+    for interaction_id, destination_campaign_id in transfers_queryset.values_list(
+            'interaction_id', 'destination_campaign_id'):
+        source_campaign_id = _resolve_overflow_source_campaign(
+            channel_data_by_interaction.get(interaction_id),
+            destination_campaign_id,
+        )
+        if (
+            source_campaign_id is not None
+            and (scope_set is None or source_campaign_id in scope_set)
+            and (selected_campaigns_set is None or source_campaign_id in selected_campaigns_set)
+        ):
+            overflow_out_counts[source_campaign_id] += 1
+        if (
+            destination_campaign_id is not None
+            and (scope_set is None or destination_campaign_id in scope_set)
+            and (selected_campaigns_set is None or destination_campaign_id in selected_campaigns_set)
+        ):
+            overflow_in_counts[destination_campaign_id] += 1
+
+    return dict(overflow_in_counts), dict(overflow_out_counts)
+
+
+def _obtener_overflows_dialplan_por_campana(
+        start_date=None,
+        end_date=None,
+        selected_campaigns=None,
+        visible_campaigns=None,
+        allowed_agent_ids=None,
+        customer_id=None,
+        address_query=None,
+        callid=None, direction_filter=None,
+        channel_filter=None,
+        hora_desde=None,
+        hora_hasta=None,
+        duracion_agente_min=None,
+        duracion_bot_min=None):
+    """
+    I6 aditivo: cuenta OVERFLOW → IVR/HANGUP/SURVEY/TIME_CONDITION por campaña origen.
+
+    No modifica overflow_in/out camp→camp. Destinos dialplan no tienen overflow_in.
+    """
+    base_queryset = _apply_interactions_summary_filters(
+        InteractionsSummary.objects.all(),
+        start_date=start_date,
+        end_date=end_date,
+        campaign_scope=None,
+        allow_null_campaigns=False,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        callid=callid,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
+    interaction_rows = list(
+        base_queryset.values_list('interaction_id', 'channel_data', 'campaign_id'),
+    )
+    if not interaction_rows:
+        return {}
+
+    channel_data_by_interaction = {
+        interaction_id: channel_data
+        for interaction_id, channel_data, _campaign_id in interaction_rows
+    }
+    summary_campaign_by_interaction = {
+        interaction_id: campaign_id
+        for interaction_id, _channel_data, campaign_id in interaction_rows
+    }
+    selected_campaigns_set = set(selected_campaigns) if selected_campaigns is not None else None
+    scope_set = None
+    if visible_campaigns is not None:
+        scope_set = set(visible_campaigns)
+    elif selected_campaigns_set is not None:
+        scope_set = selected_campaigns_set
+
+    transfers_queryset = InteractionTransfers.objects.filter(
+        interaction_id__in=list(channel_data_by_interaction.keys()),
+    ).filter(q_interaction_transfers_dialplan_overflow())
+
+    overflow_dialplan_out_counts = defaultdict(int)
+    for interaction_id, destination_type, destination_id in transfers_queryset.values_list(
+            'interaction_id', 'destination_type', 'destination_id'):
+        source_campaign_id = _resolve_overflow_dialplan_source(
+            channel_data_by_interaction.get(interaction_id),
+            destination_type,
+            destination_id,
+        )
+        if source_campaign_id is None:
+            # Terminal en A sin path usable: atribuir al campaign_id del summary
+            source_campaign_id = summary_campaign_by_interaction.get(interaction_id)
+        if (
+            source_campaign_id is not None
+            and (scope_set is None or source_campaign_id in scope_set)
+            and (selected_campaigns_set is None or source_campaign_id in selected_campaigns_set)
+        ):
+            overflow_dialplan_out_counts[source_campaign_id] += 1
+
+    return dict(overflow_dialplan_out_counts)
 
 
 def _obtener_metricas_inbound_transferidas_por_campana(
@@ -690,6 +957,12 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
       received y en transfer_out_count vía _obtener_transferencias_entre_campanas_por_campana.
     - transferred y pct_transferred: suma transfer_in_count + transfer_out_count (mismo criterio;
       no usa is_transferred del resumen).
+    - overflow_out_count / overflow_in_count: desbordes FAILOVER (OVERFLOW) camp→camp; no mezclan
+      con transfer BLIND/CONSULT ni con expired.
+    - overflow_dialplan_out_count (I6 aditivo): OVERFLOW → IVR/HANGUP/SURVEY/TIME_CONDITION;
+      no altera overflow_in/out camp→camp (contadores separados).
+    - overflow_out_total: overflow_out_count + overflow_dialplan_out_count (lo que pinta
+      Desborde ↑ en la GUI para que Ops vea pérdidas A→IVR/dialplan).
     """
     queryset = _apply_interactions_summary_filters(
         InteractionsSummary.objects.all(),
@@ -755,6 +1028,38 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         duracion_agente_min=duracion_agente_min,
         duracion_bot_min=duracion_bot_min,
     )
+    overflow_in_counts, overflow_out_counts = _obtener_overflows_entre_campanas_por_campana(
+        start_date=start_date,
+        end_date=end_date,
+        selected_campaigns=allowed_campaigns,
+        visible_campaigns=visible_campaigns,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        callid=callid,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
+    overflow_dialplan_out_counts = _obtener_overflows_dialplan_por_campana(
+        start_date=start_date,
+        end_date=end_date,
+        selected_campaigns=allowed_campaigns,
+        visible_campaigns=visible_campaigns,
+        allowed_agent_ids=allowed_agent_ids,
+        customer_id=customer_id,
+        address_query=address_query,
+        callid=callid,
+        direction_filter=direction_filter,
+        channel_filter=channel_filter,
+        hora_desde=hora_desde,
+        hora_hasta=hora_hasta,
+        duracion_agente_min=duracion_agente_min,
+        duracion_bot_min=duracion_bot_min,
+    )
     transferred_in_metrics = _obtener_metricas_inbound_transferidas_por_campana(
         start_date=start_date,
         end_date=end_date,
@@ -775,11 +1080,20 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
     campaign_ids.update(transfer_in_counts.keys())
     campaign_ids.update(transfer_out_counts.keys())
     campaign_ids.update(transferred_in_metrics.keys())
+    campaign_ids.update(overflow_in_counts.keys())
+    campaign_ids.update(overflow_out_counts.keys())
+    campaign_ids.update(overflow_dialplan_out_counts.keys())
     names_map = {}
     if campaign_ids:
         names_map = dict(
             Campana.objects.filter(pk__in=campaign_ids).values_list('id', 'nombre')
         )
+
+    def _row_overflow_fields(cid):
+        o_in = overflow_in_counts.get(cid, 0) if cid is not None else 0
+        o_out = overflow_out_counts.get(cid, 0) if cid is not None else 0
+        o_dp = overflow_dialplan_out_counts.get(cid, 0) if cid is not None else 0
+        return o_in, o_out, o_dp, o_out + o_dp
 
     result_by_campaign = {}
     for r in rows:
@@ -797,6 +1111,12 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
             )
         else:
             transferred = 0
+        (
+            overflow_in_count,
+            overflow_out_count,
+            overflow_dialplan_out_count,
+            overflow_out_total,
+        ) = _row_overflow_fields(cid)
         avg_wait = r['avg_wait']
         avg_talk = r['avg_talk']
 
@@ -810,6 +1130,9 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
         pct_expired = (100.0 * expired / effective_received) if effective_received else 0.0
         pct_abandoned = (100.0 * abandoned / effective_received) if effective_received else 0.0
         pct_transferred = (100.0 * transferred / effective_received) if effective_received else 0.0
+        # pct_overflow: A puede no tener received propio (summary en B); incluir dialplan out.
+        overflow_base = effective_received + overflow_out_total
+        pct_overflow = (100.0 * overflow_out_total / overflow_base) if overflow_base else 0.0
 
         result_by_campaign[cid] = {
             'campaign_id': cid,
@@ -828,27 +1151,47 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
             'pct_expired': round(pct_expired, 2),
             'pct_abandoned': round(pct_abandoned, 2),
             'pct_transferred': round(pct_transferred, 2),
+            'pct_overflow': round(pct_overflow, 2),
             'transfer_in_count': transfer_in_counts.get(cid, 0),
             'transfer_out_count': transfer_out_counts.get(cid, 0),
+            'overflow_in_count': overflow_in_count,
+            'overflow_out_count': overflow_out_count,
+            'overflow_dialplan_out_count': overflow_dialplan_out_count,
+            'overflow_out_total': overflow_out_total,
         }
 
     all_transfer_campaign_ids = (
         set(transfer_in_counts.keys()) |
         set(transfer_out_counts.keys()) |
-        set(transferred_in_metrics.keys())
+        set(transferred_in_metrics.keys()) |
+        set(overflow_in_counts.keys()) |
+        set(overflow_out_counts.keys()) |
+        set(overflow_dialplan_out_counts.keys())
     )
     for cid in sorted(all_transfer_campaign_ids):
         if cid in result_by_campaign:
             continue
         transfer_metrics = transferred_in_metrics.get(cid, {})
         received = 0
-        effective_received = transfer_metrics.get('received', 0)
+        # Origen solo-overflow (camp→camp o →dialplan): sumar outs a effective para visibilidad de A
+        (
+            overflow_in_count,
+            overflow_out_count,
+            overflow_dialplan_out_count,
+            overflow_out_total,
+        ) = _row_overflow_fields(cid)
+        effective_received = (
+            transfer_metrics.get('received', 0) + overflow_out_total
+        )
         answered = transfer_metrics.get('answered', 0)
         unanswered = transfer_metrics.get('unanswered', 0)
         expired = transfer_metrics.get('expired', 0)
         abandoned = transfer_metrics.get('abandoned', 0)
         transferred = (
             transfer_in_counts.get(cid, 0) + transfer_out_counts.get(cid, 0)
+        )
+        pct_overflow = (
+            (100.0 * overflow_out_total / effective_received) if effective_received else 0.0
         )
         result_by_campaign[cid] = {
             'campaign_id': cid,
@@ -869,8 +1212,13 @@ def obtener_llamadas_por_campana(start_date=None, end_date=None,
             'pct_transferred': round(
                 (100.0 * transferred / effective_received), 2,
             ) if effective_received else 0.0,
+            'pct_overflow': round(pct_overflow, 2),
             'transfer_in_count': transfer_in_counts.get(cid, 0),
             'transfer_out_count': transfer_out_counts.get(cid, 0),
+            'overflow_in_count': overflow_in_count,
+            'overflow_out_count': overflow_out_count,
+            'overflow_dialplan_out_count': overflow_dialplan_out_count,
+            'overflow_out_total': overflow_out_total,
         }
     result = list(result_by_campaign.values())
     result.sort(key=lambda row: (-row['received'], row['campaign_name']))
@@ -4577,10 +4925,10 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
     EXIT_HANDOFF_ABANDON / EXIT_HANDOFF_TIMEOUT (ingresos y egresos).
     direction_filter: 'INBOUND' o 'OUTBOUND'. Mismos filtros que obtener_llamadas_por_campana.
     Retorna un Page de Django con object_list siendo lista de dicts con columnas para la tabla
-    (fecha_hora, id_contacto, telefono, id_campana, nombre_campana, id_agente, nombre_agente,
-    username_agente, grupo_agente, is_transferred, tiempo_espera, duracion_agente, duracion_bot,
-    quien_corto, calificacion_tel, id_calificacion, nombre_calificacion, nombre_subcalificacion,
-    url_grabacion).
+    (fecha_hora, initiation_method, id_contacto, telefono, id_campana, nombre_campana, id_agente,
+    nombre_agente, username_agente, grupo_agente, is_transferred, tiempo_espera, duracion_agente,
+    duracion_bot, quien_corto, calificacion_tel, id_calificacion, nombre_calificacion,
+    nombre_subcalificacion, url_grabacion).
     calificacion_tel es el status telefónico (p. ej. EXIT_ANSWERED).
     id_calificacion y nombre_calificacion provienen de CalificacionCliente (por callid=interaction_id).  # noqa: E501
     """
@@ -4664,6 +5012,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
                 calificacion_por_callid[cal.callid] = {
                     'id': cal.id,
                     'nombre': cal.opcion_calificacion.nombre if cal.opcion_calificacion else '—',
+                    'subcalificacion': cal.subcalificacion or '',
                 }
 
     rows = []
@@ -4682,14 +5031,20 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
         if cal_data:
             id_calificacion = cal_data['id']
             nombre_calificacion = cal_data['nombre']
+            subcalificacion = (cal_data.get('subcalificacion') or '').strip() or '—'
         else:
             id_calificacion = None
             nombre_calificacion = '—'
+            subcalificacion = '—'
 
-        subcalificacion = '—'
         sip_agentic_leg_call_id = ''
         if obj.channel_data and isinstance(obj.channel_data, dict):
-            subcalificacion = obj.channel_data.get('subcalificacion') or obj.channel_data.get('subcalificacion_nombre') or '—'  # noqa: E501
+            if subcalificacion == '—':
+                subcalificacion = (
+                    obj.channel_data.get('subcalificacion')
+                    or obj.channel_data.get('subcalificacion_nombre')
+                    or '—'
+                )
             sip_agentic_leg_call_id = obj.channel_data.get('sip_agentic_leg_call_id') or ''
 
         url_grabacion = obj.url_archivo_grabacion_url_encoded if obj.end_time else ''
@@ -4700,6 +5055,7 @@ def obtener_listado_llamadas_atendidas(start_date=None, end_date=None,
 
         rows.append({
             'fecha_hora': obj.start_time,
+            'initiation_method': obj.initiation_method or '—',
             'interaction_id': obj.interaction_id,
             'id_contacto': obj.customer_id,
             'telefono': _telefono_interaccion(obj),
@@ -4866,8 +5222,8 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
     Listado paginado de llamadas no atendidas (voz): excluye los status del listado
     atendidas (EXIT_ANSWERED y cierres post-handoff). Incluye EXIT_AMD y EXIT_SHORTCALL.
     direction_filter: 'INBOUND' o 'OUTBOUND'. Mismos filtros que obtener_listado_llamadas_atendidas.
-    Retorna un Page con object_list de dicts con: fecha_hora, id_contacto, telefono,
-    id_campana, nombre_campana, tiempo_espera, status.
+    Retorna un Page con object_list de dicts con: fecha_hora, initiation_method, id_contacto,
+    telefono, id_campana, nombre_campana, tiempo_espera, status.
     """
     queryset = _queryset_llamadas_no_atendidas(
         start_date=start_date,
@@ -4904,6 +5260,7 @@ def obtener_listado_llamadas_no_atendidas(start_date=None, end_date=None,
         wait_sec = _decimal_to_float(obj.wait_conn_duration) if obj.wait_conn_duration is not None else None  # noqa: E501
         rows.append({
             'fecha_hora': obj.start_time,
+            'initiation_method': obj.initiation_method or '—',
             'interaction_id': obj.interaction_id,
             'id_contacto': obj.customer_id,
             'telefono': _telefono_interaccion(obj),
@@ -5215,6 +5572,12 @@ class ReporteCentroContactoFormView(FormView):
             total_transfer_out_count = sum(
                 r.get('transfer_out_count', 0) for r in ingresos_voz_por_campana
             )
+            total_overflow_in_count = sum(
+                r.get('overflow_in_count', 0) for r in ingresos_voz_por_campana
+            )
+            total_overflow_out_count = sum(
+                r.get('overflow_out_count', 0) for r in ingresos_voz_por_campana
+            )
             ingresos_voz_por_campana_totals = {
                 'received': total_received,
                 'answered': total_answered,
@@ -5223,6 +5586,8 @@ class ReporteCentroContactoFormView(FormView):
                 'transferred': total_transferred,
                 'transfer_in_count': total_transfer_in_count,
                 'transfer_out_count': total_transfer_out_count,
+                'overflow_in_count': total_overflow_in_count,
+                'overflow_out_count': total_overflow_out_count,
                 'pct_answered': round(100.0 * total_answered / total_effective_received, 2) if total_effective_received else 0.0,  # noqa: E501
                 'pct_expired': round(100.0 * total_expired / total_effective_received, 2) if total_effective_received else 0.0,  # noqa: E501
                 'pct_abandoned': round(100.0 * total_abandoned / total_effective_received, 2) if total_effective_received else 0.0,  # noqa: E501

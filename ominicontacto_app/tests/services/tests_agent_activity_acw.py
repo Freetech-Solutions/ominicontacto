@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import json
 import time
 
+import redis
 from django.test import SimpleTestCase, TestCase
 from mock import MagicMock, patch
 
@@ -45,8 +46,9 @@ class AgentActivityAcwEmitTests(SimpleTestCase):
         manager._get_family = MagicMock(return_value='OML:AGENT:1')
         return manager, redis_conn
 
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
     @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
-    def test_unpause_from_acw_with_campaign_emits_sample(self, mock_submit):
+    def test_unpause_from_acw_with_campaign_emits_sample(self, mock_submit, _mock_notifier):
         now = int(time.time())
         manager, redis_conn = self._manager_with_redis({
             'STATUS': 'PAUSE-ACW',
@@ -72,8 +74,9 @@ class AgentActivityAcwEmitTests(SimpleTestCase):
         # READY se aplica después del sample
         self.assertTrue(redis_conn.hset.called)
 
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
     @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
-    def test_unpause_without_campaign_skips_sample(self, mock_submit):
+    def test_unpause_without_campaign_skips_sample(self, mock_submit, _mock_notifier):
         now = int(time.time())
         manager, _ = self._manager_with_redis({
             'STATUS': 'PAUSE-ACW',
@@ -88,8 +91,9 @@ class AgentActivityAcwEmitTests(SimpleTestCase):
         manager.unpause_agent(agente, '0')
         mock_submit.assert_not_called()
 
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
     @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
-    def test_unpause_not_in_acw_skips_sample(self, mock_submit):
+    def test_unpause_not_in_acw_skips_sample(self, mock_submit, _mock_notifier):
         now = int(time.time())
         manager, _ = self._manager_with_redis({
             'STATUS': 'PAUSE-Break',
@@ -112,8 +116,9 @@ class AgentActivityAcwEmitTests(SimpleTestCase):
             manager.unpause_agent(agente, '3')
         mock_submit.assert_not_called()
 
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
     @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
-    def test_switch_from_acw_to_other_pause_emits_once(self, mock_submit):
+    def test_switch_from_acw_to_other_pause_emits_once(self, mock_submit, _mock_notifier):
         now = int(time.time())
         manager, _ = self._manager_with_redis({
             'STATUS': 'PAUSE-ACW',
@@ -137,8 +142,9 @@ class AgentActivityAcwEmitTests(SimpleTestCase):
         mock_submit.assert_called_once()
         self.assertEqual(str(mock_submit.call_args[0][0]), '22')
 
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
     @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
-    def test_gearman_failure_does_not_block_unpause(self, mock_submit):
+    def test_gearman_failure_does_not_block_unpause(self, mock_submit, _mock_notifier):
         now = int(time.time())
         manager, redis_conn = self._manager_with_redis({
             'STATUS': 'PAUSE-ACW',
@@ -155,6 +161,116 @@ class AgentActivityAcwEmitTests(SimpleTestCase):
         self.assertFalse(queue_err)
         self.assertFalse(redis_err)
         self.assertTrue(redis_conn.hset.called)
+
+
+class AgentActivityChannelsNotifyTests(SimpleTestCase):
+    """Unpause API notifica Channels; pause solo con supervisor=True (force-pause)."""
+
+    def _manager_with_redis(self, hset_error=False):
+        manager = AgentActivityAmiManager()
+        redis_conn = MagicMock()
+        redis_conn.hmget.return_value = [None, None, None, None]
+        if hset_error:
+            redis_conn.hset.side_effect = redis.exceptions.RedisError('redis down')
+        else:
+            redis_conn.hset.return_value = True
+        manager.get_redis_connection = MagicMock(return_value=redis_conn)
+        manager._get_family = MagicMock(return_value='OML:AGENT:1')
+        return manager
+
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
+    @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
+    def test_unpause_notifies_console_without_supervisor_flag(
+            self, _mock_submit, mock_notifier_cls):
+        manager = self._manager_with_redis()
+        agente = MagicMock()
+        agente.id = 7
+        agente.user.id = 70
+        notifier = mock_notifier_cls.return_value
+
+        queue_err, redis_err = manager.unpause_agent(agente, '0', supervisor=False)
+
+        self.assertFalse(queue_err)
+        self.assertFalse(redis_err)
+        notifier.notify_unpause.assert_called_once_with(70, '0')
+
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
+    @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
+    def test_unpause_skips_notify_when_redis_fails(self, _mock_submit, mock_notifier_cls):
+        manager = self._manager_with_redis(hset_error=True)
+        agente = MagicMock()
+        agente.id = 7
+        agente.user.id = 70
+        notifier = mock_notifier_cls.return_value
+
+        queue_err, redis_err = manager.unpause_agent(agente, '0', supervisor=False)
+
+        self.assertFalse(queue_err)
+        self.assertTrue(redis_err)
+        notifier.notify_unpause.assert_not_called()
+
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
+    @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
+    def test_pause_skips_notify_without_supervisor_flag(
+            self, _mock_submit, mock_notifier_cls):
+        """API/self-pause no notifica: evita eco 'supervisor forzó pausa' en consola."""
+        manager = self._manager_with_redis()
+        agente = MagicMock()
+        agente.id = 7
+        agente.user.id = 70
+        notifier = mock_notifier_cls.return_value
+
+        with patch(
+            'ominicontacto_app.services.asterisk.agent_activity.Pausa.objects'
+        ) as pausa_objects:
+            pause = MagicMock()
+            pause.nombre = 'Break'
+            pausa_objects.activa_by_pauseid.return_value = pause
+            queue_err, redis_err = manager.pause_agent(
+                agente, '5', supervisor=False)
+
+        self.assertFalse(queue_err)
+        self.assertFalse(redis_err)
+        notifier.notify_pause.assert_not_called()
+
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
+    @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
+    def test_pause_notifies_console_when_supervisor(
+            self, _mock_submit, mock_notifier_cls):
+        manager = self._manager_with_redis()
+        agente = MagicMock()
+        agente.id = 7
+        agente.user.id = 70
+        notifier = mock_notifier_cls.return_value
+
+        queue_err, redis_err = manager.pause_agent(
+            agente, '00', supervisor=True)
+
+        self.assertFalse(queue_err)
+        self.assertFalse(redis_err)
+        notifier.notify_pause.assert_called_once_with(70, '00', 'Supervision')
+
+    @patch('ominicontacto_app.services.asterisk.agent_activity.AgentNotifier')
+    @patch('ominicontacto_app.services.asterisk.agent_activity.acw_metrics.submit_exit_acw')
+    def test_pause_skips_notify_when_redis_fails(self, _mock_submit, mock_notifier_cls):
+        manager = self._manager_with_redis(hset_error=True)
+        agente = MagicMock()
+        agente.id = 7
+        agente.user.id = 70
+        notifier = mock_notifier_cls.return_value
+
+        with patch(
+            'ominicontacto_app.services.asterisk.agent_activity.Pausa.objects'
+        ) as pausa_objects:
+            pause = MagicMock()
+            pause.nombre = 'Break'
+            pausa_objects.activa_by_pauseid.return_value = pause
+            queue_err, redis_err = manager.pause_agent(
+                agente, '5', supervisor=True)
+
+        self.assertFalse(queue_err)
+        self.assertTrue(redis_err)
+        notifier.notify_pause.assert_not_called()
 
 
 class AcwMetricsSubmitTests(TestCase):

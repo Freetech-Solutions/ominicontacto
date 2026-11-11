@@ -70,8 +70,9 @@ def addon_menu_items(request):
     Adds items in the supervision menu asking the app configurations.
     """
     menu_items = []
-    if request.user.is_authenticated and request.user.get_tiene_permiso_administracion():
-        rol = request.user.rol
+    user = getattr(request, 'user', None)
+    if user is not None and user.is_authenticated and user.get_tiene_permiso_administracion():
+        rol = user.rol
         permissions = set(PermisoOML.objects.filter(group=rol).values_list('codename', flat=True))
         for app in apps.get_app_configs():
             if hasattr(app, 'supervision_menu_items'):

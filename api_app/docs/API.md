@@ -1051,7 +1051,9 @@ Logs the agent out of the system.
 
 #### `POST /api/v1/asterisk_pause/`
 
-Pauses the agent.
+Pauses the agent. Updates Redis agent status. Console FSM sync for pause is driven by
+the agent UI (or supervisor force-pause via Channels); this endpoint does not push a
+force-pause notification to avoid echoing the supervisor message on self-pause.
 
 **Request Body:**
 ```json
@@ -1072,7 +1074,8 @@ Pauses the agent.
 
 #### `POST /api/v1/asterisk_unpause/`
 
-Unpauses the agent.
+Unpauses the agent. Sets Redis status to READY and syncs the agent console via Channels
+(FSM / pause_manager → Ready; parity with supervisor force-unpause).
 
 **Request Body:**
 ```json

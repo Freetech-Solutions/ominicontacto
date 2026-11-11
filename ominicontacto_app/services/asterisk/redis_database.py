@@ -182,6 +182,8 @@ class CampanaFamily(AbstractRedisFamily):
             'REC': str(campana.queue_campana.auto_grabacion),
             'AMD': str(campana.queue_campana.detectar_contestadores),
             'CALLAGENTACTION': campana.tipo_interaccion,
+            # ACD lee STRATEGY desde OML:CAMP:{id}; sin este campo cae en fewestcalls.
+            'STRATEGY': campana.queue_campana.strategy,
             'RINGTIME': "",
             'QUEUETIME': campana.queue_campana.wait,
             'MAXQCALLS': campana.queue_campana.maxlen,
@@ -267,6 +269,11 @@ class CampanaFamily(AbstractRedisFamily):
 
         if campana.queue_campana.musiconhold:
             dict_campana.update({'MOH': campana.queue_campana.musiconhold.nombre})
+
+        # Wrapup post-llamada (ACD cooldown); siempre desde la cola de la campaña.
+        wrapuptime = getattr(campana.queue_campana, 'wrapuptime', None)
+        if wrapuptime is not None:
+            dict_campana['WRAPUPTIME'] = int(wrapuptime)
 
         try:
             configuracion_de_agentes = campana.configuracion_de_agentes

@@ -24,6 +24,7 @@ from __future__ import unicode_literals
 
 import codecs
 import csv
+import io
 import logging
 import re
 
@@ -38,6 +39,39 @@ from ominicontacto_app.utiles import elimina_tildes
 
 
 logger = logging.getLogger('ParserCsv')
+
+
+# =============================================================================
+# Buffer file-like para COPY FROM STDIN en streaming (O(1) RAM)
+# =============================================================================
+
+class IteratorCSVBuffer(io.TextIOBase):
+    """
+    Envuelve un generador de lineas CSV formateadas e implementa .read(size)
+    para alimentar cursor.copy_expert sin materializar el archivo en memoria.
+    """
+
+    def __init__(self, row_generator):
+        self._gen = iter(row_generator)
+        self._buf = ""
+
+    def readable(self):
+        return True
+
+    def read(self, size=-1):
+        while size < 0 or len(self._buf) < size:
+            try:
+                chunk = next(self._gen)
+            except StopIteration:
+                break
+            if not isinstance(chunk, str):
+                chunk = str(chunk)
+            self._buf += chunk
+        if size < 0:
+            result, self._buf = self._buf, ""
+            return result
+        result, self._buf = self._buf[:size], self._buf[size:]
+        return result
 
 
 # =============================================================================
@@ -229,6 +263,35 @@ class ParserCsv(object):
         """
         return self._get_contenido_de_archivo(base_datos_contactos)
 
+    def iter_estructura_archivo(self, base_datos_contactos):
+        """
+        Generador que lee el CSV fila a fila sin acumular el archivo en RAM.
+        La primera fila yield-eada es el encabezado saneado.
+        """
+        file_obj = base_datos_contactos.archivo_importacion.file
+        if hasattr(file_obj, 'seek'):
+            file_obj.seek(0)
+        file_obj_str = codecs.iterdecode(file_obj, 'utf-8', errors='ignore')
+        workbook = csv.reader(file_obj_str, skipinitialspace=True)
+
+        filas_no_vacias = 0
+        encabezado_yield = False
+        for row in workbook:
+            if not row:
+                continue
+            filas_no_vacias += 1
+            if not encabezado_yield:
+                yield self._sanear_nombres_de_columnas(row)
+                encabezado_yield = True
+            else:
+                yield row
+
+        if filas_no_vacias < 2:
+            logger.warn(_("El archivo CSV seleccionado posee menos de 2 "
+                          "filas."))
+            raise OmlParserMinRowError(_("El archivo CSV posee menos de "
+                                         "2 filas"))
+
     def _get_contenido_de_archivo(self, base_datos_contactos, previsualizacion=False):
         """
         Lee un archivo CSV y devuelve contenidos de
@@ -236,10 +299,13 @@ class ParserCsv(object):
         """
 
         file_obj = base_datos_contactos.archivo_importacion.file
+        if hasattr(file_obj, 'seek'):
+            file_obj.seek(0)
         file_obj_str = codecs.iterdecode(file_obj, 'utf-8', errors='ignore')
         workbook = csv.reader(file_obj_str, skipinitialspace=True)
 
         structure_dic = []
+        i = -1
         for i, row in enumerate(workbook):
             if row:
                 structure_dic.append(row)
