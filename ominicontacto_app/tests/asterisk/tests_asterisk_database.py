@@ -96,6 +96,11 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_campana['MAXQCALLS'], self.campana_entrante.queue_campana.maxlen)
         self.assertEqual(dict_campana['SL'], self.campana_entrante.queue_campana.servicelevel)
         self.assertEqual(dict_campana['WEIGHT'], self.campana_entrante.queue_campana.weight)
+        self.assertIn('WRAPUPTIME', dict_campana)
+        self.assertEqual(
+            dict_campana['WRAPUPTIME'],
+            int(self.campana_entrante.queue_campana.wrapuptime),
+        )
         audio = "{0}{1}".format(
             settings.OML_AUDIO_FOLDER,
             self.campana_entrante.queue_campana.audio_de_ingreso.get_filename_audio_asterisk())
@@ -144,6 +149,11 @@ class AsteriskDatabaseTest(OMLBaseTest):
         self.assertEqual(dict_campana['PERMITOCCULT'], "")
         self.assertEqual(dict_campana['MAXCALLS'], "")
         self.assertEqual(dict_campana['FAILOVER'], str(0))
+        self.assertIn('WRAPUPTIME', dict_campana)
+        self.assertEqual(
+            dict_campana['WRAPUPTIME'],
+            int(self.campana_dialer.queue_campana.wrapuptime),
+        )
 
     def test_values_de_configuraciones_de_agentes_no_seteadas_dialer(self):
         ConfiguracionDeAgentesDeCampanaFactory(

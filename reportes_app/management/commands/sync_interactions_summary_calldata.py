@@ -208,7 +208,7 @@ class Command(BaseCommand):
 
         if initiation_method == 'DIALER':
             return Campana.TYPE_DIALER
-        if direction == 'INBOUND' or initiation_method == 'BOT':
+        if direction == 'INBOUND' or initiation_method in ('BOT', 'EXTERNAL'):
             return Campana.TYPE_ENTRANTE
         if initiation_method == 'AGENT':
             if campaign_type in (Campana.TYPE_MANUAL, Campana.TYPE_PREVIEW):

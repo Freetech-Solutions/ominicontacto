@@ -39,7 +39,8 @@ from configuracion_telefonia_app.models import DestinoEntrante, OpcionDestino
 from ominicontacto_app.models import (AgenteEnContacto, Campana, QueueMember, OpcionCalificacion,
                                       ParametrosCrm)
 from ominicontacto_app.forms.base import (CampanaPreviewForm, TIEMPO_MINIMO_DESCONEXION,
-                                          CampanaDialerForm, CampanaEntranteForm, CampanaMixinForm)
+                                          CampanaDialerForm, CampanaEntranteForm, CampanaMixinForm,
+                                          AgenteModelChoiceField, QueueMemberForm)
 from ominicontacto_app.tests.factories import (CampanaFactory, ContactoFactory, UserFactory,
                                                QueueFactory, AgenteProfileFactory,
                                                AgenteEnContactoFactory, QueueMemberFactory,
@@ -2288,3 +2289,40 @@ class SupervisorCampanaTests(CampanasTests):
         self.assertIn(CampanaMixinForm.ERROR_WHATSAPP_DESTINO.format(''), error)
         self.assertIn(linea1.nombre, error)
         self.assertIn(linea2.nombre, error)
+
+
+class AgenteModelChoiceFieldTests(OMLBaseTest):
+    """Tests del formato de label al asignar agentes a campañas."""
+
+    def setUp(self):
+        super(AgenteModelChoiceFieldTests, self).setUp()
+        self.user = self.crear_user_agente(
+            username='agente_label', first_name='Juan', last_name='Perez')
+        self.agente = self.crear_agente_profile(self.user)
+
+    def test_label_incluye_username_y_nombre_completo(self):
+        field = AgenteModelChoiceField(queryset=type(self.agente).objects.filter(pk=self.agente.pk))
+        expected = '{0} - {1}'.format(self.user.get_username(), self.user.get_full_name())
+        self.assertEqual(field.label_from_instance(self.agente), expected)
+
+    def test_label_sin_nombre_completo_usa_username(self):
+        self.user.first_name = ''
+        self.user.last_name = ''
+        self.user.save()
+        field = AgenteModelChoiceField(queryset=type(self.agente).objects.filter(pk=self.agente.pk))
+        self.assertEqual(field.label_from_instance(self.agente), self.user.get_username())
+
+    def test_label_voicebot_incluye_sufijo(self):
+        self.agente.voicebot = True
+        self.agente.save()
+        field = AgenteModelChoiceField(queryset=type(self.agente).objects.filter(pk=self.agente.pk))
+        expected = '{0} - {1} [Voicebot]'.format(
+            self.user.get_username(), self.user.get_full_name())
+        self.assertEqual(field.label_from_instance(self.agente), expected)
+
+    def test_queue_member_form_usa_el_mismo_formato_de_label(self):
+        form = QueueMemberForm(members=type(self.agente).objects.filter(pk=self.agente.pk))
+        choice_labels = [
+            label for value, label in form.fields['member'].choices if value]
+        expected = '{0} - {1}'.format(self.user.get_username(), self.user.get_full_name())
+        self.assertEqual(choice_labels, [expected])

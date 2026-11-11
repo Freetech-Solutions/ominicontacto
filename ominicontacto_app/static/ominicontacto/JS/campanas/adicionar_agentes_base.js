@@ -55,6 +55,34 @@ window.updateAgentTypeBadge = function(selectElement) {
     }
 }
 
+function getSelectedMemberIds() {
+    var selectedIds = [];
+    $('tr.linkFormset:visible select[name*="member"]').each(function() {
+        var val = $(this).val();
+        if (val) {
+            selectedIds.push(String(val));
+        }
+    });
+    return selectedIds;
+}
+
+window.refreshAvailableMemberOptions = function() {
+    var selectedIds = getSelectedMemberIds();
+    $('tr.linkFormset:visible select[name*="member"]').each(function() {
+        var $select = $(this);
+        var currentVal = $select.val() ? String($select.val()) : '';
+        $select.find('option').each(function() {
+            var $opt = $(this);
+            var val = $opt.attr('value');
+            if (!val) {
+                return;
+            }
+            var takenElsewhere = selectedIds.indexOf(String(val)) !== -1 && String(val) !== currentVal;
+            $opt.prop('disabled', takenElsewhere);
+        });
+    });
+};
+
 var $adicionarAgente = $('#adicionarAgente');
 var wizard = $('#wizard').val();
 $('.linkFormset').formset({
@@ -66,7 +94,13 @@ $('.linkFormset').formset({
     addMultRows: {'button': $adicionarAgente,
         'function': obtenerAgentesGrupos,
         'post_function': eliminarPrimeraFilaVacia},
-    added: function (row) {asociarDatosRow(row);}
+    added: function (row) {
+        asociarDatosRow(row);
+        refreshAvailableMemberOptions();
+    },
+    removed: function () {
+        refreshAvailableMemberOptions();
+    }
 });
 
 // Función auxiliar para inicializar select2 con detección de voicebot
@@ -122,16 +156,19 @@ $(document).ready(function(){
     $('select.form-control').each(function() {
         initializeMemberSelect($(this), sorter);
     });
+    refreshAvailableMemberOptions();
     
     // Listener global para cambios en selects de miembros (delegación de eventos)
     $(document).on('change', 'select.form-control[name*="member"]', function() {
         updateAgentTypeBadge(this);
+        refreshAvailableMemberOptions();
     });
     
     $(document).on('select2:select', 'select.form-control[name*="member"]', function() {
         var $this = $(this);
         setTimeout(function() {
             updateAgentTypeBadge($this[0]);
+            refreshAvailableMemberOptions();
         }, 10);
     });
     
@@ -141,6 +178,7 @@ $(document).ready(function(){
             $('select.form-control').each(function() {
                 initializeMemberSelect($(this), sorter);
             });
+            refreshAvailableMemberOptions();
         }, 200);
     });
     

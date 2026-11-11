@@ -254,6 +254,39 @@ TELEFONOS_PSTN_QA_RELAY_ITSP = _telefonos_prefijo('124', CANTIDAD_PSTN_QA_RELAY_
 TELEFONOS_PSTN_QA = TELEFONOS_PSTN_QA_SIP_ERROR + TELEFONOS_PSTN_QA_RELAY_ITSP
 random.Random(42).shuffle(TELEFONOS_PSTN_QA)
 
+# Mix BD_PSTN_QA_6K (6000 contactos, 7 dígitos): mismo patrón ~70% SIP / ~30% relay,
+# con cobertura amplia de prefijos 081-087 y 092-094 (kamailio_pstn_qa.cfg).
+PSTN_QA_6K_PREFIX_COUNTS = {
+    '081': 700,   # 480 Temporarily Unavailable
+    '082': 300,   # 487 Request Terminated
+    '083': 200,   # 488 Not Acceptable Here
+    '084': 200,   # 500 Internal Server Error
+    '085': 200,   # 502 Bad Gateway
+    '086': 200,   # 608 Rejected
+    '087': 600,   # 180 Ringing 45s → 408
+    '092': 300,   # 404 Not Found
+    '093': 300,   # 503 Service Unavailable
+    '094': 1200,  # 486 Busy Here
+}
+
+CANTIDAD_PSTN_QA_6K_SIP_ERROR = sum(PSTN_QA_6K_PREFIX_COUNTS.values())
+CANTIDAD_PSTN_QA_6K_RELAY_ITSP = 1800
+CANTIDAD_PSTN_QA_6K = CANTIDAD_PSTN_QA_6K_SIP_ERROR + CANTIDAD_PSTN_QA_6K_RELAY_ITSP
+PREFIJOS_PSTN_QA_6K_SIP_ERROR = list(PSTN_QA_6K_PREFIX_COUNTS.keys())
+
+TELEFONOS_PSTN_QA_6K_SIP_ERROR = []
+for _prefijo, _cantidad in PSTN_QA_6K_PREFIX_COUNTS.items():
+    TELEFONOS_PSTN_QA_6K_SIP_ERROR.extend(_telefonos_prefijo(_prefijo, _cantidad))
+
+# Prefijo 125 evita solapar con 124 de BD_PSTN_QA (relay limpio → emulator)
+TELEFONOS_PSTN_QA_6K_RELAY_ITSP = _telefonos_prefijo(
+    '125', CANTIDAD_PSTN_QA_6K_RELAY_ITSP,
+)
+TELEFONOS_PSTN_QA_6K = (
+    TELEFONOS_PSTN_QA_6K_SIP_ERROR + TELEFONOS_PSTN_QA_6K_RELAY_ITSP
+)
+random.Random(43).shuffle(TELEFONOS_PSTN_QA_6K)
+
 
 class ContactoFactory(DjangoModelFactory):
     class Meta:

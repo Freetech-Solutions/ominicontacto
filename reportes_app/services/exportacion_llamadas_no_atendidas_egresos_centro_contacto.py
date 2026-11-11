@@ -139,6 +139,7 @@ def generar_csv_llamadas_no_atendidas_egresos_centro_contacto(
     header = [
         _('interaction_id'),
         _('Fecha/Hora'),
+        _('initiation_method'),
         _('Id contacto'),
         _('Teléfono'),
         _('Id campaña'),
@@ -155,6 +156,7 @@ def generar_csv_llamadas_no_atendidas_egresos_centro_contacto(
             writer.writerow([
                 _to_str(row.get('interaction_id')),
                 fecha_str,
+                _to_str(row.get('initiation_method')),
                 _to_str(row.get('id_contacto')),
                 _to_str(row.get('telefono')),
                 _to_str(row.get('id_campana')),

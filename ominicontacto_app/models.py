@@ -1490,9 +1490,14 @@ class Campana(models.Model):
         Rellena con valores iniciales la tabla que informa el estado de los contactos
         en relación con los agentes
         """
-        # obtenemos todos los contactos de la campaña en caso de no recibirlos por parámetro
+        batch_size = 5000
+        # Asignacion proporcional/aleatoria necesita la lista completa en memoria.
         if contactos is None:
-            campana_contactos = list(self.bd_contacto.contactos.all())
+            if asignacion_proporcional:
+                campana_contactos = list(self.bd_contacto.contactos.all())
+            else:
+                campana_contactos = self.bd_contacto.contactos.iterator(
+                    chunk_size=batch_size)
         else:
             campana_contactos = contactos
 
@@ -1517,15 +1522,24 @@ class Campana(models.Model):
                         orden=orden)
                     orden += 1
                     agente_en_contacto_list.append(agente_en_contacto)
+                    if len(agente_en_contacto_list) >= batch_size:
+                        AgenteEnContacto.objects.bulk_create(
+                            agente_en_contacto_list, batch_size=batch_size)
+                        agente_en_contacto_list = []
         else:
             for contacto in campana_contactos:
                 agente_en_contacto = self._crear_agente_en_contacto(
                     contacto, -1, campos_contacto, AgenteEnContacto.ESTADO_INICIAL, orden=orden)
                 orden += 1
                 agente_en_contacto_list.append(agente_en_contacto)
+                if len(agente_en_contacto_list) >= batch_size:
+                    AgenteEnContacto.objects.bulk_create(
+                        agente_en_contacto_list, batch_size=batch_size)
+                    agente_en_contacto_list = []
 
-        # insertamos las instancias en la BD
-        AgenteEnContacto.objects.bulk_create(agente_en_contacto_list)
+        if agente_en_contacto_list:
+            AgenteEnContacto.objects.bulk_create(
+                agente_en_contacto_list, batch_size=batch_size)
 
     def gestionar_finalizacion_relacion_agente_contacto(self, calificacion_cliente):
         """

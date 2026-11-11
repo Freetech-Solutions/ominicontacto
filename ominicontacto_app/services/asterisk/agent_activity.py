@@ -91,6 +91,9 @@ class AgentActivityAmiManager(object):
         insert_redis_error = self._set_agent_pause_redis_status(
             agente_profile, pause_name, pause_id)
 
+        # Solo force-pause de supervisión: la consola del agente ya actualiza FSM
+        # al pausar desde GUI; notificar también en API provocaría eco
+        # ("El supervisor le ha forzado la pausa").
         if not insert_redis_error and supervisor:
             AgentNotifier().notify_pause(agente_profile.user.id, pause_id, pause_name)
         return False, insert_redis_error
@@ -105,7 +108,8 @@ class AgentActivityAmiManager(object):
 
         # Solo actualiza el estado en Redis, sin ejecutar comandos AMI
         insert_redis_error = self._set_agent_redis_status(agente_profile, 'unpause')
-        if not insert_redis_error and supervisor:
+        # Sync consola agente vía Channels (paridad force-unpause supervisión / API).
+        if not insert_redis_error:
             AgentNotifier().notify_unpause(agente_profile.user.id, pause_id)
         return False, insert_redis_error
 

@@ -1004,6 +1004,7 @@
                                                     <th scope="col" class="text-right">{% trans 'Expiradas' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Abandonadas' %}</th>
                                                     <th scope="col" class="text-center">{% trans 'Transfer (In/Out)' %}</th>
+                                                    <th scope="col" class="text-center">{% trans 'Desborde (In/Out)' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Espera prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans 'Habla prom.' %}</th>
                                                     <th scope="col" class="text-right">{% trans '% Respondidas' %}</th>
@@ -1022,6 +1023,11 @@
                                                     <td class="text-center text-gray-500 text-xs">
                                                         <span class="bg-gray-100 px-2 py-1 rounded f-mono">{{ row.transfer_in_count|default:0 }} <i class="fas fa-arrow-down text-gray-400 ml-1"></i></span>
                                                         <span class="bg-gray-100 px-2 py-1 rounded ml-1 f-mono">{{ row.transfer_out_count|default:0 }} <i class="fas fa-arrow-up text-gray-400 ml-1"></i></span>
+                                                    </td>
+                                                    <td class="text-center text-gray-500 text-xs">
+                                                        <span class="bg-gray-100 px-2 py-1 rounded f-mono">{{ row.overflow_in_count|default:0 }} <i class="fas fa-arrow-down text-gray-400 ml-1"></i></span>
+                                                        {# ↑ = overflow_out_total (camp→camp + dialplan) #}
+                                                        <span class="bg-gray-100 px-2 py-1 rounded ml-1 f-mono">{{ row.overflow_out_total|default:0 }} <i class="fas fa-arrow-up text-gray-400 ml-1"></i></span>
                                                     </td>
                                                     <td class="text-right f-mono">{% if row.avg_wait_seconds is not None %}{{ row.avg_wait_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
                                                     <td class="text-right f-mono">{% if row.avg_talk_seconds is not None %}{{ row.avg_talk_seconds|format_seconds_int }}{% else %}—{% endif %}</td>
@@ -1404,6 +1410,7 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Fecha/Hora' %}</th>
+                                                    <th scope="col">{% trans 'initiation_method' %}</th>
                                                     <th scope="col">{% trans 'Id contacto' %}</th>
                                                     <th scope="col">{% trans 'Teléfono' %}</th>
                                                     <th scope="col">{% trans 'Id campaña' %}</th>
@@ -1427,6 +1434,7 @@
                                                 {% for row in listado_llamadas_atendidas.object_list %}
                                                 <tr>
                                                     <td>{{ row.fecha_hora|date:"Y-m-d H:i:s" }}</td>
+                                                    <td class="f-mono">{{ row.initiation_method }}</td>
                                                     <td class="f-mono">{% if row.id_contacto is not None %}{{ row.id_contacto }}{% else %}—{% endif %}</td>
                                                     <td>{{ row.telefono }}</td>
                                                     <td class="f-mono">{% if row.id_campana is not None %}{{ row.id_campana }}{% else %}—{% endif %}</td>
@@ -1462,7 +1470,7 @@
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="18">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
+                                                    <td colspan="19">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>
@@ -1539,6 +1547,7 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Fecha/Hora' %}</th>
+                                                    <th scope="col">{% trans 'initiation_method' %}</th>
                                                     <th scope="col">{% trans 'Id contacto' %}</th>
                                                     <th scope="col">{% trans 'Teléfono' %}</th>
                                                     <th scope="col">{% trans 'Id campaña' %}</th>
@@ -1551,6 +1560,7 @@
                                                 {% for row in listado_llamadas_no_atendidas.object_list %}
                                                 <tr>
                                                     <td>{{ row.fecha_hora|date:"Y-m-d H:i:s" }}</td>
+                                                    <td class="f-mono">{{ row.initiation_method }}</td>
                                                     <td class="f-mono">{% if row.id_contacto is not None %}{{ row.id_contacto }}{% else %}—{% endif %}</td>
                                                     <td>{{ row.telefono }}</td>
                                                     <td class="f-mono">{% if row.id_campana is not None %}{{ row.id_campana }}{% else %}—{% endif %}</td>
@@ -1560,7 +1570,7 @@
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="7">{% trans 'No hay llamadas no atendidas para el rango y filtros seleccionados.' %}</td>
+                                                    <td colspan="8">{% trans 'No hay llamadas no atendidas para el rango y filtros seleccionados.' %}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>
@@ -2861,6 +2871,7 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Fecha/Hora' %}</th>
+                                                    <th scope="col">{% trans 'initiation_method' %}</th>
                                                     <th scope="col">{% trans 'Id contacto' %}</th>
                                                     <th scope="col">{% trans 'Teléfono' %}</th>
                                                     <th scope="col">{% trans 'Id campaña' %}</th>
@@ -2885,6 +2896,7 @@
                                                 {% for row in listado_egresos_atendidas.object_list %}
                                                 <tr>
                                                     <td>{{ row.fecha_hora|date:"Y-m-d H:i:s" }}</td>
+                                                    <td class="f-mono">{{ row.initiation_method }}</td>
                                                     <td class="f-mono">{% if row.id_contacto is not None %}{{ row.id_contacto }}{% else %}—{% endif %}</td>
                                                     <td>{{ row.telefono }}</td>
                                                     <td class="f-mono">{% if row.id_campana is not None %}{{ row.id_campana }}{% else %}—{% endif %}</td>
@@ -2921,7 +2933,7 @@
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="19">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
+                                                    <td colspan="20">{% trans 'No hay llamadas atendidas para el rango y filtros seleccionados.' %}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>
@@ -3074,6 +3086,7 @@
                                             <thead class="thead-light">
                                                 <tr>
                                                     <th scope="col">{% trans 'Fecha/Hora' %}</th>
+                                                    <th scope="col">{% trans 'initiation_method' %}</th>
                                                     <th scope="col">{% trans 'Id contacto' %}</th>
                                                     <th scope="col">{% trans 'Teléfono' %}</th>
                                                     <th scope="col">{% trans 'Id campaña' %}</th>
@@ -3086,6 +3099,7 @@
                                                 {% for row in listado_egresos_no_atendidas.object_list %}
                                                 <tr>
                                                     <td>{{ row.fecha_hora|date:"Y-m-d H:i:s" }}</td>
+                                                    <td class="f-mono">{{ row.initiation_method }}</td>
                                                     <td class="f-mono">{% if row.id_contacto is not None %}{{ row.id_contacto }}{% else %}—{% endif %}</td>
                                                     <td>{{ row.telefono }}</td>
                                                     <td class="f-mono">{% if row.id_campana is not None %}{{ row.id_campana }}{% else %}—{% endif %}</td>
@@ -3095,7 +3109,7 @@
                                                 </tr>
                                                 {% empty %}
                                                 <tr>
-                                                    <td colspan="7">{% trans 'No hay llamadas no atendidas para el rango y filtros seleccionados.' %}</td>
+                                                    <td colspan="8">{% trans 'No hay llamadas no atendidas para el rango y filtros seleccionados.' %}</td>
                                                 </tr>
                                                 {% endfor %}
                                             </tbody>

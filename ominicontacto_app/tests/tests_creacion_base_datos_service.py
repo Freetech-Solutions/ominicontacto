@@ -21,12 +21,14 @@
 from __future__ import unicode_literals
 
 from django.core.files import File
+from django.core.files.base import ContentFile
 
+from api_app.services.base_datos_contacto_service import BaseDatosContactoService
 from ominicontacto_app.errors import OmlArchivoImportacionInvalidoError
 from ominicontacto_app.models import BaseDatosContacto, Contacto
 from ominicontacto_app.services.base_de_datos_contactos import \
-    CreacionBaseDatosService, PredictorMetadataService, \
-    NoSePuedeInferirMetadataError
+    CreacionBaseDatosService, CreacionBaseDatosServiceIdExternoError, \
+    PredictorMetadataService, NoSePuedeInferirMetadataError
 from ominicontacto_app.tests.utiles import OMLBaseTest
 from ominicontacto_app.utiles import ValidadorDeNombreDeCampoExtra
 
@@ -234,3 +236,98 @@ class TestImportarDesdeCsvNoAscii(OMLBaseTest):
 
         self.assertIn('375849371648', contactos_dict)
         self.assertIn('957327493493', contactos_dict)
+
+
+class TestImportacionCopyContactos(OMLBaseTest):
+    """Tests de importacion via PostgreSQL COPY FROM STDIN."""
+
+    def _crear_bd_desde_csv(self, nombre, csv_content):
+        bd = BaseDatosContacto(nombre=nombre)
+        bd.archivo_importacion.save(
+            '{0}.csv'.format(nombre), ContentFile(csv_content.encode('utf-8')), save=False)
+        bd.nombre_archivo_importacion = '{0}.csv'.format(nombre)
+        bd.save()
+        return bd
+
+    def test_base_datos_contacto_service_importa_via_copy(self):
+        csv_content = (
+            "telefono,nombre,id_ext,email\n"
+            '3543009865,"Lopez, Juan",EXT-1,juan@example.com\n'
+            "111534509230,Maria,EXT-2,maria@example.com\n"
+            "2830173491,Pedro,,\n"
+        )
+        bd = self._crear_bd_desde_csv('bd-copy-ok', csv_content)
+
+        metadata = bd.get_metadata()
+        metadata.cantidad_de_columnas = 4
+        metadata.columna_con_telefono = 0
+        metadata.columnas_con_telefono = [0]
+        metadata.columna_id_externo = 2
+        metadata.columna_email = 3
+        metadata.nombres_de_columnas = ["telefono", "nombre", "id_ext", "email"]
+        metadata.primer_fila_es_encabezado = True
+        metadata.save()
+
+        service = BaseDatosContactoService()
+        service.importa_contactos(bd, ["telefono"], 2, 3)
+
+        bd.refresh_from_db()
+        self.assertEqual(bd.estado, BaseDatosContacto.ESTADO_DEFINIDA)
+        self.assertEqual(bd.contactos.count(), 3)
+        self.assertEqual(bd.cantidad_contactos, 3)
+
+        contacto_juan = bd.contactos.get(id_externo='EXT-1')
+        self.assertEqual(contacto_juan.telefono, '3543009865')
+        self.assertEqual(contacto_juan.email, 'juan@example.com')
+        self.assertIn('Lopez, Juan', contacto_juan.datos)
+
+        contacto_sin_id = bd.contactos.get(telefono='2830173491')
+        self.assertTrue(
+            contacto_sin_id.id_externo is None or contacto_sin_id.id_externo == '')
+
+    def test_base_datos_contacto_service_rollback_id_externo_duplicado(self):
+        csv_content = (
+            "telefono,nombre,id_ext\n"
+            "3543009865,Juan,EXT-DUP\n"
+            "111534509230,Maria,EXT-DUP\n"
+        )
+        bd = self._crear_bd_desde_csv('bd-copy-dup', csv_content)
+
+        metadata = bd.get_metadata()
+        metadata.cantidad_de_columnas = 3
+        metadata.columna_con_telefono = 0
+        metadata.columnas_con_telefono = [0]
+        metadata.columna_id_externo = 2
+        metadata.nombres_de_columnas = ["telefono", "nombre", "id_ext"]
+        metadata.primer_fila_es_encabezado = True
+        metadata.save()
+
+        service = BaseDatosContactoService()
+        with self.assertRaises(CreacionBaseDatosServiceIdExternoError):
+            service.importa_contactos(bd, ["telefono"], 2, None)
+
+        self.assertEqual(bd.contactos.count(), 0)
+        bd.refresh_from_db()
+        self.assertNotEqual(bd.estado, BaseDatosContacto.ESTADO_DEFINIDA)
+
+    def test_creacion_service_importa_via_copy(self):
+        bd = BaseDatosContacto(nombre='bd-legacy-copy')
+        bd.archivo_importacion = File(open(self.get_test_resource(
+            "planilla-ejemplo-1.csv"), 'rb'))
+        bd.nombre_archivo_importacion = "planilla-ejemplo-1.csv"
+        bd.save()
+
+        metadata = bd.get_metadata()
+        metadata.cantidad_de_columnas = 3
+        metadata.columna_con_telefono = 0
+        metadata.columnas_con_telefono = [0, 2]
+        metadata.columna_id_externo = 1
+        metadata.nombres_de_columnas = ["telefono", "nombre", "celular"]
+        metadata.save()
+
+        service = CreacionBaseDatosService()
+        service.importa_contactos(bd, ["telefono", "celular"], 1)
+
+        self.assertEqual(bd.contactos.count(), 4)
+        for contacto in bd.contactos.all():
+            self.assertIsNotNone(contacto.id_externo)

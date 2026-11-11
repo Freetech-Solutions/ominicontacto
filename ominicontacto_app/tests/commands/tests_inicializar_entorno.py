@@ -29,8 +29,11 @@ from collections import Counter
 from ominicontacto_app.tests.factories import (
     CANTIDAD_PSTN_QA,
     CANTIDAD_PSTN_QA_RELAY_ITSP,
+    CANTIDAD_PSTN_QA_6K,
+    CANTIDAD_PSTN_QA_6K_RELAY_ITSP,
     PREFIJOS_PSTN_EMULATOR,
     PSTN_QA_PREFIX_COUNTS,
+    PSTN_QA_6K_PREFIX_COUNTS,
     TELEFONOS_CONTACTO_FACTORY,
 )
 
@@ -100,3 +103,17 @@ class TestsInicializarEntorno (OMLBaseTest):
             if prefijo not in PSTN_QA_PREFIX_COUNTS
         )
         self.assertEqual(relay_itsp, CANTIDAD_PSTN_QA_RELAY_ITSP)
+
+        contactos_pstn_6k = list(
+            inicializar_entorno.bd_contacto_pstn_qa_6k.contactos.all()
+        )
+        self.assertEqual(len(contactos_pstn_6k), CANTIDAD_PSTN_QA_6K)
+        prefijos_6k = Counter(c.telefono[:3] for c in contactos_pstn_6k)
+        for prefijo, cantidad in PSTN_QA_6K_PREFIX_COUNTS.items():
+            self.assertEqual(prefijos_6k[prefijo], cantidad)
+        relay_6k = sum(
+            count for prefijo, count in prefijos_6k.items()
+            if prefijo not in PSTN_QA_6K_PREFIX_COUNTS
+        )
+        self.assertEqual(relay_6k, CANTIDAD_PSTN_QA_6K_RELAY_ITSP)
+        self.assertEqual(prefijos_6k['125'], CANTIDAD_PSTN_QA_6K_RELAY_ITSP)

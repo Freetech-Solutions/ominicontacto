@@ -239,8 +239,8 @@ OL_NRO_TELEFONO_LARGO_MIN = 5
 OL_NRO_TELEFONO_LARGO_MAX = 15
 """Largo maximo permitido de nros telefonicos"""
 
-OL_MAX_CANTIDAD_CONTACTOS = 60000
-"""Límite de contactos que pueden ser importados a la base de datos."""
+OL_MAX_CANTIDAD_CONTACTOS = int(os.getenv('OL_MAX_CANTIDAD_CONTACTOS', '2000000'))
+"""Límite de filas de contactos por archivo CSV de importación."""
 
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 

@@ -24,6 +24,7 @@ import json
 from formtools.wizard.views import SessionWizardView
 
 from tablib import Dataset
+from tablib.exceptions import InvalidDimensions
 from django.utils.translation import gettext as _
 from django.contrib import messages
 from django.contrib.auth.models import Group
@@ -853,19 +854,35 @@ class ImportUsuariosView(View):
 
     def post(self, request, *args, **kwargs):
         if archive := request.FILES.get("archivo"):
-            dataset = Dataset().load(archive.read().decode(), format="csv")
-            results = UserImportResource().import_data(
-                dataset,
-                collect_failed_rows=True,
-                raise_errors=False,
-                user=request.user,
-                grupos=dict(Grupo.objects.values_list("nombre", "id")),
-                profiles=dict(Group.objects.values_list("name", "id")),
-            )
+            try:
+                dataset = Dataset().load(archive.read().decode(), format="csv")
+                results = UserImportResource().import_data(
+                    dataset,
+                    collect_failed_rows=False,
+                    raise_errors=False,
+                    user=request.user,
+                    grupos=dict(Grupo.objects.values_list("nombre", "id")),
+                    profiles=dict(Group.objects.values_list("name", "id")),
+                )
+            except InvalidDimensions:
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    _("El archivo CSV tiene filas con cantidad de columnas inconsistente. "
+                      "Verifique el formato e intente nuevamente."),
+                )
+                return HttpResponseRedirect(reverse('user_list', kwargs={"page": 1}))
+            except Exception as e:
+                messages.add_message(
+                    request,
+                    messages.ERROR,
+                    _("No se pudo importar el archivo CSV: {0}").format(e),
+                )
+                return HttpResponseRedirect(reverse('user_list', kwargs={"page": 1}))
             all_errors = []
             if results.has_errors():
                 for error in results.base_errors:
-                    all_errors.append(error.error)
+                    all_errors.append(str(error.error))
                 for line, errors in results.row_errors():
                     for error in errors:
                         all_errors.append(f"LINE{line} ERROR:{error.error}")
@@ -889,7 +906,8 @@ class ImportUsuariosView(View):
                         _(f"<strong>¡Cuidado!</strong> con el siguiente error{e}.")
                     )
             if all_errors:
-                messages.add_message(request, messages.ERROR, "\n".join(all_errors))
+                messages.add_message(
+                    request, messages.ERROR, "\n".join(str(err) for err in all_errors))
         else:
             messages.add_message(request, messages.ERROR, _("El archivo (CSV) es requerido"))
         return HttpResponseRedirect(reverse('user_list', kwargs={"page": 1}))

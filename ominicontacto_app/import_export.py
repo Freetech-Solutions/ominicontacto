@@ -20,11 +20,17 @@ class AuthWidget(widgets.Widget):
     }
 
     def clean(self, value, row=None, **kwargs):
-        if value:
-            activa = self.VALUES.get(value, None)
-            return AutenticacionExternaDeUsuario(activa=activa)
+        if not value:
+            return None
+        if value not in self.VALUES:
+            raise ValidationError(
+                _("Valor de autenticación inválido: '{0}'. Use 'LDAP' o 'Normal'.").format(value)
+            )
+        return AutenticacionExternaDeUsuario(activa=self.VALUES[value])
 
     def render(self, value, obj=None):
+        if value is None or value.activa is None:
+            return "Normal"
         return "LDAP" if value.activa else "Normal"
 
 
@@ -98,7 +104,7 @@ class UserImportResource(ModelResource):
         skip_diff = False
         clean_model_instances = True
 
-    def before_import(self, dataset, using_transactions, dry_run, **kwargs):
+    def before_import(self, dataset, **kwargs):
         dataset.append_col([None] * len(dataset), header="groups")
         dataset.append_col([None] * len(dataset), header="agenteprofile")
         dataset.append_col([None] * len(dataset), header="clientewebphoneprofile")
@@ -142,8 +148,8 @@ class UserImportResource(ModelResource):
             instance.is_supervisor = True
         return instance
 
-    def save_m2m(self, instance, row, using_transactions, dry_run):
-        super().save_m2m(instance, row, using_transactions, dry_run)
+    def save_m2m(self, instance, row, **kwargs):
+        super().save_m2m(instance, row, **kwargs)
         profile = row.get("profile")
         if profile == User.AGENTE:
             agente_profile = AgenteProfile.objects.create(

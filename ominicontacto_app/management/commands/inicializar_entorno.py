@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
+import json
 import logging
 import os
 
@@ -38,7 +39,9 @@ from ominicontacto_app.tests.factories import (GrupoFactory, AgenteProfileFactor
                                                TELEFONOS_CONTACTO_FACTORY,
                                                TELEFONOS_CONTACTO_7DIGITOS,
                                                CANTIDAD_PSTN_QA,
-                                               TELEFONOS_PSTN_QA)
+                                               TELEFONOS_PSTN_QA,
+                                               CANTIDAD_PSTN_QA_6K,
+                                               TELEFONOS_PSTN_QA_6K)
 from configuracion_telefonia_app.tests.factories import (RutaSalienteFactory, TroncalSIPFactory,
                                                          PatronDeDiscadoFactory,
                                                          RutaEntranteFactory,
@@ -371,6 +374,20 @@ class Command(BaseCommand):
             for telefono in TELEFONOS_PSTN_QA
         ])
 
+        # BD QA PSTN 6K: 6000 contactos (mismo patrón ~70% SIP / ~30% relay).
+        # Prefijos 081-087 y 092-094; relay limpio con 125* → emulator.
+        self.bd_contacto_pstn_qa_6k = BaseDatosContactoFactory(
+            nombre='BD_PSTN_QA_6K', cantidad_contactos=CANTIDAD_PSTN_QA_6K
+        )
+        Contacto.objects.bulk_create([
+            Contacto(
+                bd_contacto=self.bd_contacto_pstn_qa_6k,
+                telefono=telefono,
+                datos='["Contacto QA 6K", "PSTN", "0", "0", "0"]',
+            )
+            for telefono in TELEFONOS_PSTN_QA_6K
+        ])
+
         # Crear DBs Preview
         metadata = '{"cant_col": 4, "cols_telefono": [0], ' + \
             '"nombres_de_columnas": ["telefono", "nombre", "direccion", "localidad"]}'
@@ -412,6 +429,41 @@ class Command(BaseCommand):
         ContactoFactory(bd_contacto=self.bd_contacto_prw_success, telefono='123456781',
                         datos='["Ricardo Cancel","ABERASTAINSUR655","SANJUAN"]')
 
+        # BD multinúmero: 10 contactos × 3 teléfonos (cols_telefono [0, 4, 5]).
+        # Sirve para probar discado horizontal vía reglas de incidencia.
+        # Layout datos (sin telefono principal): [nombre, apellido, dni, tel2, tel3, email]
+        metadata_multinum = json.dumps({
+            'prim_fila_enc': False,
+            'cant_col': 7,
+            'nombres_de_columnas': [
+                'telefono', 'nombre', 'apellido', 'dni', 'telefono2', 'telefono3', 'email',
+            ],
+            'cols_telefono': [0, 4, 5],
+            'col_email': 6,
+        })
+        self.bd_contacto_multinum = BaseDatosContactoFactory(
+            nombre='BD_MULTINUM_10',
+            nombre_archivo_importacion='',
+            metadata=metadata_multinum,
+            cantidad_contactos=10,
+        )
+        for i in range(1, 11):
+            tel1 = f'1235{str(i).zfill(3)}'
+            tel2 = f'1236{str(i).zfill(3)}'
+            tel3 = f'1237{str(i).zfill(3)}'
+            ContactoFactory(
+                bd_contacto=self.bd_contacto_multinum,
+                telefono=tel1,
+                datos=json.dumps([
+                    f'Contacto{i}',
+                    f'Multinum{i}',
+                    f'DNI{1000 + i}',
+                    tel2,
+                    tel3,
+                    f'contacto{i}@example.com',
+                ]),
+            )
+
     def _crear_datos_entorno(self, qa_devops, qa_agents, qa_supervisors):
 
         self.admin = User.objects.filter(is_staff=True).first()
@@ -420,7 +472,7 @@ class Command(BaseCommand):
         self._crear_supervisores(max(0, qa_supervisors))
 
         # crear grupo
-        grupo = GrupoFactory(auto_unpause=0)
+        grupo = GrupoFactory(auto_unpause=10)
 
         # 1) Troncal para la Ruta saliente (PBX emulator)
         caller_id_saliente = '01177660010'
@@ -455,7 +507,7 @@ class Command(BaseCommand):
 
         agentes_creados = self._crear_agentes(
             qa_agents, grupo, troncal_voicebot=troncal_voicebot_verloop)
-        # Diccionario ag1..ag10 -> AgenteProfile (excluye voicebot que está al final)
+        # Diccionario ag1..agN -> AgenteProfile (excluye voicebot que está al final)
         agentes_por_nombre = {
             ag.user.username: ag for ag in agentes_creados
             if ag.user.username.startswith('ag')
@@ -495,11 +547,12 @@ class Command(BaseCommand):
         # Crear campañas
         campana_manual = self._crear_campana_manual('test_manual_01')
 
-        # 4 campañas entrantes
+        # 5 campañas entrantes
         campana_inbound_1 = self._crear_campana_entrante('inbound-1')
         campana_inbound_2 = self._crear_campana_entrante('inbound-2')
         campana_inbound_3 = self._crear_campana_entrante('inbound-3')
         campana_inbound_4 = self._crear_campana_entrante('inbound-4')
+        campana_inbound_5 = self._crear_campana_entrante('inbound-5')
         campana_inbound_2.videocall_habilitada = True
         campana_inbound_2.save()
 
@@ -528,11 +581,12 @@ class Command(BaseCommand):
         sincronizador_ruta_saliente = SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk()
         sincronizador_ruta_saliente.regenerar_asterisk(ruta_saliente)
 
-        # Rutas entrantes para las 4 campañas entrantes
+        # Rutas entrantes para las 5 campañas entrantes
         self._crear_ruta_entrante(campana_inbound_1, '99999999' if qa_devops else '01177660010')
         self._crear_ruta_entrante(campana_inbound_2, '01177660011')
         self._crear_ruta_entrante(campana_inbound_3, '01177660012')
         self._crear_ruta_entrante(campana_inbound_4, '01177660013')
+        self._crear_ruta_entrante(campana_inbound_5, '01177660014')
 
         # Asignar agentes a campañas según especificación
         queue_service = QueueMemberService()
@@ -540,12 +594,13 @@ class Command(BaseCommand):
         def _agentes(*nombres):
             return [agentes_por_nombre[n] for n in nombres if n in agentes_por_nombre]
 
-        # Inbound: inbound-1 (ag1, ag2, ag3), inbound-2 (ag2, ag3, ag4), inbound-3 (ag5..ag8),
-        # inbound-4 (ag9, ag10)
+        # Inbound: inbound-1 (ag1, ag2, ag3), inbound-2 (ag2, ag3, ag4), inbound-3 (ag3, ag4, ag5),
+        # inbound-4 (ag4, ag5, ag6), inbound-5 (ag5, ag6, ag7)
         queue_service.agregar_agentes_en_cola(campana_inbound_1, _agentes('ag1', 'ag2', 'ag3'))
         queue_service.agregar_agentes_en_cola(campana_inbound_2, _agentes('ag2', 'ag3', 'ag4'))
-        queue_service.agregar_agentes_en_cola(campana_inbound_3, _agentes('ag5', 'ag6', 'ag7', 'ag8'))  # noqa: E501
-        queue_service.agregar_agentes_en_cola(campana_inbound_4, _agentes('ag9', 'ag10'))
+        queue_service.agregar_agentes_en_cola(campana_inbound_3, _agentes('ag3', 'ag4', 'ag5'))
+        queue_service.agregar_agentes_en_cola(campana_inbound_4, _agentes('ag4', 'ag5', 'ag6'))
+        queue_service.agregar_agentes_en_cola(campana_inbound_5, _agentes('ag5', 'ag6', 'ag7'))
 
         # Preview: preview-1 (ag1..ag4), preview-2 (ag5..ag8)
         queue_service.agregar_agentes_en_cola(campana_preview_1, _agentes('ag1', 'ag2', 'ag3', 'ag4'))  # noqa: E501
@@ -557,7 +612,8 @@ class Command(BaseCommand):
         # Asigno campañas a gerente
         campanas_gerente = [
             campana_manual, campana_preview_1, campana_preview_2,
-            campana_inbound_1, campana_inbound_2, campana_inbound_3, campana_inbound_4
+            campana_inbound_1, campana_inbound_2, campana_inbound_3, campana_inbound_4,
+            campana_inbound_5
         ]
         self.gerente.campanasupervisors.set(campanas_gerente)
 
@@ -570,10 +626,10 @@ class Command(BaseCommand):
         parser.add_argument(
             '--qa-agents',
             type=int,
-            default=10,
+            default=199,
             required=False,
             action='store',
-            help='Número de agentes a crear (ag1, ag2, ...). Por defecto 10.',
+            help='Número de agentes a crear (ag1, ag2, ...). Por defecto 199 (ag1..ag199).',
         )
         parser.add_argument(
             '--qa-supervisors',

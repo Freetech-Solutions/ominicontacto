@@ -23,7 +23,67 @@ from django.urls import reverse
 
 from mock import patch
 
+from api_app.views.reports_agent_activity_v2 import (
+    _item_to_flat_row,
+    _map_pause_seconds_by_key,
+    get_agents_activity_v2_pause_columns,
+)
+from ominicontacto_app.tests.factories import PausaFactory
 from ominicontacto_app.tests.utiles import OMLBaseTest, PASSWORD
+
+
+class ReportsAgentActivityV2PauseBreakdownHelpersTest(OMLBaseTest):
+    def test_pause_columns_include_active_and_extras_from_breakdown(self):
+        pausa_bano = PausaFactory(nombre='Baño')
+        pausa_break = PausaFactory(nombre='Break')
+        rows = [{
+            'pause_breakdown': [
+                {'pause_id': pausa_bano.id, 'aux_code': None, 'seconds': 300},
+                {'pause_id': pausa_break.id, 'aux_code': None, 'seconds': 120},
+                {'pause_id': None, 'aux_code': '00', 'seconds': 60},
+            ],
+        }]
+        columns = get_agents_activity_v2_pause_columns(rows)
+        keys = [c['key'] for c in columns]
+        names = [c['name'] for c in columns]
+        self.assertIn('pause_{}'.format(pausa_bano.id), keys)
+        self.assertIn('pause_{}'.format(pausa_break.id), keys)
+        self.assertIn('aux_00', keys)
+        self.assertIn('Baño', names)
+        self.assertIn('Break', names)
+        self.assertIn('Pausa-Supervisión', names)
+
+    def test_map_pause_seconds_by_key_and_flat_row(self):
+        pause_columns = [
+            {'key': 'pause_1', 'name': 'Baño', 'pause_id': 1, 'aux_code': None},
+            {'key': 'pause_2', 'name': 'Break', 'pause_id': 2, 'aux_code': None},
+        ]
+        breakdown = [
+            {'pause_id': 1, 'aux_code': None, 'seconds': 300},
+            {'pause_id': 2, 'aux_code': None, 'seconds': 180},
+        ]
+        mapped = _map_pause_seconds_by_key(breakdown, pause_columns)
+        self.assertEqual(mapped['pause_1'], 300)
+        self.assertEqual(mapped['pause_2'], 180)
+
+        flat = _item_to_flat_row({
+            'agent_id': 10,
+            'agent_name': 'Agente Test',
+            'availability': {
+                'session_seconds': 3600,
+                'ready_seconds': 1800,
+                'ready_ratio': 0.5,
+                'pause_seconds': 480,
+                'pause_ratio': 0.1333,
+                'acw_seconds': 1320,
+                'acw_ratio': 0.3667,
+                'pause_breakdown': breakdown,
+            },
+            'interactions': {'interactions_total': 0},
+        }, pause_columns=pause_columns)
+        self.assertEqual(flat['pause_seconds_by_key']['pause_1'], 300)
+        self.assertEqual(flat['pause_seconds_by_key']['pause_2'], 180)
+        self.assertEqual(len(flat['pause_breakdown']), 2)
 
 
 class ReportsAgentActivityV2Test(OMLBaseTest):
@@ -268,3 +328,51 @@ class ReportsAgentActivityV2Test(OMLBaseTest):
         self.assertEqual(response.status_code, 200)
         data = self._json(response)
         self.assertEqual(data['page_size'], 10)
+
+    @patch('api_app.views.permissions.TienePermisoOML.has_permission', return_value=True)
+    @patch('api_app.views.reports_agent_activity_v2.get_agents_activity_v2_pause_columns')
+    @patch('api_app.views.reports_agent_activity_v2.get_agents_activity_v2_flat_rows')
+    def test_response_includes_pause_columns_and_seconds_by_key(
+        self,
+        mock_flat_rows,
+        mock_pause_columns,
+        _mock_permission,
+    ):
+        pause_columns = [
+            {'key': 'pause_1', 'name': 'Baño', 'pause_id': 1, 'aux_code': None},
+            {'key': 'pause_2', 'name': 'Break', 'pause_id': 2, 'aux_code': None},
+            {'key': 'pause_3', 'name': 'Coaching', 'pause_id': 3, 'aux_code': None},
+        ]
+        mock_pause_columns.return_value = pause_columns
+        mock_flat_rows.return_value = [{
+            'agent_id': 1,
+            'agent_name': 'Elizabeth Johnson',
+            'session_seconds': 3600,
+            'ready_seconds': 1800,
+            'ready_pct': 50.0,
+            'pause_seconds': 900,
+            'pause_pct': 25.0,
+            'acw_seconds': 900,
+            'acw_pct': 25.0,
+            'pause_seconds_by_key': {
+                'pause_1': 300,
+                'pause_2': 480,
+                'pause_3': 120,
+            },
+            'total_interactions': 3,
+        }]
+
+        response = self.client.get(self.url, self.default_params)
+        self.assertEqual(response.status_code, 200)
+        data = self._json(response)
+        self.assertIn('pause_columns', data)
+        self.assertEqual(len(data['pause_columns']), 3)
+        self.assertEqual(data['pause_columns'][0]['name'], 'Baño')
+        self.assertEqual(data['pause_columns'][1]['name'], 'Break')
+        self.assertEqual(data['pause_columns'][2]['name'], 'Coaching')
+        self.assertEqual(len(data['data']), 1)
+        row = data['data'][0]
+        self.assertIn('pause_seconds_by_key', row)
+        self.assertEqual(row['pause_seconds_by_key']['pause_1'], 300)
+        self.assertEqual(row['pause_seconds_by_key']['pause_2'], 480)
+        self.assertEqual(row['pause_seconds_by_key']['pause_3'], 120)

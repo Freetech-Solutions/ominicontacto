@@ -3,7 +3,7 @@
 {% load i18n %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'supervision_app/CSS/contact_center.css' %}?v=20260811-pd5">
+<link rel="stylesheet" href="{% static 'supervision_app/CSS/contact_center.css' %}?v=20260811-pd10">
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 {% endblock %}
 
@@ -56,7 +56,7 @@ $(function() {
     window.PANEL_DIALER_INITIAL_CAMPAIGN_ID = null;
     {% endif %}
 </script>
-<script type="text/javascript" src="{% static 'supervision_app/JS/panel_dialer.js' %}?v=20260811-pd4"></script>
+<script type="text/javascript" src="{% static 'supervision_app/JS/panel_dialer.js' %}?v=20260811-pd10"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 {% endblock %}
 
@@ -119,19 +119,14 @@ $(function() {
             <div class="metric-label">Logueados Total</div>
         </div>
         <div class="card metric-card">
-            <i class="fas fa-check-circle metric-icon status-ready"></i>
-            <div class="metric-value" x-text="data.agentes?.ready || 0">0</div>
-            <div class="metric-label">LIBRE</div>
-        </div>
-        <div class="card metric-card">
-            <i class="fas fa-phone-volume metric-icon status-oncall"></i>
-            <div class="metric-value" x-text="data.agentes?.oncall || 0">0</div>
-            <div class="metric-label">EN LLAMADA</div>
-        </div>
-        <div class="card metric-card">
             <i class="fas fa-pause-circle metric-icon status-pause"></i>
             <div class="metric-value" x-text="data.agentes?.paused || 0">0</div>
             <div class="metric-label">PAUSA</div>
+        </div>
+        <div class="card metric-card">
+            <i class="fas fa-chart-pie metric-icon status-oncall"></i>
+            <div class="metric-value" x-text="formatPacingPercent(agentOccupancyRate())">—</div>
+            <div class="metric-label">% Ocupación</div>
         </div>
         <div class="card metric-card time-card">
             <div class="metric-value" x-text="formatTime(data.llamadas?.call_times?.aht || 0)">0s</div>
@@ -140,10 +135,10 @@ $(function() {
             </div>
         </div>
         <div class="card metric-card time-card">
-            <div class="metric-value" x-text="formatPacingPercent(data.estado_discador?.p_hit)">—</div>
+            <div class="metric-value" x-text="formatPacingPercent(agentConnectRate())">—</div>
             <div class="metric-label">
                 <i class="fas fa-percentage"></i>
-                <span x-text="data.estado_discador?.p_hit_label || 'P_HIT (contactación)'">P_HIT (contactación)</span>
+                % conectadas al agente
             </div>
         </div>
         <div class="card metric-card time-card wait-card">
@@ -182,6 +177,14 @@ $(function() {
                         <div class="pd-kpi">
                             <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.answered_pstn || 0)">0</div>
                             <div class="pd-kpi-label">Llamadas conectadas</div>
+                        </div>
+                        <div class="pd-kpi pd-kpi-ok">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.answered_agent || 0)">0</div>
+                            <div class="pd-kpi-label">Conectadas al agente</div>
+                        </div>
+                        <div class="pd-kpi pd-kpi-info">
+                            <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.amd || 0)">0</div>
+                            <div class="pd-kpi-label">Contestador (AMD)</div>
                         </div>
                         <div class="pd-kpi pd-kpi-warn">
                             <div class="pd-kpi-value" x-text="formatNumber(data.estado_discador?.conectadas_no_atendidas || 0)">0</div>
@@ -224,9 +227,31 @@ $(function() {
                     </div>
                 </div>
 
-                <div class="pd-group pd-pacing" x-show="show_pacing_section">
+                <div class="pd-group pd-pacing" x-show="show_pacing_section" :class="{ 'pd-pacing-collapsed': !pacingExpanded }">
                     <div class="pd-pacing-head">
                         <h3 class="pd-group-title"><i class="fas fa-tachometer-alt"></i> Pacing predictivo</h3>
+                        <button
+                            type="button"
+                            class="pd-pacing-toggle"
+                            @click="pacingExpanded = !pacingExpanded"
+                            :aria-expanded="pacingExpanded ? 'true' : 'false'"
+                            :aria-label="pacingExpanded ? 'Comprimir pacing predictivo' : 'Desplegar pacing predictivo'"
+                            :title="pacingExpanded ? 'Comprimir' : 'Desplegar'"
+                        >
+                            <i class="fas" :class="pacingExpanded ? 'fa-minimize' : 'fa-maximize'" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <div class="pd-pacing-content" x-show="pacingExpanded" x-cloak>
+                    <div class="pd-pacing-health">
+                        <span class="pd-pacing-age">
+                            Edad:
+                            <strong x-text="formatPacingAge(pacing_age_seconds)">—</strong>
+                        </span>
+                        <span
+                            class="pd-pacing-stall"
+                            x-show="Number(pacing_up) === 0"
+                            x-cloak
+                        >Stall</span>
                         <div class="pd-pacing-mode" x-show="data.pacing">
                             <span class="pd-pacing-mode-label">Modo</span>
                             <span class="pd-pacing-mode-value" x-text="formatPacingText(data.pacing?.MODE)">—</span>
@@ -237,11 +262,27 @@ $(function() {
                         <div class="pd-kpi-grid pd-kpi-grid-pacing">
                             <div class="pd-kpi pd-kpi-info">
                                 <div class="pd-kpi-value" x-text="formatPacingPercent(data.pacing?.P_HIT)">—</div>
-                                <div class="pd-kpi-label">% contactación</div>
+                                <div class="pd-kpi-label">% contactación (EWMA)</div>
+                            </div>
+                            <div class="pd-kpi pd-kpi-info">
+                                <div class="pd-kpi-value" x-text="formatPacingPercent(metrics?.p_hit_ratio)">—</div>
+                                <div class="pd-kpi-label">Contactación de sesión</div>
                             </div>
                             <div class="pd-kpi pd-kpi-warn">
                                 <div class="pd-kpi-value" x-text="formatPacingPercent(data.pacing?.DROP_RATE)">—</div>
-                                <div class="pd-kpi-label">Drop rate</div>
+                                <div class="pd-kpi-label">Drop del tick</div>
+                            </div>
+                            <div class="pd-kpi pd-kpi-warn">
+                                <div class="pd-kpi-value" x-text="formatPacingPercent(metrics?.drop_rate_ewma ?? data.pacing?.DROP_RATE)">—</div>
+                                <div class="pd-kpi-label">Drop suavizado (EWMA)</div>
+                            </div>
+                            <div class="pd-kpi pd-kpi-warn">
+                                <div class="pd-kpi-value" x-text="formatPacingPercent(data.pacing?.DROP_RATE_CUM)">—</div>
+                                <div class="pd-kpi-label">Drop acumulado</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingPercent(data.pacing?.MAX_ABANDON_RATE)">—</div>
+                                <div class="pd-kpi-label">Techo de abandono</div>
                             </div>
                             <div class="pd-kpi">
                                 <div class="pd-kpi-value" x-text="formatPacingNumber(data.pacing?.C_DIAL)">—</div>
@@ -260,8 +301,32 @@ $(function() {
                                 <div class="pd-kpi-label">Probabilidad Ag libres</div>
                             </div>
                             <div class="pd-kpi">
-                                <div class="pd-kpi-value" x-text="formatPacingNumber(data.pacing?.C_RINGING)">—</div>
-                                <div class="pd-kpi-label">Canales Ringing</div>
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(channels?.ringing ?? data.pacing?.C_RINGING)">—</div>
+                                <div class="pd-kpi-label">Canales ringing</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(channels?.waiting_agent ?? data.pacing?.C_WAITING)">—</div>
+                                <div class="pd-kpi-label">Esperando agente</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(channels?.oncall)">—</div>
+                                <div class="pd-kpi-label">En llamada</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(metrics?.hit_count ?? data.pacing?.HIT_COUNT)">—</div>
+                                <div class="pd-kpi-label">Aciertos (HIT)</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(metrics?.abandon_count)">—</div>
+                                <div class="pd-kpi-label">Abandonos</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingNumber(data.pacing?.MAX_DIAL_RATIO)">—</div>
+                                <div class="pd-kpi-label">Ratio máx. discado</div>
+                            </div>
+                            <div class="pd-kpi">
+                                <div class="pd-kpi-value" x-text="formatPacingFloat(dial_ratio_efectivo, 2)">—</div>
+                                <div class="pd-kpi-label">Ratio efectivo</div>
                             </div>
                             <div class="pd-kpi">
                                 <div class="pd-kpi-value" x-text="formatPacingNumber(data.pacing?.THROTTLE_STREAK)">—</div>
@@ -272,8 +337,15 @@ $(function() {
                             <div class="pd-pacing-row"><span>Motivo</span><strong x-text="formatPacingText(data.pacing?.REASON)">—</strong></div>
                             <div class="pd-pacing-row"><span>Throttle latched</span><strong x-text="formatPacingBool(data.pacing?.THROTTLE_LATCHED)">—</strong></div>
                             <div class="pd-pacing-row"><span>Evento</span><strong x-text="formatPacingText(data.pacing?.EVENT)">—</strong></div>
+                            <div class="pd-pacing-row"><span>D throttle</span><strong x-text="formatPacingPercent(data.pacing?.D_THROTTLE)">—</strong></div>
+                            <div class="pd-pacing-row"><span>Seg. sobre techo</span><strong x-text="formatPacingNumber(data.pacing?.THROTTLE_OVER_SEC)">—</strong></div>
+                            <div class="pd-pacing-row"><span>Tiempo AMD</span><strong x-text="formatPacingSeconds(metrics?.amd_time)">—</strong></div>
+                            <div class="pd-pacing-row"><span>Fallos</span><strong x-text="formatPacingNumber(metrics?.fail_count)">—</strong></div>
+                            <div class="pd-pacing-row"><span>Fallos técnicos</span><strong x-text="formatPacingNumber(metrics?.tech_fail_count)">—</strong></div>
+                            <div class="pd-pacing-row"><span>CALLS vs fases</span><strong x-text="formatCallsVsPhases()">—</strong></div>
                             <div class="pd-pacing-row"><span>Timestamp</span><strong x-text="formatPacingNumber(data.pacing?.TS)">—</strong></div>
                         </div>
+                    </div>
                     </div>
                 </div>
             </div>

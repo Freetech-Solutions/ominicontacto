@@ -50,5 +50,10 @@ def eliminar_ruta_saliente_config(self, ruta_saliente):
 
 
 def generar_y_recargar_archivos_conf_asterisk(self):
-    sincronizador = SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk()
-    sincronizador._generar_y_recargar_archivos_conf_asterisk()
+    try:
+        sincronizador = SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk()
+        sincronizador.regenerar_asterisk()
+        return True
+    except RestablecerConfiguracionTelefonicaError as e:
+        set_logger_message(self, e)
+        return False
