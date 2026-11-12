@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OMniLeads\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-23 21:17-0300\n"
+"POT-Creation-Date: 2026-11-11 16:42-0300\n"
 "PO-Revision-Date: 2026-06-25 00:00-0300\n"
 "Last-Translator: Freetech Solutions\n"
 "Language-Team: Portuguese-Br\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: email_app/api/v1/account.py:274
+#: api/v1/account.py:274
 #, python-format
 msgid ""
 "This account cannot be deleted because it is configured in the following "
@@ -27,59 +27,135 @@ msgstr ""
 "campanha(s): %(campaigns)s. Remova a conta dessas campanhas antes de excluí-"
 "la."
 
-#: email_app/api/v1/conversation.py:183
+#: api/v1/conversation.py:183
 msgid "Provide a message body."
 msgstr "Forneça o corpo da mensagem."
 
-#: email_app/api/v1/conversation.py:208
+#: api/v1/conversation.py:208
 msgid "Error en los campos de contacto"
 msgstr "Erro nos campos de contato"
 
-#: email_app/api/v1/conversation.py:210
+#: api/v1/conversation.py:210
 msgid "Faltan campos requeridos"
 msgstr "Faltam campos obrigatórios"
 
-#: email_app/api/v1/conversation.py:238 email_app/api/v1/reporte.py:281
+#: api/v1/conversation.py:238 api/v1/reporte.py:281
 msgid "The conversation does not exist."
 msgstr "A conversa não existe."
 
-#: email_app/api/v1/conversation.py:243
+#: api/v1/conversation.py:243
 msgid "You do not have access to this conversation."
 msgstr "Você não tem acesso a esta conversa."
 
-#: email_app/api/v1/conversation.py:350
+#: api/v1/conversation.py:350
 msgid "You must take this conversation before reading it."
 msgstr "Deve obter a conversa antes de lê-la"
 
-#: email_app/api/v1/conversation.py:364
+#: api/v1/conversation.py:364
 msgid "This conversation is already being attended by another agent."
 msgstr "Esta conversa já está sendo atendida por outro agente."
 
-#: email_app/api/v1/conversation.py:435
+#: api/v1/conversation.py:435
 msgid "The email could not be sent."
 msgstr "Não foi possível enviar o e-mail."
 
-#: email_app/api/v1/conversation.py:458 email_app/api/v1/conversation.py:530
+#: api/v1/conversation.py:458 api/v1/conversation.py:530
 msgid "The conversation has no campaign."
 msgstr "A conversa não tem campanha."
 
-#: email_app/api/v1/reporte.py:145 email_app/api/v1/reporte.py:246
-#: email_app/api/v1/reporte.py:275 email_app/api/v1/reporte.py:295
+#: api/v1/reporte.py:145 api/v1/reporte.py:246 api/v1/reporte.py:275
+#: api/v1/reporte.py:295
 msgid "The campaign does not exist."
 msgstr "A campanha não existe."
 
-#: email_app/api/v1/self.py:115
+#: api/v1/self.py:115
 msgid "Invalid credentials or deactivated Account."
 msgstr "Credenciais inválidas ou conta desativada."
 
-#: email_app/apps.py:26
+#: apps.py:26
 msgid "Obtiene los detalles de la cuenta de correo"
 msgstr "Obtém os detalhes da conta de e-mail"
 
-#: email_app/apps.py:30
+#: apps.py:30
 msgid "Lista las cuentas de correo"
 msgstr "Lista as contas de e-mail"
 
-#: email_app/apps.py:34
+#: apps.py:34
 msgid "Prueba los datos de la cuenta de correo"
 msgstr "Testa os dados da conta de e-mail"
+
+#: apps.py:38
+msgid "Lista los mensajes de la cuenta de correo"
+msgstr "Lista as mensagens da conta de e-mail"
+
+#: apps.py:42
+msgid "Purga el historial de la cuenta de correo"
+msgstr "Limpa o histórico da conta de e-mail"
+
+#: apps.py:46
+msgid "Resincroniza la cuenta de correo"
+msgstr "Ressincroniza a conta de e-mail"
+
+#: apps.py:50
+msgid "Plantilla de la cuenta de correo"
+msgstr "Modelo da conta de e-mail"
+
+#: apps.py:54
+msgid "Obtiene un mensaje de correo"
+msgstr "Obtém uma mensagem de e-mail"
+
+#: apps.py:58
+msgid "Lista las conversaciones de correo del agente"
+msgstr "Lista as conversas de e-mail do agente"
+
+#: apps.py:62
+msgid "Obtiene una conversación de correo"
+msgstr "Obtém uma conversa de e-mail"
+
+#: apps.py:66
+msgid "Atiende una conversación de correo"
+msgstr "Atende uma conversa de e-mail"
+
+#: apps.py:70
+msgid "Contacto de una conversación de correo"
+msgstr "Contato de uma conversa de e-mail"
+
+#: apps.py:74
+msgid "Campos de contacto de una conversación de correo"
+msgstr "Campos de contato de uma conversa de e-mail"
+
+#: apps.py:78
+msgid "Califica una conversación de correo"
+msgstr "Qualifica uma conversa de e-mail"
+
+#: apps.py:82
+msgid "Opciones de calificación de una conversación de correo"
+msgstr "Opções de qualificação de uma conversa de e-mail"
+
+#: apps.py:86
+msgid "Marca una conversación de correo como leída"
+msgstr "Marca uma conversa de e-mail como lida"
+
+#: apps.py:90
+msgid "Libera una conversación de correo"
+msgstr "Libera uma conversa de e-mail"
+
+#: apps.py:94
+msgid "Responde una conversación de correo"
+msgstr "Responde uma conversa de e-mail"
+
+#: apps.py:98
+msgid "Reporte de campaña de correo"
+msgstr "Relatório de campanha de e-mail"
+
+#: apps.py:102
+msgid "Agentes de campaña de correo"
+msgstr "Agentes de campanha de e-mail"
+
+#: apps.py:106
+msgid "Conversaciones de campaña de correo"
+msgstr "Conversas de campanha de e-mail"
+
+#: apps.py:110
+msgid "Detalle de conversación de campaña de correo"
+msgstr "Detalhe de conversa de campanha de e-mail"

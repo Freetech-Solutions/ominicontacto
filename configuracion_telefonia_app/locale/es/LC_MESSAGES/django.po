@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-07-30 17:25-0300\n"
+"POT-Creation-Date: 2026-11-11 16:42-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,1152 +17,1125 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: configuracion_telefonia_app/apps.py:34
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:24
+#: apps.py:34 templates/lista_troncal_sip.html:24
 msgid "Troncales SIP"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:39
+#: apps.py:39
 msgid "Rutas entrantes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:44
+#: apps.py:44
 msgid "Rutas salientes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:49
+#: apps.py:49
 msgid "Destinos personalizados"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:54
-#: configuracion_telefonia_app/models.py:359
+#: apps.py:54 models.py:362
 msgid "IVR"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:59
+#: apps.py:59
 msgid "AMD"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:64
+#: apps.py:64
 msgid "Esquema grabaciones"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:70
+#: apps.py:70
 msgid "Telefonía"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:79
+#: apps.py:79
 msgid "Proveedores"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:84
+#: apps.py:84
 msgid "Lineas"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:90
+#: apps.py:90
 msgid "WhatsApp"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:98
+#: apps.py:98
 msgid "Páginas"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:103
+#: apps.py:103
 msgid "Instagram"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:108
+#: apps.py:109
 msgid "Meta/Facebook"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:119
+#: apps.py:120
 msgid "Cuentas"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:127
+#: apps.py:128
 msgid "Email"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:138
+#: apps.py:139
 #, python-brace-format
 msgid "Paquetes de Audio de {0}"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:143
+#: apps.py:144
 msgid "Audios Personalizados"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:148
+#: apps.py:149
 msgid "Listas de Musica de Espera"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:153
+#: apps.py:154
 msgid "Audios"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:162
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:24
+#: apps.py:163 templates/lista_validaciones_fecha_hora.html:24
 msgid "Validaciones Horarias"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:167
+#: apps.py:168
 msgid "Grupos horarios"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:172
+#: apps.py:173
 msgid "Identificación de Clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:177
+#: apps.py:178
 msgid "Plantillas de mensajes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:182
+#: apps.py:183
 msgid "Grupos de plantillas de mensaje"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:188
+#: apps.py:189
 msgid "Plantillas de mensajes Facebook"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:193
+#: apps.py:194
 msgid "Grupos de plantillas de mensaje Facebook"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:202
+#: apps.py:203
 msgid "Conexiones"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:213
+#: apps.py:214
 msgid "Recursos"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:287
+#: apps.py:288
 msgid "Ver la lista de Troncales SIP"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:289
+#: apps.py:290
 msgid "Crear un Troncal SIP"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:291
+#: apps.py:292
 msgid "Editar un Troncal SIP"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:293
+#: apps.py:294
 msgid "Eliminar un Troncal SIP"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:295
+#: apps.py:296
 msgid "Ver la lista de Rutas Salientes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:297
+#: apps.py:298
 msgid "Ver la lista de Rutas Entrantes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:300
+#: apps.py:301
 msgid ""
 "Lista con posibles destinos. Usado en varios formularios de configuración."
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:303
+#: apps.py:304
 msgid "Ver la lista de IVRs"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:305
+#: apps.py:306
 msgid "Ver lista de Grupos Horarios"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:307
+#: apps.py:308
 msgid "Ver lista de Validaciones horarias"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:309
+#: apps.py:310
 msgid "Crear Validacion horaria"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:311
+#: apps.py:312
 msgid "Editar Validacion horaria"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:313
+#: apps.py:314
 msgid "Eliminar Validacion horaria"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:315
+#: apps.py:316
 msgid "Ver lista de Identificadores de clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:317
+#: apps.py:318
 msgid "Crear un Identificador de clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:319
+#: apps.py:320
 msgid "Editar un Identificador de clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:321
+#: apps.py:322
 msgid "Eliminar un Identificador de clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:323
+#: apps.py:324
 msgid "Ver lista de destinos personalizados"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:325
+#: apps.py:326
 msgid "Crear un Destino personalizado"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:327
+#: apps.py:328
 msgid "Editar un Destino personalizado"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:329
+#: apps.py:330
 msgid "Eliminar un Destino personalizado"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:331
+#: apps.py:332
 msgid "Menu para instalar paquetes de audio de Asterisk"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:334
+#: apps.py:335
 msgid "Ver listas de Musicas de espera"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:336
+#: apps.py:337
 msgid "Crear lista de Musicas de espera"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:338
+#: apps.py:339
 msgid "Eliminar lista de Musicas de espera"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:340
+#: apps.py:341
 msgid "Editar lista de Musicas de espera"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:342
+#: apps.py:343
 msgid "Eliminar Musica de espera"
 msgstr ""
 
-#: configuracion_telefonia_app/apps.py:344
-#: configuracion_telefonia_app/apps.py:346
+#: apps.py:345 apps.py:347
 msgid "Ajustar configuración AMD"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:46
+#: forms.py:46
 msgid "Nombre Troncal"
 msgstr "Nombre Troncal"
 
-#: configuracion_telefonia_app/forms.py:47
+#: forms.py:47
 msgid "Parámetros SIP"
 msgstr "Parámetros SIP"
 
-#: configuracion_telefonia_app/forms.py:48
+#: forms.py:48
 msgid "Cadena de registración"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:62
+#: forms.py:62
 msgid "Debe indicar una url."
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:69
+#: forms.py:69
 msgid "Tipo de destino"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:76
+#: forms.py:76
 msgid "Destino"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:111
+#: forms.py:111
 msgid "Los destinos deben ser distintos"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:127
-#: configuracion_telefonia_app/models.py:675
+#: forms.py:127 models.py:678
 msgid "Español"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:128
-#: configuracion_telefonia_app/models.py:676
+#: forms.py:128 models.py:679
 msgid "Inglés"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:129
-#: configuracion_telefonia_app/models.py:677
+#: forms.py:129 models.py:680
 msgid "Francés"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:130
-#: configuracion_telefonia_app/models.py:678
+#: forms.py:130 models.py:681
 msgid "Italiano"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:131
-#: configuracion_telefonia_app/models.py:679
+#: forms.py:131 models.py:682
 msgid "Japonés"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:132
-#: configuracion_telefonia_app/models.py:680
+#: forms.py:132 models.py:683
 msgid "Ruso"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:133
-#: configuracion_telefonia_app/models.py:681
+#: forms.py:133 models.py:684
 msgid "Sueco"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:139
+#: forms.py:139
 msgid "Escoger idioma del paquete de audios a instalar"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:191
+#: forms.py:191
 msgid "Silencio inicial (ms)"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:192
+#: forms.py:192
 msgid "Saludo (ms)"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:193
+#: forms.py:193
 msgid "Silencio post saludo (ms)"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:194
+#: forms.py:194
 msgid "Tiempo de análisis (ms)"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:195
+#: forms.py:195
 msgid "Duración mínima de cada palabra (ms)"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:196
+#: forms.py:196
 msgid "Silencio entre palabras (ms)"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:197
+#: forms.py:197
 msgid "Número máximo de palabras"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:198
+#: forms.py:198
 msgid "Largo máximo de cada palabra (ms)"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:199
+#: forms.py:199
 msgid "Nivel de ruido"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:218
+#: forms.py:218
 msgid "Id contacto"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:219
+#: forms.py:219
 msgid "Fecha"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:220
+#: forms.py:220
 msgid "Teléfono contacto"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:221
+#: forms.py:221
 msgid "Id Campana"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:222
+#: forms.py:222
 msgid "Id externo contacto"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:223
+#: forms.py:223
 msgid "Id externo campana"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:224
+#: forms.py:224
 msgid "Id agente"
 msgstr ""
 
-#: configuracion_telefonia_app/forms.py:239
+#: forms.py:239
 msgid "Seleccione el archivo .wav que desea para la Musica de Espera."
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:52
+#: models.py:52
 msgid "chansip"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:53
+#: models.py:53
 msgid "pjsip"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:58
-#: configuracion_telefonia_app/models.py:174
-#: configuracion_telefonia_app/models.py:279
-#: configuracion_telefonia_app/models.py:316
-#: configuracion_telefonia_app/models.py:555
-#: configuracion_telefonia_app/models.py:564
-#: configuracion_telefonia_app/models.py:600
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:31
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:31
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:30
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:31
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:29
+#: models.py:58 models.py:177 models.py:282 models.py:319 models.py:558
+#: models.py:567 models.py:603 templates/lista_destino_personalizados.html:31
+#: templates/lista_identificador_cliente.html:31
+#: templates/lista_troncal_sip.html:30
+#: templates/lista_validaciones_fecha_hora.html:31
+#: templates/playlist/lista_playlists.html:29
 msgid "Nombre"
 msgstr "Nombre"
 
-#: configuracion_telefonia_app/models.py:61
+#: models.py:61
 msgid "Canales máximos"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:64
+#: models.py:64 models.py:118
 msgid "Caller id"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:66
+#: models.py:66
 msgid "Register string"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:67
+#: models.py:67
 msgid "Text config"
 msgstr "Text config"
 
-#: configuracion_telefonia_app/models.py:187
+#: models.py:190
 msgid "Lunes"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:188
+#: models.py:191
 msgid "Martes"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:189
+#: models.py:192
 msgid "Miércoles"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:190
+#: models.py:193
 msgid "Jueves"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:191
+#: models.py:194
 msgid "Viernes"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:192
+#: models.py:195
 msgid "Sábado"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:193
+#: models.py:196
 msgid "Domingo"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:199
+#: models.py:202
 msgid "Enero"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:200
+#: models.py:203
 msgid "Febrero"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:201
+#: models.py:204
 msgid "Marzo"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:202
+#: models.py:205
 msgid "Abril"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:203
+#: models.py:206
 msgid "Mayo"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:204
+#: models.py:207
 msgid "Junio"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:205
+#: models.py:208
 msgid "Julio"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:206
+#: models.py:209
 msgid "Agosto"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:207
+#: models.py:210
 msgid "Septiembre"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:208
+#: models.py:211
 msgid "Octubre"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:209
+#: models.py:212
 msgid "Noviembre"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:210
+#: models.py:213
 msgid "Diciembre"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:214
+#: models.py:217
 msgid "Tiempo inicio"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:215
+#: models.py:218
 msgid "Tiempo final"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:217
+#: models.py:220
 msgid "Día de la semana inicio"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:219
+#: models.py:222
 msgid "Día de la semana final"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:221
+#: models.py:224
 msgid "Día del mes inicio"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:223
+#: models.py:226
 msgid "Día del mes final"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:225
+#: models.py:228
 msgid "Mes inicio"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:227
+#: models.py:230
 msgid "Mes final"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:282
+#: models.py:285
 msgid "Grupo horario"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:311
+#: models.py:314
 msgid "Sin interacción externa"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:312
+#: models.py:315
 msgid "Interacción externa tipo 1"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:313
+#: models.py:316
 msgid "Interacción externa tipo 2"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:318
-#: configuracion_telefonia_app/models.py:319
+#: models.py:321 models.py:322
 msgid "Tipo de interacción"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:322
+#: models.py:325
 msgid "Url servicio identificación"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:327
+#: models.py:330
 msgid "Longitud de id esperado"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:330
+#: models.py:333
 msgid "Timeout"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:334
+#: models.py:337
 msgid "Intentos"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:337
-#: configuracion_telefonia_app/models.py:397
+#: models.py:340 models.py:400
 #, python-brace-format
 msgid "{0}: {1}"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:357
+#: models.py:360
 msgid "Campaña entrante"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:358
+#: models.py:361
 msgid "Validación de fecha/hora"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:360
+#: models.py:363
 msgid "Extension"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:361
-#: configuracion_telefonia_app/models.py:550
+#: models.py:364 models.py:553
 msgid "HangUp"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:362
+#: models.py:365
 msgid "CX Survey"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:363
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:24
+#: models.py:366 templates/lista_destino_personalizados.html:24
 msgid "Destino personalizado"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:364
+#: models.py:367
 msgid "Voicemail"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:365
+#: models.py:368
 msgid "Identificador cliente"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:366
+#: models.py:369
 msgid "Menú Interactivo de Whatsapp"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:367
+#: models.py:370
 msgid "Agente"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:368
+#: models.py:371
 msgid "Mensaje de Cierre"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:369
+#: models.py:372
 msgid "Menú Interactivo de Messenger Meta App"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:370
+#: models.py:373
 msgid "Menú Interactivo de Instagram"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:414
+#: models.py:417
 msgid "Error: El nodo HangUp es único."
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:511
+#: models.py:514
 #, python-brace-format
 msgid "Desde nodo {0} a nodo {1}"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:558
+#: models.py:561
 msgid "Localización destino"
 msgstr ""
 
-#: configuracion_telefonia_app/models.py:687
+#: models.py:690
 msgid "Paquete de idioma"
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:93
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:104
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:127
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:140
+#: regeneracion_configuracion_telefonia.py:93
+#: regeneracion_configuracion_telefonia.py:104
+#: regeneracion_configuracion_telefonia.py:127
+#: regeneracion_configuracion_telefonia.py:140
 #, python-brace-format
 msgid "SincronizadorDeConfiguracionTroncalSipEnAsterisk: error {0} al "
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:94
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:105
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:285
+#: regeneracion_configuracion_telefonia.py:94
+#: regeneracion_configuracion_telefonia.py:105
+#: regeneracion_configuracion_telefonia.py:285
 msgid "intentar create_config_asterisk()"
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:97
+#: regeneracion_configuracion_telefonia.py:97
 #, python-brace-format
 msgid ""
 "Hubo un inconveniente al crear el archivo de configuracion de trunks de {0}. "
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:109
+#: regeneracion_configuracion_telefonia.py:109
 #, python-brace-format
 msgid ""
 "Hubo un inconveniente al crear el archivo de configuracion de trunks "
 "registration de {0}. "
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:128
+#: regeneracion_configuracion_telefonia.py:128
 msgid "intentar regenerar_familys_rutas()"
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:130
+#: regeneracion_configuracion_telefonia.py:130
 #, python-brace-format
 msgid ""
 "Hubo un inconveniente al insertar los registros del troncal en la base de "
 "datos de {0}. "
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:141
+#: regeneracion_configuracion_telefonia.py:141
 msgid "intentar delete_family_trunk()"
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:143
+#: regeneracion_configuracion_telefonia.py:143
 #, python-brace-format
 msgid ""
 "Hubo un inconveniente al eliminar los registros de los troncales en la base "
 "de datos de {0}. "
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:171
+#: regeneracion_configuracion_telefonia.py:171
 #, python-brace-format
 msgid "Error {0} en la family {1} al intentar regenerar_family()"
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:174
+#: regeneracion_configuracion_telefonia.py:174
 #, python-brace-format
 msgid ""
 "Hubo un inconveniente al insertar los registros de la family {0} en la base "
 "de datos de {1}. "
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:186
+#: regeneracion_configuracion_telefonia.py:186
 #, python-brace-format
 msgid "Error {0} en la family {1} al intentar delete_family()"
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:188
+#: regeneracion_configuracion_telefonia.py:188
 #, python-brace-format
 msgid ""
 "Hubo un inconveniente al eliminar los registros de la family {0} en la base "
 "de datos de {1}. "
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:284
+#: regeneracion_configuracion_telefonia.py:284
 #, python-brace-format
 msgid "SincronizadorDeConfiguracionDeRutaSalienteEnAsterisk: error {0} al"
 msgstr ""
 
-#: configuracion_telefonia_app/regeneracion_configuracion_telefonia.py:289
+#: regeneracion_configuracion_telefonia.py:289
 #, python-brace-format
 msgid ""
 "Hubo un inconveniente al crear el archivo de configuracion de rutas de {0}. "
 msgstr ""
 
-#: configuracion_telefonia_app/services/audio_asterisk.py:59
+#: services/audio_asterisk.py:59
 #, python-brace-format
 msgid "Error al instalar el paquete de idioma: {0}"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/adicionar_audios_asterisk.html:30
+#: templates/adicionar_audios_asterisk.html:30
 #, python-format
 msgid " Adicionar audios de %(ASTERISK_TM)s "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/adicionar_audios_asterisk.html:32
+#: templates/adicionar_audios_asterisk.html:32
 msgid "Instalados:"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/crear_destino_personalizado.html:24
+#: templates/crear_destino_personalizado.html:24
 msgid "Crear Destino Personalizado"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/crear_identificacion_cliente.html:24
+#: templates/crear_identificacion_cliente.html:24
 msgid "Crear Identificador de Clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/crear_ivr.html:24
+#: templates/crear_ivr.html:24
 msgid "Crear IVR"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/crear_validacion_fecha_hora.html:24
+#: templates/crear_validacion_fecha_hora.html:24
 msgid "Crear Validación Horaria"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/delete_troncal_sip.html:25
+#: templates/delete_troncal_sip.html:25
 msgid "Troncal "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/delete_troncal_sip.html:26
+#: templates/delete_troncal_sip.html:26
 msgid "¿Esta seguro que desea eliminar este troncal?"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/delete_troncal_sip.html:28
-#: configuracion_telefonia_app/templates/eliminar_destino_personalizado.html:28
-#: configuracion_telefonia_app/templates/eliminar_identificador_cliente.html:28
-#: configuracion_telefonia_app/templates/eliminar_ivr.html:28
-#: configuracion_telefonia_app/templates/eliminar_validacion_fecha_hora.html:28
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:43
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:43
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:41
-#: configuracion_telefonia_app/templates/playlist/eliminar_playlist.html:27
+#: templates/delete_troncal_sip.html:28
+#: templates/eliminar_destino_personalizado.html:28
+#: templates/eliminar_identificador_cliente.html:28
+#: templates/eliminar_ivr.html:28
+#: templates/eliminar_validacion_fecha_hora.html:28
+#: templates/lista_destino_personalizados.html:43
+#: templates/lista_identificador_cliente.html:43
+#: templates/lista_validaciones_fecha_hora.html:41
+#: templates/playlist/eliminar_playlist.html:27
 msgid "Eliminar"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/delete_troncal_sip.html:30
-#: configuracion_telefonia_app/templates/eliminar_destino_personalizado.html:30
-#: configuracion_telefonia_app/templates/eliminar_identificador_cliente.html:30
-#: configuracion_telefonia_app/templates/eliminar_ivr.html:30
-#: configuracion_telefonia_app/templates/eliminar_validacion_fecha_hora.html:30
-#: configuracion_telefonia_app/templates/playlist/eliminar_playlist.html:29
+#: templates/delete_troncal_sip.html:30
+#: templates/eliminar_destino_personalizado.html:30
+#: templates/eliminar_identificador_cliente.html:30
+#: templates/eliminar_ivr.html:30
+#: templates/eliminar_validacion_fecha_hora.html:30
+#: templates/playlist/eliminar_playlist.html:29
 msgid "Cancelar"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/destino_personalizado.html:71
+#: templates/destino_personalizado.html:71
 msgid "Destino en caso de failover"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/destino_personalizado.html:93
-#: configuracion_telefonia_app/templates/editar_esquema_grabacion.html:48
-#: configuracion_telefonia_app/templates/identificacion_cliente.html:163
-#: configuracion_telefonia_app/templates/ivr.html:96
-#: configuracion_telefonia_app/templates/validacion_fecha_hora.html:110
+#: templates/destino_personalizado.html:93
+#: templates/editar_esquema_grabacion.html:48
+#: templates/identificacion_cliente.html:163 templates/ivr.html:96
+#: templates/validacion_fecha_hora.html:110
 msgid "Guardar"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/editar_configuracion_amd.html:23
+#: templates/editar_configuracion_amd.html:23
 msgid "Configuración AMD"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/editar_destino_personalizado.html:24
+#: templates/editar_destino_personalizado.html:24
 msgid "Editar Destino Personalizado"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/editar_esquema_grabacion.html:24
+#: templates/editar_esquema_grabacion.html:24
 msgid "Editar esquema de nombre de archivos de grabaciones"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/editar_identificacion_cliente.html:24
+#: templates/editar_identificacion_cliente.html:24
 msgid "Editar Identificador de Clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/editar_ivr.html:24
+#: templates/editar_ivr.html:24
 msgid "Editar IVR"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/editar_validacion_fecha_hora.html:24
+#: templates/editar_validacion_fecha_hora.html:24
 msgid "Editar Validación Horaria"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_destino_personalizado.html:25
+#: templates/eliminar_destino_personalizado.html:25
 msgid "Grupo horario: "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_destino_personalizado.html:26
+#: templates/eliminar_destino_personalizado.html:26
 msgid "¿Esta seguro que desea eliminar este destino personalizado?"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_identificador_cliente.html:25
+#: templates/eliminar_identificador_cliente.html:25
 msgid "Identificador de Clientes "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_identificador_cliente.html:26
+#: templates/eliminar_identificador_cliente.html:26
 msgid "¿Esta seguro que desea eliminar este Identificador de Clientes?"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_ivr.html:25
+#: templates/eliminar_ivr.html:25
 msgid "IVR "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_ivr.html:26
+#: templates/eliminar_ivr.html:26
 msgid "¿Esta seguro que desea eliminar este IVR?"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_validacion_fecha_hora.html:25
+#: templates/eliminar_validacion_fecha_hora.html:25
 msgid "Validación Fecha Hora "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/eliminar_validacion_fecha_hora.html:26
+#: templates/eliminar_validacion_fecha_hora.html:26
 msgid "¿Esta seguro que desea eliminar esta Validación Fecha Hora?"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/identificacion_cliente.html:123
+#: templates/identificacion_cliente.html:123
 msgid "Destino si se identifica correctamente"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/identificacion_cliente.html:140
+#: templates/identificacion_cliente.html:140
 msgid "Destino si NO se identifica correctamente"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/ivr.html:50
+#: templates/ivr.html:50
 msgid "Opciones de destinos"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/ivr_fields.html:29
+#: templates/ivr_fields.html:29
 msgid "Sección general"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/ivr_fields.html:72
+#: templates/ivr_fields.html:72
 msgid "Configuración time out"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/ivr_fields.html:134
+#: templates/ivr_fields.html:134
 msgid "Configuración destino inválido"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:30
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:30
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:29
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:30
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:28
+#: templates/lista_destino_personalizados.html:30
+#: templates/lista_identificador_cliente.html:30
+#: templates/lista_troncal_sip.html:29
+#: templates/lista_validaciones_fecha_hora.html:30
+#: templates/playlist/lista_playlists.html:28
 msgid "ID"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:32
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:32
+#: templates/lista_destino_personalizados.html:32
+#: templates/lista_identificador_cliente.html:32
 msgid "Tipo"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:49
+#: templates/lista_destino_personalizados.html:49
 msgid "No hay Destinos Personalizados configurados"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:56
+#: templates/lista_destino_personalizados.html:56
 msgid "Agregar Destinos Personalizados"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:66
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:66
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:69
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:64
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:65
+#: templates/lista_destino_personalizados.html:66
+#: templates/lista_identificador_cliente.html:66
+#: templates/lista_troncal_sip.html:69
+#: templates/lista_validaciones_fecha_hora.html:64
+#: templates/playlist/lista_playlists.html:65
 msgid "Principio"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:72
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:72
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:75
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:70
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:71
+#: templates/lista_destino_personalizados.html:72
+#: templates/lista_identificador_cliente.html:72
+#: templates/lista_troncal_sip.html:75
+#: templates/lista_validaciones_fecha_hora.html:70
+#: templates/playlist/lista_playlists.html:71
 msgid "Anterior"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:85
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:85
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:88
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:83
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:84
+#: templates/lista_destino_personalizados.html:85
+#: templates/lista_identificador_cliente.html:85
+#: templates/lista_troncal_sip.html:88
+#: templates/lista_validaciones_fecha_hora.html:83
+#: templates/playlist/lista_playlists.html:84
 msgid "Siguiente"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_destino_personalizados.html:91
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:91
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:94
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:89
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:90
+#: templates/lista_destino_personalizados.html:91
+#: templates/lista_identificador_cliente.html:91
+#: templates/lista_troncal_sip.html:94
+#: templates/lista_validaciones_fecha_hora.html:89
+#: templates/playlist/lista_playlists.html:90
 msgid "Final"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:24
+#: templates/lista_identificador_cliente.html:24
 msgid "Identificador de Clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:49
+#: templates/lista_identificador_cliente.html:49
 msgid "No hay Identificadores de Clientes configurados"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_identificador_cliente.html:56
+#: templates/lista_identificador_cliente.html:56
 msgid "Agregar Identificador de clientes"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:31
+#: templates/lista_troncal_sip.html:31
 msgid "Tecnología"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:32
+#: templates/lista_troncal_sip.html:32
 msgid "Caller ID"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:33
+#: templates/lista_troncal_sip.html:33
 msgid "Status"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:34
+#: templates/lista_troncal_sip.html:34
 msgid "Canales Máximos"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:54
+#: templates/lista_troncal_sip.html:54
 msgid "No hay Troncales SIP configuradas"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_troncal_sip.html:59
-#: configuracion_telefonia_app/templates/playlist/editar_playlist.html:60
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:53
+#: templates/lista_troncal_sip.html:59
+#: templates/playlist/editar_playlist.html:60
+#: templates/playlist/lista_playlists.html:53
 msgid "Agregar"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:47
+#: templates/lista_validaciones_fecha_hora.html:47
 msgid "No hay validaciones horarias configurados"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/lista_validaciones_fecha_hora.html:54
+#: templates/lista_validaciones_fecha_hora.html:54
 msgid "Agregar validación horaria"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/crear_playlist.html:25
+#: templates/playlist/crear_playlist.html:25
 msgid "Crear Playlist de Musica en Espera"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/editar_playlist.html:23
+#: templates/playlist/editar_playlist.html:23
 msgid "Editar Playlists de Música en Espera: "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/editar_playlist.html:28
+#: templates/playlist/editar_playlist.html:28
 msgid "Nombre de Música en Espera"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/editar_playlist.html:29
+#: templates/playlist/editar_playlist.html:29
 msgid "Archivo de Música"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/editar_playlist.html:30
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:30
+#: templates/playlist/editar_playlist.html:30
+#: templates/playlist/lista_playlists.html:30
 msgid "Acciones"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/editar_playlist.html:48
+#: templates/playlist/editar_playlist.html:48
 msgid "Esta Playlist no tiene Musicas en Espera configuradas"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/editar_playlist.html:54
+#: templates/playlist/editar_playlist.html:54
 msgid "Agregar Musica en Espera"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/eliminar_playlist.html:24
+#: templates/playlist/eliminar_playlist.html:24
 msgid "Playlist: "
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/eliminar_playlist.html:25
+#: templates/playlist/eliminar_playlist.html:25
 msgid "¿Esta seguro que desea eliminar esta Playlist de Música en Espera?"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:23
+#: templates/playlist/lista_playlists.html:23
 msgid "Playlists de Musica en Espera"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/playlist/lista_playlists.html:46
+#: templates/playlist/lista_playlists.html:46
 msgid "No hay Playlists configuradas"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/validacion_fecha_hora.html:70
+#: templates/validacion_fecha_hora.html:70
 msgid "Destino si cumple la condición de tiempo"
 msgstr ""
 
-#: configuracion_telefonia_app/templates/validacion_fecha_hora.html:87
+#: templates/validacion_fecha_hora.html:87
 msgid "Destino si NO cumple la condición de tiempo"
 msgstr ""
 
-#: configuracion_telefonia_app/tests/tests_rutas_entrantes.py:264
-#: configuracion_telefonia_app/tests/tests_rutas_entrantes.py:278
+#: tests/tests_rutas_entrantes.py:264 tests/tests_rutas_entrantes.py:278
 msgid "Introduzca un valor válido."
 msgstr ""
 
-#: configuracion_telefonia_app/tests/tests_rutas_entrantes.py:289
+#: tests/tests_rutas_entrantes.py:289
 msgid "Este campo es requerido."
 msgstr ""
 
-#: configuracion_telefonia_app/views/audio.py:59
+#: views/audio.py:59
 msgid "Se ha instalado el paquete de idioma satisfactoriamente."
 msgstr ""
 
-#: configuracion_telefonia_app/views/audio.py:63
+#: views/audio.py:63
 msgid "Ha ocurrido un error al instalar el paquete de idioma"
 msgstr ""
 
-#: configuracion_telefonia_app/views/audio.py:106
+#: views/audio.py:106
 msgid ""
 "No se puede eliminar una Playlist que tiene Músicas en Espera. Elimine las "
 "Músicas en Espera primero"
 msgstr ""
 
-#: configuracion_telefonia_app/views/audio.py:117
+#: views/audio.py:117
 msgid "No se puede eliminar una Playlist que está siendo usada en una Campaña"
 msgstr ""
 
-#: configuracion_telefonia_app/views/audio.py:133
+#: views/audio.py:133
 msgid ""
 "Hubo un problema al eliminar la Playlist. Por Favor notifique a su "
 "Administrador."
 msgstr ""
 
-#: configuracion_telefonia_app/views/audio.py:142
+#: views/audio.py:142
 msgid "Playlist eliminada con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/audio.py:239
+#: views/audio.py:239
 msgid "Musica de Espera eliminada con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:76
-#: configuracion_telefonia_app/views/base.py:91
-#: configuracion_telefonia_app/views/base.py:109
-#: configuracion_telefonia_app/views/base.py:409
+#: views/base.py:76 views/base.py:91 views/base.py:109 views/base.py:409
 #, python-brace-format
 msgid "<strong>¡Cuidado!</strong> con el siguiente error: {0} ."
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:169
+#: views/base.py:169
 msgid ""
 "No se puede eliminar un troncal que está siendo usado en una rutasaliente"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:182
+#: views/base.py:182
 msgid "Troncal Sip eliminado con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:256
+#: views/base.py:256
 msgid "Se ha creado la validacion horaria con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:292
+#: views/base.py:292
 msgid "Se ha modificado la validacion horaria con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:331
+#: views/base.py:331
 msgid "No se puede eliminar un objeto que es destino en un flujo de llamada."
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:332
+#: views/base.py:332
 msgid "Se ha eliminado el Nodo."
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:333
+#: views/base.py:333
 #, python-brace-format
 msgid ""
 "No se puede eliminar la campaña. Es usada como destino de las siguientes "
 "Lineas de Whatsapp: {0}"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:367
-#: configuracion_telefonia_app/views/base.py:397
+#: views/base.py:367 views/base.py:397
 #, python-brace-format
 msgid ""
 "No se puede eliminar la campaña. Es usada como destino failover de las "
 "campañas: {0}"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:430
+#: views/base.py:430
 msgid ""
 "No se puede eliminar una Validación Fecha Hora mientras sea destino en un "
 "flujo de llamada."
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:432
+#: views/base.py:432
 msgid "Se ha eliminado la Validación Fecha Hora."
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:464
+#: views/base.py:464
 msgid "Se ha creado el Identificador de clientes con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:524
+#: views/base.py:524
 msgid "Se ha modificado el Identificador de clientes con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:603
+#: views/base.py:603
 msgid ""
 "No se puede eliminar un Identificador de clientes que es destino en un flujo "
 "de llamada."
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:605
+#: views/base.py:605
 msgid "Se ha eliminado el Identificador de Clientes."
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:637
+#: views/base.py:637
 msgid "Se ha creado el nodo de Destino Personalizado con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/base.py:670
+#: views/base.py:670
 msgid "Se ha modificado el nodo de Destino Personalizado con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/opciones_avanzadas.py:44
+#: views/opciones_avanzadas.py:44
 msgid "Se ha modificado la configuración AMD del sistema con éxito"
 msgstr ""
 
-#: configuracion_telefonia_app/views/opciones_avanzadas.py:64
+#: views/opciones_avanzadas.py:64
 msgid "Se ha modificado el formato de los nombres de graciones con éxito"
 msgstr ""

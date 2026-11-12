@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-03-17 12:58-0300\n"
+"POT-Creation-Date: 2026-11-11 16:43-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,218 +17,218 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:173
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:159
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:93
-#: supervision_app/static/supervision_app/JS/supervision.js:194
+#: static/supervision_app/JS/campanas_dialers.js:173
+#: static/supervision_app/JS/campanas_entrantes.js:159
+#: static/supervision_app/JS/campanas_salientes.js:93
+#: static/supervision_app/JS/supervision.js:194
 msgid "Todos"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:175
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:161
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:95
-#: supervision_app/static/supervision_app/JS/supervision.js:196
+#: static/supervision_app/JS/campanas_dialers.js:175
+#: static/supervision_app/JS/campanas_entrantes.js:161
+#: static/supervision_app/JS/campanas_salientes.js:95
+#: static/supervision_app/JS/supervision.js:196
 msgid "Buscar: "
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:176
+#: static/supervision_app/JS/campanas_dialers.js:176
 msgid "(filtrando de un total de _MAX_ campañas)"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:178
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:164
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:98
-#: supervision_app/static/supervision_app/JS/supervision.js:199
+#: static/supervision_app/JS/campanas_dialers.js:178
+#: static/supervision_app/JS/campanas_entrantes.js:164
+#: static/supervision_app/JS/campanas_salientes.js:98
+#: static/supervision_app/JS/supervision.js:199
 msgid "Primero "
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:179
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:165
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:99
-#: supervision_app/static/supervision_app/JS/supervision.js:200
+#: static/supervision_app/JS/campanas_dialers.js:179
+#: static/supervision_app/JS/campanas_entrantes.js:165
+#: static/supervision_app/JS/campanas_salientes.js:99
+#: static/supervision_app/JS/supervision.js:200
 msgid "Anterior "
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:180
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:166
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:100
-#: supervision_app/static/supervision_app/JS/supervision.js:201
+#: static/supervision_app/JS/campanas_dialers.js:180
+#: static/supervision_app/JS/campanas_entrantes.js:166
+#: static/supervision_app/JS/campanas_salientes.js:100
+#: static/supervision_app/JS/supervision.js:201
 msgid " Siguiente"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:181
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:167
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:101
-#: supervision_app/static/supervision_app/JS/supervision.js:202
+#: static/supervision_app/JS/campanas_dialers.js:181
+#: static/supervision_app/JS/campanas_entrantes.js:167
+#: static/supervision_app/JS/campanas_salientes.js:101
+#: static/supervision_app/JS/supervision.js:202
 msgid " Último"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:183
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:169
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:103
-#: supervision_app/static/supervision_app/JS/supervision.js:204
+#: static/supervision_app/JS/campanas_dialers.js:183
+#: static/supervision_app/JS/campanas_entrantes.js:169
+#: static/supervision_app/JS/campanas_salientes.js:103
+#: static/supervision_app/JS/supervision.js:204
 msgid "Mostrar _MENU_ entradas"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_dialers.js:184
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:170
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:104
-#: supervision_app/static/supervision_app/JS/supervision.js:205
+#: static/supervision_app/JS/campanas_dialers.js:184
+#: static/supervision_app/JS/campanas_entrantes.js:170
+#: static/supervision_app/JS/campanas_salientes.js:104
+#: static/supervision_app/JS/supervision.js:205
 msgid "Mostrando _START_ a _END_ de _TOTAL_ entradas"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:146
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:152
+#: static/supervision_app/JS/campanas_entrantes.js:146
+#: static/supervision_app/JS/campanas_entrantes.js:152
 msgid " segundos"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/campanas_entrantes.js:162
-#: supervision_app/static/supervision_app/JS/campanas_salientes.js:96
-#: supervision_app/static/supervision_app/JS/supervision.js:197
+#: static/supervision_app/JS/campanas_entrantes.js:162
+#: static/supervision_app/JS/campanas_salientes.js:96
+#: static/supervision_app/JS/supervision.js:197
 msgid "(filtrando de un total de _MAX_ contactos)"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:63
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:68
-#: supervision_app/static/supervision_app/JS/phoneJsView.js:88
+#: static/supervision_app/JS/phoneJsController.js:63
+#: static/supervision_app/JS/phoneJsController.js:68
+#: static/supervision_app/JS/phoneJsView.js:88
 msgid "Desconectado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:73
+#: static/supervision_app/JS/phoneJsController.js:73
 msgid "Conectado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:83
+#: static/supervision_app/JS/phoneJsController.js:83
 msgid "Llamando"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:88
+#: static/supervision_app/JS/phoneJsController.js:88
 msgid "En llamado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:93
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:98
+#: static/supervision_app/JS/phoneJsController.js:93
+#: static/supervision_app/JS/phoneJsController.js:98
 msgid "Transfiriendo"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:103
+#: static/supervision_app/JS/phoneJsController.js:103
 msgid "Recibiendo llamado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:109
+#: static/supervision_app/JS/phoneJsController.js:109
 msgid "En espera"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:123
+#: static/supervision_app/JS/phoneJsController.js:123
 msgid "Supervisor registrado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:172
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:175
+#: static/supervision_app/JS/phoneJsController.js:172
+#: static/supervision_app/JS/phoneJsController.js:175
 msgid "Conectado a %(fromUser)s"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:192
+#: static/supervision_app/JS/phoneJsController.js:192
 msgid "Disponible"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:205
+#: static/supervision_app/JS/phoneJsController.js:205
 msgid "Ocupado, intente maás tarde"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:208
+#: static/supervision_app/JS/phoneJsController.js:208
 msgid "Rechazado, intente maás tarde"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:211
+#: static/supervision_app/JS/phoneJsController.js:211
 msgid "No disponible, contacte a su administrador"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:214
+#: static/supervision_app/JS/phoneJsController.js:214
 msgid "Error, verifique el número marcado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:218
+#: static/supervision_app/JS/phoneJsController.js:218
 msgid "Error de autenticación, contacte a su administrador"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:221
+#: static/supervision_app/JS/phoneJsController.js:221
 msgid "Error, Falta SDP"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:224
+#: static/supervision_app/JS/phoneJsController.js:224
 msgid "Dirección incompleta"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:228
+#: static/supervision_app/JS/phoneJsController.js:228
 msgid "Servicio no disponible, contacte a su administrador"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:232
+#: static/supervision_app/JS/phoneJsController.js:232
 msgid "Error WebRTC: El usuario no permite acceso al medio"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:235
+#: static/supervision_app/JS/phoneJsController.js:235
 msgid "Error: Llamado fallido"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsController.js:242
+#: static/supervision_app/JS/phoneJsController.js:242
 msgid "Conectado a llamada"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsView.js:89
+#: static/supervision_app/JS/phoneJsView.js:89
 msgid "Registrado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsView.js:90
+#: static/supervision_app/JS/phoneJsView.js:90
 msgid "No Registrado"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsView.js:92
+#: static/supervision_app/JS/phoneJsView.js:92
 msgid "El SIP Proxy no responde, contacte a su administrador"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/phoneJsView.js:96
+#: static/supervision_app/JS/phoneJsView.js:96
 msgid "Fallo en la registración, contacte a su administrador"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision.js:222
+#: static/supervision_app/JS/supervision.js:222
 msgid "Susurrar"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision.js:235
+#: static/supervision_app/JS/supervision.js:235
 msgid "Monitoreo"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision.js:264
+#: static/supervision_app/JS/supervision.js:264
 msgid "Logout"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision.js:280
+#: static/supervision_app/JS/supervision.js:280
 msgid "Enviar mensaje"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:51
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:76
+#: static/supervision_app/JS/supervision_agentes.js:51
+#: static/supervision_app/JS/supervision_agentes.js:76
 msgid "Atención!"
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:52
+#: static/supervision_app/JS/supervision_agentes.js:52
 msgid "Debe finalizar la acción actual antes de realizar otra."
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:66
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:116
+#: static/supervision_app/JS/supervision_agentes.js:66
+#: static/supervision_app/JS/supervision_agentes.js:116
 msgid "Error al ejecutar => "
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:77
+#: static/supervision_app/JS/supervision_agentes.js:77
 msgid ""
 "Se ha registrado un intento de salir de esta pantalla. Su llamado ha "
 "finalizado."
 msgstr ""
 
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:83
-#: supervision_app/static/supervision_app/JS/supervision_agentes.js:84
+#: static/supervision_app/JS/supervision_agentes.js:83
+#: static/supervision_app/JS/supervision_agentes.js:84
 msgid "Debe finalizar la acción actual antes de salir de esta pantalla."
 msgstr ""

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-23 21:17-0300\n"
+"POT-Creation-Date: 2026-11-11 16:42-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,366 +17,343 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: instagram_app/api/permissions.py:24
+#: api/permissions.py:24
 msgid "No tiene permiso para usar la canalidad Instagram."
 msgstr "Não tem permissão para usar o canal Instagram."
 
-#: instagram_app/api/v1/account_configuration.py:108
-#: instagram_app/api/v1/account_configuration.py:110
+#: api/v1/account_configuration.py:108 api/v1/account_configuration.py:110
 msgid "Este campo es requerido."
 msgstr "Campo obrigatório."
 
-#: instagram_app/api/v1/account_configuration.py:131
+#: api/v1/account_configuration.py:131
 msgid "El valor de las opciones no puede repetirse"
 msgstr "O valor das opções não pode se repetir"
 
-#: instagram_app/api/v1/account_configuration.py:134
+#: api/v1/account_configuration.py:134
 msgid "No pueden definirse más de 10 opciones"
 msgstr "Não podem se definir mais de 10 opções"
 
-#: instagram_app/api/v1/account_configuration.py:141
+#: api/v1/account_configuration.py:141
 msgid "Campana"
 msgstr "Campanha"
 
-#: instagram_app/api/v1/account_configuration.py:142
+#: api/v1/account_configuration.py:142
 msgid "Menu Interactivo"
 msgstr "Menu Interativo"
 
-#: instagram_app/api/v1/account_configuration.py:155
+#: api/v1/account_configuration.py:155
 msgid "Valor incorrecto. Debe ser un id"
 msgstr "Valor errado. Deve ser um id"
 
-#: instagram_app/api/v1/account_configuration.py:159
+#: api/v1/account_configuration.py:159
 msgid "No existe campaña con ese id"
 msgstr "Não existe campanha com esse id"
 
-#: instagram_app/api/v1/account_configuration.py:406
+#: api/v1/account_configuration.py:407
 msgid "Se obtuvieron las cuentas de Instagram de forma exitosa"
 msgstr "Contas do Instagram obtidas com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:434
+#: api/v1/account_configuration.py:435
 msgid "Se creó la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram criada com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:440
-#: instagram_app/api/v1/account_configuration.py:446
+#: api/v1/account_configuration.py:441 api/v1/account_configuration.py:447
 msgid "No se pudo crear la cuenta de Instagram"
 msgstr "Não foi possível criar a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:457
-#: instagram_app/api/v1/account_configuration.py:508
-#: instagram_app/api/v1/account_configuration.py:514
+#: api/v1/account_configuration.py:458 api/v1/account_configuration.py:509
+#: api/v1/account_configuration.py:515
 msgid "No se pudo actualizar la cuenta de Instagram"
 msgstr "Não foi possível atualizar a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:458
-#: instagram_app/api/v1/account_configuration.py:526
-#: instagram_app/api/v1/account_configuration.py:545
+#: api/v1/account_configuration.py:459 api/v1/account_configuration.py:527
+#: api/v1/account_configuration.py:546
 msgid "No existe una cuenta de Instagram con este id"
 msgstr "Não existe uma conta do Instagram com esse id"
 
-#: instagram_app/api/v1/account_configuration.py:502
+#: api/v1/account_configuration.py:503
 msgid "Se actualizó la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram atualizada com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:525
+#: api/v1/account_configuration.py:526
 msgid "No se pudo eliminar la cuenta de Instagram"
 msgstr "Não foi possível excluir a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:534
+#: api/v1/account_configuration.py:535
 msgid "Se eliminó la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram excluída com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:544
+#: api/v1/account_configuration.py:545
 msgid "No se pudo obtener la cuenta de Instagram"
 msgstr "Não foi possível obter a conta do Instagram"
 
-#: instagram_app/api/v1/account_configuration.py:551
+#: api/v1/account_configuration.py:552
 msgid "Se obtuvo la cuenta de Instagram de forma exitosa"
 msgstr "Conta do Instagram obtida com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:576
+#: api/v1/account_configuration.py:577
 msgid "Se obtuvieron las campañas de forma exitosa"
 msgstr "Campanhas obtidas com sucesso"
 
-#: instagram_app/api/v1/account_configuration.py:591
+#: api/v1/account_configuration.py:592
 msgid "Se obtuvieron los grupos horarios de forma exitosa"
 msgstr "Grupos horários obtidos com sucesso"
 
-#: instagram_app/api/v1/contact.py:68 instagram_app/api/v1/contact.py:95
+#: api/v1/contact.py:68 api/v1/contact.py:95
 msgid "campo requerido"
 msgstr "campo solicitado"
 
-#: instagram_app/api/v1/contact.py:124 instagram_app/api/v1/contact.py:154
+#: api/v1/contact.py:124 api/v1/contact.py:154
 msgid "Error en los campos de contacto"
 msgstr "Erro nos campos de contato"
 
-#: instagram_app/api/v1/contact.py:126
+#: api/v1/contact.py:126
 msgid "Faltan campos requeridos"
 msgstr "Faltam campos solicitados"
 
-#: instagram_app/api/v1/contact.py:158
+#: api/v1/contact.py:158
 msgid "No puede editar campos ocultos o bloqueados"
 msgstr "Não pode editar campos ocultos ou bloqueados"
 
-#: instagram_app/api/v1/contact.py:195 instagram_app/api/v1/contact.py:386
-#: instagram_app/api/v1/contact.py:405
+#: api/v1/contact.py:195 api/v1/contact.py:386 api/v1/contact.py:405
 msgid "Se obtuvieron los contactos de forma exitosa"
 msgstr "Contatos obtidos com sucesso"
 
-#: instagram_app/api/v1/contact.py:222 instagram_app/api/v1/contact.py:251
+#: api/v1/contact.py:222 api/v1/contact.py:251
 msgid "Se creo el nuevo contacto de forma exitosa"
 msgstr "Novo contato criado com sucesso"
 
-#: instagram_app/api/v1/contact.py:227 instagram_app/api/v1/contact.py:256
-#: instagram_app/api/v1/contact.py:281 instagram_app/api/v1/disposition.py:181
-#: instagram_app/api/v1/disposition.py:205
-#: instagram_app/api/v1/disposition.py:291
-#: instagram_app/api/v1/templates_instagram.py:96
-#: instagram_app/api/v1/templates_instagram.py:131
+#: api/v1/contact.py:227 api/v1/contact.py:256 api/v1/contact.py:281
+#: api/v1/disposition.py:181 api/v1/disposition.py:205
+#: api/v1/disposition.py:291 api/v1/templates_instagram.py:96
+#: api/v1/templates_instagram.py:131
 msgid "Error en los datos"
 msgstr "Erro nos dados"
 
-#: instagram_app/api/v1/contact.py:231 instagram_app/api/v1/contact.py:354
-#: instagram_app/api/v1/conversation.py:518
+#: api/v1/contact.py:231 api/v1/contact.py:354 api/v1/conversation.py:518
 msgid "Conversación no encontrada"
 msgstr "Conversa não encontrada"
 
-#: instagram_app/api/v1/contact.py:235 instagram_app/api/v1/contact.py:260
+#: api/v1/contact.py:235 api/v1/contact.py:260
 msgid "Error al crear el contacto"
 msgstr "Erro criando contato"
 
-#: instagram_app/api/v1/contact.py:275
+#: api/v1/contact.py:275
 msgid "Se actualizo el nuevo contacto de forma exitosa"
 msgstr "Contato atualizado com sucesso"
 
-#: instagram_app/api/v1/contact.py:284 instagram_app/api/v1/conversation.py:522
+#: api/v1/contact.py:284 api/v1/conversation.py:522
 msgid "Contacto no encontrado"
 msgstr "Contato não encontrado"
 
-#: instagram_app/api/v1/contact.py:288
+#: api/v1/contact.py:288
 msgid "Error al actualizar el contacto"
 msgstr "Erro ao atualizar o contato"
 
-#: instagram_app/api/v1/contact.py:314
+#: api/v1/contact.py:314
 msgid "Error al obtener los campos de contacto"
 msgstr "Erro ao obter os campos do contato"
 
-#: instagram_app/api/v1/contact.py:324
+#: api/v1/contact.py:324
 msgid "Conversación requerida"
 msgstr "Conversa obrigatória"
 
-#: instagram_app/api/v1/contact.py:333
+#: api/v1/contact.py:333
 msgid "Sin coincidencia sugerida"
 msgstr "Sem correspondência sugerida"
 
-#: instagram_app/api/v1/contact.py:349
+#: api/v1/contact.py:349
 msgid "Se obtuvo la coincidencia sugerida"
 msgstr "Correspondência sugerida obtida com sucesso"
 
-#: instagram_app/api/v1/contact.py:358
+#: api/v1/contact.py:358
 msgid "Error al obtener coincidencia sugerida"
 msgstr "Erro ao obter correspondência sugerida"
 
-#: instagram_app/api/v1/contact.py:410
+#: api/v1/contact.py:410
 msgid "Error al obtener contactos"
 msgstr "Erro ao obter contatos"
 
-#: instagram_app/api/v1/conversation.py:127
+#: api/v1/conversation.py:127
 msgid "Debe indicar fecha desde y fecha hasta para aplicar el filtro."
 msgstr "Deve indicar data de início e data de término para aplicar o filtro."
 
-#: instagram_app/api/v1/conversation.py:365
-#: instagram_app/api/v1/conversation.py:428
+#: api/v1/conversation.py:365 api/v1/conversation.py:428
 msgid "Se obtuvo la conversacion de forma exitosa"
 msgstr "Conversa obtida com sucesso"
 
-#: instagram_app/api/v1/conversation.py:369
-#: instagram_app/api/v1/conversation.py:432
+#: api/v1/conversation.py:369 api/v1/conversation.py:432
 msgid "Conversacion no encontrada"
 msgstr "Conversa não encontrada"
 
-#: instagram_app/api/v1/conversation.py:403
+#: api/v1/conversation.py:403
 msgid "Se obtuvieron las conversaciones de forma exitosa"
 msgstr "Conversas obtidas com sucesso"
 
-#: instagram_app/api/v1/conversation.py:415
+#: api/v1/conversation.py:415
 msgid "Error al obtener las conversaciones"
 msgstr "Erro obtendo conversas"
 
-#: instagram_app/api/v1/conversation.py:469
+#: api/v1/conversation.py:469
 msgid "Se asignó la conversación de forma exitosa"
 msgstr "Conversa atribuída com sucesso"
 
-#: instagram_app/api/v1/conversation.py:473
-#: instagram_app/api/v1/conversation.py:566
-#: instagram_app/api/v1/conversation.py:614
-#: instagram_app/api/v1/conversation.py:712
+#: api/v1/conversation.py:473 api/v1/conversation.py:566
+#: api/v1/conversation.py:614 api/v1/conversation.py:712
 msgid "Esta conversación ya está siendo atendida por otro agente"
 msgstr "Essa conversa já está sendo atendida por outro agente"
 
-#: instagram_app/api/v1/conversation.py:478
+#: api/v1/conversation.py:478
 msgid "No se puede asignar una conversación que no existe"
 msgstr "Não é possível atribuir uma conversa que não existe"
 
-#: instagram_app/api/v1/conversation.py:490
+#: api/v1/conversation.py:490
 msgid "El contacto no pertenece a la base de datos de la campaña"
 msgstr "O contato não pertence ao banco de dados da campanha"
 
-#: instagram_app/api/v1/conversation.py:496
+#: api/v1/conversation.py:496
 msgid "El contacto ya está asociado a otro identificador de Instagram"
 msgstr "O contato já está associado a outro identificador do Instagram"
 
-#: instagram_app/api/v1/conversation.py:504
+#: api/v1/conversation.py:504
 msgid "El contacto ya tiene una conversación activa"
 msgstr "O contato já possui uma conversa ativa"
 
-#: instagram_app/api/v1/conversation.py:514
+#: api/v1/conversation.py:514
 msgid "Se asigno el contacto a la conversacion de forma satisfactoria"
 msgstr "O contato foi atribuído à conversa com sucesso"
 
-#: instagram_app/api/v1/conversation.py:526
+#: api/v1/conversation.py:526
 msgid "Error al asignar el contacto"
 msgstr "Erro ao atribuir o contato"
 
-#: instagram_app/api/v1/conversation.py:588
-#: instagram_app/api/v1/conversation.py:680
-#: instagram_app/api/v1/conversation.py:738
+#: api/v1/conversation.py:588 api/v1/conversation.py:680
+#: api/v1/conversation.py:738
 msgid "Este mensaje no se pudo enviar"
 msgstr "Essa mensagem não pôde ser enviada"
 
-#: instagram_app/api/v1/conversation.py:592
-#: instagram_app/api/v1/conversation.py:689
-#: instagram_app/api/v1/conversation.py:742
+#: api/v1/conversation.py:592 api/v1/conversation.py:689
+#: api/v1/conversation.py:742
 msgid "La conversacion esta inactiva hasta que el cliente responda"
 msgstr "A conversa está inativa até o cliente responder"
 
-#: instagram_app/api/v1/conversation.py:595
-#: instagram_app/api/v1/conversation.py:692
-#: instagram_app/api/v1/conversation.py:745
+#: api/v1/conversation.py:595 api/v1/conversation.py:692
+#: api/v1/conversation.py:745
 msgid "Conversacion es erronea"
 msgstr "Conversa errada"
 
-#: instagram_app/api/v1/conversation.py:601
-#: instagram_app/api/v1/conversation.py:698
-#: instagram_app/api/v1/conversation.py:751
+#: api/v1/conversation.py:601 api/v1/conversation.py:698
+#: api/v1/conversation.py:751
 msgid "Error al enviar el mensaje"
 msgstr "Erro enviando mensagem"
 
-#: instagram_app/api/v1/conversation.py:646
+#: api/v1/conversation.py:646
 msgid "No se pudo subir el archivo a Meta"
 msgstr "Não foi possível enviar o arquivo para o Meta"
 
-#: instagram_app/api/v1/conversation.py:654
+#: api/v1/conversation.py:654
 msgid "Error al enviar adjunto por URL"
 msgstr "Erro ao enviar anexo por URL"
 
-#: instagram_app/api/v1/conversation.py:656
+#: api/v1/conversation.py:656
 msgid "Error al subir archivo a Meta"
 msgstr "Erro ao enviar arquivo para o Meta"
 
-#: instagram_app/api/v1/conversation.py:762
+#: api/v1/conversation.py:762
 msgid "La reactivación de conversaciones Instagram no está habilitada."
 msgstr "A reativação de conversas do Instagram não está habilitada."
 
-#: instagram_app/api/v1/disposition.py:159
+#: api/v1/disposition.py:159
 msgid "Se obtuvo la calificacion de forma exitosa"
 msgstr "Qualificação obtida com sucesso"
 
-#: instagram_app/api/v1/disposition.py:164
-#: instagram_app/api/v1/disposition.py:337
+#: api/v1/disposition.py:164 api/v1/disposition.py:337
 msgid "Calificacion no encontrada"
 msgstr "Qualificação não encontrada"
 
-#: instagram_app/api/v1/disposition.py:169
+#: api/v1/disposition.py:169
 msgid "Error al obtener las calificaciones"
 msgstr "Erro ao obter as qualificações"
 
-#: instagram_app/api/v1/disposition.py:220
-#: instagram_app/api/v1/disposition.py:247
-#: instagram_app/api/v1/disposition.py:306
+#: api/v1/disposition.py:220 api/v1/disposition.py:247
+#: api/v1/disposition.py:306
 msgid "Error en los datos del formulario"
 msgstr "Erro nos dados do formulário"
 
-#: instagram_app/api/v1/disposition.py:233
-#: instagram_app/api/v1/disposition.py:313
+#: api/v1/disposition.py:233 api/v1/disposition.py:313
 msgid "Se actualizo la calificacion de forma exitosa"
 msgstr "Qualificação atualizada com sucesso"
 
-#: instagram_app/api/v1/disposition.py:259
-#: instagram_app/api/v1/disposition.py:272
+#: api/v1/disposition.py:259 api/v1/disposition.py:272
 msgid "Se creo la calificacion de forma exitosa"
 msgstr "Qualificação criada com sucesso"
 
-#: instagram_app/api/v1/disposition.py:318
+#: api/v1/disposition.py:318
 msgid "CalificacionCliente no encontrada"
 msgstr "CalificacionCliente não encontrada"
 
-#: instagram_app/api/v1/disposition.py:323
+#: api/v1/disposition.py:323
 msgid "Error al actualizar la CalificacionCliente"
 msgstr "Erro ao atualizar CalificacionCliente"
 
-#: instagram_app/api/v1/disposition.py:342
+#: api/v1/disposition.py:342
 msgid "Error al obtener el historial de calificacion"
 msgstr "Erro ao obter o histórico da qualificação"
 
-#: instagram_app/api/v1/disposition.py:353
+#: api/v1/disposition.py:353
 msgid "Se obtuvieron las opciones de calificacion de forma exitosa"
 msgstr "Opções de qualificação obtidas com sucesso"
 
-#: instagram_app/api/v1/disposition.py:359
+#: api/v1/disposition.py:359
 msgid "Error al obtener opciones de calificacion"
 msgstr "Erro ao obter opções de qualificação"
 
-#: instagram_app/api/v1/reporte.py:153
+#: api/v1/reporte.py:153
 msgid "Error al obtener el reporte"
 msgstr "Erro ao obter o relatório"
 
-#: instagram_app/api/v1/reporte.py:160
+#: api/v1/reporte.py:160
 msgid "Reporte obtenido exitosamente"
 msgstr "Relatório obtido com sucesso"
 
-#: instagram_app/api/v1/templates.py:62
+#: api/v1/templates.py:62
 msgid "Se obtuvieron los templates de forma exitosa"
 msgstr "Modelos obtidos com sucesso"
 
-#: instagram_app/api/v1/templates_instagram.py:47
-#: instagram_app/api/v1/templates_instagram.py:63
+#: api/v1/templates_instagram.py:47 api/v1/templates_instagram.py:63
 msgid "No soportado por el momento"
 msgstr "Não suportado por enquanto"
 
-#: instagram_app/api/v1/templates_instagram.py:51
-#: instagram_app/api/v1/templates_instagram.py:67
+#: api/v1/templates_instagram.py:51 api/v1/templates_instagram.py:67
 msgid "Configuración incorrecta para el tipo de mensaje"
 msgstr "Configuração errada para o tipo de mensagem"
 
-#: instagram_app/api/v1/templates_instagram.py:81
+#: api/v1/templates_instagram.py:81
 msgid "Se obtuvieron las plantillas de forma exitosa"
 msgstr "Modelos obtidos com sucesso"
 
-#: instagram_app/api/v1/templates_instagram.py:92
+#: api/v1/templates_instagram.py:92
 msgid "Se creó la plantilla de forma exitosa"
 msgstr "Modelo criado com sucesso"
 
-#: instagram_app/api/v1/templates_instagram.py:104
-#: instagram_app/api/v1/templates_instagram.py:119
-#: instagram_app/api/v1/templates_instagram.py:145
+#: api/v1/templates_instagram.py:104 api/v1/templates_instagram.py:119
+#: api/v1/templates_instagram.py:145
 msgid "Plantilla no encontrada"
 msgstr "Modelo não encontrado"
 
-#: instagram_app/api/v1/templates_instagram.py:111
+#: api/v1/templates_instagram.py:111
 msgid "Se obtuvo la plantilla de forma exitosa"
 msgstr "O modelo foi obtido com sucesso"
 
-#: instagram_app/api/v1/templates_instagram.py:128
+#: api/v1/templates_instagram.py:128
 msgid "Se actualizó la plantilla de forma exitosa"
 msgstr "Modelo atualizado com sucesso"
 
-#: instagram_app/api/v1/templates_instagram.py:141
+#: api/v1/templates_instagram.py:141
 msgid "Se eliminó la plantilla de forma exitosa"
 msgstr "Modelo excluído com sucesso"
 
-#: instagram_app/api/v1/templates_instagram.py:151
+#: api/v1/templates_instagram.py:151
 #, python-brace-format
 msgid ""
 "No está permitido eliminar la plantilla porque está siendo usada por "
@@ -384,34 +361,142 @@ msgid ""
 msgstr ""
 "Não é permitido excluir o modelo porque está sendo usado por {related}."
 
-#: instagram_app/api/v1/transfer.py:51
+#: api/v1/transfer.py:51
 msgid "Error al obtener los agentes"
 msgstr "Erro ao obter os agentes"
 
-#: instagram_app/api/v1/transfer.py:69 instagram_app/api/v1/transfer.py:73
+#: api/v1/transfer.py:69 api/v1/transfer.py:73
 msgid "Error al tranferir conversacion"
 msgstr "Erro ao transferir conversa"
 
-#: instagram_app/apps.py:43
+#: apps.py:97
 msgid "Configuración general de Instagram"
 msgstr "Configuração geral do Instagram"
 
-#: instagram_app/apps.py:47
-msgid "Configuración de cuenta Instagram"
-msgstr "Configuração de conta do Instagram"
-
-#: instagram_app/apps.py:51
+#: apps.py:101
 msgid "Reportes Instagram"
 msgstr "Relatórios Instagram"
 
-#: instagram_app/apps.py:55
+#: apps.py:105
 msgid "Reportes Conversaciones Instagram"
 msgstr "Relatórios de Conversas do Instagram"
 
-#: instagram_app/apps.py:59
+#: apps.py:109
 msgid "Detalle de conversación Instagram para reportes"
 msgstr "Detalhe de conversa do Instagram para relatórios"
 
-#: instagram_app/models.py:38
+#: apps.py:113
+msgid "Lista de cuentas, campañas y horarios de Instagram"
+msgstr "Lista de contas, campanhas e horários do Instagram"
+
+#: apps.py:116
+msgid "Detalle de cuenta de Instagram"
+msgstr "Detalhe de conta do Instagram"
+
+#: apps.py:118
+msgid "Lista de plantillas Instagram"
+msgstr "Lista de modelos do Instagram"
+
+#: apps.py:120
+msgid "Detalle de plantilla Instagram"
+msgstr "Detalhe de modelo do Instagram"
+
+#: apps.py:122
+msgid "Conversaciones Instagram del agente"
+msgstr "Conversas do Instagram do agente"
+
+#: apps.py:124
+msgid "Marcar conversación Instagram como leída"
+msgstr "Marcar conversa do Instagram como lida"
+
+#: apps.py:126
+msgid "Detalle de conversación Instagram"
+msgstr "Detalhe de conversa do Instagram"
+
+#: apps.py:128
+msgid "Asignar contacto a conversación Instagram"
+msgstr "Atribuir contato à conversa do Instagram"
+
+#: apps.py:130
+msgid "Atender conversación Instagram"
+msgstr "Atender conversa do Instagram"
+
+#: apps.py:132
+msgid "Mensajes de una conversación Instagram"
+msgstr "Mensagens de uma conversa do Instagram"
+
+#: apps.py:134
+msgid "Reactivar conversación Instagram expirada"
+msgstr "Reativar conversa do Instagram expirada"
+
+#: apps.py:136
+msgid "Enviar adjunto en conversación Instagram"
+msgstr "Enviar anexo na conversa do Instagram"
+
+#: apps.py:138
+msgid "Enviar plantilla en conversación Instagram"
+msgstr "Enviar modelo na conversa do Instagram"
+
+#: apps.py:140
+msgid "Enviar texto en conversación Instagram"
+msgstr "Enviar texto na conversa do Instagram"
+
+#: apps.py:142
+msgid "Enviar plantilla WhatsApp en conversación Instagram"
+msgstr "Enviar modelo do WhatsApp na conversa do Instagram"
+
+#: apps.py:145
+msgid "Calificar conversación Instagram"
+msgstr "Qualificar conversa do Instagram"
+
+#: apps.py:147
+msgid "Opciones de calificación de conversación Instagram"
+msgstr "Opções de qualificação de conversa do Instagram"
+
+#: apps.py:150
+msgid "Detalle de calificación de conversación Instagram"
+msgstr "Detalhe de qualificação de conversa do Instagram"
+
+#: apps.py:153
+msgid "Historial de calificaciones de conversación Instagram"
+msgstr "Histórico de qualificações de conversa do Instagram"
+
+#: apps.py:156
+msgid "Lista contactos de la campaña"
+msgstr "Lista contatos da campanha"
+
+#: apps.py:158
+msgid "Obtiene un contacto de la campaña"
+msgstr "Obtém um contato da campanha"
+
+#: apps.py:160
+msgid "Crea un contacto desde una conversación Instagram"
+msgstr "Cria um contato a partir de uma conversa do Instagram"
+
+#: apps.py:163
+msgid "Campos de la base de contactos de la campaña"
+msgstr "Campos da base de contatos da campanha"
+
+#: apps.py:165
+msgid "Busca contactos de la campaña"
+msgstr "Busca contatos da campanha"
+
+#: apps.py:167
+msgid "Sugiere contactos para una conversación Instagram"
+msgstr "Sugere contatos para uma conversa do Instagram"
+
+#: apps.py:170
+msgid "Agentes a los que transferir una conversación Instagram"
+msgstr "Agentes para os quais transferir uma conversa do Instagram"
+
+#: apps.py:173
+msgid "Transfiere una conversación Instagram a un agente"
+msgstr "Transfere uma conversa do Instagram para um agente"
+
+#: apps.py:176
+msgid "Templates de Instagram por campaña"
+msgstr "Modelos do Instagram por campanha"
+
+#: models.py:38
 msgid "Texto"
 msgstr "Texto"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-05-13 00:43-0300\n"
+"POT-Creation-Date: 2026-11-11 16:42-0300\n"
 "PO-Revision-Date: 2020-03-21 22:12-0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -18,91 +18,91 @@ msgstr ""
 "X-Generator: Poedit 2.2.4\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 
-#: reciclado_app/apps.py:35
+#: apps.py:35
 msgid "Reciclado de campañas Dialer"
 msgstr "Reciclagem de campanhas Dialer"
 
-#: reciclado_app/apps.py:37
+#: apps.py:37
 msgid "Reciclado de campañas Preview"
 msgstr "Reciclagem de campanhas Preview"
 
-#: reciclado_app/forms.py:32
+#: forms.py:32
 msgid "Retomar contactación"
 msgstr "Restabelecer contato"
 
-#: reciclado_app/resultado_contactacion.py:51
+#: resultado_contactacion.py:51
 msgid "No Contesta"
 msgstr "Sem Concurso"
 
-#: reciclado_app/resultado_contactacion.py:52
+#: resultado_contactacion.py:52
 msgid "Cancelado"
 msgstr "Cancelado"
 
-#: reciclado_app/resultado_contactacion.py:53
+#: resultado_contactacion.py:53
 msgid "Ocupado"
 msgstr "Ocupado"
 
-#: reciclado_app/resultado_contactacion.py:54
+#: resultado_contactacion.py:54
 msgid "Canal no disponible"
 msgstr "Canal não disponível"
 
-#: reciclado_app/resultado_contactacion.py:55
+#: resultado_contactacion.py:55
 msgid "Otro"
 msgstr "Outro"
 
-#: reciclado_app/resultado_contactacion.py:56
+#: resultado_contactacion.py:56
 msgid "Falla"
 msgstr "Falha"
 
-#: reciclado_app/resultado_contactacion.py:57
+#: resultado_contactacion.py:57
 msgid "Contestador"
 msgstr "Cx Postal"
 
-#: reciclado_app/resultado_contactacion.py:58
+#: resultado_contactacion.py:58
 msgid "Blacklist"
 msgstr "Blacklist"
 
-#: reciclado_app/resultado_contactacion.py:59
+#: resultado_contactacion.py:59
 msgid "Expiradas"
 msgstr "Expiradas"
 
-#: reciclado_app/resultado_contactacion.py:60
+#: resultado_contactacion.py:60
 msgid "Abandono"
 msgstr "Abandono"
 
-#: reciclado_app/resultado_contactacion.py:61
+#: resultado_contactacion.py:61
 msgid "Congestion"
 msgstr "Congestionamento"
 
-#: reciclado_app/resultado_contactacion.py:62
+#: resultado_contactacion.py:62
 msgid "Problema de enrutamiento"
 msgstr "Problema de roteamento"
 
-#: reciclado_app/resultado_contactacion.py:73
+#: resultado_contactacion.py:73
 msgid "Agente no califico"
 msgstr "Agente não qualificado"
 
-#: reciclado_app/templates/nuevo_reciclado.html:36
+#: templates/nuevo_reciclado.html:36
 msgid "Nombre"
 msgstr "Nome"
 
-#: reciclado_app/templates/nuevo_reciclado.html:37
+#: templates/nuevo_reciclado.html:37
 msgid "Cantidad"
 msgstr "Quantia"
 
-#: reciclado_app/templates/nuevo_reciclado.html:38
+#: templates/nuevo_reciclado.html:38
 msgid "Seleccionar"
 msgstr "Selecionar"
 
-#: reciclado_app/templates/nuevo_reciclado.html:64
+#: templates/nuevo_reciclado.html:64
 msgid "Como desea reciclar esta campana"
 msgstr "Como deseja reciclar esta campana"
 
-#: reciclado_app/templates/nuevo_reciclado.html:102
+#: templates/nuevo_reciclado.html:102
 msgid "Reciclar"
 msgstr "Reciclar"
 
-#: reciclado_app/views.py:69
+#: views.py:70
 msgid ""
 "<strong>Operación Errónea!</strong>                         Debe seleccionar "
 "al menos una opcion para reciclar "
@@ -110,7 +110,7 @@ msgstr ""
 "<strong>Operação Errada!</strong>                         Deve selecionar "
 "pelo menos uma opção para reciclar "
 
-#: reciclado_app/views.py:95
+#: views.py:97
 msgid ""
 "<strong>Operación Errónea!</strong>                No se pudo reciclar la "
 "Campana."
@@ -118,15 +118,15 @@ msgstr ""
 "<strong>Operação Errada!</strong>                  Não foi possível reciclar "
 "a Campanha."
 
-#: reciclado_app/views.py:148
+#: views.py:155
 msgid "Solo se pueden reciclar campañas finalizadas y/o pausadas."
 msgstr "Somente e possível reciclar finalizadas ou em pausa."
 
-#: reciclado_app/views.py:152
+#: views.py:159
 msgid "Esta campaña no se puede reciclar."
 msgstr "Essa campanha não pode ser reciclada."
 
-#: reciclado_app/views.py:194
+#: views.py:201
 msgid ""
 "<strong>¡ATENCIÓN!</strong> Error al sincronizar con el servicio Discador. "
 "Por favor contacte un administrador."
@@ -134,6 +134,6 @@ msgstr ""
 "<strong>¡AVISO!</strong> Erro de sincronização com o serviço de discagem. "
 "Por favor contate um administrador."
 
-#: reciclado_app/views.py:236 reciclado_app/views.py:240
+#: views.py:243 views.py:247
 msgid "No calificados"
 msgstr "Não qualificados"

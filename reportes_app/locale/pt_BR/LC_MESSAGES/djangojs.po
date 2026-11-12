@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2023-12-15 12:16-0300\n"
+"POT-Creation-Date: 2026-11-11 16:42-0300\n"
 "PO-Revision-Date: 2020-03-21 22:56-0300\n"
 "Last-Translator: \n"
 "Language-Team: \n"
@@ -18,20 +18,20 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
 "X-Generator: Poedit 2.2.4\n"
 
-#: reportes_app/static/reportes_app/JS/reporte_grafico_campana.js:29
-#: reportes_app/static/reportes_app/JS/reporte_resultados_de_base_campana.js:29
+#: static/reportes_app/JS/reporte_grafico_campana.js:29
+#: static/reportes_app/JS/reporte_resultados_de_base_campana.js:29
 msgid "Descargar Reporte de "
 msgstr "Fazer download de Relatório de "
 
-#: reportes_app/static/reportes_app/JS/reporte_grafico_campana.js:47
-#: reportes_app/static/reportes_app/JS/reporte_resultados_de_base_campana.js:47
+#: static/reportes_app/JS/reporte_grafico_campana.js:47
+#: static/reportes_app/JS/reporte_resultados_de_base_campana.js:47
 msgid "Error al ejecutar => "
 msgstr "Erro ao executar => "
 
-#: reportes_app/static/reportes_app/JS/reporte_resultados_de_base_campana.js:92
+#: static/reportes_app/JS/reporte_resultados_de_base_campana.js:92
 msgid "Exportación completa"
 msgstr "Exportação completa"
 
-#: reportes_app/static/reportes_app/JS/reporte_resultados_de_base_campana.js:94
+#: static/reportes_app/JS/reporte_resultados_de_base_campana.js:94
 msgid "La exportación a .csv del reporte de "
 msgstr "A exportação a .csv do relatório de "

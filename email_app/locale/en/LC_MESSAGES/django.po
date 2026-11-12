@@ -6,7 +6,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: OMniLeads\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-08-23 21:17-0300\n"
+"POT-Creation-Date: 2026-11-11 16:42-0300\n"
 "PO-Revision-Date: 2026-06-25 00:00-0300\n"
 "Last-Translator: Freetech Solutions\n"
 "Language-Team: English\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: email_app/api/v1/account.py:274
+#: api/v1/account.py:274
 #, python-format
 msgid ""
 "This account cannot be deleted because it is configured in the following "
@@ -27,59 +27,135 @@ msgstr ""
 "campaign(s): %(campaigns)s. Remove the account from those campaigns before "
 "deleting it."
 
-#: email_app/api/v1/conversation.py:183
+#: api/v1/conversation.py:183
 msgid "Provide a message body."
 msgstr "Provide a message body."
 
-#: email_app/api/v1/conversation.py:208
+#: api/v1/conversation.py:208
 msgid "Error en los campos de contacto"
 msgstr "Error in contact fields"
 
-#: email_app/api/v1/conversation.py:210
+#: api/v1/conversation.py:210
 msgid "Faltan campos requeridos"
 msgstr "Required fields missing"
 
-#: email_app/api/v1/conversation.py:238 email_app/api/v1/reporte.py:281
+#: api/v1/conversation.py:238 api/v1/reporte.py:281
 msgid "The conversation does not exist."
 msgstr "The conversation does not exist."
 
-#: email_app/api/v1/conversation.py:243
+#: api/v1/conversation.py:243
 msgid "You do not have access to this conversation."
 msgstr "You do not have access to this conversation."
 
-#: email_app/api/v1/conversation.py:350
+#: api/v1/conversation.py:350
 msgid "You must take this conversation before reading it."
 msgstr "You must take this conversation before reading it."
 
-#: email_app/api/v1/conversation.py:364
+#: api/v1/conversation.py:364
 msgid "This conversation is already being attended by another agent."
 msgstr "This conversation is already being attended by another agent."
 
-#: email_app/api/v1/conversation.py:435
+#: api/v1/conversation.py:435
 msgid "The email could not be sent."
 msgstr "The email could not be sent."
 
-#: email_app/api/v1/conversation.py:458 email_app/api/v1/conversation.py:530
+#: api/v1/conversation.py:458 api/v1/conversation.py:530
 msgid "The conversation has no campaign."
 msgstr "The conversation has no campaign."
 
-#: email_app/api/v1/reporte.py:145 email_app/api/v1/reporte.py:246
-#: email_app/api/v1/reporte.py:275 email_app/api/v1/reporte.py:295
+#: api/v1/reporte.py:145 api/v1/reporte.py:246 api/v1/reporte.py:275
+#: api/v1/reporte.py:295
 msgid "The campaign does not exist."
 msgstr "The campaign does not exist."
 
-#: email_app/api/v1/self.py:115
+#: api/v1/self.py:115
 msgid "Invalid credentials or deactivated Account."
 msgstr "Invalid credentials or deactivated Account."
 
-#: email_app/apps.py:26
+#: apps.py:26
 msgid "Obtiene los detalles de la cuenta de correo"
 msgstr "Get the details of the email account"
 
-#: email_app/apps.py:30
+#: apps.py:30
 msgid "Lista las cuentas de correo"
 msgstr "List the email accounts"
 
-#: email_app/apps.py:34
+#: apps.py:34
 msgid "Prueba los datos de la cuenta de correo"
 msgstr "Test the email account data"
+
+#: apps.py:38
+msgid "Lista los mensajes de la cuenta de correo"
+msgstr "List the email account messages"
+
+#: apps.py:42
+msgid "Purga el historial de la cuenta de correo"
+msgstr "Purge the email account history"
+
+#: apps.py:46
+msgid "Resincroniza la cuenta de correo"
+msgstr "Resync the email account"
+
+#: apps.py:50
+msgid "Plantilla de la cuenta de correo"
+msgstr "Email account template"
+
+#: apps.py:54
+msgid "Obtiene un mensaje de correo"
+msgstr "Get an email message"
+
+#: apps.py:58
+msgid "Lista las conversaciones de correo del agente"
+msgstr "List the agent's email conversations"
+
+#: apps.py:62
+msgid "Obtiene una conversación de correo"
+msgstr "Get an email conversation"
+
+#: apps.py:66
+msgid "Atiende una conversación de correo"
+msgstr "Attend an email conversation"
+
+#: apps.py:70
+msgid "Contacto de una conversación de correo"
+msgstr "Email conversation contact"
+
+#: apps.py:74
+msgid "Campos de contacto de una conversación de correo"
+msgstr "Email conversation contact fields"
+
+#: apps.py:78
+msgid "Califica una conversación de correo"
+msgstr "Disposition an email conversation"
+
+#: apps.py:82
+msgid "Opciones de calificación de una conversación de correo"
+msgstr "Email conversation disposition options"
+
+#: apps.py:86
+msgid "Marca una conversación de correo como leída"
+msgstr "Mark an email conversation as read"
+
+#: apps.py:90
+msgid "Libera una conversación de correo"
+msgstr "Release an email conversation"
+
+#: apps.py:94
+msgid "Responde una conversación de correo"
+msgstr "Reply to an email conversation"
+
+#: apps.py:98
+msgid "Reporte de campaña de correo"
+msgstr "Email campaign report"
+
+#: apps.py:102
+msgid "Agentes de campaña de correo"
+msgstr "Email campaign agents"
+
+#: apps.py:106
+msgid "Conversaciones de campaña de correo"
+msgstr "Email campaign conversations"
+
+#: apps.py:110
+msgid "Detalle de conversación de campaña de correo"
+msgstr "Email campaign conversation detail"
