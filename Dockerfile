@@ -41,7 +41,9 @@ RUN npm run build
 
 ########################################################################
 # Stage build WebUI
-FROM node:lts-alpine as webui
+# Node 24 LTS fijo: desde Node 25 la imagen ya no trae corepack.
+# La versión de pnpm la fija "packageManager" en webui/package.json (con hash).
+FROM node:24-alpine as webui
 
 # Build no interactivo: pnpm no debe pedir confirmación para purgar node_modules
 ENV CI=true

@@ -1,4 +1,6 @@
-FROM node:lts-alpine AS dev
+# Node 24 LTS fijo: desde Node 25 la imagen ya no trae corepack.
+# La versión de pnpm la fija "packageManager" en package.json (con hash).
+FROM node:24-alpine AS dev
 RUN corepack enable
 WORKDIR /opt/webui-app
 COPY package.json .
