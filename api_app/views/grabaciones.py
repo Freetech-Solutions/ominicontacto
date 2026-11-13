@@ -35,6 +35,7 @@ from rest_framework import status
 
 from api_app.services.storage_service import StorageService
 from api_app.views.permissions import TienePermisoOML
+from api_app.authentication import ExpiringTokenAuthentication
 from ominicontacto_app.services.grabaciones.autorizacion import (
     auditar_acceso_grabacion,
     path_zip_canonico,
@@ -50,7 +51,7 @@ class ObtenerArchivoGrabacionView(APIView):
     """Servicio que devuelve un archivo de grabación según su nombre
     """
     permission_classes = (TienePermisoOML, )
-    authentication_classes = (SessionAuthentication, )
+    authentication_classes = (SessionAuthentication, ExpiringTokenAuthentication, )
     http_method_names = ['get']
 
     def get(self, request):

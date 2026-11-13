@@ -32,6 +32,8 @@ from django.utils.timezone import now, timedelta
 from django.contrib.auth.models import Group
 from django.test import SimpleTestCase, TransactionTestCase, override_settings
 
+from rest_framework.authtoken.models import Token
+from rest_framework.test import APIClient
 from simple_history.utils import update_change_reason
 
 from ominicontacto_app.models import GrabacionMarca, OpcionCalificacion, Campana, User
@@ -576,6 +578,48 @@ class AutorizacionGrabacionesTests(BaseGrabacionesTests):
         with patch.object(User, 'tiene_permiso_oml_en_url', return_value=False):
             response = self.client.post(url, payload)
         self.assertEqual(response.status_code, 403)
+
+
+@patch.dict(os.environ, {'S3_STORAGE_ENABLED': 'true'})
+class AutorizacionGrabacionesTokenTests(BaseGrabacionesTests):
+    """Con token Bearer se aplica la misma autorización por grabación que con sesión."""
+
+    def setUp(self):
+        super(AutorizacionGrabacionesTokenTests, self).setUp()
+        self.cargar_permisos_oml()
+        self.api_client = APIClient()
+        self.url = reverse('api_grabacion_archivo')
+
+    def _get_con_token(self, user, llamada_log):
+        token, _ = Token.objects.get_or_create(user=user)
+        self.api_client.credentials(HTTP_AUTHORIZATION='Bearer ' + token.key)
+        return self.api_client.get(self.url, {'filename': _filename_desde_log(llamada_log)})
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_agente_grabacion_propia_ok(self, mock_storage_cls):
+        mock_storage_cls.return_value.get_file_url.return_value = 'https://example.test/signed'
+        response = self._get_con_token(self.agente1.user, self.llamada_log1)
+        self.assertEqual(response.status_code, 302)
+        mock_storage_cls.return_value.get_file_url.assert_called_once()
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_agente_grabacion_ajena_404(self, mock_storage_cls):
+        response = self._get_con_token(self.agente1.user, self.llamada_log2_1)
+        self.assertEqual(response.status_code, 404)
+        mock_storage_cls.return_value.get_file_url.assert_not_called()
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_supervisor_campana_asignada_ok(self, mock_storage_cls):
+        mock_storage_cls.return_value.get_file_url.return_value = 'https://example.test/signed'
+        response = self._get_con_token(self.supervisor1.user, self.llamada_log1)
+        self.assertEqual(response.status_code, 302)
+        mock_storage_cls.return_value.get_file_url.assert_called_once()
+
+    @patch('api_app.views.grabaciones.StorageService')
+    def test_supervisor_campana_ajena_404(self, mock_storage_cls):
+        response = self._get_con_token(self.supervisor1.user, self.llamada_log2_1)
+        self.assertEqual(response.status_code, 404)
+        mock_storage_cls.return_value.get_file_url.assert_not_called()
 
 
 @override_settings(MONITORFORMAT='mp3')
