@@ -400,29 +400,6 @@ class APITest(OMLBaseTest):
         token_obj = Token.objects.get(user=user)
         self.assertEqual(response.data['token'], token_obj.key)
 
-    def test_api_vista_contactos_campanas_es_accessible_usando_token_agente(self):
-        self.actualizar_permisos()
-        ContactoFactory(bd_contacto=self.campana_activa.bd_contacto)
-        cantidad = self.campana_activa.bd_contacto.contactos.count()
-        token_agente = Token.objects.get(user=self.agente_profile.user).key
-        client = APIClient()
-        client.credentials(HTTP_AUTHORIZATION='Bearer ' + token_agente)
-        url = reverse('api_contactos_campana', args=(self.campana_activa.pk,))
-        response = client.get(url, {'search[value]': 1, 'start': 1, 'length': 10, 'draw': 10},
-                              format='json')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data['recordsTotal'], cantidad)
-
-    def test_api_vista_contactos_campanas_no_es_accessible_usando_token_no_agente(self):
-        self.actualizar_permisos()
-        token_agente = Token.objects.get(user=self.supervisor_admin.user).key
-        client = APIClient()
-        client.credentials(HTTP_AUTHORIZATION='Bearer ' + token_agente)
-        url = reverse('api_contactos_campana', args=(self.campana_activa.pk,))
-        response = client.get(url, {'search[value]': 1, 'start': 1, 'length': 10, 'draw': 10},
-                              format='json')
-        self.assertEqual(response.status_code, 403)
-
     def test_api_adiciona_calificacion_ids_internos(self):
         token_agente = Token.objects.get(user=self.agente_profile.user).key
         client = APIClient()

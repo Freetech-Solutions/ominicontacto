@@ -203,9 +203,20 @@ class API_ObtenerContactosCampanaView(APIView):
         }
         return result_dict
 
+    def _get_campana_del_agente(self, request, pk_campana):
+        """ Devuelve la campaña sólo si el agente autenticado es miembro de ella.
+            Si no lo es (o no existe) se responde 404 para no revelar su existencia.
+        """
+        agente = request.user.get_agente_profile()
+        if agente is None:
+            raise Http404
+        campanas_del_agente = Campana.objects.filter(
+            queue_campana__queuemember__member=agente).distinct()
+        return get_object_or_404(campanas_del_agente, pk=pk_campana)
+
     def get(self, request, *args, **kwargs):
         pk_campana = kwargs.get('pk_campana')
-        campana = Campana.objects.get(pk=pk_campana)
+        campana = self._get_campana_del_agente(request, pk_campana)
         contactos = self._procesar_api(request, campana)
         result_dict = self._procesar_contactos_salida(
             request, campana, contactos)
