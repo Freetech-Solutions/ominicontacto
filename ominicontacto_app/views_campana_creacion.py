@@ -385,7 +385,11 @@ class CampanaWizardMixin(object):
         """ Sincronizar informacion de Campaña / Queue """
         activacion_queue_service = ActivacionQueueService()
         try:
-            activacion_queue_service.activar(queue.campana)
+            # El form de cola puede haber cargado campana antes de campana_form.save().
+            # Refrescar desde BD para escribir OUTCID/OUTR actuales en Redis.
+            campana = queue.campana
+            campana.refresh_from_db()
+            activacion_queue_service.activar(campana)
         except RestablecerDialplanError:
             raise
 
