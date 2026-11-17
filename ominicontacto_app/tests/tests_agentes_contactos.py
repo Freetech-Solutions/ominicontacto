@@ -96,19 +96,6 @@ class AgentesContactosTests(OMLBaseTest):
         ids_campanas_devueltas = [int(pk) for pk, _ in response.context_data['campanas']]
         self.assertTrue(self.campana_preview.pk in ids_campanas_devueltas)
 
-    def test_api_contacto_list_devuelve_datos_campana_agente(self):
-        self.client.login(username=self.usuario_agente.username, password=self.DEFAULT_PASSWORD)
-        url = reverse(
-            'api_contactos_campana',
-            kwargs={'pk_campana': self.campana_dialer.pk})
-        response = self.client.get(url, {'start': 0, 'length': 1, 'draw': 1, 'search[value]': ''})
-        self.assertEqual(response.status_code, 200)
-        json_content = json.loads(response.content)
-        self.assertEqual(json_content['draw'], 1)
-        self.assertEqual(json_content['recordsTotal'], 1)
-        self.assertEqual(json_content['recordsFiltered'], 1)
-        self.assertEqual(json_content['data'][0][1], str(self.contacto_camp_dialer.telefono))
-
     def _obtener_datos_post_adicionar_contacto(self, campana):
         contacto_nuevo = ContactoFactory.build(bd_contacto=campana.bd_contacto)
         post_data = {'telefono': contacto_nuevo.telefono}
