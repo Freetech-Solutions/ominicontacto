@@ -1,63 +1,57 @@
 # Release Notes
-PRE-2.6.6
+PRE-2.6.7
 
 ## Added
 
-- oml-3248 Allow SECRET_KEY envar configuration.
-- oml-3265 Whatsapp previous client conversation available for Agents.
-- oml-3344 Instagram Channel.
-- oml-3173 Email Channel.
-- oml-3354 Whatsapp Interactive Menu UX Flow in full screen.
-- oml-3353 Premium Reports: New metric: Agent response time.
-- oml-3390 Premium Reports: chat center activity for Meta/Instagram channels.
+- oml-3475 Outbound Route Trunks can configure a Caller id.
+- oml-3489 MOH config for Manual and Preview campaigns.
+- oml-3255 Customize premium reports columns selection.
 
 ## Changed
 
-- oml-3336 Static code analysis fixes.
-- oml-3305 Simplify Campaign Wizard forms references.
-- oml-3339 Remove unreachable code.
-- oml-3299 Wallboard: UI Dark/Light.
-- oml-3300 Survey: UI Dark/Light.
-- oml-3298 Premium Reports:  UI Dark/Light.
-- oml-3335 Premium Reports: Remove unused functions.
-- oml-3346 Premium Reports: Chat center improvements.
-- oml-3350 Premium Reports: Chat center Interactive Menu abandons report.
-- oml-3338 Exception management improvements.
-- oml-3347 Restrict API auth methods.
-- oml-3302 Show the telephone used in the call in Disposition Reports.
-- oml-3343 Display Whatsapp media messages caption.
-- oml-3342 Configure Pause on first login as a Group option.
-- oml-3365 Prevent code injections in VueJs frontends.
-- oml-3368 Static code issues corrections.
-- oml-3366 Verify digital signature in Instagram and Facebook Messenger webhooks.
-- oml-3374 Make Facebook landing page optional.
-- oml-3389 Optimize headlines/titles sizes.
-- oml-3377 Fix meta download media automatically
+- oml-3423 Tests updates for a 2.6.6 hotfix.
+- oml-3349 Avoid execution of external commands.
+- oml-3277 Dialers ended campaigns list pagination.
+- oml-3494 Supervision: bound Redis supervision streams memory and stop sending data of unassigned campaigns and agents.
+- oml-3493 Recording file API (/api/v1/grabacion/archivo/) accepts Bearer token authentication.
 
 ## Fixed
 
-- oml-3262 Dialer: Prevent service crash catching errors at GEARMAN.submit_job.
-- oml-3331 Redial dispositioned contact bug when contact is not initially identified.
-- oml-3341 Fix Whatsapp transfers to wrong agents.
-- oml-3356 Avoid inserting HOLD logs after call ending log.
+- oml-3418 Difference between "Pending calls" and "Estimated pending calls".
+- oml-3375 Fix Dialer campaigns calls without agents in Asterisk queue.
+- oml-3446 Apply recording API's restrictions.
+- oml-3451 Background task method Whitelist.
+- oml-3440 Use Task Key and User id to save background tasks information in redis to avoid clashes.
+- oml-3434 Mandatory app_secret configuration for Meta accounts.
+- oml-3450 Private ip restrictions at External Site. Configure SITIO_EXTERNO_ALLOWLIST at Constance. 
+- oml-3442 Remove idAgent parameter in Click2CallView.
+- oml-3452 WebSockets and Django Endpoints Permission control improved.
+- oml-3441 Websocket server connections authentication.
+- oml-3006 Limit Users Addon
+- oml-3498 Fix node and pnpm versions
+- oml-3453 Campaign contacts access control.
+- oml-3439 Authenticate internal services with a shared secret (OML_INTERNAL_SECRET) and add login to the Omnidialer Admin.
 
 ## Removed
 
-- No removals in this release.
+- oml-3439 Remove unauthenticated API endpoint /api/v1/asterisk/queues_data/.
 
 ## Migrations
 
-2.6.0 whatsapp_app: 0015
-2.6.1 ominicontacto_app: 0114, 0115
-2.6.2 ominicontacto_app: 0116
-2.6.3 whatsapp_app: 0016
-2.6.4 ominicontacto_app: 0117
-      facebook_meta_app: 0001
-      configuracion_telefonia_app: 0024, 0025
-2.6.5 whatsapp_app: 0017
-2.6.6
-  ominicontacto_app: 0118, 0119, 0120
-  configuracion_telefonia_app: 0026
-  instagram_app: 0001
-  email_app: 0001
-  facebook_meta_app: 0002
+| Version | App                         | Migrations       |
+|---------|-----------------------------|------------------|
+| 2.6.0   | whatsapp_app                | 0015             |
+| 2.6.1   | ominicontacto_app           | 0114, 0115       |
+| 2.6.2   | ominicontacto_app           | 0116             |
+| 2.6.3   | whatsapp_app                | 0016             |
+| 2.6.4   | ominicontacto_app           | 0117             |
+|         | facebook_meta_app           | 0001             |
+|         | configuracion_telefonia_app | 0024, 0025       |
+| 2.6.5   | whatsapp_app                | 0017             |
+| 2.6.6   | ominicontacto_app           | 0118, 0119, 0120 |
+|         | configuracion_telefonia_app | 0026             |
+|         | instagram_app               | 0001             |
+|         | email_app                   | 0001             |
+|         | facebook_meta_app           | 0002             |
+| 2.6.7   | supervision_app             | 0001             |
+|         | configuracion_telefonia_app | 0027             |
