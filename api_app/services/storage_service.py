@@ -3,9 +3,34 @@ from __future__ import unicode_literals
 import os
 import boto3
 import logging
+from urllib.parse import urlparse
 from botocore.client import Config
 
 logger = logging.getLogger(__name__)
+
+# Firefox no reproduce <audio> si MinIO responde application/octet-stream.
+_AUDIO_CONTENT_TYPES = {
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.ogg': 'audio/ogg',
+    '.webm': 'audio/webm',
+}
+
+
+def _audio_content_type(key):
+    ext = os.path.splitext(key)[1].lower()
+    return _AUDIO_CONTENT_TYPES.get(ext)
+
+
+def _endpoint_uses_minio_proxy(endpoint):
+    """True si el endpoint es MinIO local (puerto 9000 o path /minio de nginx)."""
+    if not endpoint:
+        return False
+    parsed = urlparse(endpoint)
+    if parsed.port == 9000:
+        return True
+    path = (parsed.path or '').rstrip('/')
+    return path == '/minio' or path.endswith('/minio')
 
 
 class StorageService(object):
@@ -61,9 +86,14 @@ class StorageService(object):
             verify=verify_ssl
         )
 
-    def get_file_url(self, filename, expires_in=None):
+    def get_file_url(self, filename, expires_in=None, request=None):
         """
-        Genera la URL firmada usando el cliente INTERNO y reemplaza el dominio.
+        Firma con el endpoint interno (el Host que nginx repone hacia MinIO)
+        y devuelve una base que el navegador pueda abrir.
+
+        Si el storage es MinIO detrás de nginx y hay request, la base es
+        el mismo origen de la UI + /minio. Así el <audio> no sale a :9000,
+        donde MinIO habla HTTP y el browser corta la reproducción.
         """
         try:
             # Validación de seguridad
@@ -78,29 +108,40 @@ class StorageService(object):
 
             # Key: Aseguramos que no tenga slash inicial
             key = filename[1:] if filename.startswith('/') else filename
+            params = {'Bucket': self.bucket_name, 'Key': key}
+            content_type = _audio_content_type(key)
+            if content_type:
+                params['ResponseContentType'] = content_type
 
             # 1. FIRMAMOS usando el cliente INTERNO (op_client)
             # Esto usa la configuración de self.internal_endpoint definida en __init__
             url = self.op_client.generate_presigned_url(
                 'get_object',
-                Params={'Bucket': self.bucket_name, 'Key': key},
+                Params=params,
                 ExpiresIn=expires_in
             )
 
-            # 2. REEMPLAZAMOS el dominio interno por el público
-            # CORRECCIÓN AQUÍ: Usamos self.internal_endpoint en lugar de self.internal_url
-            if self.internal_endpoint and self.public_endpoint:
+            # 2. REEMPLAZAMOS el dominio interno por el que debe ver el browser
+            public_base = self._public_base_for_browser(request)
+            if self.internal_endpoint and public_base:
                 internal_base = self.internal_endpoint.rstrip('/')
-                public_base = self.public_endpoint.rstrip('/')
-
-                # Reemplazo seguro
-                url = url.replace(internal_base, public_base)
+                url = url.replace(internal_base, public_base.rstrip('/'), 1)
 
             return url
 
         except Exception as e:
             logger.error(f'Error generando URL firmada: {e}')
             return None
+
+    def _public_base_for_browser(self, request):
+        public = (self.public_endpoint or '').rstrip('/')
+        proxied = (
+            _endpoint_uses_minio_proxy(self.public_endpoint)
+            or _endpoint_uses_minio_proxy(self.internal_endpoint)
+        )
+        if request is not None and proxied:
+            return request.build_absolute_uri('/minio').rstrip('/')
+        return public
 
     def download_file(self, file_name, local_destination, root_s3_folder=None):
         """

@@ -30,6 +30,7 @@ from collections import OrderedDict
 from pygal.style import LightGreenStyle, DefaultStyle
 
 from django.conf import settings
+from django.db.models import Q
 
 from django.utils.translation import gettext as _
 
@@ -38,7 +39,7 @@ from ominicontacto_app.models import (AgenteEnContacto, CalificacionCliente, Cam
                                       HistoricalRespuestaFormularioGestion,
                                       RespuestaFormularioGestion)
 from ominicontacto_app.services.dialer import get_dialer_service
-from reportes_app.models import LlamadaLog, LlamadaResumen
+from reportes_app.models import InteractionsSummary, LlamadaLog, LlamadaResumen
 
 from utiles_globales import adicionar_render_unicode
 
@@ -76,52 +77,93 @@ class EstadisticasBaseCampana:
             return LlamadaResumen
         return LlamadaLog
 
-    def _obtener_logs_de_llamadas(self):
-        # Si es dialer y OML_DIALER_ENGINE=omnidialer, usar LlamadaResumen
+    def _obtener_logs_de_llamadas(self, eventos=None, excluir_sin_agente=False):
+        # Dialer + Omnidialer: CDR vive en interactions_summary (no en LlamadaResumen)
         if (self.campana.es_dialer and
             hasattr(settings, 'OML_DIALER_ENGINE') and
                 settings.OML_DIALER_ENGINE == 'omnidialer'):
-            # Usar la tabla de resumen para omnidialer
-            resumenes = LlamadaResumen.objects.using('replica').filter(
-                campana_id=self.campana.pk,
-                fecha_fin__range=(self.fecha_desde, self.fecha_hasta)
-            ).order_by('-fecha_fin')
-            # Convertir LlamadaResumen a objetos similares a LlamadaLog
-            return self._convertir_resumenes_a_logs(resumenes)
-        else:
-            # Usar LlamadaLog para otros casos
-            logs_llamadas = LlamadaLog.objects.using('replica').filter(
-                campana_id=self.campana.pk, time__range=(self.fecha_desde, self.fecha_hasta)).order_by(  # noqa: E501
-                    '-time')
-            return logs_llamadas
+            interacciones = InteractionsSummary.objects.using('replica').filter(
+                campaign_id=self.campana.pk,
+                start_time__gte=self.fecha_desde,
+                start_time__lte=self.fecha_hasta,
+                channel_type__iexact='VOICE',
+            )
+            if eventos is not None:
+                # status en interactions_summary equivale a event en LlamadaLog/Resumen
+                interacciones = interacciones.filter(status__in=eventos)
+            if excluir_sin_agente:
+                # Misma semántica V2: atendida por humano
+                interacciones = interacciones.filter(
+                    Q(agent_duration__gt=0)
+                    | (Q(agent_id__isnull=False) & ~Q(agent_id=-1))
+                )
+            interacciones = interacciones.order_by('-end_time', '-start_time')
+            return self._convertir_interactions_a_logs(interacciones)
 
-    def _convertir_resumenes_a_logs(self, resumenes):
+        logs_llamadas = LlamadaLog.objects.using('replica').filter(
+            campana_id=self.campana.pk, time__range=(self.fecha_desde, self.fecha_hasta))
+        if eventos is not None:
+            logs_llamadas = logs_llamadas.filter(event__in=eventos)
+        if excluir_sin_agente:
+            logs_llamadas = logs_llamadas.exclude(agente_id=-1)
+        return logs_llamadas.order_by('-time')
+
+    def _tipo_llamada_desde_interaction(self, interaction):
+        direction = (interaction.direction or '').upper()
+        if direction == 'INBOUND':
+            return Campana.TYPE_ENTRANTE
+        method = (interaction.initiation_method or '').upper()
+        if method == 'AGENT':
+            return Campana.TYPE_MANUAL
+        if method == 'DIALER':
+            return Campana.TYPE_DIALER
+        if method == 'BOT':
+            return Campana.TYPE_DIALER
+        return self.campana.type
+
+    def _convertir_interactions_a_logs(self, interacciones):
         """
-        Convierte registros de LlamadaResumen en objetos similares a LlamadaLog
-        para mantener compatibilidad con el código existente.
+        Convierte InteractionsSummary a objetos con la misma API que usa el CSV
+        (callid, event, agente_id, numero_marcado, etc.).
         """
         class LlamadaLogAdapter:
-            """Adaptador que convierte LlamadaResumen a formato LlamadaLog"""
+            """Adaptador InteractionsSummary -> atributos tipo LlamadaLog"""
 
-            def __init__(self, resumen):
-                self.resumen = resumen
-                # Mapear campos de LlamadaResumen a atributos de LlamadaLog
-                self.time = resumen.fecha_fin or resumen.fecha_inicio
-                self.callid = resumen.callid
-                self.campana_id = resumen.campana_id
-                self.tipo_campana = resumen.tipo_campana
-                self.tipo_llamada = resumen.tipo_llamada
-                self.agente_id = resumen.agente_id or -1
-                self.event = resumen.event
-                self.numero_marcado = resumen.numero_marcado
-                self.contacto_id = resumen.contacto_id
-                self.bridge_wait_time = float(resumen.bridge_wait_time) if resumen.bridge_wait_time else 0  # noqa: E501
-                self.duracion_llamada = int(resumen.duracion_segundos) if resumen.duracion_segundos else 0  # noqa: E501
-                self.archivo_grabacion = resumen.archivo_grabacion
-                # Marcar que este es un adaptador de LlamadaResumen
+            def __init__(self, interaction, tipo_llamada):
+                self.interaction = interaction
+                self.time = interaction.end_time or interaction.start_time
+                self.fecha_fin = self.time
+                self.callid = interaction.interaction_id
+                self.campana_id = interaction.campaign_id
+                self.tipo_campana = tipo_llamada
+                self.tipo_llamada = tipo_llamada
+                self.agente_id = interaction.agent_id if interaction.agent_id is not None else -1
+                self.event = interaction.status
+                if (interaction.direction or '').upper() == 'OUTBOUND':
+                    self.numero_marcado = (
+                        interaction.destination_address or interaction.source_address or ''
+                    )
+                else:
+                    self.numero_marcado = (
+                        interaction.source_address or interaction.destination_address or ''
+                    )
+                self.contacto_id = interaction.customer_id
+                wait = interaction.wait_conn_duration
+                self.bridge_wait_time = float(wait) if wait else 0
+                duracion = interaction.agent_duration or interaction.total_duration or 0
+                self.duracion_segundos = duracion
+                self.duracion_llamada = int(float(duracion)) if duracion else 0
+                self.archivo_grabacion = None
                 self._es_resumen = True
 
-        return [LlamadaLogAdapter(resumen) for resumen in resumenes]
+        tipo_default = self.campana.type
+        return [
+            LlamadaLogAdapter(
+                interaction,
+                self._tipo_llamada_desde_interaction(interaction) or tipo_default,
+            )
+            for interaction in interacciones
+        ]
 
     def _inicializar_valores_estadisticas(self):
         self.calificaciones_finales_dict = {}

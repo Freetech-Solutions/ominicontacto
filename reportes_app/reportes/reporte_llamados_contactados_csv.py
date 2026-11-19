@@ -75,9 +75,11 @@ NO_CONECTADO_DESCRIPCION = {
     'BLACKLIST': _('Blacklist'),
     'ABANDON': _('Abandonada por cliente'),
     'EXIT_ABANDON': _('Abandonada por cliente'),
+    'EXIT_ABANDON_WEL': _('Abandonadas durante anuncio'),
     'EXIT_HANDOFF_ABANDON': _('Abandonada tras handoff (espera agente)'),
     'EXIT_TIMEOUT': _('Expirada'),
     'EXIT_HANDOFF_TIMEOUT': _('Expirada tras handoff (espera agente)'),
+    'EXIT_SHORTCALL': _('Shortcall'),
     'CONGESTION': _('Canal congestionado'),
     'NONDIALPLAN': _('Problema de enrutamiento'),
     'ABANDONWEL': _('Abandonadas durante anuncio'),
@@ -124,11 +126,14 @@ class ReporteContactadosCSV(EstadisticasBaseCampana, ReporteCSV):
         self.posiciones_opciones = {}
         self._escribir_encabezado()
 
-        logs_llamadas = self._obtener_logs_de_llamadas() \
-                            .filter(event__in=LlamadaResumen.EVENTOS_FIN_CONEXION) \
-                            .exclude(agente_id=-1)
+        logs_llamadas = self._obtener_logs_de_llamadas(
+            eventos=LlamadaResumen.EVENTOS_FIN_CONEXION,
+            excluir_sin_agente=True,
+        )
 
-        numero_logs_llamadas = logs_llamadas.count()
+        numero_logs_llamadas = (
+            len(logs_llamadas) if isinstance(logs_llamadas, list) else logs_llamadas.count()
+        )
         if numero_logs_llamadas == 0:
             porcentaje_inicial = 100
         else:
@@ -294,7 +299,9 @@ class ReporteCalificadosCSV(EstadisticasBaseCampana, ReporteCSV):
 
         logs_llamadas = self._obtener_logs_de_llamadas()
 
-        numero_logs_llamadas = logs_llamadas.count()
+        numero_logs_llamadas = (
+            len(logs_llamadas) if isinstance(logs_llamadas, list) else logs_llamadas.count()
+        )
         if numero_logs_llamadas == 0:
             porcentaje_inicial = 100
         else:
@@ -429,7 +436,9 @@ class ReporteNoAtendidosCSV(EstadisticasBaseCampana, ReporteCSV):
 
         self.inicializar_datos_contacto_base_anterior(logs_llamadas)
 
-        numero_logs_llamadas = logs_llamadas.count()
+        numero_logs_llamadas = (
+            len(logs_llamadas) if isinstance(logs_llamadas, list) else logs_llamadas.count()
+        )
         if numero_logs_llamadas == 0:
             porcentaje_inicial = 100
         else:
@@ -493,7 +502,10 @@ class ReporteNoAtendidosCSV(EstadisticasBaseCampana, ReporteCSV):
             self.datos.append(lista_datos_utf8)
 
     def inicializar_datos_contacto_base_anterior(self, logs_llamadas):
-        id_contactos_anteriores = set(logs_llamadas.values_list('contacto_id', flat=True))
+        if isinstance(logs_llamadas, list):
+            id_contactos_anteriores = {log.contacto_id for log in logs_llamadas}
+        else:
+            id_contactos_anteriores = set(logs_llamadas.values_list('contacto_id', flat=True))
         id_contactos_anteriores.difference_update(self.contactos_dict.keys())
         contactos_anteriores = Contacto.objects.filter(id__in=id_contactos_anteriores)
         self.contactos_anteriores = {

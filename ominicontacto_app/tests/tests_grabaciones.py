@@ -31,7 +31,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils.timezone import now, timedelta
 from django.contrib.auth.models import Group
-from django.test import TransactionTestCase, override_settings
+from django.test import RequestFactory, TransactionTestCase, override_settings
 
 from simple_history.utils import update_change_reason
 
@@ -664,3 +664,59 @@ class StoragePresignedUrlTtlTests(TransactionTestCase):
 
         kwargs = mock_client.generate_presigned_url.call_args.kwargs
         self.assertEqual(kwargs['ExpiresIn'], 120)
+        self.assertEqual(kwargs['Params']['ResponseContentType'], 'audio/mpeg')
+
+    @patch('api_app.services.storage_service.boto3.client')
+    def test_get_file_url_sale_por_el_proxy_minio_del_mismo_origen(self, mock_boto_client):
+        from api_app.services.storage_service import StorageService
+
+        mock_client = MagicMock()
+        mock_client.generate_presigned_url.return_value = (
+            'http://10.10.10.73:9000/omnileads/2024-01-01/abc.mp3?X-Amz-Signature=abc'
+        )
+        mock_boto_client.return_value = mock_client
+        request = RequestFactory().get(
+            '/api/v1/grabacion/archivo/',
+            HTTP_HOST='192.168.168.55',
+            secure=True,
+        )
+
+        with patch.dict(os.environ, {
+            'BUCKET_ACCESS_KEY_ID': 'k',
+            'BUCKET_SECRET_ACCESS_KEY': 's',
+            'BUCKET_NAME': 'omnileads',
+            'BUCKET_ENDPOINT': 'https://192.168.168.55:9000',
+            'BUCKET_ENDPOINT_INTERNAL': 'http://10.10.10.73:9000',
+            'CALLREC_DEVICE': 's3',
+        }):
+            service = StorageService()
+            url = service.get_file_url('/2024-01-01/abc.mp3', request=request)
+
+        self.assertTrue(
+            url.startswith('https://192.168.168.55/minio/omnileads/2024-01-01/abc.mp3?')
+        )
+        self.assertIn('X-Amz-Signature=abc', url)
+        self.assertNotIn(':9000', url)
+
+    @patch('api_app.services.storage_service.boto3.client')
+    def test_get_file_url_no_reescribe_s3_externo(self, mock_boto_client):
+        from api_app.services.storage_service import StorageService
+
+        signed = 'https://sfo3.digitaloceanspaces.com/bucket/a.mp3?X-Amz-Signature=abc'
+        mock_client = MagicMock()
+        mock_client.generate_presigned_url.return_value = signed
+        mock_boto_client.return_value = mock_client
+        request = RequestFactory().get('/', HTTP_HOST='192.168.168.55', secure=True)
+
+        with patch.dict(os.environ, {
+            'BUCKET_ACCESS_KEY_ID': 'k',
+            'BUCKET_SECRET_ACCESS_KEY': 's',
+            'BUCKET_NAME': 'bucket',
+            'BUCKET_ENDPOINT': 'https://sfo3.digitaloceanspaces.com',
+            'BUCKET_ENDPOINT_INTERNAL': 'https://sfo3.digitaloceanspaces.com',
+            'CALLREC_DEVICE': 's3',
+        }):
+            service = StorageService()
+            url = service.get_file_url('/a.mp3', request=request)
+
+        self.assertEqual(url, signed)
