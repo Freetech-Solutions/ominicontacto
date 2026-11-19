@@ -287,6 +287,10 @@ DJANGO_DEBUG_TOOLBAR = None
 DEFENDER_BEHIND_REVERSE_PROXY = None
 # Variable obligatoria, se tiene que saber que el defender está detras de un proxy
 
+OML_INTERNAL_SECRET = None
+# Secret compartido entre componentes internos de OML (fastagi, acd, websockets, omnidialer).
+# Se envía en el header X-OML-INTERNAL-SECRET. Si no está seteado, se rechazan todos los requests.
+
 #######################################
 # Ephemeral SIP credentials variables #
 #######################################

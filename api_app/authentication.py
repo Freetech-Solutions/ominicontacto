@@ -16,9 +16,13 @@
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
 
+from hmac import compare_digest
+
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.authtoken.models import Token
-from rest_framework.authentication import TokenAuthentication
+from rest_framework.authentication import BaseAuthentication, TokenAuthentication
 from rest_framework.exceptions import AuthenticationFailed
+from rest_framework.permissions import BasePermission
 
 from datetime import timedelta
 from django.utils import timezone
@@ -70,3 +74,37 @@ class ExpiringTokenAuthentication(TokenAuthentication):
             raise AuthenticationFailed("The Token is expired")
 
         return (token.user, token)
+
+
+INTERNAL_SECRET_HEADER = 'X-OML-INTERNAL-SECRET'
+INTERNAL_AUTH = 'internal'
+
+
+def is_valid_internal_secret(secret):
+    expected = settings.OML_INTERNAL_SECRET
+    if not expected or not secret:
+        return False
+    return compare_digest(str(secret).encode(), str(expected).encode())
+
+
+class InternalSecretAuthentication(BaseAuthentication):
+    """
+    Autentica requests de componentes internos de OML (fastagi, acd, etc.)
+    mediante el secret compartido OML_INTERNAL_SECRET enviado en el header
+    X-OML-INTERNAL-SECRET. No hay un usuario OML asociado.
+    """
+
+    def authenticate(self, request):
+        secret = request.META.get('HTTP_X_OML_INTERNAL_SECRET')
+        if not is_valid_internal_secret(secret):
+            raise AuthenticationFailed('Invalid internal secret')
+        return (AnonymousUser(), INTERNAL_AUTH)
+
+    def authenticate_header(self, request):
+        return INTERNAL_SECRET_HEADER
+
+
+class IsInternalComponent(BasePermission):
+
+    def has_permission(self, request, view):
+        return request.auth == INTERNAL_AUTH

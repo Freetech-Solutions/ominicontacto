@@ -15,9 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see http://www.gnu.org/licenses/.
 #
-from django.conf import settings
 from channels.generic.websocket import AsyncJsonWebsocketConsumer
 from channels.layers import get_channel_layer
+from api_app.authentication import is_valid_internal_secret
 from ominicontacto_app.services.dialer.notification.subscription import (
     DialerStatsSubscriptionManager, )
 
@@ -132,8 +132,8 @@ class DialerStatsConsumer(AsyncJsonWebsocketConsumer):
         if 'secret' in self.scope['url_route']['kwargs']:
             # Accept OMNIDIALER Connection
             secret = self.scope['url_route']['kwargs']['secret']
-            if secret != settings.OML_OMNIDIALER_SECRET:
-                return
+            if not is_valid_internal_secret(secret):
+                return await self.close()
             self.is_omnidialer = True
             for group in self.GROUPS:
                 await self.channel_layer.group_add(
