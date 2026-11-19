@@ -101,8 +101,7 @@ PUBLIC_URL_NAMES = frozenset([
     'email:api:v1:self-payload',
     # Endpoints sin usuario OML o con autenticación propia (firma, token, AllowAny)
     'api_login',
-    'api_asterisk_queues_data',
-    'api_notify_attended_multinum_call',
+    'api_notify_attended_multinum_call',  # secret interno (X-OML-INTERNAL-SECRET)
     'signed_whatsapp_media',
     'media_serve',
     'webhook-meta',
