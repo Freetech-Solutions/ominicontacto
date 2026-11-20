@@ -77,11 +77,16 @@ class EstadisticasBaseCampana:
             return LlamadaResumen
         return LlamadaLog
 
+    def _usa_interactions_summary(self):
+        """CDR Omnidialer vive en interactions_summary (dialer, preview, manual, entrante)."""
+        return (
+            hasattr(settings, 'OML_DIALER_ENGINE')
+            and settings.OML_DIALER_ENGINE == 'omnidialer'
+        )
+
     def _obtener_logs_de_llamadas(self, eventos=None, excluir_sin_agente=False):
-        # Dialer + Omnidialer: CDR vive en interactions_summary (no en LlamadaResumen)
-        if (self.campana.es_dialer and
-            hasattr(settings, 'OML_DIALER_ENGINE') and
-                settings.OML_DIALER_ENGINE == 'omnidialer'):
+        # Omnidialer: CDR en interactions_summary (alineado al gráfico V2)
+        if self._usa_interactions_summary():
             interacciones = InteractionsSummary.objects.using('replica').filter(
                 campaign_id=self.campana.pk,
                 start_time__gte=self.fecha_desde,
@@ -114,6 +119,9 @@ class EstadisticasBaseCampana:
             return Campana.TYPE_ENTRANTE
         method = (interaction.initiation_method or '').upper()
         if method == 'AGENT':
+            # Preview y manual se reportan como AGENT en interactions_summary
+            if self.campana.es_preview:
+                return Campana.TYPE_PREVIEW
             return Campana.TYPE_MANUAL
         if method == 'DIALER':
             return Campana.TYPE_DIALER
