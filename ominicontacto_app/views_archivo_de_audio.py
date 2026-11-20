@@ -163,7 +163,8 @@ class ArchivoAudioUpdateView(ArchivoDeAudioMixin, UpdateView):
         if self.object.audio_original:
             s3_handler = StorageService()
             audio_url = s3_handler.get_file_url(
-                f'/media_root/{self.object.audio_asterisk.name}')
+                f'/media_root/{self.object.audio_asterisk.name}',
+                request=self.request)
             context['audio_url'] = audio_url
         return context
 

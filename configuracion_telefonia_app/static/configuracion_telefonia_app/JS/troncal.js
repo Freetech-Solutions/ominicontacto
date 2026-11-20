@@ -40,6 +40,7 @@ endpoint/context=from-pstn\n\
 ;registration/contact_user=****Your DID number****\n\
 ;outbound_auth/username=****YOUR SIP_USERNAME****\n\
 ;outbound_auth/password=****YOUR SIP_PASSWORD****\n\
+;endpoint/set_var=PJSIP_HEADER(add,X-OML-Transport)=tls\n\
 remote_hosts=****IPADDR-or-FQDN:PORT****'
     },
     {
@@ -65,6 +66,7 @@ endpoint/context=from-pstn\n\
 ;registration/contact_user=****Your DID number****\n\
 ;outbound_auth/username=****YOUR SIP_USERNAME****\n\
 ;outbound_auth/password=****YOUR SIP_PASSWORD****\n\
+;endpoint/set_var=PJSIP_HEADER(add,X-OML-Transport)=tls\n\
 remote_hosts=****IPADDR-or-FQDN:PORT****',
     },
     {
@@ -92,6 +94,7 @@ inbound_auth/password=****SIP_PASS PBX -> OML****\n\
 endpoint/from_user=****SIP_USER OML -> PBX****\n\
 outbound_auth/username=****SIP_USER OML -> PBX****\n\
 outbound_auth/password=****SIP_PASS OML -> PBX****\n\
+;endpoint/set_var=PJSIP_HEADER(add,X-OML-Transport)=tls\n\
 remote_hosts=****IPADDR-or-FQDN:PORT****',
 
     },
@@ -117,6 +120,7 @@ endpoint/context=from-pbx\n\
 ;registration/contact_user=****Your DID number****\n\
 ;outbound_auth/username=****YOUR SIP_USERNAME****\n\
 ;outbound_auth/password=****YOUR SIP_PASSWORD****\n\
+;endpoint/set_var=PJSIP_HEADER(add,X-OML-Transport)=tls\n\
 remote_hosts=****IPADDR-or-FQDN:PORT****',
     },
     {
@@ -143,6 +147,7 @@ endpoint/context=from-pbx\n\
 ;outbound_auth/password=****YOUR SIP_PASSWORD****\n\
 outbound_proxy=sip:$YOUR_SIP_PROXY_IPADDR_OR_FQDN:5060;lr\n\
 endpoint/set_var=PJSIP_HEADER(add,OMniLeadsOutbound)=yes\n\
+;endpoint/set_var=PJSIP_HEADER(add,X-OML-Transport)=tls\n\
 identify/match=$YOUR_SIP_PROXY_IPADDR\n\
 remote_hosts=****IPADDR-or-FQDN:PORT****',
     },

@@ -183,7 +183,8 @@ class MusicaDeEsperaCreateView(ArchivoDeAudioMixin, CreateView):
             playlist_tmp.append({'nombre': pl.nombre,
                                  'pk': pl.pk,
                                  'url': s3_handler.get_file_url(
-                                     f'/media_root/{pl.audio_asterisk.name}')
+                                     f'/media_root/{pl.audio_asterisk.name}',
+                                     request=self.request)
                                  })
 
         context['playlist'] = playlist_tmp

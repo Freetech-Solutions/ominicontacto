@@ -89,7 +89,7 @@ class ObtenerArchivoGrabacionView(APIView):
             granted=True,
         )
         s3_handler = StorageService()
-        signed_url = s3_handler.get_file_url(filename)
+        signed_url = s3_handler.get_file_url(filename, request=request)
         if not signed_url:
             return HttpResponseNotFound()
         return HttpResponseRedirect(signed_url)
