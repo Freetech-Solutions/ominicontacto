@@ -202,7 +202,10 @@ class CampanaManualCreateView(CampanaManualMixin, SessionWizardView):
             campana=campana,
             name=campana.nombre,
             maxlen=5,
-            wrapuptime=5,
+            # Manual/preview no exponen wrapuptime en el formulario; 0 evita
+            # delay artificial entre salientes (el ACD aún aplica grace solo
+            # al gate de ofertas de cola, no al click-to-call).
+            wrapuptime=0,
             servicelevel=30,
             strategy='rrmemory',
             eventmemberstatus=True,
