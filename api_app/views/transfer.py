@@ -68,6 +68,42 @@ def _safe_int(value, default=0):
         return default
 
 
+def _normalize_redis_str(value):
+    """Normaliza valor Redis (bytes/str) a str; None si vacío."""
+    if value is None:
+        return None
+    if isinstance(value, bytes):
+        value = value.decode("utf-8", errors="replace")
+    value = str(value).strip()
+    return value or None
+
+
+def _publish_acd_command(r_client, channel, payload):
+    """
+    Publica comando ACD por Pub/Sub.
+
+    Si Subscribers=0 el mensaje se pierde (no hay cola). Devuelve
+    (subscribers, None) en éxito, o (0, Response 503) si nadie escucha.
+    """
+    subscribers = r_client.publish(channel, json.dumps(payload))
+    if not subscribers:
+        logger.error(
+            "ACD command action=%s published to %s with Subscribers=0 (message lost)",
+            payload.get("action"),
+            channel,
+        )
+        return 0, Response(
+            {
+                "error": "Ningún ACD suscripto al canal de comandos",
+                "channel": channel,
+                "subscribers": 0,
+                "node_id": NODE_ID,
+            },
+            status=status.HTTP_503_SERVICE_UNAVAILABLE,
+        )
+    return subscribers, None
+
+
 def _resolve_channel(r_client, agent_id=None):
     """
     Resuelve el canal de Redis al cual enviar el comando.
@@ -85,13 +121,11 @@ def _resolve_channel(r_client, agent_id=None):
         # Buscar NODE_ID del agente
         # El hash OML:AGENT:{id} contiene un campo NODE_ID si está logueado
         agent_key = f"OML:AGENT:{agent_id}"
-        agent_node = r_client.hget(agent_key, "NODE_ID")
+        agent_node = _normalize_redis_str(r_client.hget(agent_key, "NODE_ID"))
 
         if agent_node:
-            # Normalizar a string por si acaso
-            node_str = str(agent_node)
-            target_channel = f"{BASE_CHANNEL_KEY}:{node_str}"
-            logger.debug(f"🎯 Agente {agent_id} en nodo {node_str} -> Canal {target_channel}")
+            target_channel = f"{BASE_CHANNEL_KEY}:{agent_node}"
+            logger.debug(f"🎯 Agente {agent_id} en nodo {agent_node} -> Canal {target_channel}")
             return target_channel
 
     except Exception as e:
@@ -280,8 +314,9 @@ class TransferBlindAgentView(APIView):
             # Resolver canal destino
             channel = _resolve_channel(r_client, agent_id)
 
-            # Publicamos en el canal resuelto
-            subscribers = r_client.publish(channel, json.dumps(payload))
+            subscribers, err = _publish_acd_command(r_client, channel, payload)
+            if err:
+                return err
 
             logger.info(
                 f"📨 Blind transfer ({unique_id} -> agent {target_agent_id}) enviado a {channel}. "
@@ -346,8 +381,9 @@ class TransferBlindEndpointView(APIView):
             # Resolver canal destino
             channel = _resolve_channel(r_client, agent_id)
 
-            # Publicamos
-            subscribers = r_client.publish(channel, json.dumps(payload))
+            subscribers, err = _publish_acd_command(r_client, channel, payload)
+            if err:
+                return err
 
             logger.info(
                 f"📨 Transferencia {unique_id}->{endpoint} enviada a {channel}. "
@@ -407,7 +443,9 @@ class TransferBlindCampaignView(APIView):
             }
 
             channel = _resolve_channel(r_client, agent_id)
-            subscribers = r_client.publish(channel, json.dumps(payload))
+            subscribers, err = _publish_acd_command(r_client, channel, payload)
+            if err:
+                return err
 
             logger.info(
                 f"📨 Transferencia a Campaña {target_camp} enviada a {channel} "
@@ -503,7 +541,9 @@ class TransferBlindCampaignAgentView(APIView):
             }
 
             channel = _resolve_channel(r_client, agent_id)
-            subscribers = r_client.publish(channel, json.dumps(payload))
+            subscribers, err = _publish_acd_command(r_client, channel, payload)
+            if err:
+                return err
 
             logger.info(
                 f"📨 Blind transfer a agente de campaña: {unique_id} -> agent {target_agent_id} "

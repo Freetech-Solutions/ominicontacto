@@ -790,8 +790,9 @@ class SessionData {
         if (invite_request.headers.Omldid)
             call_data.Omldid = invite_request.headers.Omldid[0].raw;
 
-        if (invite_request.headers.Omlcampname)
-            call_data.Omlcampname = invite_request.headers.Omlcampname[0].raw;
+        // SIP.js normaliza X-OML-CampName → X-Oml-Campname (igual que Campid, Agentid, etc.)
+        if (invite_request.headers['X-Oml-Campname'])
+            call_data.Omlcampname = invite_request.headers['X-Oml-Campname'][0].raw;
 
         if (invite_request.headers.Omlinroutename)
             call_data.Omlinroutename = invite_request.headers.Omlinroutename[0].raw;
